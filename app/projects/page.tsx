@@ -20,9 +20,9 @@ const projects = [
     subtitle: "YOLO-Based Utility Infrastructure Detection from Aerial Imagery",
     image: "/Aerial-AI-Object-Detection.png",
     problem: "Identifying utility poles, streetlights, and telecom infrastructure in aerial imagery required expensive manual inspection across large geographic areas.",
-    solution: "Built a desktop application that fetches high-resolution aerial tiles by coordinate, runs a custom-trained YOLO model to detect utility assets, and exports georeferenced results to ArcGIS. Supports single-point, grid, and area scanning modes.",
+    solution: "Built a desktop application that fetches high-resolution aerial tiles by coordinate, runs a custom-trained YOLO model to detect utility assets, and exports georeferenced results to ArcGIS. Supports single-point, grid, and area scanning modes with tile navigation controls.",
     impact: ["Automated detection of utility poles and streetlights from aerial tiles", "Georeferenced export to GIS-ready formats", "Custom YOLO model trained on telecom infrastructure classes"],
-    tech: ["Python", "YOLO", "Google Maps Tile API", "ArcGIS", "OpenCV"],
+    tech: ["Python", "YOLO", "Aerial Imagery API", "ArcGIS", "OpenCV"],
     color: "var(--accent-cyan, #06B6D4)",
   },
   {
@@ -31,9 +31,9 @@ const projects = [
     subtitle: "YOLO-Based Infrastructure Detection Along Street Routes",
     image: "/Streetview-AI-Object-Detection.png",
     problem: "Field surveys for utility poles and telecom equipment require costly in-person visits, and traditional GIS methods cannot identify specific physical assets from ground level.",
-    solution: "Built a desktop application that traverses streets using Google Street View imagery, running a custom YOLO model to detect and classify utility infrastructure. Supports line traversal, panoramic capture, and area buffering with navigation controls.",
+    solution: "Built a desktop application that traverses streets using street-level imagery, running a custom YOLO model to detect and classify utility infrastructure. Supports line traversal, panoramic capture, and area buffering with step-by-step navigation controls.",
     impact: ["Remote field survey capability without site visits", "Automated inventory of streetside utility assets", "Configurable traversal distance and panoramic heading coverage"],
-    tech: ["Python", "YOLO", "Google Street View API", "ArcGIS", "OpenCV"],
+    tech: ["Python", "YOLO", "Street-Level Imagery API", "ArcGIS", "OpenCV"],
     color: "var(--accent-green)",
   },
   {
