@@ -16,8 +16,8 @@ export default function Resume() {
             <span className={styles.contactItem}>📍 Lincoln, Nebraska</span>
             <a className={styles.contactItem} href="tel:+15312296873">📞 +1 (531) 229-6873</a>
             <a className={styles.contactItem} href="mailto:ozanganeh@unomaha.edu">✉ ozanganeh@unomaha.edu</a>
-            <a className={styles.contactItem} href="https://linkedin.com" target="_blank" rel="noopener noreferrer">🔗 LinkedIn</a>
-            <a className={styles.contactItem} href="#" target="_blank" rel="noopener noreferrer">🌐 Portfolio</a>
+            <a className={styles.contactItem} href="https://www.linkedin.com/in/omidzanganeh/" target="_blank" rel="noopener noreferrer">🔗 LinkedIn</a>
+            <a className={styles.contactItem} href="https://arcg.is/1n1C4r" target="_blank" rel="noopener noreferrer">🌐 StoryMap</a>
           </div>
         </div>
         <Image
@@ -177,7 +177,7 @@ export default function Resume() {
       {/* ── FOOTER ── */}
       <footer className={styles.footer}>
         <p><strong>Omid Zanganeh</strong> · GIS Associate Technician &amp; Software Developer · Lincoln, Nebraska</p>
-        <p>For detailed projects, training &amp; certifications — <a href="#">visit my portfolio</a></p>
+        <p>For detailed projects, training &amp; certifications — <a href="https://arcg.is/1n1C4r" target="_blank" rel="noopener noreferrer">visit my StoryMap</a></p>
       </footer>
 
     </div>
