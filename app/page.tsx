@@ -10,10 +10,10 @@ import SkillBar from "./components/SkillBar";
 import JourneySection from "./components/JourneySection";
 import ContactForm from "./components/ContactForm";
 import GameHub from "./components/GameHub";
-import HobbiesSection from "./components/HobbiesSection";
 import GithubHeatmap from "./components/GithubHeatmap";
 import VisitorCounter from "./components/VisitorCounter";
 import SkillRadar from "./components/SkillRadar";
+import HobbiesSidePanel from "./components/HobbiesSidePanel";
 
 export default function Resume() {
   const [gameOpen, setGameOpen] = useState(false);
@@ -276,6 +276,11 @@ export default function Resume() {
             <SkillBar label="Arcade" level={50} />
           </section>
 
+          {/* Hobbies & Life Balance */}
+          <section>
+            <HobbiesSidePanel />
+          </section>
+
           {/* Tool Tags */}
           <section>
             <h2 className={styles.sectionTitle}>Tools & Platforms</h2>
@@ -301,49 +306,6 @@ export default function Resume() {
       </div>
 
       {/* ══════════════════════════════════════
-          PROJECTS PREVIEW
-      ══════════════════════════════════════ */}
-      <section className={styles.projectsSection}>
-        <div className={styles.projectsHeader}>
-          <h2 className={styles.sectionTitle}>Featured Projects</h2>
-          <Link href="/projects" className={styles.seeAll}>See all projects →</Link>
-        </div>
-        <div className={styles.projectsGrid}>
-
-          <div className={styles.projectCard}>
-            <div className={styles.projectTop}>
-              <span className={styles.projectIcon}>🤖</span>
-              <span className={`${styles.projectTag} ${styles.tagBlue}`}>AI · Azure · Python</span>
-            </div>
-            <h3 className={styles.projectTitle}>RFP Radar</h3>
-            <p className={styles.projectDesc}>AI-powered RFP sourcing tool that cuts search time from months to hours using Azure AI Foundry and Google AI Studio.</p>
-            <div className={styles.projectImpact}>⚡ Months → Hours</div>
-          </div>
-
-          <div className={styles.projectCard}>
-            <div className={styles.projectTop}>
-              <span className={styles.projectIcon}>⚙️</span>
-              <span className={`${styles.projectTag} ${styles.tagOrange}`}>Python · C# · ArcGIS</span>
-            </div>
-            <h3 className={styles.projectTitle}>Bore Profile Generator</h3>
-            <p className={styles.projectDesc}>Fully automated desktop app that generates bore profiles for fiber networks. Replaced days of manual drafting.</p>
-            <div className={styles.projectImpact}>⚡ Days → Minutes</div>
-          </div>
-
-          <div className={styles.projectCard}>
-            <div className={styles.projectTop}>
-              <span className={styles.projectIcon}>🗺️</span>
-              <span className={`${styles.projectTag} ${styles.tagGreen}`}>Python · TROPOMI · GEE</span>
-            </div>
-            <h3 className={styles.projectTitle}>NOx Emissions Analysis</h3>
-            <p className={styles.projectDesc}>MS Thesis — Spatiotemporal analysis of NOx emissions from U.S. cement plants using satellite remote sensing data.</p>
-            <div className={styles.projectImpact}>⚡ MS Thesis · GPA 4.00</div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
           SKILL RADAR
       ══════════════════════════════════════ */}
       <section className={styles.radarSection}>
@@ -358,11 +320,6 @@ export default function Resume() {
         <h2 className={styles.sectionTitle}>GitHub Activity</h2>
         <GithubHeatmap username="OmidZanganeh" />
       </section>
-
-      {/* ══════════════════════════════════════
-          INTERESTS & BALANCE
-      ══════════════════════════════════════ */}
-      <HobbiesSection />
 
       {/* ══════════════════════════════════════
           JOURNEY MAP
