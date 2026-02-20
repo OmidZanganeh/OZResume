@@ -21,8 +21,8 @@ const LIFE = [
 const R_FULL = 112;
 const CX_FULL = 160; const CY_FULL = 160;
 
-const R_COMPACT = 98;
-const CX_COMPACT = 168; const CY_COMPACT = 168;
+const R_COMPACT = 115;
+const CX_COMPACT = 175; const CY_COMPACT = 175;
 
 function toRad(deg: number) { return (deg * Math.PI) / 180; }
 
@@ -55,7 +55,7 @@ export default function HobbiesSection({ compact = false }: Props) {
           <p className={styles.subLabel}>Hobbies</p>
           <div className={`${styles.bubblesContainer} ${compact ? styles.bubblesCompact : ''}`}>
             {/* SVG connector lines */}
-            <svg className={styles.lines} viewBox={compact ? '0 0 336 336' : '0 0 320 320'}>
+            <svg className={styles.lines} viewBox={compact ? '0 0 350 350' : '0 0 320 320'}>
               {HOBBIES.map((h, i) => {
                 const cx = CX + R * Math.cos(toRad(h.angle));
                 const cy = CY + R * Math.sin(toRad(h.angle));
@@ -83,6 +83,7 @@ export default function HobbiesSection({ compact = false }: Props) {
               const sz = bubbleSizes[i];
               const cx = CX + R * Math.cos(toRad(h.angle));
               const cy = CY + R * Math.sin(toRad(h.angle));
+              const labelAbove = i % 2 === 0;
               return (
                 <div
                   key={i}
@@ -95,8 +96,17 @@ export default function HobbiesSection({ compact = false }: Props) {
                     animationDelay: `${i * 0.25}s`,
                   }}
                 >
-                  <span className={styles.hobbyEmoji}>{h.emoji}</span>
-                  <span className={styles.hobbyLabel}>{h.label}</span>
+                  {labelAbove ? (
+                    <>
+                      <span className={styles.hobbyLabel}>{h.label}</span>
+                      <span className={styles.hobbyEmoji}>{h.emoji}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={styles.hobbyEmoji}>{h.emoji}</span>
+                      <span className={styles.hobbyLabel}>{h.label}</span>
+                    </>
+                  )}
                 </div>
               );
             })}
