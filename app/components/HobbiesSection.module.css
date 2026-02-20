@@ -12,16 +12,16 @@
 }
 
 .bubblesCompact {
-  width: 280px !important;
-  height: 280px !important;
+  width: 336px !important;
+  height: 336px !important;
 }
 
 .centerCompact {
-  width: 52px !important;
-  height: 52px !important;
-  left: calc(50% - 26px) !important;
-  top: calc(50% - 26px) !important;
-  font-size: 0.6em !important;
+  width: 62px !important;
+  height: 62px !important;
+  left: calc(50% - 31px) !important;
+  top: calc(50% - 31px) !important;
+  font-size: 0.72em !important;
 }
 
 .compact .donutWrap {
@@ -32,12 +32,13 @@
 }
 
 .donutCompact .donutChart {
-  width: 120px;
-  height: 120px;
+  width: 144px;
+  height: 144px;
 }
 
 .donutCompact .legend {
-  max-width: 140px;
+  max-width: 168px;
+  font-size: 1.02em;
 }
 
 .sectionTitle {

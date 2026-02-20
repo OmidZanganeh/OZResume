@@ -12,8 +12,8 @@
 }
 
 .wrap.compact .svg {
-  width: 260px;
-  height: 260px;
+  width: 300px;
+  height: 300px;
 }
 
 .svg {
@@ -59,7 +59,7 @@
 /* Axis labels */
 .label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   fill: var(--text-secondary);
 }
@@ -67,7 +67,7 @@
 /* Value tips inside polygon */
 .valueTip {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   fill: var(--accent-blue);
 }
