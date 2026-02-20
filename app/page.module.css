@@ -501,6 +501,15 @@
   border-radius: 12px;
 }
 
+/* ─── GitHub Activity Section ─── */
+.githubSection {
+  margin: 56px 0;
+  padding: 28px 44px 32px;
+  background: var(--paper-light);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+}
+
 /* ─── Projects Section ─── */
 .projectsSection {
   margin-top: 60px;
@@ -606,10 +615,6 @@
   flex-direction: column;
   gap: 16px;
   position: relative;
-}
-
-.footerLeft {
-  width: 100%;
 }
 
 .footerBottom {

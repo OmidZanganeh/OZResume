@@ -269,11 +269,11 @@ export default function Resume() {
           <section>
             <h2 className={styles.sectionTitle}>Coding Skills</h2>
             <SkillBar label="Python" level={95} />
-            <SkillBar label="ArcGIS" level={95} />
             <SkillBar label="SQL" level={85} />
             <SkillBar label="C#" level={80} />
-            <SkillBar label="HTML/JS" level={75} />
+            <SkillBar label="JavaScript" level={75} />
             <SkillBar label="AI/ML" level={70} />
+            <SkillBar label="Arcade" level={50} />
           </section>
 
           {/* Tool Tags */}
@@ -299,14 +299,6 @@ export default function Resume() {
 
         </aside>
       </div>
-
-      {/* ══════════════════════════════════════
-          SKILL RADAR
-      ══════════════════════════════════════ */}
-      <section className={styles.radarSection}>
-        <h2 className={styles.sectionTitle}>Skills at a Glance</h2>
-        <SkillRadar />
-      </section>
 
       {/* ══════════════════════════════════════
           PROJECTS PREVIEW
@@ -352,7 +344,23 @@ export default function Resume() {
       </section>
 
       {/* ══════════════════════════════════════
-          HOBBIES & LIFE BALANCE
+          SKILL RADAR
+      ══════════════════════════════════════ */}
+      <section className={styles.radarSection}>
+        <h2 className={styles.sectionTitle}>Skills at a Glance</h2>
+        <SkillRadar />
+      </section>
+
+      {/* ══════════════════════════════════════
+          GITHUB ACTIVITY
+      ══════════════════════════════════════ */}
+      <section className={styles.githubSection}>
+        <h2 className={styles.sectionTitle}>GitHub Activity</h2>
+        <GithubHeatmap username="OmidZanganeh" />
+      </section>
+
+      {/* ══════════════════════════════════════
+          INTERESTS & BALANCE
       ══════════════════════════════════════ */}
       <HobbiesSection />
 
@@ -375,9 +383,6 @@ export default function Resume() {
           FOOTER
       ══════════════════════════════════════ */}
       <footer className={styles.footer}>
-        <div className={styles.footerLeft}>
-          <GithubHeatmap username="OmidZanganeh" />
-        </div>
         <div className={styles.footerBottom}>
           <p><strong>Omid Zanganeh</strong> · GIS Associate Technician &amp; Developer · Lincoln, Nebraska</p>
           <p>
