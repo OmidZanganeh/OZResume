@@ -2,28 +2,28 @@
 import styles from './HobbiesSection.module.css';
 
 const HOBBIES = [
-  { label: 'Volleyball',      emoji: '🏐', size: 78, angle: -90,  color: '#3b82f6' },
-  { label: 'Pickleball',      emoji: '🏓', size: 72, angle: -30,  color: '#8b5cf6' },
-  { label: 'Soccer',          emoji: '⚽', size: 66, angle:  30,  color: '#22c55e' },
-  { label: 'Video Games',     emoji: '🎮', size: 70, angle:  90,  color: '#f97316' },
-  { label: 'Movies & Series', emoji: '🎬', size: 66, angle: 150,  color: '#ec4899' },
-  { label: 'Traveling',       emoji: '✈️', size: 74, angle: 210,  color: '#06b6d4' },
+  { label: 'Volleyball',      emoji: '🏐', size: 76, angle: -90  },
+  { label: 'Pickleball',      emoji: '🏓', size: 70, angle: -38  },
+  { label: 'Soccer',          emoji: '⚽', size: 65, angle:  13  },
+  { label: 'Workout',         emoji: '🏋️', size: 68, angle:  64  },
+  { label: 'Video Games',     emoji: '🎮', size: 68, angle: 116  },
+  { label: 'Movies & Series', emoji: '🎬', size: 64, angle: 167  },
+  { label: 'Traveling',       emoji: '✈️', size: 72, angle: 218  },
 ];
 
 const LIFE = [
-  { label: 'Sleep',       pct: 30, color: '#3b82f6' },
-  { label: 'Work',        pct: 27, color: '#f97316' },
-  { label: 'Hobbies',     pct: 22, color: '#22c55e' },
-  { label: 'Gym/Sports',  pct: 13, color: '#8b5cf6' },
-  { label: 'Other',       pct:  8, color: '#a39f92' },
+  { label: 'Sleep',       pct: 30, color: '#8a9ab5' },
+  { label: 'Work',        pct: 27, color: '#b5936a' },
+  { label: 'Hobbies',     pct: 22, color: '#7aab8a' },
+  { label: 'Gym/Sports',  pct: 13, color: '#9b8ab5' },
+  { label: 'Other',       pct:  8, color: '#c8c4bc' },
 ];
 
-const R = 115; // orbit radius from center of 320×320 container
+const R = 112;
 const CX = 160; const CY = 160;
 
 function toRad(deg: number) { return (deg * Math.PI) / 180; }
 
-// Build conic-gradient string
 function buildConic() {
   let deg = 0;
   return LIFE.map(s => {
@@ -38,12 +38,12 @@ export default function HobbiesSection() {
 
   return (
     <section className={styles.section}>
-      <h2 className={styles.sectionTitle}>Beyond the Code</h2>
+      <h2 className={styles.sectionTitle}>Interests &amp; Balance</h2>
 
       <div className={styles.grid}>
         {/* ── Hobby Bubbles ── */}
         <div className={styles.bubblesWrap}>
-          <h3 className={styles.subTitle}>Hobbies</h3>
+          <p className={styles.subLabel}>// hobbies</p>
           <div className={styles.bubblesContainer}>
             {/* SVG connector lines */}
             <svg className={styles.lines} viewBox="0 0 320 320">
@@ -53,12 +53,12 @@ export default function HobbiesSection() {
                 return (
                   <line
                     key={i}
-                    x1={CX} y1={CY}
-                    x2={cx} y2={cy}
-                    stroke={h.color}
-                    strokeWidth="1.5"
-                    strokeOpacity="0.35"
-                    strokeDasharray="4 3"
+                    x1={CX} y1={CY} x2={cx} y2={cy}
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeOpacity="0.18"
+                    strokeDasharray="3 3"
+                    className={styles.connectorLine}
                   />
                 );
               })}
@@ -66,7 +66,6 @@ export default function HobbiesSection() {
 
             {/* Center bubble */}
             <div className={styles.centerBubble}>
-              <span>My</span>
               <span>Hobbies</span>
             </div>
 
@@ -83,8 +82,7 @@ export default function HobbiesSection() {
                     height: h.size,
                     left: cx - h.size / 2,
                     top:  cy - h.size / 2,
-                    background: h.color,
-                    animationDelay: `${i * 0.3}s`,
+                    animationDelay: `${i * 0.25}s`,
                   }}
                 >
                   <span className={styles.hobbyEmoji}>{h.emoji}</span>
@@ -97,10 +95,8 @@ export default function HobbiesSection() {
 
         {/* ── Life Balance Donut ── */}
         <div className={styles.donutWrap}>
-          <h3 className={styles.subTitle}>Life Balance</h3>
-          <div className={styles.donutChart}
-            style={{ background: `conic-gradient(${conic})` }}
-          >
+          <p className={styles.subLabel}>// life balance</p>
+          <div className={styles.donutChart} style={{ background: `conic-gradient(${conic})` }}>
             <div className={styles.donutHole}>
               <span className={styles.donutCenter}>24h</span>
               <span className={styles.donutSub}>a day</span>
