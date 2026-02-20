@@ -1,5 +1,7 @@
+'use client';
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import styles from "./page.module.css";
 import TypeWriter from "./components/TypeWriter";
 import CountUp from "./components/CountUp";
@@ -7,8 +9,10 @@ import DarkModeToggle from "./components/DarkModeToggle";
 import SkillBar from "./components/SkillBar";
 import JourneySection from "./components/JourneySection";
 import ContactForm from "./components/ContactForm";
+import BoredGame from "./components/BoredGame";
 
 export default function Resume() {
+  const [gameOpen, setGameOpen] = useState(false);
   return (
     <div className={styles.container}>
 
@@ -18,6 +22,9 @@ export default function Resume() {
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <DarkModeToggle />
+          <button className={styles.boredBtn} onClick={() => setGameOpen(true)}>
+            🎮 Bored?
+          </button>
         </div>
 
         <div className={styles.headerMain}>
@@ -341,6 +348,11 @@ export default function Resume() {
           CONTACT FORM
       ══════════════════════════════════════ */}
       <ContactForm />
+
+      {/* ══════════════════════════════════════
+          GAME MODAL
+      ══════════════════════════════════════ */}
+      {gameOpen && <BoredGame onClose={() => setGameOpen(false)} />}
 
       {/* ══════════════════════════════════════
           FOOTER

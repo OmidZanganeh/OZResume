@@ -25,7 +25,31 @@
 .headerTop {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
+}
+
+.boredBtn {
+  background: var(--paper-dark);
+  border: 1px solid var(--border-dark);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, color 0.2s;
+  box-shadow: 2px 2px 0 var(--border-light);
+}
+
+.boredBtn:hover {
+  transform: translate(-1px, -1px) rotate(-2deg);
+  background: var(--accent-orange);
+  color: white;
+  border-color: var(--accent-orange);
+  box-shadow: 3px 3px 0 rgba(249,115,22,0.3);
 }
 
 .headerMain {
