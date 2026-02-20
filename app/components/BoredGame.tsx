@@ -14,10 +14,10 @@ const WORDS = [
   'latitude','longitude','azimuth','bearing','cadastral','parcel','cadastre',
   'geostatistics','kriging','thiessen','voronoi','tin','dem','dsm','dtm',
   'orthorectify','photogrammetry','parallax','stereo','aerial','drone','uav',
-  'multispectral','hyperspectral','infrared','lidar','pointcloud','voxel',
+  'multispectral','hyperspectral','infrared','pointcloud','voxel',
   // Remote sensing
   'tropomi','sentinel','landsat','modis','ndvi','ndwi','savi','evi',
-  'classification','spectral','temporal','composite','mosaic','calibration',
+  'classification','spectral','temporal','composite','calibration',
   'radiance','reflectance','emissivity','albedo','backscatter','coherence',
   'interferometry','sar','insar','phenology','biomass','canopy','impervious',
   // Coding & data
@@ -35,32 +35,36 @@ const WORDS = [
   'route','span','riser','trench','directional','pullbox','closure',
   // Places & orgs
   'olsson','omaha','lincoln','nebraska','arcgis','qgis','autocad','envi',
-  'tableau','github','azure','smartsheet','postgresql','sqlserver',
+  'tableau','github','smartsheet','postgresql','sqlserver',
 ];
 
 const COLS = 6;
 const TICK_MS = 1400;
 const SPEED_UP = 0.93;
-const MAX_LEADERS = 3;
 
 type FallingWord = { id: number; word: string; col: number; row: number };
 type LeaderEntry = { name: string; score: number };
 
 let idCounter = 0;
 
-function getLeaders(): LeaderEntry[] {
+async function fetchLeaders(): Promise<LeaderEntry[]> {
   try {
-    return JSON.parse(localStorage.getItem('gisGameLeaders') || '[]');
+    const res = await fetch('/api/leaderboard');
+    if (!res.ok) return [];
+    return res.json();
   } catch { return []; }
 }
 
-function saveLeader(entry: LeaderEntry) {
-  const leaders = getLeaders();
-  leaders.push(entry);
-  leaders.sort((a, b) => b.score - a.score);
-  const top = leaders.slice(0, MAX_LEADERS);
-  localStorage.setItem('gisGameLeaders', JSON.stringify(top));
-  return top;
+async function postScore(name: string, score: number): Promise<LeaderEntry[]> {
+  try {
+    const res = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, score }),
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch { return []; }
 }
 
 export default function BoredGame({ onClose }: { onClose: () => void }) {
@@ -74,6 +78,7 @@ export default function BoredGame({ onClose }: { onClose: () => void }) {
   const [flash, setFlash] = useState<string | null>(null);
   const [leaders, setLeaders] = useState<LeaderEntry[]>([]);
   const [isNewRecord, setIsNewRecord] = useState(false);
+  const [saving, setSaving] = useState(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const spawnRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const speedRef = useRef(TICK_MS);
@@ -82,7 +87,7 @@ export default function BoredGame({ onClose }: { onClose: () => void }) {
   const scoreRef = useRef(0);
 
   useEffect(() => {
-    setLeaders(getLeaders());
+    fetchLeaders().then(setLeaders);
   }, []);
 
   const clearIntervals = () => {
@@ -96,13 +101,17 @@ export default function BoredGame({ onClose }: { onClose: () => void }) {
     setTimeout(() => setFlash(null), 750);
   };
 
-  const endGame = useCallback((finalScore: number) => {
+  const endGame = useCallback(async (finalScore: number) => {
     clearIntervals();
     setScreen('gameover');
-    if (playerName.trim()) {
-      const updated = saveLeader({ name: playerName.trim(), score: finalScore });
-      setLeaders(updated);
-      setIsNewRecord(updated.some(l => l.name === playerName.trim() && l.score === finalScore));
+    if (playerName.trim() && finalScore > 0) {
+      setSaving(true);
+      const updated = await postScore(playerName.trim(), finalScore);
+      setSaving(false);
+      if (updated.length > 0) {
+        setLeaders(updated);
+        setIsNewRecord(updated.some(l => l.name === playerName.trim() && l.score === finalScore));
+      }
     }
   }, [playerName]);
 
@@ -236,7 +245,7 @@ export default function BoredGame({ onClose }: { onClose: () => void }) {
 
             {leaders.length > 0 && (
               <div className={styles.leaderboard}>
-                <p className={styles.leaderTitle}>🏆 Top Scores</p>
+                <p className={styles.leaderTitle}>🏆 Global Top Scores</p>
                 {leaders.map((l, i) => (
                   <div key={i} className={styles.leaderRow}>
                     <span>{medals[i]} {l.name}</span>
@@ -289,9 +298,11 @@ export default function BoredGame({ onClose }: { onClose: () => void }) {
               {playerName} scored <strong>{score}</strong>
             </p>
 
-            {leaders.length > 0 && (
+            {saving && <p className={styles.savingText}>Saving score...</p>}
+
+            {!saving && leaders.length > 0 && (
               <div className={styles.leaderboard}>
-                <p className={styles.leaderTitle}>🏆 Top Scores</p>
+                <p className={styles.leaderTitle}>🏆 Global Top Scores</p>
                 {leaders.map((l, i) => (
                   <div
                     key={i}

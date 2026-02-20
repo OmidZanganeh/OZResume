@@ -332,3 +332,10 @@
   60%  { transform: scale(1.15); }
   100% { transform: scale(1); }
 }
+
+.savingText {
+  font-size: 0.85em;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin: 0.5rem 0;
+}
