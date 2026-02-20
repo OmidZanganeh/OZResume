@@ -21,10 +21,16 @@
 }
 
 .subLabel {
-  font-size: 0.76em;
+  font-size: 0.7em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   color: var(--text-muted);
-  margin-bottom: 12px;
-  font-style: italic;
+  margin-bottom: 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px dotted var(--border-light);
+  width: 100%;
+  text-align: center;
 }
 
 .grid {

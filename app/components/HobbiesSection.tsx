@@ -12,11 +12,10 @@ const HOBBIES = [
 ];
 
 const LIFE = [
-  { label: 'Sleep',       pct: 30, color: '#8a9ab5' },
-  { label: 'Work',        pct: 27, color: '#b5936a' },
-  { label: 'Hobbies',     pct: 22, color: '#7aab8a' },
-  { label: 'Gym/Sports',  pct: 13, color: '#9b8ab5' },
-  { label: 'Other',       pct:  8, color: '#c8c4bc' },
+  { label: 'Sleep',   pct: 30, color: '#8a9ab5' },
+  { label: 'Work',    pct: 27, color: '#b5936a' },
+  { label: 'Hobbies', pct: 33, color: '#7aab8a' },
+  { label: 'Other',   pct: 10, color: '#c8c4bc' },
 ];
 
 const R = 112;
@@ -43,7 +42,7 @@ export default function HobbiesSection() {
       <div className={styles.grid}>
         {/* ── Hobby Bubbles ── */}
         <div className={styles.bubblesWrap}>
-          <p className={styles.subLabel}>// hobbies</p>
+          <p className={styles.subLabel}>Hobbies</p>
           <div className={styles.bubblesContainer}>
             {/* SVG connector lines */}
             <svg className={styles.lines} viewBox="0 0 320 320">
@@ -95,7 +94,7 @@ export default function HobbiesSection() {
 
         {/* ── Life Balance Donut ── */}
         <div className={styles.donutWrap}>
-          <p className={styles.subLabel}>// life balance</p>
+          <p className={styles.subLabel}>Life Balance</p>
           <div className={styles.donutChart} style={{ background: `conic-gradient(${conic})` }}>
             <div className={styles.donutHole}>
               <span className={styles.donutCenter}>24h</span>
