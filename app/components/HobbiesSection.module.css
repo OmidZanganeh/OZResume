@@ -8,37 +8,51 @@
 
 .compact .grid {
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 16px;
 }
 
 .bubblesCompact {
-  width: 350px !important;
-  height: 350px !important;
+  width: 340px !important;
+  height: 340px !important;
+  margin: 0 auto;
 }
 
 .centerCompact {
-  width: 62px !important;
-  height: 62px !important;
-  left: calc(50% - 31px) !important;
-  top: calc(50% - 31px) !important;
-  font-size: 0.72em !important;
+  width: 74px !important;
+  height: 74px !important;
+  left: calc(50% - 37px) !important;
+  top: calc(50% - 37px) !important;
+  font-size: 0.82em !important;
 }
 
 .compact .donutWrap {
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .donutCompact .donutChart {
-  width: 144px;
-  height: 144px;
+  width: 190px;
+  height: 190px;
 }
 
 .donutCompact .legend {
-  max-width: 168px;
-  font-size: 1.02em;
+  max-width: 200px;
+  font-size: 1.1em;
+}
+
+.compact .subLabel {
+  margin-bottom: 10px;
+  font-size: 0.78em;
+}
+
+.compact .hobbyEmoji {
+  font-size: 1.45em;
+}
+
+.compact .hobbyLabel {
+  font-size: 0.7em;
 }
 
 .sectionTitle {

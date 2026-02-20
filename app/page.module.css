@@ -285,7 +285,7 @@
 /* ─── Main Grid ─── */
 .grid {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 360px;
   gap: 48px;
   align-items: start;
 }
