@@ -1,6 +1,6 @@
 .section {
   margin-top: 60px;
-  padding: 40px;
+  padding: 40px 40px 160px;
   background: var(--paper-light);
   border: 1px solid var(--border-light);
   border-radius: 10px;
