@@ -298,18 +298,21 @@
   background-size: 200px 3px;
 }
 
-/* ─── Job Timeline ─── */
+/* ─── Job Cards ─── */
 .jobList {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 18px;
 }
 
 .job {
-  padding-left: 22px;
-  border-left: 3px solid var(--border-light);
-  position: relative;
-  transition: border-color 0.25s;
+  background: var(--paper-light);
+  border: 1px solid var(--border-light);
+  border-left: 5px solid var(--accent-blue);
+  border-radius: 8px;
+  padding: 22px 24px;
+  box-shadow: 2px 2px 0 rgba(163,159,146,0.1), 4px 4px 0 rgba(163,159,146,0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
   animation: fadeUp 0.4s ease both;
 }
 
@@ -318,19 +321,10 @@
 .job:nth-child(3) { animation-delay: 0.18s; }
 .job:nth-child(4) { animation-delay: 0.24s; }
 
-.job::before {
-  content: '';
-  position: absolute;
-  left: -7px; top: 8px;
-  width: 11px; height: 11px;
-  border-radius: 50%;
-  background: var(--paper-bg);
-  border: 2px solid var(--border-dark);
-  transition: background 0.25s, border-color 0.25s;
+.job:hover {
+  transform: translateY(-3px);
+  box-shadow: 3px 6px 0 rgba(163,159,146,0.15), 6px 10px 0 rgba(163,159,146,0.08);
 }
-
-.job:hover { border-color: var(--accent-blue); }
-.job:hover::before { background: var(--accent-blue); border-color: var(--accent-blue); }
 
 .jobMeta {
   display: flex;
