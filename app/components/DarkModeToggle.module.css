@@ -1,0 +1,15 @@
+.toggle {
+  background: var(--paper-dark);
+  border: 1px solid var(--border-dark);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+  line-height: 1;
+}
+
+.toggle:hover {
+  transform: scale(1.1) rotate(15deg);
+  background: var(--paper-light);
+}
