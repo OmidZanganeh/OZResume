@@ -10,8 +10,22 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://omidzanganeh.com'),
   title: "Omid Zanganeh – GIS & Developer",
-  description: "Resume of Omid Zanganeh, GIS Associate Technician specializing in Python, ArcGIS, and AI-powered workflows.",
+  description: "GIS Associate Technician & Developer at Olsson. Specializing in Python, ArcGIS, AI-powered workflows, and fiber network automation.",
+  openGraph: {
+    title: "Omid Zanganeh – GIS & Developer",
+    description: "GIS Associate Technician & Developer at Olsson. Python, ArcGIS, AI automation, remote sensing, fiber network design.",
+    url: "https://omidzanganeh.com",
+    siteName: "Omid Zanganeh",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Omid Zanganeh – GIS & Developer",
+    description: "GIS Associate Technician & Developer at Olsson. Python, ArcGIS, AI automation.",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

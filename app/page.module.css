@@ -591,13 +591,24 @@
   margin-top: 60px;
   padding-top: 22px;
   border-top: 2px solid var(--border-dark);
-  text-align: center;
   font-size: 0.85em;
   color: var(--text-muted);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
   position: relative;
+}
+
+.footerLeft {
+  width: 100%;
+}
+
+.footerBottom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+  align-items: center;
 }
 
 .footer::before {

@@ -10,6 +10,9 @@ import SkillBar from "./components/SkillBar";
 import JourneySection from "./components/JourneySection";
 import ContactForm from "./components/ContactForm";
 import GameHub from "./components/GameHub";
+import HobbiesSection from "./components/HobbiesSection";
+import GithubHeatmap from "./components/GithubHeatmap";
+import VisitorCounter from "./components/VisitorCounter";
 
 export default function Resume() {
   const [gameOpen, setGameOpen] = useState(false);
@@ -340,6 +343,11 @@ export default function Resume() {
       </section>
 
       {/* ══════════════════════════════════════
+          HOBBIES & LIFE BALANCE
+      ══════════════════════════════════════ */}
+      <HobbiesSection />
+
+      {/* ══════════════════════════════════════
           JOURNEY MAP
       ══════════════════════════════════════ */}
       <JourneySection />
@@ -358,14 +366,21 @@ export default function Resume() {
           FOOTER
       ══════════════════════════════════════ */}
       <footer className={styles.footer}>
-        <p><strong>Omid Zanganeh</strong> · GIS Associate Technician &amp; Developer · Lincoln, Nebraska</p>
-        <p>
-          <a href="https://www.linkedin.com/in/omidzanganeh/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-          {' · '}
-          <a href="https://arcg.is/1n1C4r" target="_blank" rel="noopener noreferrer">StoryMap</a>
-          {' · '}
-          <a href="mailto:ozanganeh@unomaha.edu">ozanganeh@unomaha.edu</a>
-        </p>
+        <div className={styles.footerLeft}>
+          <GithubHeatmap username="OmidZanganeh" />
+        </div>
+        <div className={styles.footerBottom}>
+          <p><strong>Omid Zanganeh</strong> · GIS Associate Technician &amp; Developer · Lincoln, Nebraska</p>
+          <p>
+            <a href="https://www.linkedin.com/in/omidzanganeh/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            {' · '}
+            <a href="https://arcg.is/1n1C4r" target="_blank" rel="noopener noreferrer">StoryMap</a>
+            {' · '}
+            <a href="mailto:ozanganeh@unomaha.edu">ozanganeh@unomaha.edu</a>
+            {' · '}
+            <VisitorCounter />
+          </p>
+        </div>
       </footer>
 
     </div>

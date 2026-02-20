@@ -1,0 +1,201 @@
+.section {
+  margin: 56px 0;
+  padding: 40px 44px;
+  background: var(--paper-light);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+}
+
+.sectionTitle {
+  font-size: 1.5em;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 36px;
+  position: relative;
+  display: inline-block;
+}
+
+.sectionTitle::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -6px;
+  width: 100%; height: 2px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 3'%3E%3Cpath d='M0,1.5 Q5,1 10,1.5 T20,1.5 T30,1.5 T40,1.5 T50,1.5 T60,1.5 T70,1.5 T80,1.5 T90,1.5 T100,1.5' stroke='%23a39f92' stroke-width='2' fill='none'/%3E%3C/svg%3E") repeat-x;
+  background-size: 200px 2px;
+}
+
+.subTitle {
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+/* ── Bubbles ── */
+.bubblesWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bubblesContainer {
+  position: relative;
+  width: 320px;
+  height: 320px;
+}
+
+.lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.centerBubble {
+  position: absolute;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72em;
+  font-weight: 700;
+  left: 160px - 42px;
+  left: calc(50% - 42px);
+  top: calc(50% - 42px);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+  z-index: 2;
+}
+
+.hobbyBubble {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: default;
+  color: white;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+  animation: floatBubble 3s ease-in-out infinite;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 1;
+}
+
+.hobbyBubble:hover {
+  transform: scale(1.12) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  z-index: 3;
+}
+
+@keyframes floatBubble {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+
+.hobbyEmoji {
+  font-size: 1.3em;
+  line-height: 1;
+}
+
+.hobbyLabel {
+  font-size: 0.6em;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+  padding: 0 4px;
+}
+
+/* ── Donut ── */
+.donutWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.donutChart {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.donutHole {
+  position: absolute;
+  inset: 28%;
+  border-radius: 50%;
+  background: var(--paper-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.donutCenter {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.donutSub {
+  font-size: 0.62em;
+  color: var(--text-muted);
+}
+
+.legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 200px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85em;
+  color: var(--text-secondary);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legendLabel { flex: 1; }
+
+.legendPct {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .grid { grid-template-columns: 1fr; }
+  .section { padding: 28px 20px; }
+  .bubblesContainer { width: 280px; height: 280px; }
+}
