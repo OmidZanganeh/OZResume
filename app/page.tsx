@@ -234,39 +234,42 @@ export default function Resume() {
             </div>
           </section>
 
-          {/* Journey Map */}
-          <JourneySection />
-        </main>
-
-        {/* ── RIGHT SIDEBAR ── */}
-        <aside className={styles.sidebar}>
-
           {/* Education */}
           <section>
             <h2 className={styles.sectionTitle}>Education</h2>
 
             <div className={styles.eduCard}>
               <p className={styles.degree}>
-                M.S. Geography – GIS &amp; Technology
+                Master of Science: Geography – Geographic Information Science and Technology
                 <span className={styles.gpaBadge}>GPA 4.00</span>
               </p>
-              <p className={styles.school}>University of Nebraska at Omaha</p>
+              <p className={styles.school}>University of Nebraska at Omaha, Nebraska</p>
               <p className={styles.eduDate}>August 2025</p>
+              <p className={styles.eduCourseworkLabel}>Relevant Coursework:</p>
               <ul className={styles.bullets}>
-                <li>Thesis: Spatiotemporal Analysis of NOx Emissions from U.S. Cement Plants using TROPOMI</li>
-                <li>ArcGIS Pro · SQL · AWS · Remote Sensing</li>
+                <li><strong>Geographic Information Systems I:</strong> ArcGIS Desktop &amp; Pro, Spatial Analysis, Georeferencing, Map Projections, Selections &amp; Queries, Data Editing, Buffering, Overlay &amp; Raster Analysis, Spatial Joins, Summarize, Statistics, Symbology &amp; Labels, Layout Design, Digitizing &amp; Snapping.</li>
+                <li><strong>Geographic Information Systems II:</strong> ArcGIS Pro &amp; Enterprise, SQL, GIS Web Services, Web System Architecture, AWS Cloud, Spatial Data Management, GeoEvent, Web Mapping (ArcGIS Online).</li>
+                <li><strong>Thesis:</strong> Spatiotemporal Analysis of NOx Emissions from U.S. Cement Plants Using TROPOMI Data – Remote Sensing, Temporal &amp; Hotspot Analysis, Environmental Visualization, Population Exposure &amp; Environmental Justice Analysis.</li>
               </ul>
             </div>
 
             <div className={styles.eduCard}>
-              <p className={styles.degree}>B.S. Geomatics (Surveying) Engineering</p>
-              <p className={styles.school}>Geomatics College of NCC, Tehran</p>
+              <p className={styles.degree}>Bachelor of Science: Geomatics (Surveying) Engineering</p>
+              <p className={styles.school}>Geomatics College of National Cartographic Center (GCNCC), Tehran</p>
               <p className={styles.eduDate}>August 2016</p>
+              <p className={styles.eduCourseworkLabel}>Relevant Coursework:</p>
               <ul className={styles.bullets}>
-                <li>GIS · Remote Sensing · AutoCAD · Image Processing</li>
+                <li>GIS, Applications of GIS, Numerical Mapping and AutoCAD, Fundamentals of Urbanization and Urban Planning, Fundamentals of Remote Sensing, Image Digital Processing, Advanced Software Packages and Applications.</li>
               </ul>
             </div>
           </section>
+
+          {/* Journey Map */}
+          <JourneySection />
+        </main>
+
+        {/* ── RIGHT SIDEBAR ── */}
+        <aside className={styles.sidebar}>
 
           {/* Tools & Platforms — grouped by category */}
           <section>
