@@ -4,7 +4,7 @@ import styles from './SkillRadar.module.css';
 
 const SKILLS = [
   { label: 'GIS & Spatial',    value: 95, angle: -90  },
-  { label: 'Python',           value: 88, angle: -30  },
+  { label: 'Coding',            value: 88, angle: -30  },
   { label: 'AI & Automation',  value: 82, angle:  30  },
   { label: 'SQL & Data',       value: 75, angle:  90  },
   { label: 'Remote Sensing',   value: 85, angle: 150  },
