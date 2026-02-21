@@ -282,35 +282,78 @@
   line-height: 1.6;
 }
 
-/* ─── Main Grid ─── */
-.grid {
+/* ─── Content Flow: mobile = natural order; desktop = grid ─── */
+.contentFlow {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.workCol { min-width: 0; }
+
+.educationBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.contactCol { min-width: 0; }
+
+/* Desktop: two-column layout (wide viewport OR "Request desktop site" on mobile) */
+@media (min-width: 961px) {
+  .contentFlow {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    grid-template-areas:
+      "about about"
+      "now now"
+      "work education"
+      "contact tools"
+      ". skills"
+      ". coding"
+      ". hobbies"
+      ". languages";
+    gap: 48px;
+    align-items: start;
+  }
+  .aboutSection { grid-area: about; }
+  .workCol { grid-area: work; }
+  .educationBlock { grid-area: education; }
+  .nowSection { grid-area: now; }
+  .toolsBlock { grid-area: tools; }
+  .skillsGlanceBlock { grid-area: skills; }
+  .codingBlock { grid-area: coding; }
+  .hobbiesBlock { grid-area: hobbies; }
+  .languagesBlock { grid-area: languages; }
+  .contactCol { grid-area: contact; }
+}
+
+/* When user chose "Request desktop site" but viewport stayed narrow (e.g. Safari) */
+html.desktop-layout-requested .contentFlow {
   display: grid;
   grid-template-columns: 1fr 360px;
-  grid-template-rows: auto auto;
+  grid-template-areas:
+    "about about"
+    "now now"
+    "work education"
+    "contact tools"
+    ". skills"
+    ". coding"
+    ". hobbies"
+    ". languages";
   gap: 48px;
   align-items: start;
 }
-
-.mainCol {
-  min-width: 0;
-  grid-row: 1;
-}
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  position: sticky;
-  top: 24px;
-  grid-column: 2;
-  grid-row: 1 / -1;
-}
-
-.contactCol {
-  min-width: 0;
-  grid-column: 1;
-  grid-row: 2;
-}
+html.desktop-layout-requested .aboutSection { grid-area: about; }
+html.desktop-layout-requested .workCol { grid-area: work; }
+html.desktop-layout-requested .educationBlock { grid-area: education; }
+html.desktop-layout-requested .nowSection { grid-area: now; }
+html.desktop-layout-requested .toolsBlock { grid-area: tools; }
+html.desktop-layout-requested .skillsGlanceBlock { grid-area: skills; }
+html.desktop-layout-requested .codingBlock { grid-area: coding; }
+html.desktop-layout-requested .hobbiesBlock { grid-area: hobbies; }
+html.desktop-layout-requested .languagesBlock { grid-area: languages; }
+html.desktop-layout-requested .contactCol { grid-area: contact; }
 
 /* ─── Section Titles ─── */
 .sectionTitle {
@@ -655,13 +698,6 @@
 /* ─── Responsive ─── */
 @media (max-width: 960px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
-  .grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-  }
-  .mainCol { grid-row: auto; grid-column: auto; }
-  .sidebar { position: static; grid-column: auto; grid-row: auto; order: 2; }
-  .contactCol { grid-column: auto; grid-row: auto; order: 3; }
   .projectsGrid { grid-template-columns: 1fr 1fr; }
   .nowGrid { grid-template-columns: 1fr; }
 }

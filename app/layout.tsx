@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 import { ThemeProvider } from "./context/ThemeContext";
+import DesktopLayoutDetector from "./components/DesktopLayoutDetector";
 import "./globals.css";
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         }} />
       </head>
       <body className={ibmPlexMono.variable}>
+        <DesktopLayoutDetector />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
