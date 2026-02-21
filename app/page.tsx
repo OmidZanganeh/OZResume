@@ -1,7 +1,7 @@
 'use client';
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./page.module.css";
 import TypeWriter from "./components/TypeWriter";
 import CountUp from "./components/CountUp";
@@ -15,8 +15,23 @@ import VisitorCounter from "./components/VisitorCounter";
 import SkillRadar from "./components/SkillRadar";
 import HobbiesSection from "./components/HobbiesSection";
 
+const AVATARS = ['/Omid.png', '/Omid2.png'] as const;
+
 export default function Resume() {
   const [gameOpen, setGameOpen] = useState(false);
+  const [avatarSrc, setAvatarSrc] = useState(AVATARS[0]);
+
+  useEffect(() => {
+    const stored = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('resume-avatar') : null;
+    if (stored && AVATARS.includes(stored as typeof AVATARS[number])) {
+      setAvatarSrc(stored as typeof AVATARS[number]);
+    } else {
+      const pick = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+      sessionStorage?.setItem('resume-avatar', pick);
+      setAvatarSrc(pick);
+    }
+  }, []);
+
   return (
     <div className={styles.container}>
 
@@ -63,7 +78,7 @@ export default function Resume() {
           </div>
 
           <Image
-            src="/Omid.png"
+            src={avatarSrc}
             alt="Omid Zanganeh"
             width={130}
             height={130}
