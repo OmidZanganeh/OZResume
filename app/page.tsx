@@ -19,7 +19,7 @@ const AVATARS = ['/Omid.png', '/Omid2.png'] as const;
 
 export default function Resume() {
   const [gameOpen, setGameOpen] = useState(false);
-  const [avatarSrc, setAvatarSrc] = useState(AVATARS[0]);
+  const [avatarSrc, setAvatarSrc] = useState<typeof AVATARS[number]>(AVATARS[0]);
 
   useEffect(() => {
     setAvatarSrc(AVATARS[Math.floor(Math.random() * AVATARS.length)]);
