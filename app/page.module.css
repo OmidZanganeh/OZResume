@@ -514,6 +514,48 @@
   color: #34d399;
 }
 
+/* ─── Tools & Platforms (grouped) ─── */
+.toolGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toolGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toolGroupLabel {
+  font-size: 0.68em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.toolTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.toolTag {
+  background: var(--paper-dark);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 0.7em;
+  color: var(--text-secondary);
+  transition: transform 0.12s, background 0.12s;
+}
+
+.toolTag:hover {
+  transform: translateY(-1px);
+  background: var(--paper-light);
+}
+
 /* ─── Skill Radar Section ─── */
 .radarSection {
   margin: 56px 0;

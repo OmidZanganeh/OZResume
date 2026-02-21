@@ -268,15 +268,50 @@ export default function Resume() {
             </div>
           </section>
 
-          {/* Tool Tags */}
+          {/* Tools & Platforms — grouped by category */}
           <section>
             <h2 className={styles.sectionTitle}>Tools & Platforms</h2>
-            <div className={styles.tags}>
-              {["ArcGIS Pro", "ArcGIS Online", "ArcGIS Enterprise", "QGIS", "Google Earth Engine",
-                "Azure AI Foundry", "Google AI Studio", "SQL Server", "Tableau",
-                "AutoCAD", "GitHub Copilot", "Microsoft Azure"].map(s => (
-                <span key={s} className={styles.tag}>{s}</span>
-              ))}
+            <div className={styles.toolGroups}>
+              <div className={styles.toolGroup}>
+                <span className={styles.toolGroupLabel}>GIS & mapping</span>
+                <div className={styles.toolTags}>
+                  {["ArcGIS Pro", "ArcGIS Online", "ArcGIS Enterprise", "ArcGIS Experience Builder", "ArcGIS StoryMaps", "ArcGIS Survey123", "ArcGIS Field Maps", "ArcGIS Model Builder", "QGIS", "Web Mapping", "Google Earth", "Google Earth Engine Code Editor"].map(s => (
+                    <span key={s} className={styles.toolTag}>{s}</span>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.toolGroup}>
+                <span className={styles.toolGroupLabel}>Data & dev</span>
+                <div className={styles.toolTags}>
+                  {["SQL Server Management Studio", "Tableau", "GitHub Copilot"].map(s => (
+                    <span key={s} className={styles.toolTag}>{s}</span>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.toolGroup}>
+                <span className={styles.toolGroupLabel}>Imagery & design</span>
+                <div className={styles.toolTags}>
+                  {["SNAP", "AutoCAD", "ENVI", "Photomod", "Adobe Photoshop", "Adobe Illustrator"].map(s => (
+                    <span key={s} className={styles.toolTag}>{s}</span>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.toolGroup}>
+                <span className={styles.toolGroupLabel}>Cloud & AI</span>
+                <div className={styles.toolTags}>
+                  {["Microsoft Azure", "Microsoft Azure AI Foundry", "Google Cloud Services", "Google AI Studio"].map(s => (
+                    <span key={s} className={styles.toolTag}>{s}</span>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.toolGroup}>
+                <span className={styles.toolGroupLabel}>Productivity</span>
+                <div className={styles.toolTags}>
+                  {["Microsoft 365", "Smartsheet", "Slack", "Microsoft Teams", "Notion", "OneNote", "OneDrive", "SharePoint"].map(s => (
+                    <span key={s} className={styles.toolTag}>{s}</span>
+                  ))}
+                </div>
+              </div>
             </div>
           </section>
 
