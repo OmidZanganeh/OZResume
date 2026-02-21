@@ -22,14 +22,7 @@ export default function Resume() {
   const [avatarSrc, setAvatarSrc] = useState(AVATARS[0]);
 
   useEffect(() => {
-    const stored = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('resume-avatar') : null;
-    if (stored && AVATARS.includes(stored as typeof AVATARS[number])) {
-      setAvatarSrc(stored as typeof AVATARS[number]);
-    } else {
-      const pick = AVATARS[Math.floor(Math.random() * AVATARS.length)];
-      sessionStorage?.setItem('resume-avatar', pick);
-      setAvatarSrc(pick);
-    }
+    setAvatarSrc(AVATARS[Math.floor(Math.random() * AVATARS.length)]);
   }, []);
 
   return (
