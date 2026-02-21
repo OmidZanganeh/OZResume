@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 import { ThemeProvider } from "./context/ThemeContext";
-import DesktopLayoutDetector from "./components/DesktopLayoutDetector";
 import "./globals.css";
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -29,17 +28,36 @@ export const metadata: Metadata = {
   },
 };
 
+const personJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Omid Zanganeh",
+  jobTitle: "GIS Associate Technician & Developer",
+  worksFor: { "@type": "Organization", name: "Olsson" },
+  url: "https://omidzanganeh.com",
+  description: "GIS Associate Technician & Developer at Olsson. Specializing in Python, ArcGIS, AI-powered workflows, and fiber network automation.",
+  sameAs: [
+    "https://www.linkedin.com/in/omidzanganeh/",
+    "https://arcg.is/1n1C4r",
+  ],
+  email: "ozanganeh@unomaha.edu",
+  address: { "@type": "PostalAddress", addressLocality: "Lincoln", addressRegion: "NE" },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
+        />
         {/* Prevent flash of wrong theme */}
         <script dangerouslySetInnerHTML={{
           __html: `(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);})();`
         }} />
       </head>
       <body className={ibmPlexMono.variable}>
-        <DesktopLayoutDetector />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

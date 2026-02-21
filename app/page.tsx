@@ -96,44 +96,84 @@ export default function Resume() {
       </div>
 
       {/* ══════════════════════════════════════
-          CONTENT FLOW (order = mobile order; desktop uses grid placement)
-          1 About me, 2 Work, 3 Education, 4 Currently working on, 5 Tools, 6 Skills, 7 Coding, 8 Hobbies, 9 Languages, 10 Send message
+          ABOUT ME
       ══════════════════════════════════════ */}
-      <div className={styles.contentFlow}>
+      <section className={styles.aboutSection}>
+        <h2 className={styles.sectionTitle}>About Me</h2>
+        <div className={styles.aboutBody}>
+          <p>
+            I&apos;m a GIS Associate Technician at Olsson, specializing in workflow automation, geospatial analysis,
+            and application development to solve complex spatial challenges. I work extensively with ArcGIS Pro,
+            Python, SQL, and remote sensing platforms to build high-performance tools for automating spatial
+            workflows and supporting fiber-network market analysis and design.
+          </p>
+          <p>
+            I hold a Master&apos;s in Geography with a concentration in GIS&amp;T from the University of Nebraska
+            at Omaha, graduating with a <strong>4.0 GPA</strong>. My research earned the{' '}
+            <strong>GRACA Project Award</strong> for spatiotemporal analysis of NOx emissions using TROPOMI
+            satellite data. I also taught over <strong>150 students</strong> in Human-Environment Geography labs
+            at UNO, emphasizing hands-on learning, inclusivity, and real-world applications.
+          </p>
+          <p>
+            I contributed to the <strong>Omaha Spatial Justice Project</strong> as a GIS Technician —
+            digitizing historical land parcels, reviewing legal documents, and building a geodatabase
+            identifying homes with racially restrictive covenants in Douglas County. This work deepened
+            my commitment to using GIS as a tool for social equity.
+          </p>
+          <p>
+            With a proven record of delivering scalable GIS solutions, I&apos;m passionate about bridging
+            technical expertise with practical impact — and always open to connecting with professionals
+            who share my enthusiasm for solving spatial problems.
+          </p>
+        </div>
+      </section>
 
-        {/* 1. About Me */}
-        <section className={styles.aboutSection}>
-          <h2 className={styles.sectionTitle}>About Me</h2>
-          <div className={styles.aboutBody}>
-            <p>
-              I&apos;m a GIS Associate Technician at Olsson, specializing in workflow automation, geospatial analysis,
-              and application development to solve complex spatial challenges. I work extensively with ArcGIS Pro,
-              Python, SQL, and remote sensing platforms to build high-performance tools for automating spatial
-              workflows and supporting fiber-network market analysis and design.
-            </p>
-            <p>
-              I hold a Master&apos;s in Geography with a concentration in GIS&amp;T from the University of Nebraska
-              at Omaha, graduating with a <strong>4.0 GPA</strong>. My research earned the{' '}
-              <strong>GRACA Project Award</strong> for spatiotemporal analysis of NOx emissions using TROPOMI
-              satellite data. I also taught over <strong>150 students</strong> in Human-Environment Geography labs
-              at UNO, emphasizing hands-on learning, inclusivity, and real-world applications.
-            </p>
-            <p>
-              I contributed to the <strong>Omaha Spatial Justice Project</strong> as a GIS Technician —
-              digitizing historical land parcels, reviewing legal documents, and building a geodatabase
-              identifying homes with racially restrictive covenants in Douglas County. This work deepened
-              my commitment to using GIS as a tool for social equity.
-            </p>
-            <p>
-              With a proven record of delivering scalable GIS solutions, I&apos;m passionate about bridging
-              technical expertise with practical impact — and always open to connecting with professionals
-              who share my enthusiasm for solving spatial problems.
-            </p>
+      {/* ══════════════════════════════════════
+          CURRENTLY WORKING ON
+      ══════════════════════════════════════ */}
+      <section className={styles.nowSection}>
+        <h2 className={styles.sectionTitle}>Currently Working On</h2>
+        <div className={styles.nowGrid}>
+          <div className={styles.nowCard}>
+            <span className={styles.nowIcon}>⚙️</span>
+            <div>
+              <p className={styles.nowCardTitle}>Workflow Automation</p>
+              <p className={styles.nowCardDesc}>
+                Building Python and C# tools that eliminate repetitive GIS tasks — turning multi-day
+                manual processes into fully automated pipelines.
+              </p>
+            </div>
           </div>
-        </section>
+          <div className={styles.nowCard}>
+            <span className={styles.nowIcon}>🤖</span>
+            <div>
+              <p className={styles.nowCardTitle}>AI-Powered Spatial Solutions</p>
+              <p className={styles.nowCardDesc}>
+                Developing AI agents using Azure AI Foundry and Google AI Studio for intelligent
+                data classification, RFP sourcing, and web grounding at scale.
+              </p>
+            </div>
+          </div>
+          <div className={styles.nowCard}>
+            <span className={styles.nowIcon}>🌐</span>
+            <div>
+              <p className={styles.nowCardTitle}>Fiber Network Design Tools</p>
+              <p className={styles.nowCardDesc}>
+                Creating custom ArcGIS geoprocessing toolboxes to accelerate fiber network routing,
+                cost estimation, and strategic market analysis for telecom expansion.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        {/* 2. Work Experience + Journey */}
-        <main className={styles.workCol}>
+      {/* ══════════════════════════════════════
+          MAIN GRID
+      ══════════════════════════════════════ */}
+      <div className={styles.grid}>
+
+        {/* ── LEFT: Work Experience ── */}
+        <main className={styles.mainCol}>
           <section>
             <h2 className={styles.sectionTitle}>Work Experience</h2>
             <div className={styles.jobList}>
@@ -193,118 +233,88 @@ export default function Resume() {
 
             </div>
           </section>
+
+          {/* Journey Map */}
           <JourneySection />
+
+          {/* Contact Form */}
+          <ContactForm />
         </main>
 
-        {/* 3. Education */}
-        <section className={styles.educationBlock}>
-          <h2 className={styles.sectionTitle}>Education</h2>
-          <div className={styles.eduCard}>
-            <p className={styles.degree}>
-              M.S. Geography – GIS &amp; Technology
-              <span className={styles.gpaBadge}>GPA 4.00</span>
-            </p>
-            <p className={styles.school}>University of Nebraska at Omaha</p>
-            <p className={styles.eduDate}>August 2025</p>
-            <ul className={styles.bullets}>
-              <li>Thesis: Spatiotemporal Analysis of NOx Emissions from U.S. Cement Plants using TROPOMI</li>
-              <li>ArcGIS Pro · SQL · AWS · Remote Sensing</li>
-            </ul>
-          </div>
-          <div className={styles.eduCard}>
-            <p className={styles.degree}>B.S. Geomatics (Surveying) Engineering</p>
-            <p className={styles.school}>Geomatics College of NCC, Tehran</p>
-            <p className={styles.eduDate}>August 2016</p>
-            <ul className={styles.bullets}>
-              <li>GIS · Remote Sensing · AutoCAD · Image Processing</li>
-            </ul>
-          </div>
-        </section>
+        {/* ── RIGHT SIDEBAR ── */}
+        <aside className={styles.sidebar}>
 
-        {/* 4. Currently Working On */}
-        <section className={styles.nowSection}>
-          <h2 className={styles.sectionTitle}>Currently Working On</h2>
-          <div className={styles.nowGrid}>
-            <div className={styles.nowCard}>
-              <span className={styles.nowIcon}>⚙️</span>
-              <div>
-                <p className={styles.nowCardTitle}>Workflow Automation</p>
-                <p className={styles.nowCardDesc}>
-                  Building Python and C# tools that eliminate repetitive GIS tasks — turning multi-day
-                  manual processes into fully automated pipelines.
-                </p>
-              </div>
+          {/* Education */}
+          <section>
+            <h2 className={styles.sectionTitle}>Education</h2>
+
+            <div className={styles.eduCard}>
+              <p className={styles.degree}>
+                M.S. Geography – GIS &amp; Technology
+                <span className={styles.gpaBadge}>GPA 4.00</span>
+              </p>
+              <p className={styles.school}>University of Nebraska at Omaha</p>
+              <p className={styles.eduDate}>August 2025</p>
+              <ul className={styles.bullets}>
+                <li>Thesis: Spatiotemporal Analysis of NOx Emissions from U.S. Cement Plants using TROPOMI</li>
+                <li>ArcGIS Pro · SQL · AWS · Remote Sensing</li>
+              </ul>
             </div>
-            <div className={styles.nowCard}>
-              <span className={styles.nowIcon}>🤖</span>
-              <div>
-                <p className={styles.nowCardTitle}>AI-Powered Spatial Solutions</p>
-                <p className={styles.nowCardDesc}>
-                  Developing AI agents using Azure AI Foundry and Google AI Studio for intelligent
-                  data classification, RFP sourcing, and web grounding at scale.
-                </p>
-              </div>
+
+            <div className={styles.eduCard}>
+              <p className={styles.degree}>B.S. Geomatics (Surveying) Engineering</p>
+              <p className={styles.school}>Geomatics College of NCC, Tehran</p>
+              <p className={styles.eduDate}>August 2016</p>
+              <ul className={styles.bullets}>
+                <li>GIS · Remote Sensing · AutoCAD · Image Processing</li>
+              </ul>
             </div>
-            <div className={styles.nowCard}>
-              <span className={styles.nowIcon}>🌐</span>
-              <div>
-                <p className={styles.nowCardTitle}>Fiber Network Design Tools</p>
-                <p className={styles.nowCardDesc}>
-                  Creating custom ArcGIS geoprocessing toolboxes to accelerate fiber network routing,
-                  cost estimation, and strategic market analysis for telecom expansion.
-                </p>
-              </div>
+          </section>
+
+          {/* Tool Tags */}
+          <section>
+            <h2 className={styles.sectionTitle}>Tools & Platforms</h2>
+            <div className={styles.tags}>
+              {["ArcGIS Pro", "ArcGIS Online", "ArcGIS Enterprise", "QGIS", "Google Earth Engine",
+                "Azure AI Foundry", "Google AI Studio", "SQL Server", "Tableau",
+                "AutoCAD", "GitHub Copilot", "Microsoft Azure"].map(s => (
+                <span key={s} className={styles.tag}>{s}</span>
+              ))}
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* 5. Tools & Platforms */}
-        <section className={styles.toolsBlock}>
-          <h2 className={styles.sectionTitle}>Tools & Platforms</h2>
-          <div className={styles.tags}>
-            {["ArcGIS Pro", "ArcGIS Online", "ArcGIS Enterprise", "QGIS", "Google Earth Engine",
-              "Azure AI Foundry", "Google AI Studio", "SQL Server", "Tableau",
-              "AutoCAD", "GitHub Copilot", "Microsoft Azure"].map(s => (
-              <span key={s} className={styles.tag}>{s}</span>
-            ))}
-          </div>
-        </section>
+          {/* Skills at a Glance (spider web only) */}
+          <section>
+            <h2 className={styles.sectionTitle}>Skills at a Glance</h2>
+            <SkillRadar compact />
+          </section>
 
-        {/* 6. Skills at a Glance */}
-        <section className={styles.skillsGlanceBlock}>
-          <h2 className={styles.sectionTitle}>Skills at a Glance</h2>
-          <SkillRadar compact />
-        </section>
+          {/* Skill Bars */}
+          <section>
+            <h2 className={styles.sectionTitle}>Coding Skills</h2>
+            <SkillBar label="Python" level={95} />
+            <SkillBar label="SQL" level={85} />
+            <SkillBar label="C#" level={80} />
+            <SkillBar label="JavaScript" level={75} />
+            <SkillBar label="AI/ML" level={70} />
+            <SkillBar label="Arcade" level={50} />
+          </section>
 
-        {/* 7. Coding Skills */}
-        <section className={styles.codingBlock}>
-          <h2 className={styles.sectionTitle}>Coding Skills</h2>
-          <SkillBar label="Python" level={95} />
-          <SkillBar label="SQL" level={85} />
-          <SkillBar label="C#" level={80} />
-          <SkillBar label="JavaScript" level={75} />
-          <SkillBar label="AI/ML" level={70} />
-          <SkillBar label="Arcade" level={50} />
-        </section>
+          {/* Hobbies & Life Balance */}
+          <section>
+            <HobbiesSection compact />
+          </section>
 
-        {/* 8. Hobbies & Life Balance */}
-        <section className={styles.hobbiesBlock}>
-          <HobbiesSection compact />
-        </section>
+          {/* Languages */}
+          <section>
+            <h2 className={styles.sectionTitle}>Languages</h2>
+            <div className={styles.tags}>
+              <span className={`${styles.tag} ${styles.tagGreen}`}>English — Fluent</span>
+              <span className={`${styles.tag} ${styles.tagGreen}`}>Persian — Native</span>
+            </div>
+          </section>
 
-        {/* 9. Languages */}
-        <section className={styles.languagesBlock}>
-          <h2 className={styles.sectionTitle}>Languages</h2>
-          <div className={styles.tags}>
-            <span className={`${styles.tag} ${styles.tagGreen}`}>English — Fluent</span>
-            <span className={`${styles.tag} ${styles.tagGreen}`}>Persian — Native</span>
-          </div>
-        </section>
-
-        {/* 10. Send a message */}
-        <div className={styles.contactCol}>
-          <ContactForm />
-        </div>
+        </aside>
       </div>
 
       {/* ══════════════════════════════════════
