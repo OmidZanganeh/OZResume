@@ -286,11 +286,21 @@
 .grid {
   display: grid;
   grid-template-columns: 1fr 360px;
+  grid-template-rows: auto auto;
   gap: 48px;
   align-items: start;
 }
 
-.mainCol { min-width: 0; }
+.mainCol {
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.contactCol {
+  grid-column: 1;
+  grid-row: 2;
+}
 
 .sidebar {
   display: flex;
@@ -300,6 +310,8 @@
   gap: 20px;
   position: sticky;
   top: 24px;
+  grid-column: 2;
+  grid-row: 1 / -1;
 }
 
 /* Tighter spacing for sidebar sections so they don’t feel pushed down */
@@ -653,8 +665,13 @@
 /* ─── Responsive ─── */
 @media (max-width: 960px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
-  .grid { grid-template-columns: 1fr; }
-  .sidebar { position: static; }
+  .grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: unset;
+  }
+  .mainCol { grid-column: 1; grid-row: auto; order: 1; }
+  .sidebar { grid-column: 1; grid-row: auto; position: static; order: 2; }
+  .contactCol { grid-column: 1; grid-row: auto; order: 3; }
   .projectsGrid { grid-template-columns: 1fr 1fr; }
   .nowGrid { grid-template-columns: 1fr; }
 }

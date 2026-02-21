@@ -236,9 +236,6 @@ export default function Resume() {
 
           {/* Journey Map */}
           <JourneySection />
-
-          {/* Contact Form */}
-          <ContactForm />
         </main>
 
         {/* ── RIGHT SIDEBAR ── */}
@@ -315,6 +312,11 @@ export default function Resume() {
           </section>
 
         </aside>
+
+        {/* Contact Form: same column as main on desktop, last on mobile */}
+        <div className={styles.contactCol}>
+          <ContactForm />
+        </div>
       </div>
 
       {/* ══════════════════════════════════════
