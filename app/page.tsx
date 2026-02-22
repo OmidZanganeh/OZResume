@@ -185,10 +185,10 @@ export default function Resume() {
       {/* ══════════════════════════════════════
           MAIN GRID
       ══════════════════════════════════════ */}
-      <ScrollFadeIn delay={100}>
       <div className={styles.grid}>
 
         {/* ── LEFT: Work Experience ── */}
+        <ScrollFadeIn delay={100} className={styles.gridFadeMain}>
         <main className={styles.mainCol}>
           <section>
             <h2 className={styles.sectionTitle}>Work Experience</h2>
@@ -283,8 +283,10 @@ export default function Resume() {
           {/* Journey Map */}
           <JourneySection />
         </main>
+        </ScrollFadeIn>
 
-        {/* ── RIGHT SIDEBAR ── */}
+        {/* ── RIGHT SIDEBAR (fly in from right) ── */}
+        <ScrollFadeIn direction="right" delay={120} className={styles.gridFadeSidebar}>
         <aside className={styles.sidebar}>
 
           {/* Tools & Platforms — grouped by category */}
@@ -366,13 +368,15 @@ export default function Resume() {
           </section>
 
         </aside>
+        </ScrollFadeIn>
 
         {/* Contact Form: same column as main on desktop, last on mobile */}
+        <ScrollFadeIn delay={100} className={styles.gridFadeContact}>
         <div className={styles.contactCol}>
           <ContactForm />
         </div>
+        </ScrollFadeIn>
       </div>
-      </ScrollFadeIn>
 
       {/* ══════════════════════════════════════
           GAME MODAL

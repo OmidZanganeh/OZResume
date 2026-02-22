@@ -11,9 +11,27 @@
   transform: translateY(0);
 }
 
+/* Fly in from right (e.g. sidebar) */
+.fromRight {
+  transform: translateX(32px);
+}
+.fromRight.visible {
+  transform: translateX(0);
+}
+
+/* Fly in from left */
+.fromLeft {
+  transform: translateX(-32px);
+}
+.fromLeft.visible {
+  transform: translateX(0);
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .wrap {
+  .wrap,
+  .wrap.fromRight,
+  .wrap.fromLeft {
     opacity: 1;
     transform: none;
     transition: none;

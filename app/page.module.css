@@ -288,15 +288,26 @@
   align-items: start;
 }
 
-.mainCol {
-  min-width: 0;
+/* Grid placement for scroll-fade wrappers (direct children of .grid) */
+.gridFadeMain {
   grid-column: 1;
   grid-row: 1;
 }
-
-.contactCol {
+.gridFadeSidebar {
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
+.gridFadeContact {
   grid-column: 1;
   grid-row: 2;
+}
+
+.mainCol {
+  min-width: 0;
+}
+
+.contactCol {
+  /* grid placement via .gridFadeContact */
 }
 
 .sidebar {
@@ -307,8 +318,6 @@
   gap: 20px;
   position: sticky;
   top: 24px;
-  grid-column: 2;
-  grid-row: 1 / -1;
 }
 
 /* Tighter spacing for sidebar sections so they don’t feel pushed down */
@@ -717,9 +726,10 @@
     grid-template-columns: 1fr;
     grid-template-rows: unset;
   }
-  .mainCol { grid-column: 1; grid-row: auto; order: 1; }
-  .sidebar { grid-column: 1; grid-row: auto; position: static; order: 2; }
-  .contactCol { grid-column: 1; grid-row: auto; order: 3; }
+  .gridFadeMain { grid-column: 1; grid-row: auto; order: 1; }
+  .gridFadeSidebar { grid-column: 1; grid-row: auto; order: 2; }
+  .gridFadeContact { grid-column: 1; grid-row: auto; order: 3; }
+  .sidebar { position: static; }
   .projectsGrid { grid-template-columns: 1fr 1fr; }
   .nowGrid { grid-template-columns: 1fr; }
 }

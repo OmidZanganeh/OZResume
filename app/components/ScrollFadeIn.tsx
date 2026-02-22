@@ -9,11 +9,16 @@ type Props = {
   delay?: number;
   /** Minimum fraction of element visible to trigger (0–1). Default 0.08 */
   threshold?: number;
+  /** Fly-in direction. Default 'up'. Use 'right' for sidebar (enters from right). */
+  direction?: 'up' | 'right' | 'left';
+  /** Optional class for grid placement etc. */
+  className?: string;
 };
 
-export default function ScrollFadeIn({ children, delay = 0, threshold = 0.08 }: Props) {
+export default function ScrollFadeIn({ children, delay = 0, threshold = 0.08, direction = 'up', className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+  const directionClass = direction === 'right' ? styles.fromRight : direction === 'left' ? styles.fromLeft : '';
 
   useEffect(() => {
     const el = ref.current;
@@ -39,7 +44,7 @@ export default function ScrollFadeIn({ children, delay = 0, threshold = 0.08 }: 
   return (
     <div
       ref={ref}
-      className={`${styles.wrap} ${visible ? styles.visible : ''}`}
+      className={`${styles.wrap} ${directionClass} ${visible ? styles.visible : ''} ${className ?? ''}`.trim()}
     >
       {children}
     </div>
