@@ -115,7 +115,11 @@ export default function HobbiesSection({ compact = false }: Props) {
 
         {/* ── Life Balance Donut ── */}
         <div className={`${styles.donutWrap} ${compact ? styles.donutCompact : ''}`}>
-          <p className={styles.subLabel}>Life Balance</p>
+          {compact ? (
+            <h2 className={styles.compactSectionTitle}>Life Balance</h2>
+          ) : (
+            <p className={styles.subLabel}>Life Balance</p>
+          )}
           <div className={styles.donutChart} style={{ background: `conic-gradient(${conic})` }}>
             <div className={styles.donutHole}>
               <span className={styles.donutCenter}>24h</span>
