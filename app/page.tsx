@@ -355,6 +355,7 @@ export default function Resume() {
 
           {/* Hobbies & Life Balance */}
           <section>
+            <h2 className={styles.sectionTitle}>Hobbies</h2>
             <HobbiesSection compact />
           </section>
 

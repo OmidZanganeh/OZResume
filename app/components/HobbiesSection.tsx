@@ -52,7 +52,7 @@ export default function HobbiesSection({ compact = false }: Props) {
       <div className={styles.grid}>
         {/* ── Hobby Bubbles ── */}
         <div className={styles.bubblesWrap}>
-          <p className={styles.subLabel}>Hobbies</p>
+          {!compact && <p className={styles.subLabel}>Hobbies</p>}
           <div className={`${styles.bubblesContainer} ${compact ? styles.bubblesCompact : ''}`}>
             {/* SVG connector lines */}
             <svg className={styles.lines} viewBox={compact ? '0 0 340 340' : '0 0 320 320'}>
