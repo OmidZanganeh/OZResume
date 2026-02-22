@@ -328,22 +328,6 @@
   margin-bottom: 14px;
 }
 
-/* Hobbies-style titles for sidebar (Tools, Skills at a Glance, Coding Skills) */
-.sidebar .sectionTitleHobbyStyle {
-  text-transform: none;
-  letter-spacing: 0;
-  border-bottom: none;
-  padding-bottom: 0;
-  margin-bottom: 14px;
-  display: inline-block;
-}
-.sidebar .sectionTitleHobbyStyle::after {
-  left: 0;
-  bottom: -6px;
-  height: 2px;
-  background-size: 200px 2px;
-}
-
 /* ─── Section Titles ─── */
 .sectionTitle {
   font-size: 1.5em;

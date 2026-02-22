@@ -291,7 +291,7 @@ export default function Resume() {
 
           {/* Tools & Platforms — grouped by category */}
           <section>
-            <h2 className={`${styles.sectionTitle} ${styles.sectionTitleHobbyStyle}`}>Tools & Platforms</h2>
+            <h2 className={styles.sectionTitle}>Tools & Platforms</h2>
             <div className={styles.toolGroups}>
               <div className={styles.toolGroup}>
                 <span className={styles.toolGroupLabel}>GIS & mapping</span>
@@ -338,13 +338,13 @@ export default function Resume() {
 
           {/* Skills at a Glance (spider web only) */}
           <section>
-            <h2 className={`${styles.sectionTitle} ${styles.sectionTitleHobbyStyle}`}>Skills at a Glance</h2>
+            <h2 className={styles.sectionTitle}>Skills at a Glance</h2>
             <SkillRadar compact />
           </section>
 
           {/* Skill Bars */}
           <section>
-            <h2 className={`${styles.sectionTitle} ${styles.sectionTitleHobbyStyle}`}>Coding Skills</h2>
+            <h2 className={styles.sectionTitle}>Coding Skills</h2>
             <SkillBar label="Python" level={95} />
             <SkillBar label="SQL" level={85} />
             <SkillBar label="C#" level={80} />
