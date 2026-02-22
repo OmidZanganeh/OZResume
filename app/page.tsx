@@ -14,6 +14,7 @@ import GithubHeatmap from "./components/GithubHeatmap";
 import VisitorCounter from "./components/VisitorCounter";
 import SkillRadar from "./components/SkillRadar";
 import HobbiesSection from "./components/HobbiesSection";
+import Globe from "./components/Globe";
 
 const AVATARS = ['/Omid.png', '/Omid2.png'] as const;
 
@@ -26,7 +27,10 @@ export default function Resume() {
   }, []);
 
   return (
-    <div className={styles.container}>
+    <>
+      <Globe position="left" />
+      <Globe position="right" />
+      <div className={styles.container}>
 
       {/* ══════════════════════════════════════
           HEADER
@@ -388,6 +392,7 @@ export default function Resume() {
         </div>
       </footer>
 
-    </div>
+      </div>
+    </>
   );
 }
