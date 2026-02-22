@@ -14,6 +14,7 @@ import GithubHeatmap from "./components/GithubHeatmap";
 import VisitorCounter from "./components/VisitorCounter";
 import SkillRadar from "./components/SkillRadar";
 import HobbiesSection from "./components/HobbiesSection";
+import ScrollFadeIn from "./components/ScrollFadeIn";
 
 const AVATARS = ['/Omid.png', '/Omid2.png'] as const;
 
@@ -84,6 +85,7 @@ export default function Resume() {
       {/* ══════════════════════════════════════
           IMPACT NUMBERS
       ══════════════════════════════════════ */}
+      <ScrollFadeIn>
       <div className={styles.stats}>
         <div className={styles.stat}>
           <div className={styles.statNum}><CountUp end={90} suffix="%" /></div>
@@ -102,10 +104,12 @@ export default function Resume() {
           <div className={styles.statLabel}>AI Apps Built</div>
         </div>
       </div>
+      </ScrollFadeIn>
 
       {/* ══════════════════════════════════════
           ABOUT ME
       ══════════════════════════════════════ */}
+      <ScrollFadeIn delay={50}>
       <section className={styles.aboutSection}>
         <h2 className={styles.sectionTitle}>About Me</h2>
         <div className={styles.aboutBody}>
@@ -135,10 +139,12 @@ export default function Resume() {
           </p>
         </div>
       </section>
+      </ScrollFadeIn>
 
       {/* ══════════════════════════════════════
           CURRENTLY WORKING ON
       ══════════════════════════════════════ */}
+      <ScrollFadeIn delay={80}>
       <section className={styles.nowSection}>
         <h2 className={styles.sectionTitle}>Currently Working On</h2>
         <div className={styles.nowGrid}>
@@ -174,10 +180,12 @@ export default function Resume() {
           </div>
         </div>
       </section>
+      </ScrollFadeIn>
 
       {/* ══════════════════════════════════════
           MAIN GRID
       ══════════════════════════════════════ */}
+      <ScrollFadeIn delay={100}>
       <div className={styles.grid}>
 
         {/* ── LEFT: Work Experience ── */}
@@ -364,6 +372,7 @@ export default function Resume() {
           <ContactForm />
         </div>
       </div>
+      </ScrollFadeIn>
 
       {/* ══════════════════════════════════════
           GAME MODAL
@@ -373,6 +382,7 @@ export default function Resume() {
       {/* ══════════════════════════════════════
           FOOTER
       ══════════════════════════════════════ */}
+      <ScrollFadeIn delay={50}>
       <footer className={styles.footer}>
         <div className={styles.footerBottom}>
           <p><strong>Omid Zanganeh</strong> · GIS Associate Technician &amp; Developer · Lincoln, Nebraska</p>
@@ -387,6 +397,7 @@ export default function Resume() {
           </p>
         </div>
       </footer>
+      </ScrollFadeIn>
 
     </div>
   );
