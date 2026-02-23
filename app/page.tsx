@@ -15,6 +15,7 @@ import VisitorCounter from "./components/VisitorCounter";
 import SkillRadar from "./components/SkillRadar";
 import HobbiesSection from "./components/HobbiesSection";
 import ScrollFadeIn from "./components/ScrollFadeIn";
+import LandsatNameSidebars from "./components/LandsatNameSidebars";
 
 const AVATARS = ['/Omid.png', '/Omid2.png'] as const;
 
@@ -27,7 +28,9 @@ export default function Resume() {
   }, []);
 
   return (
-    <div className={styles.container}>
+    <>
+      <LandsatNameSidebars />
+      <div className={styles.container}>
 
       {/* ══════════════════════════════════════
           HEADER
@@ -404,6 +407,7 @@ export default function Resume() {
       </footer>
       </ScrollFadeIn>
 
-    </div>
+      </div>
+    </>
   );
 }

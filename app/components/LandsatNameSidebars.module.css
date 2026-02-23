@@ -1,0 +1,72 @@
+/* Fixed strips outside the main frame; visible when scrolling up */
+
+.strip {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.strip.left {
+  left: 24px;
+  transform: translateY(-50%) translateX(-20px);
+}
+
+.strip.right {
+  right: 24px;
+  transform: translateY(-50%) translateX(20px);
+}
+
+.strip.visible {
+  opacity: 1;
+}
+
+.strip.visible.left {
+  transform: translateY(-50%) translateX(0);
+}
+
+.strip.visible.right {
+  transform: translateY(-50%) translateX(0);
+}
+
+.letters {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.letterWrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid var(--border-dark);
+  background: var(--paper-light);
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.letterImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.letterFallback {
+  font-size: 1.8em;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Hide on narrow viewports so they don't overlap the frame */
+@media (max-width: 1200px) {
+  .strip {
+    display: none;
+  }
+}
