@@ -21,7 +21,7 @@ const ALL_LETTERS = [
 ] as const;
 
 function mapsUrl(lat: number, lon: number) {
-  return `https://www.google.com/maps?q=${lat},${lon}`;
+  return `https://www.google.com/maps?q=${lat},${lon}&z=10&t=k`;
 }
 
 function LetterSlot({
