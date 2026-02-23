@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './LandsatNameSidebars.module.css';
 
 /** Left: Omid. Right: Zanganeh. Images in public/name/: O.jpg, M.jpg, I.jpg, D.jpg; Z.jpg, A1.jpg, N1.jpg, G.jpg, A2.jpg, N2.jpg, E.jpg, H.jpg */
@@ -32,32 +32,21 @@ function LetterSlot({ imageKey, displayLetter }: { imageKey: string; displayLett
   );
 }
 
-function useScrollUpVisible() {
+function useSidebarsVisible() {
   const [visible, setVisible] = useState(false);
-  const lastY = useRef(0);
 
   useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const y = window.scrollY;
-        setVisible(y < lastY.current && y > 60);
-        lastY.current = y;
-        ticking = false;
-      });
-    };
-    lastY.current = window.scrollY;
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    const check = () => setVisible(window.scrollY > 80);
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    return () => window.removeEventListener('scroll', check);
   }, []);
 
   return visible;
 }
 
 export default function LandsatNameSidebars() {
-  const show = useScrollUpVisible();
+  const show = useSidebarsVisible();
 
   return (
     <>

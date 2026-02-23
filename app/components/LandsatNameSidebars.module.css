@@ -1,4 +1,4 @@
-/* Fixed strips outside the main frame; visible when scrolling up */
+/* Fixed strips outside the main frame; visible after scrolling down a bit */
 
 .strip {
   position: fixed;
@@ -65,7 +65,7 @@
 }
 
 /* Hide on narrow viewports so they don't overlap the frame */
-@media (max-width: 1200px) {
+@media (max-width: 1100px) {
   .strip {
     display: none;
   }
