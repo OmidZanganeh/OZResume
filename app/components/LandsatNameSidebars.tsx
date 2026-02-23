@@ -4,12 +4,14 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import styles from './LandsatNameSidebars.module.css';
 
-/** All letters on left: Omid + Zanganeh. Images in public/name/: O.jpg, M.jpg, I.jpg, D.jpg; Z.jpg, A1.jpg, N1.jpg, G.jpg, A2.jpg, N2.jpg, E.jpg, H.jpg */
-const ALL_LETTERS = [
+/** Row 1: Omid. Row 2: Zanganeh. Images in public/name/: O.jpg, M.jpg, I.jpg, D.jpg; Z.jpg, A1.jpg, N1.jpg, G.jpg, A2.jpg, N2.jpg, E.jpg, H.jpg */
+const OMID = [
   { imageKey: 'O', displayLetter: 'O' },
   { imageKey: 'M', displayLetter: 'M' },
   { imageKey: 'I', displayLetter: 'I' },
   { imageKey: 'D', displayLetter: 'D' },
+] as const;
+const ZANGANEH = [
   { imageKey: 'Z', displayLetter: 'Z' },
   { imageKey: 'A1', displayLetter: 'A' },
   { imageKey: 'N1', displayLetter: 'N' },
@@ -21,7 +23,9 @@ const ALL_LETTERS = [
 ] as const;
 
 const SCROLL_BASE = 280;
-const LETTER_STEP = 110; // 12 letters appear one by one
+const LETTER_STEP = 110;
+/** Parallax: subtle so letters stay on screen (was 0.1, made them fly off) */
+const PARALLAX_RATE = 0.025;
 
 function LetterSlot({
   imageKey,
@@ -79,8 +83,6 @@ function useScrollY() {
   return scrollY;
 }
 
-const PARALLAX_RATE = 0.1; // strip moves 10% of scroll (lag effect)
-
 export default function LandsatNameSidebars() {
   const scrollY = useScrollY();
   const stripVisible = scrollY > SCROLL_BASE;
@@ -95,14 +97,26 @@ export default function LandsatNameSidebars() {
       aria-hidden
     >
       <div className={styles.letters}>
-        {ALL_LETTERS.map(({ imageKey, displayLetter }, i) => (
-          <LetterSlot
-            key={`${imageKey}-${i}`}
-            imageKey={imageKey}
-            displayLetter={displayLetter}
-            visible={scrollY >= SCROLL_BASE + i * LETTER_STEP}
-          />
-        ))}
+        <div className={styles.row}>
+          {OMID.map(({ imageKey, displayLetter }, i) => (
+            <LetterSlot
+              key={imageKey}
+              imageKey={imageKey}
+              displayLetter={displayLetter}
+              visible={scrollY >= SCROLL_BASE + i * LETTER_STEP}
+            />
+          ))}
+        </div>
+        <div className={styles.row}>
+          {ZANGANEH.map(({ imageKey, displayLetter }, i) => (
+            <LetterSlot
+              key={`${imageKey}-${i}`}
+              imageKey={imageKey}
+              displayLetter={displayLetter}
+              visible={scrollY >= SCROLL_BASE + (OMID.length + i) * LETTER_STEP}
+            />
+          ))}
+        </div>
       </div>
     </aside>
   );
