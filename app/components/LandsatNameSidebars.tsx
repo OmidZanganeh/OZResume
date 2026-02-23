@@ -97,7 +97,7 @@ export default function LandsatNameSidebars() {
       aria-hidden
     >
       <div className={styles.letters}>
-        <div className={styles.row}>
+        <div className={styles.column}>
           {OMID.map(({ imageKey, displayLetter }, i) => (
             <LetterSlot
               key={imageKey}
@@ -107,7 +107,7 @@ export default function LandsatNameSidebars() {
             />
           ))}
         </div>
-        <div className={styles.row}>
+        <div className={styles.column}>
           {ZANGANEH.map(({ imageKey, displayLetter }, i) => (
             <LetterSlot
               key={`${imageKey}-${i}`}

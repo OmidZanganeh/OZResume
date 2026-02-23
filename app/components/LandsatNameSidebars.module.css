@@ -35,16 +35,15 @@
 
 .letters {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
-
-.row {
-  display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;
+  gap: 16px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 10px;
 }
 
