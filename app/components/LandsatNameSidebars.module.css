@@ -1,13 +1,8 @@
-/* Horizontal strip fixed at bottom of page: OMIDZANGANEH in one row */
+/* Landsat name row in footer: OMIDZANGANEH in one row (in document flow) */
 
 .bottomStrip {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 5;
-  padding: 12px 16px;
-  background: transparent;
+  width: 100%;
+  padding: 16px 16px 20px;
   display: flex;
   justify-content: center;
   align-items: center;

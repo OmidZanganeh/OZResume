@@ -29,7 +29,6 @@ export default function Resume() {
 
   return (
     <>
-      <LandsatNameSidebars />
       <div className={styles.container}>
 
       {/* ══════════════════════════════════════
@@ -392,6 +391,7 @@ export default function Resume() {
       ══════════════════════════════════════ */}
       <ScrollFadeIn delay={50}>
       <footer className={styles.footer}>
+        <LandsatNameSidebars />
         <div className={styles.footerBottom}>
           <p><strong>Omid Zanganeh</strong> · GIS Developer · Lincoln, Nebraska</p>
           <p>
