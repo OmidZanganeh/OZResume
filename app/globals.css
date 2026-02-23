@@ -45,10 +45,6 @@ html {
 body {
   font-family: var(--font-mono);
   background-color: var(--paper-bg);
-  background-image: linear-gradient(rgba(245, 241, 232, 0.88), rgba(245, 241, 232, 0.88)), url('/Hillshade.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
   color: var(--text-primary);
   line-height: 1.7;
   font-size: 16px;
@@ -56,9 +52,7 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-[data-theme="dark"] body {
-  background-image: linear-gradient(rgba(24, 24, 26, 0.9), rgba(24, 24, 26, 0.9)), url('/Hillshade.jpg');
-}
+/* Hillshade + overlay moved to ParallaxBackground for scroll parallax */
 
 body::before {
   content: '';

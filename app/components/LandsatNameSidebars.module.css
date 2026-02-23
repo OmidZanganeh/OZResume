@@ -7,7 +7,8 @@
   z-index: 5;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.35s ease, transform 0.35s ease;
+  transition: opacity 0.35s ease;
+  /* transform driven by JS for parallax + slide-in */
 }
 
 .strip.left {

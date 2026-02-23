@@ -79,12 +79,21 @@ function useScrollY() {
   return scrollY;
 }
 
+const PARALLAX_RATE = 0.1; // strip moves 10% of scroll (lag effect)
+
 export default function LandsatNameSidebars() {
   const scrollY = useScrollY();
   const stripVisible = scrollY > SCROLL_BASE;
+  const parallaxY = scrollY * PARALLAX_RATE;
 
   return (
-    <aside className={`${styles.strip} ${styles.left} ${stripVisible ? styles.visible : ''}`} aria-hidden>
+    <aside
+      className={`${styles.strip} ${styles.left} ${stripVisible ? styles.visible : ''}`}
+      style={{
+        transform: `translateY(calc(-50% + ${parallaxY}px)) translateX(${stripVisible ? 0 : -20}px)`,
+      }}
+      aria-hidden
+    >
       <div className={styles.letters}>
         {ALL_LETTERS.map(({ imageKey, displayLetter }, i) => (
           <LetterSlot

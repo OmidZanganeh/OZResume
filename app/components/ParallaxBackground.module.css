@@ -1,0 +1,16 @@
+/* Fixed layer behind content; transform driven by scroll for parallax */
+
+.parallaxBg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-color: var(--paper-bg);
+  background-image: linear-gradient(rgba(245, 241, 232, 0.88), rgba(245, 241, 232, 0.88)), url('/Hillshade.jpg');
+  background-size: cover;
+  background-position: center;
+  will-change: transform;
+}
+
+[data-theme="dark"] .parallaxBg {
+  background-image: linear-gradient(rgba(24, 24, 26, 0.9), rgba(24, 24, 26, 0.9)), url('/Hillshade.jpg');
+}
