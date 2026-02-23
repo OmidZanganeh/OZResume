@@ -4,13 +4,24 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import styles from './LandsatNameSidebars.module.css';
 
-/** Left: Omid. Right: Zanganeh. Images in public/name/: O.jpg, M.jpg, I.jpg, D.jpg; Z.jpg, A1.jpg, N1.jpg, G.jpg, A2.jpg, N2.jpg, E.jpg, H.jpg */
-const OMID = ['O', 'M', 'I', 'D'] as const;
-const ZANGANEH = ['Z', 'A1', 'N1', 'G', 'A2', 'N2', 'E', 'H'] as const;
+/** All letters on left: Omid + Zanganeh. Images in public/name/: O.jpg, M.jpg, I.jpg, D.jpg; Z.jpg, A1.jpg, N1.jpg, G.jpg, A2.jpg, N2.jpg, E.jpg, H.jpg */
+const ALL_LETTERS = [
+  { imageKey: 'O', displayLetter: 'O' },
+  { imageKey: 'M', displayLetter: 'M' },
+  { imageKey: 'I', displayLetter: 'I' },
+  { imageKey: 'D', displayLetter: 'D' },
+  { imageKey: 'Z', displayLetter: 'Z' },
+  { imageKey: 'A1', displayLetter: 'A' },
+  { imageKey: 'N1', displayLetter: 'N' },
+  { imageKey: 'G', displayLetter: 'G' },
+  { imageKey: 'A2', displayLetter: 'A' },
+  { imageKey: 'N2', displayLetter: 'N' },
+  { imageKey: 'E', displayLetter: 'E' },
+  { imageKey: 'H', displayLetter: 'H' },
+] as const;
 
 const SCROLL_BASE = 280;
-const LEFT_STEP = 220;  // 4 letters: appear at 280, 500, 720, 940
-const RIGHT_STEP = 140; // 8 letters: appear at 280, 420, 560, 700, 840, 980, 1120, 1260
+const LETTER_STEP = 110; // 12 letters appear one by one
 
 function LetterSlot({
   imageKey,
@@ -73,31 +84,17 @@ export default function LandsatNameSidebars() {
   const stripVisible = scrollY > SCROLL_BASE;
 
   return (
-    <>
-      <aside className={`${styles.strip} ${styles.left} ${stripVisible ? styles.visible : ''}`} aria-hidden>
-        <div className={styles.letters}>
-          {OMID.map((letter, i) => (
-            <LetterSlot
-              key={letter}
-              imageKey={letter}
-              displayLetter={letter}
-              visible={scrollY >= SCROLL_BASE + i * LEFT_STEP}
-            />
-          ))}
-        </div>
-      </aside>
-      <aside className={`${styles.strip} ${styles.right} ${stripVisible ? styles.visible : ''}`} aria-hidden>
-        <div className={styles.letters}>
-          {ZANGANEH.map((key, i) => (
-            <LetterSlot
-              key={`${key}-${i}`}
-              imageKey={key}
-              displayLetter={key.replace(/\d$/, '')}
-              visible={scrollY >= SCROLL_BASE + i * RIGHT_STEP}
-            />
-          ))}
-        </div>
-      </aside>
-    </>
+    <aside className={`${styles.strip} ${styles.left} ${stripVisible ? styles.visible : ''}`} aria-hidden>
+      <div className={styles.letters}>
+        {ALL_LETTERS.map(({ imageKey, displayLetter }, i) => (
+          <LetterSlot
+            key={`${imageKey}-${i}`}
+            imageKey={imageKey}
+            displayLetter={displayLetter}
+            visible={scrollY >= SCROLL_BASE + i * LETTER_STEP}
+          />
+        ))}
+      </div>
+    </aside>
   );
 }
