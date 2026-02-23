@@ -1,97 +1,65 @@
-/* Fixed strips outside the main frame; visible after scrolling down a bit */
+/* Horizontal strip fixed at bottom of page: OMIDZANGANEH in one row */
 
-.strip {
+.bottomStrip {
   position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 5;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.35s ease, top 0.5s ease, left 0.5s ease, width 0.5s ease;
-  /* transform driven by JS for parallax + slide-in */
-}
-
-.strip.docked {
-  transform: none;
-}
-
-.strip.docked .letters {
+  padding: 12px 16px;
+  background: linear-gradient(to top, var(--paper-light) 60%, transparent);
+  display: flex;
   justify-content: center;
-  flex-wrap: wrap;
+  align-items: center;
 }
 
-.strip.left {
-  left: 24px;
-  transform: translateY(-50%) translateX(-20px);
-}
-
-.strip.right {
-  right: 24px;
-  transform: translateY(-50%) translateX(20px);
-}
-
-.strip.visible {
-  opacity: 1;
-}
-
-.strip.visible.left {
-  transform: translateY(-50%) translateX(0);
-}
-
-.strip.visible.right {
-  transform: translateY(-50%) translateX(0);
-}
-
-.letters {
+.bottomRow {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.column {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.letterWrap {
-  width: 64px;
-  height: 64px;
+.bottomStrip .letterWrap {
+  width: 48px;
+  height: 48px;
   border-radius: 6px;
   overflow: hidden;
   border: 2px solid var(--border-dark);
   background: var(--paper-light);
-  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transform: translateY(32px);
-  transition: opacity 0.45s ease, transform 0.5s ease-out;
-}
-
-.letterWrap.letterVisible {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
-.letterImg {
+.bottomStrip .letterImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.letterFallback {
-  font-size: 1.8em;
+.bottomStrip .letterFallback {
+  font-size: 1.4em;
   font-weight: 600;
   color: var(--text-muted);
 }
 
-/* Hide on narrow viewports so they don't overlap the frame */
-@media (max-width: 1100px) {
-  .strip {
-    display: none;
+/* Optional: hide on very narrow viewports to avoid clutter */
+@media (max-width: 480px) {
+  .bottomStrip .letterWrap {
+    width: 36px;
+    height: 36px;
+  }
+  .bottomStrip .letterFallback {
+    font-size: 1.1em;
+  }
+  .bottomRow {
+    gap: 4px;
   }
 }
