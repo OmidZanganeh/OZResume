@@ -8,9 +8,9 @@ import styles from './LandsatNameSidebars.module.css';
 const OMID = ['O', 'M', 'I', 'D'] as const;
 const ZANGANEH = ['Z', 'A1', 'N1', 'G', 'A2', 'N2', 'E', 'H'] as const;
 
-const SCROLL_BASE = 80;
-const LEFT_STEP = 70;   // 4 letters: appear at 80, 150, 220, 290
-const RIGHT_STEP = 50;  // 8 letters: appear at 80, 130, 180, ...
+const SCROLL_BASE = 280;
+const LEFT_STEP = 220;  // 4 letters: appear at 280, 500, 720, 940
+const RIGHT_STEP = 140; // 8 letters: appear at 280, 420, 560, 700, 840, 980, 1120, 1260
 
 function LetterSlot({
   imageKey,
