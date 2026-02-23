@@ -51,7 +51,7 @@ export default function Resume() {
             <h1 className={styles.name}>
               <TypeWriter text="Omid Zanganeh" speed={80} />
             </h1>
-            <p className={styles.tagline}>GIS Associate Technician &amp; Developer</p>
+            <p className={styles.tagline}>GIS Developer</p>
 
             <div className={styles.contact}>
               <a className={styles.contactItem} href="tel:+15312296873">📞 +1 (531) 229-6873</a>
@@ -114,7 +114,7 @@ export default function Resume() {
         <h2 className={styles.sectionTitle}>About Me</h2>
         <div className={styles.aboutBody}>
           <p>
-            I&apos;m a GIS Associate Technician at Olsson, specializing in workflow automation, geospatial analysis,
+            I&apos;m a GIS Developer at Olsson, specializing in workflow automation, geospatial analysis,
             and application development to solve complex spatial challenges. I work extensively with ArcGIS Pro,
             Python, SQL, and remote sensing platforms to build high-performance tools for automating spatial
             workflows and supporting fiber-network market analysis and design.
@@ -199,7 +199,7 @@ export default function Resume() {
                   <span className={styles.company}>Olsson</span>
                   <span className={styles.datePill}>Mar 2025 – Present</span>
                 </div>
-                <p className={styles.jobTitle}>GIS Associate Technician – Telecom Engineering &amp; Design</p>
+                <p className={styles.jobTitle}>GIS Developer – Telecom Engineering &amp; Design</p>
                 <p className={styles.location}>Lincoln, Nebraska</p>
                 <ul className={styles.bullets}>
                   <li>Developed Python and C# desktop applications for deep learning-based object detection, data parsing, and SQL Server management — improving efficiency across multiple workflows.</li>
@@ -390,7 +390,7 @@ export default function Resume() {
       <ScrollFadeIn delay={50}>
       <footer className={styles.footer}>
         <div className={styles.footerBottom}>
-          <p><strong>Omid Zanganeh</strong> · GIS Associate Technician &amp; Developer · Lincoln, Nebraska</p>
+          <p><strong>Omid Zanganeh</strong> · GIS Developer · Lincoln, Nebraska</p>
           <p>
             <a href="https://www.linkedin.com/in/omidzanganeh/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
             {' · '}

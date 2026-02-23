@@ -39,7 +39,7 @@ export default function Image() {
 
         {/* Title */}
         <div style={{ fontSize: 32, color: '#6b6760', marginBottom: 40, display: 'flex' }}>
-          GIS Associate Technician &amp; Developer
+          GIS Developer
         </div>
 
         {/* Tags row */}
