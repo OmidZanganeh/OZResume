@@ -4,24 +4,24 @@ import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import styles from './LandsatNameSidebars.module.css';
 
-/** Letters for "Omid" (left) and "Zanganeh" (right). Images live in public/name/: O.png, M.png, etc. */
+/** Left: Omid. Right: Zanganeh. Images in public/name/: O.jpg, M.jpg, I.jpg, D.jpg; Z.jpg, A1.jpg, N1.jpg, G.jpg, A2.jpg, N2.jpg, E.jpg, H.jpg */
 const OMID = ['O', 'M', 'I', 'D'] as const;
-const ZANGANEH = ['Z', 'A', 'N', 'G', 'A', 'N', 'E', 'H'] as const;
+const ZANGANEH = ['Z', 'A1', 'N1', 'G', 'A2', 'N2', 'E', 'H'] as const;
 
-function LetterSlot({ letter }: { letter: string }) {
+function LetterSlot({ imageKey, displayLetter }: { imageKey: string; displayLetter: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
       <div className={styles.letterWrap}>
-        <span className={styles.letterFallback}>{letter}</span>
+        <span className={styles.letterFallback}>{displayLetter}</span>
       </div>
     );
   }
   return (
     <div className={styles.letterWrap}>
       <Image
-        src={`/name/${letter}.png`}
-        alt={`${letter} (Landsat)`}
+        src={`/name/${imageKey}.jpg`}
+        alt={`${displayLetter} (Landsat)`}
         width={80}
         height={80}
         className={styles.letterImg}
@@ -64,14 +64,18 @@ export default function LandsatNameSidebars() {
       <aside className={`${styles.strip} ${styles.left} ${show ? styles.visible : ''}`} aria-hidden>
         <div className={styles.letters}>
           {OMID.map((letter) => (
-            <LetterSlot key={letter} letter={letter} />
+            <LetterSlot key={letter} imageKey={letter} displayLetter={letter} />
           ))}
         </div>
       </aside>
       <aside className={`${styles.strip} ${styles.right} ${show ? styles.visible : ''}`} aria-hidden>
         <div className={styles.letters}>
-          {ZANGANEH.map((letter, i) => (
-            <LetterSlot key={`${letter}-${i}`} letter={letter} />
+          {ZANGANEH.map((key, i) => (
+            <LetterSlot
+              key={`${key}-${i}`}
+              imageKey={key}
+              displayLetter={key.replace(/\d$/, '')}
+            />
           ))}
         </div>
       </aside>
