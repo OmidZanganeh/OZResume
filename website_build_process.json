@@ -1,0 +1,372 @@
+{
+  "document": {
+    "title": "OmidZanganeh.com build + launch playbook",
+    "purpose": "A complete, AI-friendly description of how this resume site is built, how to run it locally, how to deploy it, how DNS/domain + hosting are configured, and how to handle SEO/indexing.",
+    "repo": {
+      "name": "resume-site",
+      "gitRemote": "https://github.com/OmidZanganeh/OZResume.git",
+      "primaryBranch": "main"
+    },
+    "lastUpdated": "2026-02-23",
+    "audience": [
+      "You (site owner) maintaining the website",
+      "Another AI agent rebuilding a similar site from scratch",
+      "A developer helping deploy/SEO/debug"
+    ]
+  },
+  "siteSummary": {
+    "siteName": "Omid Zanganeh – GIS Developer",
+    "primaryGoal": "Personal resume/portfolio website that showcases work experience, education, skills, projects, and provides a downloadable resume + contact form.",
+    "primaryDomain": "https://omidzanganeh.com",
+    "hostingPlatform": "Vercel (recommended + currently used)",
+    "repositoryStrategy": "GitHub repo is the source of truth; Vercel builds/deploys from main.",
+    "keyFeatures": [
+      "Home resume page with two-column layout on desktop + responsive mobile layout",
+      "Projects page",
+      "Dark mode toggle (ThemeContext)",
+      "Interactive components (typewriter, count-up stats, skill radar, hobbies visualization, mini-games modal)",
+      "Visitor counter endpoint (and related API routes)",
+      "SEO essentials: metadata, JSON-LD Person schema, sitemap.xml, robots.txt, opengraph image",
+      "Scroll-triggered animations (fade in + sidebar fly-in)"
+    ]
+  },
+  "techStack": {
+    "framework": {
+      "name": "Next.js",
+      "version": "16.1.6",
+      "router": "App Router (app/ directory)",
+      "runtimeNotes": [
+        "Uses file conventions for metadata (e.g., app/favicon.ico, app/opengraph-image.tsx, app/sitemap.ts, app/robots.ts)",
+        "Pages/components use client-side interactivity where needed via 'use client'"
+      ]
+    },
+    "language": {
+      "typescript": true,
+      "react": "19.2.3"
+    },
+    "styling": {
+      "approach": "CSS Modules (e.g., app/page.module.css, app/components/*.module.css)",
+      "globalStyles": "app/globals.css",
+      "notes": [
+        "Prefer CSS Modules for component encapsulation",
+        "Theme variables are defined via CSS custom properties for light/dark themes"
+      ]
+    },
+    "dataAndAPIs": {
+      "appApiRoutes": [
+        "app/api/visitors/route.ts",
+        "app/api/leaderboard/route.ts"
+      ],
+      "dependencies": [
+        "ioredis (optional, for visitor counting/storage depending on deployment configuration)"
+      ]
+    },
+    "packageManager": {
+      "expected": "npm (or pnpm/yarn are fine if consistent)",
+      "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "eslint"
+      }
+    }
+  },
+  "repositoryStructure": {
+    "importantPaths": [
+      {
+        "path": "app/page.tsx",
+        "purpose": "Main resume page UI (header, sections, right sidebar, contact form)."
+      },
+      {
+        "path": "app/page.module.css",
+        "purpose": "Main page styling (grid layout, typography, section titles, sidebar rules, responsive behavior)."
+      },
+      {
+        "path": "app/layout.tsx",
+        "purpose": "Global layout + metadata (SEO), JSON-LD, theme initialization."
+      },
+      {
+        "path": "app/globals.css",
+        "purpose": "Global theme variables + base resets and typography."
+      },
+      {
+        "path": "app/favicon.ico",
+        "purpose": "Favicon displayed in the browser tab."
+      },
+      {
+        "path": "app/opengraph-image.tsx",
+        "purpose": "Generates the social preview image (Open Graph)."
+      },
+      {
+        "path": "app/robots.ts",
+        "purpose": "Generates robots.txt and references sitemap."
+      },
+      {
+        "path": "app/sitemap.ts",
+        "purpose": "Generates sitemap.xml for indexing."
+      },
+      {
+        "path": "app/projects/page.tsx",
+        "purpose": "Projects page."
+      },
+      {
+        "path": "public/Omid-Zanganeh-Resume.pdf",
+        "purpose": "Downloadable resume file served at /Omid-Zanganeh-Resume.pdf."
+      },
+      {
+        "path": "public/Omid.png and public/Omid2.png",
+        "purpose": "Profile images used on the home page (randomly chosen on refresh)."
+      }
+    ],
+    "components": {
+      "location": "app/components/",
+      "notableComponents": [
+        "DarkModeToggle",
+        "ThemeContext",
+        "TypeWriter",
+        "CountUp",
+        "SkillRadar",
+        "SkillBar",
+        "HobbiesSection",
+        "JourneySection",
+        "ContactForm",
+        "GameHub + games/*",
+        "ScrollFadeIn"
+      ]
+    }
+  },
+  "localDevelopment": {
+    "prerequisites": [
+      "Install Node.js (LTS recommended).",
+      "Ensure npm is available in PATH (Windows: reinstall Node or enable npm).",
+      "Git installed for version control."
+    ],
+    "commands": [
+      {
+        "name": "Install dependencies",
+        "command": "npm install",
+        "notes": "Run once or when package.json changes."
+      },
+      {
+        "name": "Run locally (dev)",
+        "command": "npm run dev",
+        "result": "App runs at http://localhost:3000"
+      },
+      {
+        "name": "Build (production check)",
+        "command": "npm run build",
+        "notes": "Catches TypeScript and Next build issues."
+      },
+      {
+        "name": "Start (prod mode)",
+        "command": "npm run start",
+        "notes": "Requires a successful build first."
+      }
+    ],
+    "commonLocalIssues": [
+      {
+        "symptom": "PowerShell: 'npm' is not recognized",
+        "cause": "Node/npm not installed or not on PATH",
+        "fix": "Install Node.js LTS, reopen terminal/IDE, verify with 'node -v' and 'npm -v'."
+      },
+      {
+        "symptom": "Favicons not updating",
+        "cause": "Browser caching",
+        "fix": "Hard refresh (Ctrl+Shift+R), use incognito, or clear site cache."
+      }
+    ]
+  },
+  "designImplementationNotes": {
+    "layout": {
+      "desktop": "Two-column grid: main content on left; sidebar on right; contact area placed to appear last on mobile.",
+      "mobile": "Single column with controlled order (main -> sidebar -> contact)."
+    },
+    "typography": {
+      "font": "IBM Plex Mono",
+      "sectionTitles": {
+        "baseClass": "app/page.module.css .sectionTitle",
+        "sidebarOverride": "app/page.module.css .sidebar .sectionTitle",
+        "customTitleInHobbies": "app/components/HobbiesSection.module.css .compactSectionTitle"
+      }
+    },
+    "animations": {
+      "scrollReveal": {
+        "component": "app/components/ScrollFadeIn.tsx",
+        "behavior": [
+          "Fades + slides in when element enters viewport",
+          "Supports direction variants: up (default), right (sidebar fly-in), left",
+          "Respects prefers-reduced-motion"
+        ]
+      }
+    }
+  },
+  "assetsAndDownloads": {
+    "resumeDownload": {
+      "servedPath": "/Omid-Zanganeh-Resume.pdf",
+      "fileLocation": "public/Omid-Zanganeh-Resume.pdf",
+      "updateProcedure": [
+        "Replace the file in public/ with the updated PDF (keep the same filename to avoid changing code).",
+        "Commit + push.",
+        "Wait for Vercel deploy to finish.",
+        "Test download link on production."
+      ]
+    },
+    "profileImages": {
+      "servedPaths": [
+        "/Omid.png",
+        "/Omid2.png"
+      ],
+      "behavior": "Home page randomly selects between the two on each refresh.",
+      "updateProcedure": [
+        "Replace the image file inside public/ using the same filename.",
+        "Commit + push; redeploy."
+      ]
+    }
+  },
+  "deployment": {
+    "recommended": "Vercel",
+    "vercelSetup": {
+      "steps": [
+        "Create/Sign in to Vercel account.",
+        "Import GitHub repo (OZResume).",
+        "Set framework preset to Next.js (auto-detected).",
+        "Choose branch: main.",
+        "Deploy."
+      ],
+      "buildSettings": {
+        "installCommand": "npm install (default)",
+        "buildCommand": "npm run build",
+        "output": "Next.js managed output (no manual output dir)"
+      },
+      "environmentVariables": {
+        "notes": [
+          "If visitor counting uses Redis, configure REDIS_URL (or equivalent) in Vercel project env vars.",
+          "Never commit .env files; they are gitignored."
+        ]
+      }
+    },
+    "postDeployChecklist": [
+      "Visit the production URL on desktop and mobile.",
+      "Verify /robots.txt and /sitemap.xml load successfully.",
+      "Verify downloadable resume link works.",
+      "Verify images load and look correct.",
+      "Check console for errors.",
+      "Run Lighthouse for performance/SEO (optional)."
+    ]
+  },
+  "domainAndDNS": {
+    "domainProviderExample": "Namecheap (common for this project)",
+    "keyConcept": "DNS records are edited wherever your domain's nameservers point (DNS host).",
+    "twoCommonSetups": [
+      {
+        "setup": "DNS hosted at Namecheap",
+        "howToDetect": "Nameservers in Namecheap show Namecheap BasicDNS (dns1.namecheaphosting.com, etc.)",
+        "whereToAddRecords": "Namecheap → Advanced DNS → Host Records"
+      },
+      {
+        "setup": "DNS hosted at Vercel",
+        "howToDetect": "Nameservers set to Vercel DNS (ns1.vercel-dns.com, ns2.vercel-dns.com)",
+        "whereToAddRecords": "Vercel dashboard → Domains → select domain → DNS Records"
+      }
+    ],
+    "vercelDomainConnect": {
+      "steps": [
+        "In Vercel project → Settings → Domains: add omidzanganeh.com and www.omidzanganeh.com (optional).",
+        "Vercel shows the required DNS records (A/CNAME) depending on your setup.",
+        "Add those records in your DNS host (Namecheap or Vercel DNS).",
+        "Wait for propagation, then confirm Vercel domain status is 'Valid Configuration'."
+      ],
+      "ssl": "Vercel automatically provisions HTTPS certificates once DNS is correct."
+    }
+  },
+  "googleSearchConsoleVerification": {
+    "recommendedMethod": "DNS TXT verification (domain property)",
+    "steps": [
+      "In Google Search Console: choose Domain property for omidzanganeh.com.",
+      "Copy the provided TXT record: google-site-verification=...",
+      "Add that TXT record at your DNS host (Namecheap if DNS is there; otherwise Vercel).",
+      "Wait for propagation (minutes to hours; sometimes longer).",
+      "Click Verify in Search Console."
+    ],
+    "namecheapExampleRecord": {
+      "type": "TXT",
+      "host": "@",
+      "valueExample": "google-site-verification=YOUR_TOKEN_HERE",
+      "ttl": "Automatic (or 300)"
+    },
+    "troubleshooting": [
+      "If Verify fails immediately, wait 15–60 minutes and try again.",
+      "If still failing, confirm you added the TXT record to the correct DNS host (nameserver check).",
+      "Use a DNS checker tool to confirm TXT record is visible publicly.",
+      "Ensure host/name is '@' (root) unless Google explicitly requests a subdomain."
+    ]
+  },
+  "seo": {
+    "currentImplementation": {
+      "metadata": "app/layout.tsx exports Next.js Metadata (title, description, openGraph, twitter, metadataBase).",
+      "structuredData": "JSON-LD Person schema embedded in <head> via layout.tsx.",
+      "sitemap": "app/sitemap.ts generates /sitemap.xml (includes / and /projects).",
+      "robots": "app/robots.ts generates /robots.txt allowing crawling and pointing to sitemap.",
+      "opengraph": "app/opengraph-image.tsx generates a share image."
+    },
+    "indexingChecklist": [
+      "Verify domain in Google Search Console.",
+      "Submit sitemap: https://omidzanganeh.com/sitemap.xml",
+      "Use URL Inspection to request indexing of key pages (/ and /projects).",
+      "Ensure no accidental noindex tags or blocked robots rules.",
+      "Ensure the site is publicly accessible without authentication."
+    ],
+    "rankingForKeywordsLike": [
+      "GIS Developer",
+      "GIS Automation Developer",
+      "ArcGIS Developer",
+      "Python GIS Developer"
+    ],
+    "practicalContentActions": [
+      "Make sure the phrase 'GIS Developer' appears naturally in the visible hero/intro text and headings.",
+      "Create 1 dedicated page or section for 'GIS Projects / Case Studies' with keyword-rich headings and results.",
+      "Use internal links (homepage → projects; projects → individual project sections) if you add more pages."
+    ],
+    "authorityActions": [
+      "Add your domain link to LinkedIn, GitHub, StoryMap, and other profiles (backlinks help).",
+      "Share the site in relevant communities (GIS forums, LinkedIn posts) to earn natural links."
+    ],
+    "technicalSeoActions": [
+      "Optimize images (use Next/Image, keep file sizes reasonable).",
+      "Keep page load fast (avoid huge JS bundles).",
+      "Ensure mobile layout is clean and accessible.",
+      "Fix console errors and broken links quickly."
+    ]
+  },
+  "releaseAndChangeManagement": {
+    "workflow": [
+      "Make changes locally",
+      "Run quick local check (npm run dev; optionally npm run build)",
+      "git add / commit with a clear message",
+      "git push origin main",
+      "Wait for Vercel to build/deploy",
+      "Smoke test production"
+    ],
+    "noteOnLargeBinaryFiles": [
+      "PDF and image files are binary; git commit output shows 0 insertions/deletions even when content changes.",
+      "Keep file names stable (e.g., public/Omid-Zanganeh-Resume.pdf) to avoid updating links."
+    ]
+  },
+  "thingsOftenMissedButImportant": {
+    "security": [
+      "Do not commit .env files or credentials (already gitignored).",
+      "If contact form sends email, protect from spam (honeypot/captcha) and avoid exposing API keys client-side."
+    ],
+    "analytics": [
+      "Optional: add privacy-friendly analytics (Plausible, Umami) if desired; keep it minimal."
+    ],
+    "legalAndPrivacy": [
+      "If storing visitor IP/location, add a short privacy note. Avoid collecting more than needed."
+    ],
+    "accessibility": [
+      "Respect prefers-reduced-motion (already done in ScrollFadeIn).",
+      "Ensure keyboard focus states are visible and links are descriptive."
+    ]
+  }
+}
+
