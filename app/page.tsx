@@ -362,8 +362,8 @@ export default function Resume() {
             <HobbiesSection compact />
           </section>
 
-          {/* Languages */}
-          <section>
+          {/* Languages — Landsat name letters move here when scrolled to bottom */}
+          <section id="languages-section">
             <h2 className={styles.sectionTitle}>Languages</h2>
             <div className={styles.tags}>
               <span className={`${styles.tag} ${styles.tagGreen}`}>English — Fluent</span>

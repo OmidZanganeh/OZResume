@@ -4,6 +4,9 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import styles from './LandsatNameSidebars.module.css';
 
+const ANCHOR_ID = 'languages-section';
+const BOTTOM_THRESHOLD = 120; // px from bottom to consider "at end"
+
 /** Row 1: Omid. Row 2: Zanganeh. Images in public/name/: O.jpg, M.jpg, I.jpg, D.jpg; Z.jpg, A1.jpg, N1.jpg, G.jpg, A2.jpg, N2.jpg, E.jpg, H.jpg */
 const OMID = [
   { imageKey: 'O', displayLetter: 'O' },
@@ -60,13 +63,17 @@ function LetterSlot({
   );
 }
 
-function useScrollY() {
+function useScrollYAndAtBottom() {
   const [scrollY, setScrollY] = useState(0);
+  const [atBottom, setAtBottom] = useState(false);
 
   useEffect(() => {
     let ticking = false;
     const update = () => {
-      setScrollY(window.scrollY);
+      const y = window.scrollY;
+      setScrollY(y);
+      const doc = document.documentElement;
+      setAtBottom(y + window.innerHeight >= doc.scrollHeight - BOTTOM_THRESHOLD);
       ticking = false;
     };
     const onScroll = () => {
@@ -75,25 +82,65 @@ function useScrollY() {
         requestAnimationFrame(update);
       }
     };
-    setScrollY(window.scrollY);
+    update();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  return scrollY;
+  return { scrollY, atBottom };
+}
+
+function useAnchorRect(atBottom: boolean) {
+  const [rect, setRect] = useState<{ bottom: number; left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    if (!atBottom) {
+      setRect(null);
+      return;
+    }
+    const el = document.getElementById(ANCHOR_ID);
+    if (!el) return;
+
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      setRect({ bottom: r.bottom, left: r.left, width: r.width });
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [atBottom]);
+
+  return rect;
 }
 
 export default function LandsatNameSidebars() {
-  const scrollY = useScrollY();
+  const { scrollY, atBottom } = useScrollYAndAtBottom();
+  const anchorRect = useAnchorRect(atBottom);
   const stripVisible = scrollY > SCROLL_BASE;
   const parallaxY = scrollY * PARALLAX_RATE;
 
+  const isDocked = atBottom && anchorRect !== null;
+
   return (
     <aside
-      className={`${styles.strip} ${styles.left} ${stripVisible ? styles.visible : ''}`}
-      style={{
-        transform: `translateY(calc(-50% + ${parallaxY}px)) translateX(${stripVisible ? 0 : -20}px)`,
-      }}
+      className={`${styles.strip} ${styles.left} ${stripVisible ? styles.visible : ''} ${isDocked ? styles.docked : ''}`}
+      style={
+        isDocked && anchorRect
+          ? {
+              top: anchorRect.bottom + 10,
+              left: anchorRect.left,
+              width: anchorRect.width,
+              maxWidth: anchorRect.width,
+              transform: 'none',
+            }
+          : {
+              transform: `translateY(calc(-50% + ${parallaxY}px)) translateX(${stripVisible ? 0 : -20}px)`,
+            }
+      }
       aria-hidden
     >
       <div className={styles.letters}>

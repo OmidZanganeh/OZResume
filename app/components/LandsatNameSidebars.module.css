@@ -7,8 +7,17 @@
   z-index: 5;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.35s ease;
+  transition: opacity 0.35s ease, top 0.5s ease, left 0.5s ease, width 0.5s ease;
   /* transform driven by JS for parallax + slide-in */
+}
+
+.strip.docked {
+  transform: none;
+}
+
+.strip.docked .letters {
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .strip.left {
