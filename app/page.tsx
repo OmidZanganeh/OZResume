@@ -283,9 +283,7 @@ export default function Resume() {
           </section>
 
           {/* Journey Map */}
-          <section className={styles.contentCard}>
-            <JourneySection />
-          </section>
+          <JourneySection />
         </main>
         </ScrollFadeIn>
 
@@ -378,9 +376,7 @@ export default function Resume() {
         {/* Contact Form: same column as main on desktop, last on mobile */}
         <ScrollFadeIn delay={100} className={styles.gridFadeContact}>
         <div className={styles.contactCol}>
-          <section className={styles.contentCard}>
-            <ContactForm />
-          </section>
+          <ContactForm />
         </div>
         </ScrollFadeIn>
       </div>
