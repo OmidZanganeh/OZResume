@@ -192,7 +192,7 @@ export default function Resume() {
         {/* ── LEFT: Work Experience ── */}
         <ScrollFadeIn delay={100} className={styles.gridFadeMain}>
         <main className={styles.mainCol}>
-          <section>
+          <section className={styles.contentCard}>
             <h2 className={styles.sectionTitle}>Work Experience</h2>
             <div className={styles.jobList}>
 
@@ -253,7 +253,7 @@ export default function Resume() {
           </section>
 
           {/* Education */}
-          <section>
+          <section className={styles.contentCard}>
             <h2 className={styles.sectionTitle}>Education</h2>
 
             <div className={styles.eduCard}>
@@ -283,7 +283,9 @@ export default function Resume() {
           </section>
 
           {/* Journey Map */}
-          <JourneySection />
+          <section className={styles.contentCard}>
+            <JourneySection />
+          </section>
         </main>
         </ScrollFadeIn>
 
@@ -376,7 +378,9 @@ export default function Resume() {
         {/* Contact Form: same column as main on desktop, last on mobile */}
         <ScrollFadeIn delay={100} className={styles.gridFadeContact}>
         <div className={styles.contactCol}>
-          <ContactForm />
+          <section className={styles.contentCard}>
+            <ContactForm />
+          </section>
         </div>
         </ScrollFadeIn>
       </div>

@@ -235,6 +235,17 @@
   line-height: 1.75;
 }
 
+/* ─── Reusable content card for main sections (Work, Education, Journey, Contact) ─── */
+.contentCard {
+  margin-bottom: 40px;
+  padding: 28px 32px;
+  background: var(--paper-light);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  box-shadow: 2px 2px 0 rgba(163,159,146,0.06);
+}
+
+
 /* ─── Currently Working On ─── */
 .nowSection {
   margin-bottom: 48px;
@@ -753,6 +764,10 @@
     padding: 20px 18px 40px;
     margin-left: 12px;
     margin-right: 12px;
+  }
+  .contentCard {
+    padding: 20px 18px;
+    margin-bottom: 28px;
   }
   .name { font-size: 2em; }
   .headerMain { flex-direction: column-reverse; }
