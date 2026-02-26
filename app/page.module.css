@@ -5,16 +5,18 @@
   padding: 32px 44px 60px;
   background: var(--paper-light);
   border: 2px solid var(--border-dark);
-  border-radius: 4px;
+  border-radius: 8px;
   box-shadow:
     0 0 0 1px var(--border-light) inset,
-    4px 6px 20px rgba(0, 0, 0, 0.08);
+    2px 2px 0 rgba(163,159,146,0.08),
+    6px 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="dark"] .container {
   box-shadow:
     0 0 0 1px var(--border-light) inset,
-    4px 6px 24px rgba(0, 0, 0, 0.35);
+    2px 2px 0 rgba(163,159,146,0.12),
+    6px 8px 28px rgba(0, 0, 0, 0.35);
 }
 
 /* ─── Header ─── */
@@ -52,16 +54,16 @@
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: transform 0.2s, background 0.2s, color 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s, color 0.2s;
   box-shadow: 2px 2px 0 var(--border-light);
 }
 
 .boredBtn:hover {
   transform: translate(-1px, -1px) rotate(-2deg);
+  box-shadow: 3px 3px 0 rgba(249,115,22,0.35);
   background: var(--accent-orange);
   color: white;
   border-color: var(--accent-orange);
-  box-shadow: 3px 3px 0 rgba(249,115,22,0.3);
 }
 
 .headerMain {
@@ -154,7 +156,7 @@
   background: var(--paper-dark);
   color: var(--text-primary);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
   box-shadow: 2px 2px 0 var(--border-dark);
   text-decoration: none;
   display: inline-block;
@@ -187,13 +189,13 @@
   border-radius: 8px;
   padding: 18px 16px;
   text-align: center;
-  box-shadow: 2px 2px 0 rgba(163,159,146,0.1);
-  transition: transform 0.2s ease;
+  box-shadow: 2px 2px 0 rgba(163,159,146,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat:hover {
   transform: translateY(-3px);
-  box-shadow: 3px 5px 0 rgba(163,159,146,0.15);
+  box-shadow: 3px 3px 0 rgba(163,159,146,0.12);
 }
 
 .statNum {
@@ -242,7 +244,7 @@
   background: var(--paper-light);
   border: 1px solid var(--border-light);
   border-radius: 8px;
-  box-shadow: 2px 2px 0 rgba(163,159,146,0.06);
+  box-shadow: 2px 2px 0 rgba(163,159,146,0.08);
 }
 
 
@@ -266,7 +268,7 @@
   border-radius: 8px;
   padding: 20px 18px;
   box-shadow: 2px 2px 0 rgba(163,159,146,0.08);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -281,6 +283,7 @@
 
 .nowCard:hover {
   transform: translateY(-3px);
+  box-shadow: 3px 3px 0 rgba(163,159,146,0.12);
 }
 
 .nowIcon {
@@ -388,7 +391,7 @@
   border-left: 5px solid var(--accent-blue);
   border-radius: 8px;
   padding: 22px 24px;
-  box-shadow: 2px 2px 0 rgba(163,159,146,0.1), 4px 4px 0 rgba(163,159,146,0.06);
+  box-shadow: 2px 2px 0 rgba(163,159,146,0.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   animation: fadeUp 0.4s ease both;
 }
@@ -400,7 +403,7 @@
 
 .job:hover {
   transform: translateY(-3px);
-  box-shadow: 3px 6px 0 rgba(163,159,146,0.15), 6px 10px 0 rgba(163,159,146,0.08);
+  box-shadow: 3px 3px 0 rgba(163,159,146,0.12);
 }
 
 .jobMeta {
@@ -473,13 +476,17 @@
   background: var(--paper-light);
   border: 1px solid var(--border-light);
   border-left: 4px solid var(--accent-orange);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 16px 16px;
   margin-bottom: 14px;
-  transition: transform 0.2s;
+  box-shadow: 2px 2px 0 rgba(163,159,146,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.eduCard:hover { transform: translateY(-2px); }
+.eduCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 3px 3px 0 rgba(163,159,146,0.12);
+}
 
 .degree {
   font-size: 0.92em;
@@ -643,7 +650,7 @@
   border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 2px 2px 0 rgba(163,159,146,0.1), 4px 4px 0 rgba(163,159,146,0.06);
+  box-shadow: 2px 2px 0 rgba(163,159,146,0.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   display: flex;
   flex-direction: column;
@@ -652,7 +659,7 @@
 
 .projectCard:hover {
   transform: translateY(-4px);
-  box-shadow: 3px 6px 0 rgba(163,159,146,0.15), 6px 10px 0 rgba(163,159,146,0.08);
+  box-shadow: 3px 3px 0 rgba(163,159,146,0.12);
 }
 
 .projectTop {

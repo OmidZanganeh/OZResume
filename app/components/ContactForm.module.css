@@ -3,8 +3,8 @@
   padding: 40px;
   background: var(--paper-light);
   border: 1px solid var(--border-light);
-  border-radius: 10px;
-  box-shadow: 2px 2px 0 rgba(163,159,146,0.1);
+  border-radius: 8px;
+  box-shadow: 2px 2px 0 rgba(163,159,146,0.08);
 }
 
 .title {
@@ -92,7 +92,7 @@
   font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
   box-shadow: 2px 2px 0 var(--border-dark);
 }
 
