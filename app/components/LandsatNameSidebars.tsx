@@ -39,22 +39,24 @@ function LetterSlot({
 }) {
   const [failed, setFailed] = useState(false);
   const wrap = (
-    <div className={styles.letterInner}>
-      {failed ? (
-        <span className={styles.letterFallback}>{displayLetter}</span>
-      ) : (
-        <Image
-          src={`/name/${imageKey}.jpg`}
-          alt={`${displayLetter} (Landsat – ${place})`}
-          width={48}
-          height={48}
-          className={styles.letterImg}
-          unoptimized
-          onError={() => setFailed(true)}
-        />
-      )}
+    <>
+      <div className={styles.letterInner}>
+        {failed ? (
+          <span className={styles.letterFallback}>{displayLetter}</span>
+        ) : (
+          <Image
+            src={`/name/${imageKey}.jpg`}
+            alt={`${displayLetter} (Landsat – ${place})`}
+            width={48}
+            height={48}
+            className={styles.letterImg}
+            unoptimized
+            onError={() => setFailed(true)}
+          />
+        )}
+      </div>
       <span className={styles.letterLabel}>{displayLetter}</span>
-    </div>
+    </>
   );
   return (
     <a
