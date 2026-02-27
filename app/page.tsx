@@ -393,7 +393,7 @@ export default function Resume() {
       <footer className={styles.footer}>
         <LandsatNameSidebars />
         <div className={styles.footerBottom}>
-          <p><strong>Omid Zanganeh</strong> · GIS Developer · Lincoln, Nebraska</p>
+          <p>GIS Developer · Lincoln, Nebraska</p>
           <p>
             <a href="https://www.linkedin.com/in/omidzanganeh/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
             {' · '}
