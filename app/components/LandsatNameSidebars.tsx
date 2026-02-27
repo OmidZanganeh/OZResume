@@ -39,7 +39,7 @@ function LetterSlot({
 }) {
   const [failed, setFailed] = useState(false);
   const wrap = (
-    <>
+    <div className={styles.letterInner}>
       {failed ? (
         <span className={styles.letterFallback}>{displayLetter}</span>
       ) : (
@@ -53,7 +53,8 @@ function LetterSlot({
           onError={() => setFailed(true)}
         />
       )}
-    </>
+      <span className={styles.letterLabel}>{displayLetter}</span>
+    </div>
   );
   return (
     <a
