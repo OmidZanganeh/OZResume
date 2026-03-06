@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://omidzanganeh.com'),
   title: "Omid Zanganeh – GIS Developer",
   description: "GIS Developer at Olsson. Specializing in Python, ArcGIS, AI-powered workflows, and fiber network automation.",
+  alternates: { canonical: '/' },
   openGraph: {
     title: "Omid Zanganeh – GIS Developer",
     description: "GIS Developer at Olsson. Python, ArcGIS, AI automation, remote sensing, fiber network design.",

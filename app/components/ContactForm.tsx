@@ -40,17 +40,17 @@ export default function ContactForm() {
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.row}>
             <div className={styles.field}>
-              <label className={styles.label}>Name</label>
-              <input name="name" required className={styles.input} placeholder="Your name" />
+              <label htmlFor="contact-name" className={styles.label}>Name</label>
+              <input id="contact-name" name="name" required className={styles.input} placeholder="Your name" />
             </div>
             <div className={styles.field}>
-              <label className={styles.label}>Email</label>
-              <input name="email" type="email" required className={styles.input} placeholder="your@email.com" />
+              <label htmlFor="contact-email" className={styles.label}>Email</label>
+              <input id="contact-email" name="email" type="email" required className={styles.input} placeholder="your@email.com" />
             </div>
           </div>
           <div className={styles.field}>
-            <label className={styles.label}>Message</label>
-            <textarea name="message" required className={styles.textarea} rows={5} placeholder="What's on your mind?" />
+            <label htmlFor="contact-message" className={styles.label}>Message</label>
+            <textarea id="contact-message" name="message" required className={styles.textarea} rows={5} placeholder="What's on your mind?" />
           </div>
           <button type="submit" className={styles.btn} disabled={status === 'sending'}>
             {status === 'sending' ? '[ sending... ]' : '[ Send Message ]'}

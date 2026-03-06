@@ -1,6 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./page.module.css";
+
+export const metadata: Metadata = {
+  title: "GIS Projects | Omid Zanganeh – GIS Developer",
+  description: "Explore GIS and geospatial projects by Omid Zanganeh: AI-powered tools, ArcGIS automation, fiber network design, remote sensing analysis, and more.",
+  alternates: { canonical: '/projects' },
+  openGraph: {
+    title: "GIS Projects | Omid Zanganeh",
+    description: "AI-powered GIS tools, ArcGIS automation, fiber network design, remote sensing, and spatial analysis projects.",
+    url: "https://omidzanganeh.com/projects",
+  },
+};
 
 const projects = [
   {
