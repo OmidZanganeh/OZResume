@@ -1,5 +1,5 @@
 'use client';
-import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
+import { ComposableMap, Geographies, Geography, Marker, useMapContext } from 'react-simple-maps';
 
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
@@ -15,24 +15,49 @@ interface Props {
   disabled: boolean;
 }
 
-export default function CoordSnapMap({ onMapClick, markers, targetCoords, disabled }: Props) {
-  const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+/** Inner component so we can access the map projection via useMapContext. */
+function MapClickHandler({ onMapClick, disabled }: { onMapClick: (lng: number, lat: number) => void; disabled: boolean }) {
+  const { projection } = useMapContext();
+
+  const handleClick = (e: React.MouseEvent<SVGRectElement>) => {
     if (disabled) return;
-    const svg = e.currentTarget;
+    const svg = e.currentTarget.closest('svg') as SVGSVGElement;
+    if (!svg) return;
+
     const rect = svg.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const lng = (x / rect.width) * 360 - 180;
-    const lat = 90 - (y / rect.height) * 180;
-    onMapClick(lng, lat);
+    const vb = svg.viewBox.baseVal;
+
+    // Convert CSS pixels → SVG viewBox units, then invert through the d3 projection
+    const svgX = ((e.clientX - rect.left) / rect.width) * (vb.width || rect.width);
+    const svgY = ((e.clientY - rect.top) / rect.height) * (vb.height || rect.height);
+
+    const coords = projection.invert?.([svgX, svgY]);
+    if (coords && isFinite(coords[0]) && isFinite(coords[1])) {
+      onMapClick(coords[0], coords[1]);
+    }
   };
 
   return (
+    <rect
+      x={0}
+      y={0}
+      width="100%"
+      height="100%"
+      fill="transparent"
+      onClick={handleClick}
+      style={{ cursor: disabled ? 'default' : 'crosshair' }}
+    />
+  );
+}
+
+export default function CoordSnapMap({ onMapClick, markers, targetCoords, disabled }: Props) {
+  return (
     <ComposableMap
       projection="geoEquirectangular"
-      style={{ width: '100%', height: 'auto', cursor: disabled ? 'default' : 'crosshair' }}
-      onClick={handleClick}
+      style={{ width: '100%', height: 'auto' }}
     >
+      <MapClickHandler onMapClick={onMapClick} disabled={disabled} />
+
       <Geographies geography={GEO_URL}>
         {({ geographies }) =>
           geographies.map(geo => (
@@ -49,14 +74,12 @@ export default function CoordSnapMap({ onMapClick, markers, targetCoords, disabl
         }
       </Geographies>
 
-      {/* Target city marker (shown after click) */}
       {targetCoords && (
         <Marker coordinates={targetCoords}>
           <circle r={5} fill="#16a34a" stroke="white" strokeWidth={1.5} />
         </Marker>
       )}
 
-      {/* Player click markers */}
       {markers.map((m, i) => (
         <Marker key={i} coordinates={m.coords}>
           <circle r={4} fill={m.correct ? '#16a34a' : '#dc2626'} stroke="white" strokeWidth={1} />
