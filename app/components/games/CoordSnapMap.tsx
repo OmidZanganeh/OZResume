@@ -1,5 +1,6 @@
 'use client';
-import { ComposableMap, Geographies, Geography, Marker, useMapContext } from 'react-simple-maps';
+import { useContext } from 'react';
+import { ComposableMap, Geographies, Geography, Marker, MapContext } from 'react-simple-maps';
 
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
@@ -17,7 +18,8 @@ interface Props {
 
 /** Inner component so we can access the map projection via useMapContext. */
 function MapClickHandler({ onMapClick, disabled }: { onMapClick: (lng: number, lat: number) => void; disabled: boolean }) {
-  const { projection } = useMapContext();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { projection } = useContext(MapContext) as any;
 
   const handleClick = (e: React.MouseEvent<SVGRectElement>) => {
     if (disabled) return;
