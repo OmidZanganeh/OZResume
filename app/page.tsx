@@ -70,6 +70,9 @@ export default function Resume() {
               <Link href="/projects" className={styles.projectsBtn}>
                 [ View Projects → ]
               </Link>
+              <Link href="/tools" className={styles.projectsBtn}>
+                [ 🛠 Tools → ]
+              </Link>
             </div>
           </div>
 
