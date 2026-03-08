@@ -151,12 +151,12 @@
   font-weight: 600;
   padding: 8px 18px;
   border-radius: 20px;
-  border: 2px solid var(--accent-blue);
-  background: var(--accent-blue);
-  color: #fff;
+  border: 2px solid var(--border-dark);
+  background: transparent;
+  color: var(--text-primary);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s, border-color 0.2s;
-  box-shadow: 0 2px 8px rgba(59,130,246,0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s, border-color 0.2s, color 0.2s;
+  box-shadow: none;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -166,9 +166,10 @@
 
 .downloadBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(59,130,246,0.38);
-  background: #2563eb;
-  border-color: #2563eb;
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(59,130,246,0.3);
   text-decoration: none;
   opacity: 1;
 }
