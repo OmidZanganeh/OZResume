@@ -32,10 +32,10 @@ const TOOLS = [
   },
   {
     href: '/tools/image-tools',
-    emoji: '🖼️',
-    title: 'Image Tools',
-    desc: 'Remove image backgrounds (AI-powered, runs entirely in your browser) and read EXIF metadata including GPS, camera model, and timestamps.',
-    tags: ['AI', 'Privacy-first', 'No upload'],
+    emoji: '🗂️',
+    title: 'File Tools',
+    desc: 'Convert CSV files with coordinates to GeoJSON in one click. Also reads EXIF metadata from photos: GPS, camera model, and more.',
+    tags: ['GIS', 'Privacy-first', 'No upload'],
     accent: 'green',
   },
 ];
