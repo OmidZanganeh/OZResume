@@ -166,10 +166,9 @@
 
 .downloadBtn:hover {
   transform: translateY(-2px);
-  background: var(--accent-blue);
+  background: var(--paper-dark);
   border-color: var(--accent-blue);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(59,130,246,0.3);
+  color: var(--accent-blue);
   text-decoration: none;
   opacity: 1;
 }
