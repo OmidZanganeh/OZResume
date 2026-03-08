@@ -65,13 +65,13 @@ export default function Resume() {
 
             <div className={styles.headerActions}>
               <a href="/Omid-Zanganeh-Resume.pdf" download className={styles.downloadBtn}>
-                [ ↓ Download Resume ]
+                ↓ Resume
               </a>
               <Link href="/projects" className={styles.projectsBtn}>
-                [ View Projects → ]
+                Projects
               </Link>
               <Link href="/tools" className={styles.projectsBtn}>
-                [ 🛠 Tools → ]
+                🛠 Tools
               </Link>
             </div>
           </div>
