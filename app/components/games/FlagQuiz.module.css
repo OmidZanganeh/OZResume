@@ -1,0 +1,227 @@
+/* ── Start screen ── */
+.startPane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.flagPreview {
+  font-size: 2.2em;
+  letter-spacing: 6px;
+}
+
+.desc {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.startBtn {
+  background: var(--paper-dark);
+  border: 2px solid var(--border-dark);
+  border-radius: 6px;
+  padding: 12px 28px;
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--border-dark);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.startBtn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--border-dark);
+}
+
+.miniBoard {
+  background: var(--paper-light);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 12px 20px;
+  min-width: 200px;
+  text-align: left;
+}
+.miniBoardTitle {
+  font-size: 0.78em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+.miniBoardRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82em;
+  color: var(--text-secondary);
+  padding: 3px 0;
+}
+
+/* ── Game layout ── */
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gameHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress {
+  font-size: 0.82em;
+  color: var(--text-muted);
+}
+
+.scoreDisplay {
+  font-size: 0.88em;
+  color: var(--text-secondary);
+}
+
+/* ── Timer ── */
+.timerTrack {
+  height: 5px;
+  background: var(--border-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.timerBar {
+  height: 100%;
+  background: var(--accent-blue);
+  border-radius: 4px;
+  transition: width 1s linear, background 0.3s;
+}
+
+.timerBarDanger {
+  background: #ef4444;
+}
+
+.timerLabel {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  text-align: right;
+  height: 14px;
+  line-height: 14px;
+}
+
+/* ── Flag ── */
+.flagWrap {
+  text-align: center;
+  padding: 12px 0 8px;
+}
+
+.flagEmoji {
+  font-size: 5em;
+  line-height: 1;
+  display: inline-block;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));
+}
+
+/* ── Choices ── */
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.choice {
+  padding: 12px 10px;
+  border-radius: 8px;
+  border: 2px solid var(--border-dark);
+  background: var(--paper-dark);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s, border-color 0.15s;
+  box-shadow: 2px 2px 0 var(--border-dark);
+}
+
+.choice.idle:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--border-dark);
+  background: var(--paper-light);
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+.choice.correct {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #065f46;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .choice.correct {
+  color: #34d399;
+}
+
+.choice.wrong {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+[data-theme="dark"] .choice.wrong {
+  color: #fca5a5;
+}
+
+.choice.neutral {
+  opacity: 0.5;
+}
+
+/* ── Feedback row ── */
+.feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--paper-light);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 10px 16px;
+  flex-wrap: wrap;
+}
+
+.feedbackCorrect {
+  font-size: 0.92em;
+  color: #065f46;
+}
+[data-theme="dark"] .feedbackCorrect { color: #34d399; }
+
+.feedbackWrong {
+  font-size: 0.92em;
+  color: #991b1b;
+}
+[data-theme="dark"] .feedbackWrong { color: #fca5a5; }
+
+.feedbackTimeout {
+  font-size: 0.92em;
+  color: var(--text-secondary);
+}
+
+.nextBtn {
+  background: var(--accent-blue);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.nextBtn:hover { opacity: 0.85; }

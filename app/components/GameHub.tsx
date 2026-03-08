@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import styles from './GameHub.module.css';
 import WordDrop from './games/WordDrop';
-import CoordSnap from './games/CoordSnap';
+import FlagQuiz from './games/FlagQuiz';
 import TypeRacer from './games/TypeRacer';
 
-type Game = 'worddrop' | 'coordsnap' | 'typeracer';
+type Game = 'worddrop' | 'flagquiz' | 'typeracer';
 type LeaderEntry = { name: string; score: number };
 type Screen = 'lobby' | 'playing' | 'result';
 
@@ -17,10 +17,10 @@ const GAMES = [
     desc: 'Type falling GIS terms before they hit the ground. One miss = game over.',
   },
   {
-    id: 'coordsnap' as Game,
-    emoji: '🗺️',
-    title: 'Coord Snap',
-    desc: 'Click where cities are on the world map. Closer = more points. 10 cities.',
+    id: 'flagquiz' as Game,
+    emoji: '🚩',
+    title: 'Flag Quiz',
+    desc: 'Identify the country from its flag. Answer fast for bonus points. 10 flags.',
   },
   {
     id: 'typeracer' as Game,
@@ -32,7 +32,7 @@ const GAMES = [
 
 const SCORE_LABELS: Record<Game, string> = {
   worddrop: 'pts',
-  coordsnap: 'pts',
+  flagquiz: 'pts',
   typeracer: 'wpm',
 };
 
@@ -62,7 +62,7 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [activeTab, setActiveTab] = useState<Game>('worddrop');
   const [allLeaders, setAllLeaders] = useState<Record<Game, LeaderEntry[]>>({
-    worddrop: [], coordsnap: [], typeracer: [],
+    worddrop: [], flagquiz: [], typeracer: [],
   });
   const [lastScore, setLastScore] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -71,10 +71,10 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     Promise.all([
       fetchLeaders('worddrop'),
-      fetchLeaders('coordsnap'),
+      fetchLeaders('flagquiz'),
       fetchLeaders('typeracer'),
-    ]).then(([wd, cs, tr]) => {
-      setAllLeaders({ worddrop: wd, coordsnap: cs, typeracer: tr });
+    ]).then(([wd, fq, tr]) => {
+      setAllLeaders({ worddrop: wd, flagquiz: fq, typeracer: tr });
     });
   }, []);
 
@@ -200,10 +200,10 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
                 onFinish={handleFinish}
               />
             )}
-            {selectedGame === 'coordsnap' && (
-              <CoordSnap
+            {selectedGame === 'flagquiz' && (
+              <FlagQuiz
                 playerName={playerName}
-                leaders={allLeaders.coordsnap}
+                leaders={allLeaders.flagquiz}
                 onFinish={handleFinish}
               />
             )}

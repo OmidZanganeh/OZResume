@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Redis from 'ioredis';
 
-const VALID_GAMES = ['worddrop', 'coordsnap', 'typeracer'] as const;
+const VALID_GAMES = ['worddrop', 'flagquiz', 'typeracer'] as const;
 type Game = (typeof VALID_GAMES)[number];
 
 let redis: Redis | null = null;
