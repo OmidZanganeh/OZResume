@@ -3,59 +3,64 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './FlagQuiz.module.css';
 
 const COUNTRIES = [
-  { flag: '🇺🇸', name: 'United States' },
-  { flag: '🇬🇧', name: 'United Kingdom' },
-  { flag: '🇫🇷', name: 'France' },
-  { flag: '🇩🇪', name: 'Germany' },
-  { flag: '🇯🇵', name: 'Japan' },
-  { flag: '🇨🇳', name: 'China' },
-  { flag: '🇧🇷', name: 'Brazil' },
-  { flag: '🇮🇳', name: 'India' },
-  { flag: '🇷🇺', name: 'Russia' },
-  { flag: '🇦🇺', name: 'Australia' },
-  { flag: '🇨🇦', name: 'Canada' },
-  { flag: '🇲🇽', name: 'Mexico' },
-  { flag: '🇰🇷', name: 'South Korea' },
-  { flag: '🇮🇹', name: 'Italy' },
-  { flag: '🇪🇸', name: 'Spain' },
-  { flag: '🇸🇦', name: 'Saudi Arabia' },
-  { flag: '🇿🇦', name: 'South Africa' },
-  { flag: '🇳🇬', name: 'Nigeria' },
-  { flag: '🇪🇬', name: 'Egypt' },
-  { flag: '🇹🇷', name: 'Turkey' },
-  { flag: '🇦🇷', name: 'Argentina' },
-  { flag: '🇮🇩', name: 'Indonesia' },
-  { flag: '🇵🇰', name: 'Pakistan' },
-  { flag: '🇵🇭', name: 'Philippines' },
-  { flag: '🇻🇳', name: 'Vietnam' },
-  { flag: '🇹🇭', name: 'Thailand' },
-  { flag: '🇰🇪', name: 'Kenya' },
-  { flag: '🇸🇪', name: 'Sweden' },
-  { flag: '🇳🇴', name: 'Norway' },
-  { flag: '🇮🇷', name: 'Iran' },
-  { flag: '🇵🇹', name: 'Portugal' },
-  { flag: '🇬🇷', name: 'Greece' },
-  { flag: '🇵🇱', name: 'Poland' },
-  { flag: '🇨🇴', name: 'Colombia' },
-  { flag: '🇺🇦', name: 'Ukraine' },
-  { flag: '🇳🇱', name: 'Netherlands' },
-  { flag: '🇸🇬', name: 'Singapore' },
-  { flag: '🇲🇾', name: 'Malaysia' },
-  { flag: '🇮🇱', name: 'Israel' },
-  { flag: '🇨🇭', name: 'Switzerland' },
-  { flag: '🇧🇪', name: 'Belgium' },
-  { flag: '🇦🇹', name: 'Austria' },
-  { flag: '🇩🇰', name: 'Denmark' },
-  { flag: '🇫🇮', name: 'Finland' },
-  { flag: '🇳🇿', name: 'New Zealand' },
-  { flag: '🇨🇿', name: 'Czech Republic' },
-  { flag: '🇭🇺', name: 'Hungary' },
-  { flag: '🇷🇴', name: 'Romania' },
-  { flag: '🇧🇬', name: 'Bulgaria' },
+  { code: 'us', name: 'United States' },
+  { code: 'gb', name: 'United Kingdom' },
+  { code: 'fr', name: 'France' },
+  { code: 'de', name: 'Germany' },
+  { code: 'jp', name: 'Japan' },
+  { code: 'cn', name: 'China' },
+  { code: 'br', name: 'Brazil' },
+  { code: 'in', name: 'India' },
+  { code: 'ru', name: 'Russia' },
+  { code: 'au', name: 'Australia' },
+  { code: 'ca', name: 'Canada' },
+  { code: 'mx', name: 'Mexico' },
+  { code: 'kr', name: 'South Korea' },
+  { code: 'it', name: 'Italy' },
+  { code: 'es', name: 'Spain' },
+  { code: 'sa', name: 'Saudi Arabia' },
+  { code: 'za', name: 'South Africa' },
+  { code: 'ng', name: 'Nigeria' },
+  { code: 'eg', name: 'Egypt' },
+  { code: 'tr', name: 'Turkey' },
+  { code: 'ar', name: 'Argentina' },
+  { code: 'id', name: 'Indonesia' },
+  { code: 'pk', name: 'Pakistan' },
+  { code: 'ph', name: 'Philippines' },
+  { code: 'vn', name: 'Vietnam' },
+  { code: 'th', name: 'Thailand' },
+  { code: 'ke', name: 'Kenya' },
+  { code: 'se', name: 'Sweden' },
+  { code: 'no', name: 'Norway' },
+  { code: 'ir', name: 'Iran' },
+  { code: 'pt', name: 'Portugal' },
+  { code: 'gr', name: 'Greece' },
+  { code: 'pl', name: 'Poland' },
+  { code: 'co', name: 'Colombia' },
+  { code: 'ua', name: 'Ukraine' },
+  { code: 'nl', name: 'Netherlands' },
+  { code: 'sg', name: 'Singapore' },
+  { code: 'my', name: 'Malaysia' },
+  { code: 'il', name: 'Israel' },
+  { code: 'ch', name: 'Switzerland' },
+  { code: 'be', name: 'Belgium' },
+  { code: 'at', name: 'Austria' },
+  { code: 'dk', name: 'Denmark' },
+  { code: 'fi', name: 'Finland' },
+  { code: 'nz', name: 'New Zealand' },
+  { code: 'cz', name: 'Czech Republic' },
+  { code: 'hu', name: 'Hungary' },
+  { code: 'ro', name: 'Romania' },
+  { code: 'bg', name: 'Bulgaria' },
+  { code: 'cl', name: 'Chile' },
 ];
 
 const ROUNDS = 10;
 const TIME_LIMIT = 10;
+
+function flagUrl(code: string) {
+  return `https://flagcdn.com/w160/${code}.png`;
+}
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
@@ -138,7 +143,11 @@ export default function FlagQuiz({ playerName, leaders, onFinish }: Props) {
   if (!started) {
     return (
       <div className={styles.startPane}>
-        <div className={styles.flagPreview}>🏳️ 🏴 🚩 🏁</div>
+        <div className={styles.flagPreviewRow}>
+          {['us', 'jp', 'br', 'ng'].map(code => (
+            <img key={code} src={flagUrl(code)} alt={code} className={styles.flagPreviewImg} />
+          ))}
+        </div>
         <p className={styles.desc}>
           A flag appears — pick the correct country from 4 choices.<br />
           Answer faster for bonus points. <strong>{ROUNDS} flags</strong>, max 1000 pts each.
@@ -179,9 +188,13 @@ export default function FlagQuiz({ playerName, leaders, onFinish }: Props) {
         {answered ? '' : `${timeLeft}s`}
       </div>
 
-      {/* Flag */}
+      {/* Flag image */}
       <div className={styles.flagWrap}>
-        <span className={styles.flagEmoji}>{current.flag}</span>
+        <img
+          src={flagUrl(current.code)}
+          alt="Guess this flag"
+          className={styles.flagImg}
+        />
       </div>
 
       {/* Choices */}

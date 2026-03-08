@@ -8,9 +8,19 @@
   text-align: center;
 }
 
-.flagPreview {
-  font-size: 2.2em;
-  letter-spacing: 6px;
+.flagPreviewRow {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.flagPreviewImg {
+  width: 52px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
 }
 
 .desc {
@@ -113,15 +123,18 @@
 
 /* ── Flag ── */
 .flagWrap {
-  text-align: center;
+  display: flex;
+  justify-content: center;
   padding: 12px 0 8px;
 }
 
-.flagEmoji {
-  font-size: 5em;
-  line-height: 1;
-  display: inline-block;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));
+.flagImg {
+  width: 180px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid var(--border-dark);
+  box-shadow: 3px 3px 0 rgba(163,159,146,0.15);
 }
 
 /* ── Choices ── */
