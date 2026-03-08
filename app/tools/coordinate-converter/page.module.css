@@ -44,12 +44,43 @@
 .tab:hover { color: var(--text-primary); background: var(--paper-light); }
 .tabActive { background: var(--accent-blue); color: white; border-color: var(--accent-blue); box-shadow: none; }
 
+/* ── Two-column layout ── */
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.formCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mapCol {
+  position: sticky;
+  top: 24px;
+}
+
+.mapLoading {
+  min-height: 460px;
+  border-radius: 8px;
+  border: 2px dashed var(--border-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+}
+
 /* ── Sections ── */
 .sections {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 0;
 }
 
 .section {
@@ -214,8 +245,9 @@
 }
 .copyBtnSm:hover { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
 
-@media (max-width: 800px) {
-  .sections { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .mainGrid { grid-template-columns: 1fr; }
+  .mapCol { position: static; }
 }
 
 @media (max-width: 600px) {

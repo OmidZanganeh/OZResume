@@ -1,7 +1,13 @@
 'use client';
 import { useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import styles from './page.module.css';
+
+const MapPicker = dynamic(() => import('./MapPicker'), {
+  ssr: false,
+  loading: () => <div className={styles.mapLoading}>Loading map…</div>,
+});
 
 /* ─── Math helpers ─── */
 function ddToDms(dd: number): { deg: number; min: number; sec: number } {
@@ -106,6 +112,14 @@ export default function CoordConverter() {
     setDMS(dm);
   }, []);
 
+  /* Called when user clicks/drags on the map */
+  const handleMapPick = useCallback((lat: number, lon: number) => {
+    const latStr = fmt(lat);
+    const lonStr = fmt(lon);
+    setDD({ lat: latStr, lon: lonStr });
+    syncFromDD(latStr, lonStr);
+  }, [syncFromDD]);
+
   const copy = (text: string, key: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(key);
@@ -130,9 +144,13 @@ export default function CoordConverter() {
           <h1 className={styles.title}>📍 Coordinate Converter</h1>
           <p className={styles.subtitle}>
             Convert between coordinate formats used in GIS, GPS, and mapping.
-            Edit any format below — all others update instantly.
+            Edit any format — others update instantly. Click the map or drag the pin to pick a location.
           </p>
         </header>
+
+        <div className={styles.mainGrid}>
+          {/* ── Left column: formats ── */}
+          <div className={styles.formCol}>
 
         {/* ── Format tabs ── */}
         <div className={styles.tabs}>
@@ -321,6 +339,15 @@ export default function CoordConverter() {
             </div>
           </div>
         )}
+
+          </div>{/* end formCol */}
+
+          {/* ── Right column: map ── */}
+          <div className={styles.mapCol}>
+            <MapPicker lat={latDD} lon={lonDD} onPick={handleMapPick} />
+          </div>
+
+        </div>{/* end mainGrid */}
       </div>
     </div>
   );
