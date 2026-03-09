@@ -1,19 +1,29 @@
 'use client';
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, CircleMarker, GeoJSON, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Tooltip, GeoJSON, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import styles from './IsochroneMap.module.css';
 
 const RING_COLORS = ['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6'];
 
-interface Props {
-  origin: [number, number] | null;
-  geojson: GeoJsonAny | null;
-  geoJsonKey: number;
-  onMapClick: (lat: number, lon: number) => void;
+export interface POI {
+  id: number;
+  lat: number;
+  lon: number;
+  name: string;
+  tags: Record<string, string>;
+  icon: string;
 }
 
-/* We use a loose type so we don't need @types/geojson separately */
+interface Props {
+  origin:      [number, number] | null;
+  geojson:     GeoJsonAny | null;
+  geoJsonKey:  number;
+  onMapClick:  (lat: number, lon: number) => void;
+  pois?:       POI[];
+  activePoi?:  number | null;
+}
+
 type GeoJsonAny = { type: string; features: FeatureAny[] };
 type FeatureAny = { type: string; geometry: unknown; properties: Record<string, unknown> };
 
@@ -30,7 +40,7 @@ function FlyTo({ origin }: { origin: [number, number] | null }) {
   return null;
 }
 
-export default function IsochroneMap({ origin, geojson, geoJsonKey, onMapClick }: Props) {
+export default function IsochroneMap({ origin, geojson, geoJsonKey, onMapClick, pois = [], activePoi }: Props) {
   return (
     <MapContainer center={[39.8, -98.5]} zoom={4} className={styles.map} scrollWheelZoom>
       <TileLayer
@@ -40,6 +50,7 @@ export default function IsochroneMap({ origin, geojson, geoJsonKey, onMapClick }
       <ClickHandler onClick={onMapClick} />
       <FlyTo origin={origin} />
 
+      {/* Origin pin */}
       {origin && (
         <CircleMarker
           center={origin}
@@ -48,6 +59,7 @@ export default function IsochroneMap({ origin, geojson, geoJsonKey, onMapClick }
         />
       )}
 
+      {/* Isochrone rings */}
       {geojson && (
         <GeoJSON
           key={geoJsonKey}
@@ -64,6 +76,30 @@ export default function IsochroneMap({ origin, geojson, geoJsonKey, onMapClick }
           }}
         />
       )}
+
+      {/* POI markers */}
+      {pois.map(poi => {
+        const isActive = activePoi === poi.id;
+        return (
+          <CircleMarker
+            key={poi.id}
+            center={[poi.lat, poi.lon]}
+            radius={isActive ? 9 : 6}
+            pathOptions={{
+              fillColor: isActive ? '#f59e0b' : '#6366f1',
+              color: '#fff',
+              weight: 1.5,
+              fillOpacity: 0.92,
+            }}
+          >
+            <Tooltip direction="top" offset={[0, -6]} opacity={0.95}>
+              <span style={{ fontFamily: 'monospace', fontSize: '0.82em' }}>
+                {poi.icon} {poi.name}
+              </span>
+            </Tooltip>
+          </CircleMarker>
+        );
+      })}
     </MapContainer>
   );
 }
