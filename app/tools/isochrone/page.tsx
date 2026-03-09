@@ -3,7 +3,11 @@ import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import styles from './page.module.css';
-import { RING_COLORS } from './IsochroneMap';
+
+/* Must be defined here (not imported from IsochroneMap) to avoid a static
+   import of that file, which would pull leaflet onto the server and crash
+   with "window is not defined" during SSR prerendering. */
+const RING_COLORS = ['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6'];
 
 const IsochroneMap = dynamic(() => import('./IsochroneMap'), {
   ssr: false,

@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, CircleMarker, GeoJSON, useMapEvents, useMap } 
 import 'leaflet/dist/leaflet.css';
 import styles from './IsochroneMap.module.css';
 
-export const RING_COLORS = ['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6'];
+const RING_COLORS = ['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6'];
 
 interface Props {
   origin: [number, number] | null;
