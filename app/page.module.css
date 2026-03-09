@@ -145,36 +145,9 @@
   flex-wrap: wrap;
 }
 
-.downloadBtn {
-  font-family: var(--font-sans, sans-serif);
-  font-size: 0.82em;
-  font-weight: 600;
-  padding: 8px 18px;
-  border-radius: 20px;
-  border: 2px solid var(--border-dark);
-  background: transparent;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s, border-color 0.2s, color 0.2s;
-  box-shadow: none;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  letter-spacing: 0.01em;
-}
-
-.downloadBtn:hover {
-  transform: translateY(-2px);
-  background: var(--paper-dark);
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
-  text-decoration: none;
-  opacity: 1;
-}
-
+.downloadBtn,
 .projectsBtn {
-  font-family: var(--font-sans, sans-serif);
+  font-family: var(--font-sans);
   font-size: 0.82em;
   font-weight: 600;
   padding: 8px 18px;
@@ -183,7 +156,7 @@
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s, border-color 0.2s, color 0.2s;
+  transition: transform 0.2s ease, background 0.2s, border-color 0.2s, color 0.2s;
   box-shadow: none;
   text-decoration: none;
   display: inline-flex;
@@ -192,6 +165,7 @@
   letter-spacing: 0.01em;
 }
 
+.downloadBtn:hover,
 .projectsBtn:hover {
   transform: translateY(-2px);
   background: var(--paper-dark);
@@ -203,6 +177,9 @@
 
 .avatar {
   flex-shrink: 0;
+  border-radius: 50%;
+  border: 3px solid var(--border-dark);
+  box-shadow: 3px 3px 0 rgba(163,159,146,0.2);
 }
 
 /* ─── Impact Stats ─── */
@@ -807,7 +784,7 @@
     margin-bottom: 20px;
   }
   .name { font-size: 1.9em; }
-  .role { font-size: 0.9em; }
+  .tagline { font-size: 0.9em; }
   .headerMain { flex-direction: column-reverse; gap: 16px; }
   .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .projectsGrid { grid-template-columns: 1fr; }
@@ -815,7 +792,7 @@
   .jobMeta { flex-direction: column; gap: 4px; }
   .headerActions { flex-direction: row; flex-wrap: wrap; gap: 8px; }
   .aboutSection { padding: 20px 16px; }
-  .contactRow { flex-direction: column; gap: 6px; }
+  .contact { flex-direction: column; gap: 6px; }
 }
 
 @media (max-width: 400px) {

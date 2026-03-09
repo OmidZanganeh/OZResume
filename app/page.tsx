@@ -10,7 +10,6 @@ import SkillBar from "./components/SkillBar";
 import JourneySection from "./components/JourneySection";
 import ContactForm from "./components/ContactForm";
 import GameHub from "./components/GameHub";
-import GithubHeatmap from "./components/GithubHeatmap";
 import VisitorCounter from "./components/VisitorCounter";
 import SkillRadar from "./components/SkillRadar";
 import HobbiesSection from "./components/HobbiesSection";
