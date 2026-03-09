@@ -1,35 +1,68 @@
 /**
  * USGS 3DEP Elevation Point Query Service proxy with SSE streaming.
- * Mirrors profile_automation.py: sequential batches with delay to avoid
- * rate-limiting, streams progress events back to the client.
+ * Mirrors profile_automation.py exactly:
+ *   - Retries each point up to MAX_RETRIES times with exponential backoff
+ *   - Genuine no-data (-1000000) is NOT retried — those points are simply skipped
+ *   - NEVER interpolates
  */
 import { NextRequest } from 'next/server';
 
-const USGS_URL  = 'https://epqs.nationalmap.gov/v1/json';
-const BATCH     = 5;    // concurrent requests per batch
-const DELAY_MS  = 150;  // pause between batches (USGS recommendation)
+const USGS_URL    = 'https://epqs.nationalmap.gov/v1/json';
+const BATCH       = 5;    // concurrent requests per batch
+const DELAY_MS    = 150;  // pause between batches (USGS recommendation)
+const MAX_RETRIES = 3;    // retry transient errors (rate-limit, timeout, bad response)
 
 interface Pt { lat: number; lon: number; }
 interface Result {
   lat: number; lon: number;
   elevFt: number | null; elevM: number | null;
-  noData: boolean;
+  noData: boolean;   // true = genuine USGS no-coverage (don't retry)
+  failed: boolean;   // true = transient error exhausted all retries
 }
 
-async function queryOne(lat: number, lon: number): Promise<{ elevFt: number | null; resM: number | null }> {
+interface QueryResult {
+  elevFt: number | null;
+  resM:   number | null;
+  genuine: boolean; // true = we got a definitive answer (real value or -1000000 no-data)
+}
+
+async function queryOne(lat: number, lon: number): Promise<QueryResult> {
   try {
     const res = await fetch(`${USGS_URL}?x=${lon}&y=${lat}&units=Feet`, {
       signal: AbortSignal.timeout(12_000),
     });
-    if (!res.ok) return { elevFt: null, resM: null };
+    // Non-200 is a transient server error — caller should retry
+    if (!res.ok) return { elevFt: null, resM: null, genuine: false };
+
     const data = await res.json() as { value?: unknown; resolution?: unknown };
     const val  = parseFloat(String(data.value ?? ''));
     const resM = data.resolution != null ? parseFloat(String(data.resolution)) : null;
-    if (isNaN(val) || val < -999_000) return { elevFt: null, resM: null };
-    return { elevFt: val, resM };
+
+    // Unparseable response — retry
+    if (isNaN(val)) return { elevFt: null, resM: null, genuine: false };
+
+    // USGS genuine no-data sentinel (water, outside coverage) — don't retry
+    if (val < -999_000) return { elevFt: null, resM: null, genuine: true };
+
+    return { elevFt: val, resM, genuine: true };
   } catch {
-    return { elevFt: null, resM: null };
+    // Network / timeout — transient, caller should retry
+    return { elevFt: null, resM: null, genuine: false };
   }
+}
+
+async function queryWithRetry(lat: number, lon: number): Promise<QueryResult> {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      // Exponential backoff: 0.5 s, 1 s, 2 s  (mirrors Python app)
+      await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt - 1)));
+    }
+    const result = await queryOne(lat, lon);
+    // Stop if we have a definitive answer (real value OR genuine no-data)
+    if (result.genuine) return result;
+  }
+  // All retries exhausted on a transient error
+  return { elevFt: null, resM: null, genuine: false };
 }
 
 export async function POST(req: NextRequest) {
@@ -58,17 +91,19 @@ export async function POST(req: NextRequest) {
           if (i > 0) await new Promise(r => setTimeout(r, DELAY_MS));
 
           const batch = points.slice(i, i + BATCH);
-          const raw   = await Promise.all(batch.map(p => queryOne(p.lat, p.lon)));
+          const raw   = await Promise.all(batch.map(p => queryWithRetry(p.lat, p.lon)));
 
           for (let j = 0; j < raw.length; j++) {
             const r  = raw[j];
             const pt = batch[j];
             if (firstResM === null && r.resM !== null) firstResM = r.resM;
             results.push({
-              lat: pt.lat, lon: pt.lon,
+              lat:    pt.lat,
+              lon:    pt.lon,
               elevFt: r.elevFt,
               elevM:  r.elevFt !== null ? r.elevFt * 0.3048 : null,
-              noData: r.elevFt === null,
+              noData: r.genuine && r.elevFt === null,   // genuine no-coverage
+              failed: !r.genuine && r.elevFt === null,  // transient error exhausted
             });
           }
 

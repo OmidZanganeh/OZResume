@@ -66,38 +66,12 @@ function estimatePoints(pts: [number, number][], intervalFt: number): number {
   return Math.min(500, Math.ceil(totalPathFt(pts) / intervalFt) + 1);
 }
 
-/* ── Null interpolation: fill noData gaps from valid neighbours ── */
 interface ElevPoint {
   lat: number; lon: number;
   distKm: number; distFt: number;
   elevM: number; elevFt: number;
-  noData: boolean;
-}
-
-function interpolateNulls(data: ElevPoint[]): ElevPoint[] {
-  const out = [...data];
-  for (let i = 0; i < out.length; i++) {
-    if (!out[i].noData) continue;
-    let prev = i - 1;
-    while (prev >= 0 && out[prev].noData) prev--;
-    let next = i + 1;
-    while (next < out.length && out[next].noData) next++;
-
-    if (prev >= 0 && next < out.length) {
-      const t = (i - prev) / (next - prev);
-      out[i] = {
-        ...out[i],
-        elevFt: out[prev].elevFt + t * (out[next].elevFt - out[prev].elevFt),
-        elevM:  out[prev].elevM  + t * (out[next].elevM  - out[prev].elevM),
-        noData: false,
-      };
-    } else if (prev >= 0) {
-      out[i] = { ...out[i], elevFt: out[prev].elevFt, elevM: out[prev].elevM, noData: false };
-    } else if (next < out.length) {
-      out[i] = { ...out[i], elevFt: out[next].elevFt, elevM: out[next].elevM, noData: false };
-    }
-  }
-  return out;
+  noData: boolean;  // genuine USGS no-coverage (water, outside US)
+  failed: boolean;  // transient error — retries exhausted
 }
 
 /* ── SVG chart ── */
@@ -185,7 +159,7 @@ export default function ElevationProfilePage() {
   const [unit,         setUnit]         = useState<'ft' | 'm'>('ft');
   const [intervalFt,   setIntervalFt]   = useState(10);
   const [resolutionM,  setResolutionM]  = useState<number | null>(null);
-  const [interpolated, setInterpolated] = useState(0);
+  const [skipped,      setSkipped]      = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -204,7 +178,7 @@ export default function ElevationProfilePage() {
     setLoading(false);
     setStatus('');
     setResolutionM(null);
-    setInterpolated(0);
+    setSkipped(0);
   };
 
   const getElevation = async () => {
@@ -218,7 +192,7 @@ export default function ElevationProfilePage() {
     setLocked(true);
     setError(null);
     setElevData([]);
-    setInterpolated(0);
+    setSkipped(0);
 
     try {
       const samples = sampleByInterval(waypoints, intervalFt);
@@ -247,7 +221,7 @@ export default function ElevationProfilePage() {
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let   buffer  = '';
-      let   finalResults: { elevFt: number | null; elevM: number | null; noData: boolean }[] | null = null;
+      let   finalResults: { elevFt: number | null; elevM: number | null; noData: boolean; failed: boolean }[] | null = null;
       let   finalResM: number | null = null;
 
       outer: while (true) {
@@ -266,7 +240,7 @@ export default function ElevationProfilePage() {
               type: string;
               current?: number;
               total?: number;
-              results?: { elevFt: number | null; elevM: number | null; noData: boolean }[];
+              results?: { elevFt: number | null; elevM: number | null; noData: boolean; failed: boolean }[];
               resolutionM?: number | null;
               message?: string;
             };
@@ -292,25 +266,30 @@ export default function ElevationProfilePage() {
       setStatus('Processing results…');
       setResolutionM(finalResM);
 
-      /* Build ElevPoint array */
-      let raw: ElevPoint[] = samples.map((pt, i) => ({
+      /* Build ElevPoint array — keep only points where USGS returned a real value.
+         Never interpolate (mirrors profile_automation.py exactly). */
+      const all: ElevPoint[] = samples.map((pt, i) => ({
         lat:    pt[0], lon:    pt[1],
         distKm: cumKm[i], distFt: cumFt[i],
         elevFt: finalResults![i]?.elevFt ?? 0,
         elevM:  finalResults![i]?.elevM  ?? 0,
         noData: finalResults![i]?.noData ?? false,
+        failed: finalResults![i]?.failed ?? false,
       }));
 
-      /* Interpolate null points (water, outside coverage) */
-      const nullCount = raw.filter(p => p.noData).length;
-      if (nullCount > 0) {
-        setStatus(`Interpolating ${nullCount} no-data point${nullCount > 1 ? 's' : ''} (water / outside coverage)…`);
-        raw = interpolateNulls(raw);
-        setInterpolated(nullCount);
-      }
+      /* Skip points with no coverage or unrecoverable errors */
+      const valid    = all.filter(p => !p.noData && !p.failed);
+      const skipCount = all.length - valid.length;
+      setSkipped(skipCount);
 
-      setElevData(raw);
-      setStatus(`✓ Complete — ${raw.length} points, ${nullCount > 0 ? `${nullCount} interpolated` : 'all valid'}`);
+      if (valid.length === 0) throw new Error('No valid elevation data returned — path may be entirely outside USGS coverage (e.g. ocean or international).');
+
+      setElevData(valid);
+      setStatus(
+        skipCount > 0
+          ? `✓ Complete — ${valid.length} points plotted, ${skipCount} skipped (no USGS data)`
+          : `✓ Complete — ${valid.length} points, all valid`,
+      );
     } catch (e: unknown) {
       if ((e as Error).name === 'AbortError') {
         setStatus('Cancelled');
@@ -342,9 +321,9 @@ export default function ElevationProfilePage() {
 
   /* ── Downloads ── */
   const downloadCSV = () => {
-    const header = 'index,latitude,longitude,distance_ft,distance_km,elevation_ft,elevation_m,interpolated';
+    const header = 'index,latitude,longitude,distance_ft,distance_km,elevation_ft,elevation_m';
     const rows   = elevData.map((p, i) =>
-      `${i},${p.lat.toFixed(6)},${p.lon.toFixed(6)},${p.distFt.toFixed(2)},${p.distKm.toFixed(4)},${p.elevFt.toFixed(2)},${p.elevM.toFixed(3)},${p.noData}`,
+      `${i},${p.lat.toFixed(6)},${p.lon.toFixed(6)},${p.distFt.toFixed(2)},${p.distKm.toFixed(4)},${p.elevFt.toFixed(2)},${p.elevM.toFixed(3)}`,
     );
     const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
     const a    = Object.assign(document.createElement('a'), {
@@ -456,9 +435,9 @@ export default function ElevationProfilePage() {
                 {resolutionM != null && ` · ${resolutionM.toFixed(1)} m resolution`}
                 {' · '}National Elevation Dataset
               </span>
-              {interpolated > 0 && (
+              {skipped > 0 && (
                 <span className={styles.interpNote}>
-                  ↝ {interpolated} point{interpolated > 1 ? 's' : ''} interpolated (water / no-data)
+                  ✕ {skipped} point{skipped > 1 ? 's' : ''} skipped (water / outside USGS coverage)
                 </span>
               )}
             </div>
