@@ -3,14 +3,51 @@ import Link from 'next/link';
 import styles from './page.module.css';
 
 export const metadata: Metadata = {
-  title: 'Free GIS Tools | Omid Zanganeh',
-  description: 'Free online GIS and geospatial tools: coordinate converter, spatial unit converter, background remover, and image metadata reader. All run in your browser.',
+  title: 'Free Online GIS Tools – Coordinate Converter, Elevation Profile, Isochrone Map & More | Omid Zanganeh',
+  description:
+    'Free browser-based GIS tools built by a GIS Developer: convert coordinates (DD, DMS, DDM), generate isochrone travel-time maps, plot elevation profiles with USGS 3DEP data, convert CSV to GeoJSON, and more. No login, no upload.',
+  keywords: [
+    'free GIS tools online',
+    'coordinate converter DD DMS DDM',
+    'isochrone map generator',
+    'elevation profile tool',
+    'CSV to GeoJSON converter',
+    'spatial unit converter',
+    'EXIF metadata reader',
+    'USGS 3DEP elevation',
+    'GIS developer tools',
+    'geospatial tools browser',
+  ],
   alternates: { canonical: '/tools' },
   openGraph: {
-    title: 'Free GIS Tools | Omid Zanganeh',
-    description: 'Coordinate converter, spatial unit converter, background remover, EXIF reader — all free, all in-browser.',
+    title: 'Free Online GIS Tools | Omid Zanganeh',
+    description:
+      'Coordinate converter, isochrone mapper, elevation profile (USGS 3DEP), CSV→GeoJSON, spatial unit converter — all free, all in-browser, no login.',
     url: 'https://omidzanganeh.com/tools',
+    type: 'website',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Free Online GIS Tools | Omid Zanganeh',
+    description: 'Coordinate converter, isochrone mapper, elevation profile — free, no login, runs in your browser.',
+  },
+};
+
+const BASE = 'https://omidzanganeh.com';
+
+const toolsJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Free Online GIS Tools by Omid Zanganeh',
+  description: 'A collection of free, browser-based GIS and geospatial tools.',
+  url: `${BASE}/tools`,
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Coordinate Converter',   url: `${BASE}/tools/coordinate-converter` },
+    { '@type': 'ListItem', position: 2, name: 'Spatial Unit Converter', url: `${BASE}/tools/unit-converter` },
+    { '@type': 'ListItem', position: 3, name: 'File Tools (CSV to GeoJSON + EXIF Reader)', url: `${BASE}/tools/image-tools` },
+    { '@type': 'ListItem', position: 4, name: 'Isochrone Mapper',       url: `${BASE}/tools/isochrone` },
+    { '@type': 'ListItem', position: 5, name: 'Elevation Profile Tool', url: `${BASE}/tools/elevation-profile` },
+  ],
 };
 
 const TOOLS = [
@@ -59,6 +96,10 @@ const TOOLS = [
 export default function ToolsPage() {
   return (
     <div className={styles.page}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(toolsJsonLd) }}
+      />
       <div className={styles.container}>
         <div className={styles.topBar}>
           <Link href="/" className={styles.back}>← Back to Resume</Link>

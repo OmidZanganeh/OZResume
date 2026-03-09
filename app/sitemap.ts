@@ -1,16 +1,22 @@
 import type { MetadataRoute } from "next";
 
-const baseUrl = "https://omidzanganeh.com";
+const BASE = "https://omidzanganeh.com";
+const now  = new Date();
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
-    { url: baseUrl,                                 lastModified: new Date(), changeFrequency: "monthly", priority: 1 },
-    { url: `${baseUrl}/projects`,                   lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    { url: `${baseUrl}/tools`,                      lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    { url: `${baseUrl}/tools/coordinate-converter`, lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
-    { url: `${baseUrl}/tools/unit-converter`,       lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
-    { url: `${baseUrl}/tools/image-tools`,          lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
-    { url: `${baseUrl}/tools/isochrone`,            lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
-    { url: `${baseUrl}/tools/elevation-profile`,    lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
+    // ── Core pages ──
+    { url: BASE,                    lastModified: now, changeFrequency: "monthly", priority: 1.0 },
+    { url: `${BASE}/projects`,      lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+
+    // ── Tools hub ──
+    { url: `${BASE}/tools`,                      lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+
+    // ── Individual tools — high priority: these are the pages people search for ──
+    { url: `${BASE}/tools/coordinate-converter`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${BASE}/tools/unit-converter`,       lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${BASE}/tools/image-tools`,          lastModified: now, changeFrequency: "monthly", priority: 0.80 },
+    { url: `${BASE}/tools/isochrone`,            lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${BASE}/tools/elevation-profile`,    lastModified: now, changeFrequency: "monthly", priority: 0.85 },
   ];
 }
