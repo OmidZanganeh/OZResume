@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -9,7 +9,7 @@ const ElevationMap = dynamic(() => import('./ElevationMap'), {
   loading: () => <div className={styles.mapLoading}>Loading map…</div>,
 });
 
-/* ── Geometry helpers ── */
+/* ── Geometry helpers (mirror of profile_automation.py) ── */
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -20,7 +20,11 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-/** Sample `n` evenly-spaced points along a polyline. */
+function haversineFt(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  return haversineKm(lat1, lon1, lat2, lon2) * 3280.84;
+}
+
+/** Interpolate N evenly-spaced points along a multi-segment polyline. */
 function samplePolyline(pts: [number, number][], n = 100): [number, number][] {
   if (pts.length < 2) return pts;
   if (pts.length >= n) return pts.slice(0, n);
@@ -45,41 +49,41 @@ function samplePolyline(pts: [number, number][], n = 100): [number, number][] {
   return result;
 }
 
-interface ElevPoint { lat: number; lon: number; distKm: number; elevM: number; }
+interface ElevPoint {
+  lat: number; lon: number;
+  distKm: number; distFt: number;
+  elevM: number; elevFt: number;
+  noData: boolean;
+}
 
 /* ── SVG chart ── */
 const VB_W = 920, VB_H = 240;
-const PAD  = { t: 16, r: 20, b: 44, l: 68 };
+const PAD  = { t: 16, r: 20, b: 44, l: 72 };
 const PLOT = { x0: PAD.l, x1: VB_W - PAD.r, y0: PAD.t, y1: VB_H - PAD.b };
 
-function ElevChart({ data }: { data: ElevPoint[] }) {
-  const elevs = data.map(p => p.elevM);
+function ElevChart({ data, unit }: { data: ElevPoint[]; unit: 'ft' | 'm' }) {
+  const elevs  = data.map(p => unit === 'ft' ? p.elevFt : p.elevM);
+  const dists  = data.map(p => unit === 'ft' ? p.distFt / 5280 : p.distKm); // miles or km
+  const distLabel = unit === 'ft' ? 'mi' : 'km';
+
   const rawMin = Math.min(...elevs);
   const rawMax = Math.max(...elevs);
-  const pad    = (rawMax - rawMin) * 0.08 || 5;
+  const pad    = (rawMax - rawMin) * 0.1 || 5;
   const minE   = rawMin - pad;
   const maxE   = rawMax + pad;
-  const maxD   = data[data.length - 1].distKm;
+  const maxD   = dists[dists.length - 1];
 
-  const xS = (d: number) => PLOT.x0 + (d / maxD)           * (PLOT.x1 - PLOT.x0);
+  const xS = (d: number) => PLOT.x0 + (d / maxD) * (PLOT.x1 - PLOT.x0);
   const yS = (e: number) => PLOT.y1 - ((e - minE) / (maxE - minE)) * (PLOT.y1 - PLOT.y0);
 
-  const pts    = data.map(p => `${xS(p.distKm).toFixed(1)},${yS(p.elevM).toFixed(1)}`).join(' ');
-  const linePts = pts;
+  const pts     = data.map((_, i) => `${xS(dists[i]).toFixed(1)},${yS(elevs[i]).toFixed(1)}`).join(' ');
   const areaPts = `${xS(0).toFixed(1)},${PLOT.y1} ${pts} ${xS(maxD).toFixed(1)},${PLOT.y1}`;
 
-  /* Grid — 5 elevation levels */
   const yTicks = Array.from({ length: 5 }, (_, i) => minE + (i / 4) * (maxE - minE));
-  /* X axis — 5 distance marks */
   const xTicks = Array.from({ length: 5 }, (_, i) => (i / 4) * maxD);
 
   return (
-    <svg
-      id="elevation-chart-svg"
-      viewBox={`0 0 ${VB_W} ${VB_H}`}
-      className={styles.chart}
-      preserveAspectRatio="none"
-    >
+    <svg id="elevation-chart-svg" viewBox={`0 0 ${VB_W} ${VB_H}`} className={styles.chart} preserveAspectRatio="none">
       <defs>
         <linearGradient id="elevGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"   stopColor="#3b82f6" stopOpacity={0.45} />
@@ -87,57 +91,35 @@ function ElevChart({ data }: { data: ElevPoint[] }) {
         </linearGradient>
       </defs>
 
-      {/* Horizontal grid lines */}
       {yTicks.map((e, i) => (
         <g key={i}>
-          <line
-            x1={PLOT.x0} y1={yS(e)} x2={PLOT.x1} y2={yS(e)}
-            stroke="var(--border-light)" strokeWidth={1} strokeDasharray="4 4"
-          />
-          <text
-            x={PLOT.x0 - 6} y={yS(e) + 4}
-            textAnchor="end" fontSize={10} fill="var(--text-muted)"
-          >
+          <line x1={PLOT.x0} y1={yS(e)} x2={PLOT.x1} y2={yS(e)}
+            stroke="var(--border-light)" strokeWidth={1} strokeDasharray="4 4" />
+          <text x={PLOT.x0 - 6} y={yS(e) + 4} textAnchor="end" fontSize={10} fill="var(--text-muted)">
             {Math.round(e)}
           </text>
         </g>
       ))}
 
-      {/* Filled area */}
       <polygon points={areaPts} fill="url(#elevGrad)" />
+      <polyline points={pts} fill="none" stroke="#3b82f6" strokeWidth={2} strokeLinejoin="round" />
 
-      {/* Elevation line */}
-      <polyline points={linePts} fill="none" stroke="#3b82f6" strokeWidth={2} strokeLinejoin="round" />
-
-      {/* X axis ticks + labels */}
       {xTicks.map((d, i) => (
         <g key={i}>
-          <line
-            x1={xS(d)} y1={PLOT.y1} x2={xS(d)} y2={PLOT.y1 + 4}
-            stroke="var(--border-dark)" strokeWidth={1}
-          />
-          <text
-            x={xS(d)} y={PLOT.y1 + 16}
-            textAnchor="middle" fontSize={10} fill="var(--text-muted)"
-          >
-            {d.toFixed(1)} km
+          <line x1={xS(d)} y1={PLOT.y1} x2={xS(d)} y2={PLOT.y1 + 4}
+            stroke="var(--border-dark)" strokeWidth={1} />
+          <text x={xS(d)} y={PLOT.y1 + 16} textAnchor="middle" fontSize={10} fill="var(--text-muted)">
+            {d.toFixed(2)} {distLabel}
           </text>
         </g>
       ))}
 
-      {/* Axis labels */}
-      <text
-        x={PLOT.x0 - 44} y={(PLOT.y0 + PLOT.y1) / 2}
-        textAnchor="middle" fontSize={10} fill="var(--text-muted)"
-        transform={`rotate(-90, ${PLOT.x0 - 44}, ${(PLOT.y0 + PLOT.y1) / 2})`}
-      >
-        Elevation (m)
+      <text x={PLOT.x0 - 48} y={(PLOT.y0 + PLOT.y1) / 2} textAnchor="middle" fontSize={10}
+        fill="var(--text-muted)" transform={`rotate(-90,${PLOT.x0 - 48},${(PLOT.y0 + PLOT.y1) / 2})`}>
+        Elevation ({unit})
       </text>
-      <text
-        x={(PLOT.x0 + PLOT.x1) / 2} y={VB_H - 4}
-        textAnchor="middle" fontSize={10} fill="var(--text-muted)"
-      >
-        Distance (km)
+      <text x={(PLOT.x0 + PLOT.x1) / 2} y={VB_H - 4} textAnchor="middle" fontSize={10} fill="var(--text-muted)">
+        Distance ({distLabel})
       </text>
     </svg>
   );
@@ -150,6 +132,9 @@ export default function ElevationProfilePage() {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
   const [locked,    setLocked]    = useState(false);
+  const [unit,      setUnit]      = useState<'ft' | 'm'>('ft');
+  const [resolutionM, setResolutionM] = useState<number | null>(null);
+  const [hasNoData, setHasNoData] = useState(false);
 
   const addPoint = useCallback((lat: number, lon: number) => {
     setWaypoints(prev => [...prev, [lat, lon]]);
@@ -162,6 +147,8 @@ export default function ElevationProfilePage() {
     setElevData([]);
     setError(null);
     setLocked(false);
+    setResolutionM(null);
+    setHasNoData(false);
   };
 
   const getElevation = async () => {
@@ -172,27 +159,45 @@ export default function ElevationProfilePage() {
     try {
       const samples = samplePolyline(waypoints, 100);
 
-      /* Build cumulative distances for the samples */
-      const cumDist: number[] = [0];
-      for (let i = 1; i < samples.length; i++)
-        cumDist.push(
-          cumDist[i - 1] + haversineKm(samples[i - 1][0], samples[i - 1][1], samples[i][0], samples[i][1]),
-        );
+      /* Cumulative distances */
+      const cumDistKm: number[] = [0];
+      const cumDistFt: number[] = [0];
+      for (let i = 1; i < samples.length; i++) {
+        const km = haversineKm(samples[i-1][0], samples[i-1][1], samples[i][0], samples[i][1]);
+        const ft = haversineFt(samples[i-1][0], samples[i-1][1], samples[i][0], samples[i][1]);
+        cumDistKm.push(cumDistKm[i-1] + km);
+        cumDistFt.push(cumDistFt[i-1] + ft);
+      }
 
-      const lats = samples.map(p => p[0]).join(',');
-      const lons = samples.map(p => p[1]).join(',');
-      const res  = await fetch(
-        `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lons}`,
-      );
-      if (!res.ok) throw new Error(`Open-Meteo error ${res.status}`);
-      const json = await res.json() as { elevation: number[] };
+      /* Call USGS EPQS proxy — same API as profile_automation.py */
+      const res = await fetch('/api/elevation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ points: samples.map(p => ({ lat: p[0], lon: p[1] })) }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error ?? `Server error ${res.status}`);
+      }
+
+      const json = await res.json() as {
+        results: { lat: number; lon: number; elevFt: number | null; elevM: number | null; noData: boolean }[];
+        resolutionM: number | null;
+      };
+
+      setResolutionM(json.resolutionM);
+      setHasNoData(json.results.some(r => r.noData));
 
       setElevData(
         samples.map((pt, i) => ({
           lat:    pt[0],
           lon:    pt[1],
-          distKm: cumDist[i],
-          elevM:  json.elevation[i] ?? 0,
+          distKm: cumDistKm[i],
+          distFt: cumDistFt[i],
+          elevM:  json.results[i]?.elevM  ?? 0,
+          elevFt: json.results[i]?.elevFt ?? 0,
+          noData: json.results[i]?.noData ?? false,
         })),
       );
     } catch (e: unknown) {
@@ -204,21 +209,22 @@ export default function ElevationProfilePage() {
   };
 
   /* ── Stats ── */
-  const totalDist = elevData.length ? elevData[elevData.length - 1].distKm : 0;
-  const elevs     = elevData.map(p => p.elevM);
-  const minElev   = elevs.length ? Math.min(...elevs) : 0;
-  const maxElev   = elevs.length ? Math.max(...elevs) : 0;
+  const vals       = elevData.map(p => unit === 'ft' ? p.elevFt : p.elevM);
+  const totalDist  = elevData.length ? (unit === 'ft' ? elevData[elevData.length-1].distFt / 5280 : elevData[elevData.length-1].distKm) : 0;
+  const distUnit   = unit === 'ft' ? 'mi' : 'km';
+  const minElev    = vals.length ? Math.min(...vals) : 0;
+  const maxElev    = vals.length ? Math.max(...vals) : 0;
   let gain = 0, loss = 0;
-  for (let i = 1; i < elevData.length; i++) {
-    const d = elevData[i].elevM - elevData[i - 1].elevM;
+  for (let i = 1; i < vals.length; i++) {
+    const d = vals[i] - vals[i-1];
     if (d > 0) gain += d; else loss += Math.abs(d);
   }
 
   /* ── Downloads ── */
   const downloadCSV = () => {
-    const header = 'index,latitude,longitude,distance_km,elevation_m';
+    const header = 'index,latitude,longitude,distance_ft,distance_km,elevation_ft,elevation_m';
     const rows   = elevData.map((p, i) =>
-      `${i},${p.lat.toFixed(6)},${p.lon.toFixed(6)},${p.distKm.toFixed(4)},${p.elevM.toFixed(1)}`,
+      `${i},${p.lat.toFixed(6)},${p.lon.toFixed(6)},${p.distFt.toFixed(2)},${p.distKm.toFixed(4)},${p.elevFt.toFixed(2)},${p.elevM.toFixed(2)}`,
     );
     const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
     const url  = URL.createObjectURL(blob);
@@ -248,8 +254,9 @@ export default function ElevationProfilePage() {
         <header className={styles.header}>
           <h1 className={styles.title}>📈 Elevation Profile Tool</h1>
           <p className={styles.subtitle}>
-            Click the map to draw a path, then generate a real elevation profile from global terrain data.
-            Download results as CSV or SVG.
+            Draw a path on the map, then generate a real elevation profile from{' '}
+            <strong>USGS 3DEP</strong> — the same 1-meter resolution dataset used by US engineers and surveyors.
+            Download as CSV or SVG.
           </p>
         </header>
 
@@ -263,6 +270,17 @@ export default function ElevationProfilePage() {
             </span>
           </div>
           <div className={styles.toolbarRight}>
+            {/* ft / m toggle */}
+            <div className={styles.unitToggle}>
+              <button
+                className={`${styles.unitBtn} ${unit === 'ft' ? styles.unitBtnActive : ''}`}
+                onClick={() => setUnit('ft')}
+              >ft</button>
+              <button
+                className={`${styles.unitBtn} ${unit === 'm' ? styles.unitBtnActive : ''}`}
+                onClick={() => setUnit('m')}
+              >m</button>
+            </div>
             {waypoints.length > 0 && (
               <button className={styles.clearBtn} onClick={clear}>✕ Clear</button>
             )}
@@ -271,12 +289,11 @@ export default function ElevationProfilePage() {
               onClick={getElevation}
               disabled={waypoints.length < 2 || loading}
             >
-              {loading ? '⏳ Fetching…' : '📈 Get Elevation Profile'}
+              {loading ? '⏳ Querying USGS…' : '📈 Get Elevation Profile'}
             </button>
           </div>
         </div>
 
-        {/* Map */}
         <div className={styles.mapWrap}>
           <ElevationMap waypoints={waypoints} onAddPoint={addPoint} locked={locked} />
         </div>
@@ -286,29 +303,45 @@ export default function ElevationProfilePage() {
         {/* Chart + Stats */}
         {elevData.length > 0 && (
           <div className={styles.results}>
+
+            {/* Source badge */}
+            <div className={styles.sourceBadge}>
+              <span className={styles.sourceIcon}>🛰</span>
+              <span>
+                <strong>USGS 3DEP</strong>
+                {resolutionM != null && ` · ${resolutionM.toFixed(1)} m resolution`}
+                {' · '}National Elevation Dataset
+              </span>
+              {hasNoData && (
+                <span className={styles.noDataWarn}>
+                  ⚠ Some points outside US coverage (shown as 0)
+                </span>
+              )}
+            </div>
+
             <div className={styles.chartWrap}>
-              <ElevChart data={elevData} />
+              <ElevChart data={elevData} unit={unit} />
             </div>
 
             <div className={styles.statsRow}>
               <div className={styles.stat}>
-                <span className={styles.statVal}>{totalDist.toFixed(2)} km</span>
+                <span className={styles.statVal}>{totalDist.toFixed(3)} {distUnit}</span>
                 <span className={styles.statLabel}>Total Distance</span>
               </div>
               <div className={styles.stat}>
-                <span className={styles.statVal}>{Math.round(minElev)} m</span>
+                <span className={styles.statVal}>{Math.round(minElev)} {unit}</span>
                 <span className={styles.statLabel}>Min Elevation</span>
               </div>
               <div className={styles.stat}>
-                <span className={styles.statVal}>{Math.round(maxElev)} m</span>
+                <span className={styles.statVal}>{Math.round(maxElev)} {unit}</span>
                 <span className={styles.statLabel}>Max Elevation</span>
               </div>
               <div className={styles.stat}>
-                <span className={styles.statVal} style={{ color: '#10b981' }}>+{Math.round(gain)} m</span>
+                <span className={styles.statVal} style={{ color: '#10b981' }}>+{Math.round(gain)} {unit}</span>
                 <span className={styles.statLabel}>Elevation Gain</span>
               </div>
               <div className={styles.stat}>
-                <span className={styles.statVal} style={{ color: '#ef4444' }}>−{Math.round(loss)} m</span>
+                <span className={styles.statVal} style={{ color: '#ef4444' }}>−{Math.round(loss)} {unit}</span>
                 <span className={styles.statLabel}>Elevation Loss</span>
               </div>
             </div>
