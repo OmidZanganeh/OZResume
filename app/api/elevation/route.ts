@@ -1,64 +1,94 @@
 /**
- * USGS 3DEP Elevation Point Query Service (EPQS) proxy.
- * Mirrors the method used in profile_automation.py:
- *   - Endpoint: https://epqs.nationalmap.gov/v1/json
- *   - One request per point, returns value in Feet + resolution in metres
- *   - Returns -1000000 for no-data areas (ocean, outside US coverage)
- *
- * We fan out all points in parallel on the server to avoid browser CORS
- * issues and to keep latency reasonable.
+ * USGS 3DEP Elevation Point Query Service proxy with SSE streaming.
+ * Mirrors profile_automation.py: sequential batches with delay to avoid
+ * rate-limiting, streams progress events back to the client.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
-const USGS_URL = 'https://epqs.nationalmap.gov/v1/json';
+const USGS_URL  = 'https://epqs.nationalmap.gov/v1/json';
+const BATCH     = 5;    // concurrent requests per batch
+const DELAY_MS  = 150;  // pause between batches (USGS recommendation)
 
-interface InputPoint { lat: number; lon: number; }
+interface Pt { lat: number; lon: number; }
+interface Result {
+  lat: number; lon: number;
+  elevFt: number | null; elevM: number | null;
+  noData: boolean;
+}
 
-async function queryOne(lat: number, lon: number): Promise<{ elevFt: number | null; resolutionM: number | null }> {
+async function queryOne(lat: number, lon: number): Promise<{ elevFt: number | null; resM: number | null }> {
   try {
-    const url = `${USGS_URL}?x=${lon}&y=${lat}&units=Feet`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
-    if (!res.ok) return { elevFt: null, resolutionM: null };
-
-    const data = await res.json() as { value?: string | number; resolution?: string | number };
-
-    const val = parseFloat(String(data.value ?? ''));
-    const res_m = data.resolution != null ? parseFloat(String(data.resolution)) : null;
-
-    /* USGS returns -1000000 for no-data (ocean / outside coverage) */
-    if (isNaN(val) || val < -999000) return { elevFt: null, resolutionM: null };
-
-    return { elevFt: val, resolutionM: res_m };
+    const res = await fetch(`${USGS_URL}?x=${lon}&y=${lat}&units=Feet`, {
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!res.ok) return { elevFt: null, resM: null };
+    const data = await res.json() as { value?: unknown; resolution?: unknown };
+    const val  = parseFloat(String(data.value ?? ''));
+    const resM = data.resolution != null ? parseFloat(String(data.resolution)) : null;
+    if (isNaN(val) || val < -999_000) return { elevFt: null, resM: null };
+    return { elevFt: val, resM };
   } catch {
-    return { elevFt: null, resolutionM: null };
+    return { elevFt: null, resM: null };
   }
 }
 
 export async function POST(req: NextRequest) {
+  let points: Pt[];
   try {
-    const { points } = await req.json() as { points: InputPoint[] };
-
-    if (!Array.isArray(points) || points.length === 0)
-      return NextResponse.json({ error: 'No points provided' }, { status: 400 });
-
-    /* Fan out all points concurrently — server-side so CORS is not an issue.
-       USGS handles the load fine at this scale (~100 points). */
-    const raw = await Promise.all(points.map(p => queryOne(p.lat, p.lon)));
-
-    /* Report the resolution from the first successful hit */
-    const firstRes = raw.find(r => r.resolutionM != null)?.resolutionM ?? null;
-
-    const results = raw.map((r, i) => ({
-      lat:        points[i].lat,
-      lon:        points[i].lon,
-      elevFt:     r.elevFt,
-      elevM:      r.elevFt != null ? r.elevFt * 0.3048 : null,
-      noData:     r.elevFt == null,
-    }));
-
-    return NextResponse.json({ results, resolutionM: firstRes });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Request failed';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    ({ points } = await req.json() as { points: Pt[] });
+  } catch {
+    return new Response('Bad JSON', { status: 400 });
   }
+
+  if (!Array.isArray(points) || points.length === 0)
+    return new Response('No points', { status: 400 });
+
+  const enc = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(ctrl) {
+      const send = (d: object) =>
+        ctrl.enqueue(enc.encode(`data: ${JSON.stringify(d)}\n\n`));
+
+      try {
+        const results: Result[] = [];
+        let firstResM: number | null = null;
+
+        for (let i = 0; i < points.length; i += BATCH) {
+          if (i > 0) await new Promise(r => setTimeout(r, DELAY_MS));
+
+          const batch = points.slice(i, i + BATCH);
+          const raw   = await Promise.all(batch.map(p => queryOne(p.lat, p.lon)));
+
+          for (let j = 0; j < raw.length; j++) {
+            const r  = raw[j];
+            const pt = batch[j];
+            if (firstResM === null && r.resM !== null) firstResM = r.resM;
+            results.push({
+              lat: pt.lat, lon: pt.lon,
+              elevFt: r.elevFt,
+              elevM:  r.elevFt !== null ? r.elevFt * 0.3048 : null,
+              noData: r.elevFt === null,
+            });
+          }
+
+          send({ type: 'progress', current: results.length, total: points.length });
+        }
+
+        send({ type: 'done', results, resolutionM: firstResM });
+      } catch (err) {
+        send({ type: 'error', message: err instanceof Error ? err.message : 'Unknown error' });
+      } finally {
+        ctrl.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type':    'text/event-stream',
+      'Cache-Control':   'no-cache',
+      'X-Accel-Buffering': 'no',
+    },
+  });
 }

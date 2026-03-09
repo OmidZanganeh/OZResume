@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -9,51 +9,95 @@ const ElevationMap = dynamic(() => import('./ElevationMap'), {
   loading: () => <div className={styles.mapLoading}>Loading map…</div>,
 });
 
-/* ── Geometry helpers (mirror of profile_automation.py) ── */
+/* ── Geometry helpers — mirrors profile_automation.py ── */
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
 }
-
 function haversineFt(lat1: number, lon1: number, lat2: number, lon2: number): number {
   return haversineKm(lat1, lon1, lat2, lon2) * 3280.84;
 }
 
-/** Interpolate N evenly-spaced points along a multi-segment polyline. */
-function samplePolyline(pts: [number, number][], n = 100): [number, number][] {
+/**
+ * Sample points every `intervalFt` feet along a polyline.
+ * Mirrors _fetch_usgs_profile_waypoints in profile_automation.py.
+ */
+function sampleByInterval(
+  pts: [number, number][],
+  intervalFt: number,
+  maxPts = 500,
+): [number, number][] {
   if (pts.length < 2) return pts;
-  if (pts.length >= n) return pts.slice(0, n);
-
-  const cumDist: number[] = [0];
-  for (let i = 1; i < pts.length; i++)
-    cumDist.push(cumDist[i - 1] + haversineKm(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]));
-  const total = cumDist[cumDist.length - 1];
 
   const result: [number, number][] = [];
-  for (let s = 0; s < n; s++) {
-    const target = (s / (n - 1)) * total;
-    let seg = 0;
-    while (seg < pts.length - 2 && cumDist[seg + 1] < target) seg++;
-    const span = cumDist[seg + 1] - cumDist[seg];
-    const t    = span === 0 ? 0 : (target - cumDist[seg]) / span;
-    result.push([
-      pts[seg][0] + t * (pts[seg + 1][0] - pts[seg][0]),
-      pts[seg][1] + t * (pts[seg + 1][1] - pts[seg][1]),
-    ]);
+
+  for (let seg = 0; seg < pts.length - 1; seg++) {
+    const s = pts[seg], e = pts[seg + 1];
+    const segFt = haversineFt(s[0], s[1], e[0], e[1]);
+
+    let d = 0;
+    while (d <= segFt && result.length < maxPts - 1) {
+      const t = segFt > 0 ? d / segFt : 0;
+      result.push([s[0] + t * (e[0] - s[0]), s[1] + t * (e[1] - s[1])]);
+      d += intervalFt;
+    }
   }
-  return result;
+
+  // Always include the final endpoint
+  result.push([...pts[pts.length - 1]]);
+  return result.slice(0, maxPts);
 }
 
+function totalPathFt(pts: [number, number][]): number {
+  let d = 0;
+  for (let i = 1; i < pts.length; i++)
+    d += haversineFt(pts[i-1][0], pts[i-1][1], pts[i][0], pts[i][1]);
+  return d;
+}
+
+function estimatePoints(pts: [number, number][], intervalFt: number): number {
+  if (pts.length < 2) return 0;
+  return Math.min(500, Math.ceil(totalPathFt(pts) / intervalFt) + 1);
+}
+
+/* ── Null interpolation: fill noData gaps from valid neighbours ── */
 interface ElevPoint {
   lat: number; lon: number;
   distKm: number; distFt: number;
   elevM: number; elevFt: number;
   noData: boolean;
+}
+
+function interpolateNulls(data: ElevPoint[]): ElevPoint[] {
+  const out = [...data];
+  for (let i = 0; i < out.length; i++) {
+    if (!out[i].noData) continue;
+    let prev = i - 1;
+    while (prev >= 0 && out[prev].noData) prev--;
+    let next = i + 1;
+    while (next < out.length && out[next].noData) next++;
+
+    if (prev >= 0 && next < out.length) {
+      const t = (i - prev) / (next - prev);
+      out[i] = {
+        ...out[i],
+        elevFt: out[prev].elevFt + t * (out[next].elevFt - out[prev].elevFt),
+        elevM:  out[prev].elevM  + t * (out[next].elevM  - out[prev].elevM),
+        noData: false,
+      };
+    } else if (prev >= 0) {
+      out[i] = { ...out[i], elevFt: out[prev].elevFt, elevM: out[prev].elevM, noData: false };
+    } else if (next < out.length) {
+      out[i] = { ...out[i], elevFt: out[next].elevFt, elevM: out[next].elevM, noData: false };
+    }
+  }
+  return out;
 }
 
 /* ── SVG chart ── */
@@ -63,24 +107,21 @@ const PLOT = { x0: PAD.l, x1: VB_W - PAD.r, y0: PAD.t, y1: VB_H - PAD.b };
 
 function ElevChart({ data, unit }: { data: ElevPoint[]; unit: 'ft' | 'm' }) {
   const elevs  = data.map(p => unit === 'ft' ? p.elevFt : p.elevM);
-  const dists  = data.map(p => unit === 'ft' ? p.distFt / 5280 : p.distKm); // miles or km
-  const distLabel = unit === 'ft' ? 'mi' : 'km';
+  const dists  = data.map(p => unit === 'ft' ? p.distFt / 5280 : p.distKm);
+  const dLabel = unit === 'ft' ? 'mi' : 'km';
 
-  const rawMin = Math.min(...elevs);
-  const rawMax = Math.max(...elevs);
-  const pad    = (rawMax - rawMin) * 0.1 || 5;
-  const minE   = rawMin - pad;
-  const maxE   = rawMax + pad;
-  const maxD   = dists[dists.length - 1];
+  const rawMin = Math.min(...elevs), rawMax = Math.max(...elevs);
+  const pad    = (rawMax - rawMin) * 0.12 || 5;
+  const minE   = rawMin - pad, maxE = rawMax + pad;
+  const maxD   = dists[dists.length - 1] || 1;
 
   const xS = (d: number) => PLOT.x0 + (d / maxD) * (PLOT.x1 - PLOT.x0);
   const yS = (e: number) => PLOT.y1 - ((e - minE) / (maxE - minE)) * (PLOT.y1 - PLOT.y0);
 
   const pts     = data.map((_, i) => `${xS(dists[i]).toFixed(1)},${yS(elevs[i]).toFixed(1)}`).join(' ');
   const areaPts = `${xS(0).toFixed(1)},${PLOT.y1} ${pts} ${xS(maxD).toFixed(1)},${PLOT.y1}`;
-
-  const yTicks = Array.from({ length: 5 }, (_, i) => minE + (i / 4) * (maxE - minE));
-  const xTicks = Array.from({ length: 5 }, (_, i) => (i / 4) * maxD);
+  const yTicks  = Array.from({ length: 5 }, (_, i) => minE + (i / 4) * (maxE - minE));
+  const xTicks  = Array.from({ length: 5 }, (_, i) => (i / 4) * maxD);
 
   return (
     <svg id="elevation-chart-svg" viewBox={`0 0 ${VB_W} ${VB_H}`} className={styles.chart} preserveAspectRatio="none">
@@ -106,10 +147,9 @@ function ElevChart({ data, unit }: { data: ElevPoint[]; unit: 'ft' | 'm' }) {
 
       {xTicks.map((d, i) => (
         <g key={i}>
-          <line x1={xS(d)} y1={PLOT.y1} x2={xS(d)} y2={PLOT.y1 + 4}
-            stroke="var(--border-dark)" strokeWidth={1} />
+          <line x1={xS(d)} y1={PLOT.y1} x2={xS(d)} y2={PLOT.y1 + 4} stroke="var(--border-dark)" strokeWidth={1} />
           <text x={xS(d)} y={PLOT.y1 + 16} textAnchor="middle" fontSize={10} fill="var(--text-muted)">
-            {d.toFixed(2)} {distLabel}
+            {d.toFixed(2)} {dLabel}
           </text>
         </g>
       ))}
@@ -119,22 +159,35 @@ function ElevChart({ data, unit }: { data: ElevPoint[]; unit: 'ft' | 'm' }) {
         Elevation ({unit})
       </text>
       <text x={(PLOT.x0 + PLOT.x1) / 2} y={VB_H - 4} textAnchor="middle" fontSize={10} fill="var(--text-muted)">
-        Distance ({distLabel})
+        Distance ({dLabel})
       </text>
     </svg>
   );
 }
 
+/* ── Intervals ── */
+const INTERVALS = [
+  { label: '5 ft',  ft: 5   },
+  { label: '10 ft', ft: 10  },
+  { label: '25 ft', ft: 25  },
+  { label: '50 ft', ft: 50  },
+  { label: '100 ft',ft: 100 },
+];
+
 /* ── Main page ── */
 export default function ElevationProfilePage() {
-  const [waypoints, setWaypoints] = useState<[number, number][]>([]);
-  const [elevData,  setElevData]  = useState<ElevPoint[]>([]);
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState<string | null>(null);
-  const [locked,    setLocked]    = useState(false);
-  const [unit,      setUnit]      = useState<'ft' | 'm'>('ft');
-  const [resolutionM, setResolutionM] = useState<number | null>(null);
-  const [hasNoData, setHasNoData] = useState(false);
+  const [waypoints,    setWaypoints]    = useState<[number, number][]>([]);
+  const [elevData,     setElevData]     = useState<ElevPoint[]>([]);
+  const [loading,      setLoading]      = useState(false);
+  const [status,       setStatus]       = useState('');
+  const [error,        setError]        = useState<string | null>(null);
+  const [locked,       setLocked]       = useState(false);
+  const [unit,         setUnit]         = useState<'ft' | 'm'>('ft');
+  const [intervalFt,   setIntervalFt]   = useState(10);
+  const [resolutionM,  setResolutionM]  = useState<number | null>(null);
+  const [interpolated, setInterpolated] = useState(0);
+
+  const abortRef = useRef<AbortController | null>(null);
 
   const addPoint = useCallback((lat: number, lon: number) => {
     setWaypoints(prev => [...prev, [lat, lon]]);
@@ -143,75 +196,140 @@ export default function ElevationProfilePage() {
   }, []);
 
   const clear = () => {
+    abortRef.current?.abort();
     setWaypoints([]);
     setElevData([]);
     setError(null);
     setLocked(false);
+    setLoading(false);
+    setStatus('');
     setResolutionM(null);
-    setHasNoData(false);
+    setInterpolated(0);
   };
 
   const getElevation = async () => {
     if (waypoints.length < 2) return;
+
+    abortRef.current?.abort();
+    const abort = new AbortController();
+    abortRef.current = abort;
+
     setLoading(true);
-    setError(null);
     setLocked(true);
+    setError(null);
+    setElevData([]);
+    setInterpolated(0);
+
     try {
-      const samples = samplePolyline(waypoints, 100);
+      const samples = sampleByInterval(waypoints, intervalFt);
+      setStatus(`Sampling path… ${samples.length} points at ${intervalFt} ft intervals`);
 
       /* Cumulative distances */
-      const cumDistKm: number[] = [0];
-      const cumDistFt: number[] = [0];
+      const cumKm: number[] = [0], cumFt: number[] = [0];
       for (let i = 1; i < samples.length; i++) {
         const km = haversineKm(samples[i-1][0], samples[i-1][1], samples[i][0], samples[i][1]);
-        const ft = haversineFt(samples[i-1][0], samples[i-1][1], samples[i][0], samples[i][1]);
-        cumDistKm.push(cumDistKm[i-1] + km);
-        cumDistFt.push(cumDistFt[i-1] + ft);
+        cumKm.push(cumKm[i-1] + km);
+        cumFt.push(cumFt[i-1] + km * 3280.84);
       }
 
-      /* Call USGS EPQS proxy — same API as profile_automation.py */
+      setStatus(`Connecting to USGS 3DEP…`);
+
       const res = await fetch('/api/elevation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ points: samples.map(p => ({ lat: p[0], lon: p[1] })) }),
+        signal: abort.signal,
       });
 
-      if (!res.ok) {
-        const err = await res.json() as { error?: string };
-        throw new Error(err.error ?? `Server error ${res.status}`);
+      if (!res.ok || !res.body) throw new Error(`Server error ${res.status}`);
+
+      /* Read SSE stream */
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let   buffer  = '';
+      let   finalResults: { elevFt: number | null; elevM: number | null; noData: boolean }[] | null = null;
+      let   finalResM: number | null = null;
+
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const events = buffer.split('\n\n');
+        buffer = events.pop() ?? '';
+
+        for (const event of events) {
+          const line = event.split('\n').find(l => l.startsWith('data: '));
+          if (!line) continue;
+          try {
+            const msg = JSON.parse(line.slice(6)) as {
+              type: string;
+              current?: number;
+              total?: number;
+              results?: { elevFt: number | null; elevM: number | null; noData: boolean }[];
+              resolutionM?: number | null;
+              message?: string;
+            };
+
+            if (msg.type === 'progress') {
+              setStatus(
+                `Querying USGS 3DEP… ${msg.current}/${msg.total} points` +
+                (msg.current && msg.total ? ` (${Math.round(msg.current / msg.total * 100)}%)` : ''),
+              );
+            } else if (msg.type === 'done') {
+              finalResults = msg.results ?? null;
+              finalResM    = msg.resolutionM ?? null;
+              break outer;
+            } else if (msg.type === 'error') {
+              throw new Error(msg.message ?? 'API error');
+            }
+          } catch { /* ignore parse errors */ }
+        }
       }
 
-      const json = await res.json() as {
-        results: { lat: number; lon: number; elevFt: number | null; elevM: number | null; noData: boolean }[];
-        resolutionM: number | null;
-      };
+      if (!finalResults) throw new Error('No data received from USGS');
 
-      setResolutionM(json.resolutionM);
-      setHasNoData(json.results.some(r => r.noData));
+      setStatus('Processing results…');
+      setResolutionM(finalResM);
 
-      setElevData(
-        samples.map((pt, i) => ({
-          lat:    pt[0],
-          lon:    pt[1],
-          distKm: cumDistKm[i],
-          distFt: cumDistFt[i],
-          elevM:  json.results[i]?.elevM  ?? 0,
-          elevFt: json.results[i]?.elevFt ?? 0,
-          noData: json.results[i]?.noData ?? false,
-        })),
-      );
+      /* Build ElevPoint array */
+      let raw: ElevPoint[] = samples.map((pt, i) => ({
+        lat:    pt[0], lon:    pt[1],
+        distKm: cumKm[i], distFt: cumFt[i],
+        elevFt: finalResults![i]?.elevFt ?? 0,
+        elevM:  finalResults![i]?.elevM  ?? 0,
+        noData: finalResults![i]?.noData ?? false,
+      }));
+
+      /* Interpolate null points (water, outside coverage) */
+      const nullCount = raw.filter(p => p.noData).length;
+      if (nullCount > 0) {
+        setStatus(`Interpolating ${nullCount} no-data point${nullCount > 1 ? 's' : ''} (water / outside coverage)…`);
+        raw = interpolateNulls(raw);
+        setInterpolated(nullCount);
+      }
+
+      setElevData(raw);
+      setStatus(`✓ Complete — ${raw.length} points, ${nullCount > 0 ? `${nullCount} interpolated` : 'all valid'}`);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to fetch elevation data');
-      setLocked(false);
+      if ((e as Error).name === 'AbortError') {
+        setStatus('Cancelled');
+      } else {
+        setError(e instanceof Error ? e.message : 'Failed to fetch elevation data');
+        setLocked(false);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   /* ── Stats ── */
-  const vals       = elevData.map(p => unit === 'ft' ? p.elevFt : p.elevM);
-  const totalDist  = elevData.length ? (unit === 'ft' ? elevData[elevData.length-1].distFt / 5280 : elevData[elevData.length-1].distKm) : 0;
-  const distUnit   = unit === 'ft' ? 'mi' : 'km';
+  const isM        = unit === 'm';
+  const vals       = elevData.map(p => isM ? p.elevM : p.elevFt);
+  const totalDist  = elevData.length
+    ? (isM ? elevData[elevData.length-1].distKm : elevData[elevData.length-1].distFt / 5280)
+    : 0;
+  const dUnit      = isM ? 'km' : 'mi';
   const minElev    = vals.length ? Math.min(...vals) : 0;
   const maxElev    = vals.length ? Math.max(...vals) : 0;
   let gain = 0, loss = 0;
@@ -220,28 +338,29 @@ export default function ElevationProfilePage() {
     if (d > 0) gain += d; else loss += Math.abs(d);
   }
 
+  const ptPreview  = waypoints.length >= 2 ? estimatePoints(waypoints, intervalFt) : 0;
+
   /* ── Downloads ── */
   const downloadCSV = () => {
-    const header = 'index,latitude,longitude,distance_ft,distance_km,elevation_ft,elevation_m';
+    const header = 'index,latitude,longitude,distance_ft,distance_km,elevation_ft,elevation_m,interpolated';
     const rows   = elevData.map((p, i) =>
-      `${i},${p.lat.toFixed(6)},${p.lon.toFixed(6)},${p.distFt.toFixed(2)},${p.distKm.toFixed(4)},${p.elevFt.toFixed(2)},${p.elevM.toFixed(2)}`,
+      `${i},${p.lat.toFixed(6)},${p.lon.toFixed(6)},${p.distFt.toFixed(2)},${p.distKm.toFixed(4)},${p.elevFt.toFixed(2)},${p.elevM.toFixed(3)},${p.noData}`,
     );
     const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = Object.assign(document.createElement('a'), { href: url, download: 'elevation-profile.csv' });
+    const a    = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob), download: 'elevation-profile.csv',
+    });
     a.click();
-    URL.revokeObjectURL(url);
   };
 
   const downloadSVG = () => {
-    const svgEl = document.getElementById('elevation-chart-svg');
-    if (!svgEl) return;
-    const str  = new XMLSerializer().serializeToString(svgEl);
-    const blob = new Blob([str], { type: 'image/svg+xml' });
-    const url  = URL.createObjectURL(blob);
-    const a    = Object.assign(document.createElement('a'), { href: url, download: 'elevation-profile.svg' });
+    const el = document.getElementById('elevation-chart-svg');
+    if (!el) return;
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a    = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob), download: 'elevation-profile.svg',
+    });
     a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -254,67 +373,92 @@ export default function ElevationProfilePage() {
         <header className={styles.header}>
           <h1 className={styles.title}>📈 Elevation Profile Tool</h1>
           <p className={styles.subtitle}>
-            Draw a path on the map, then generate a real elevation profile from{' '}
-            <strong>USGS 3DEP</strong> — the same 1-meter resolution dataset used by US engineers and surveyors.
-            Download as CSV or SVG.
+            Draw a path, choose a point interval, and generate a real elevation profile from{' '}
+            <strong>USGS 3DEP</strong> — the same 1-meter dataset used by US engineers and surveyors.
           </p>
         </header>
 
-        {/* Toolbar */}
+        {/* ── Toolbar ── */}
         <div className={styles.toolbar}>
           <div className={styles.toolbarLeft}>
-            <span className={styles.waypointCount}>
-              {waypoints.length === 0
-                ? 'Click the map to add waypoints'
-                : `${waypoints.length} waypoint${waypoints.length > 1 ? 's' : ''} — click to add more`}
-            </span>
-          </div>
-          <div className={styles.toolbarRight}>
+            {/* Interval selector */}
+            <div className={styles.intervalGroup}>
+              <span className={styles.toolbarLabel}>Interval</span>
+              <div className={styles.chipRow}>
+                {INTERVALS.map(iv => (
+                  <button
+                    key={iv.ft}
+                    className={`${styles.chip} ${intervalFt === iv.ft ? styles.chipActive : ''}`}
+                    onClick={() => setIntervalFt(iv.ft)}
+                    disabled={loading}
+                  >
+                    {iv.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* ft / m toggle */}
             <div className={styles.unitToggle}>
-              <button
-                className={`${styles.unitBtn} ${unit === 'ft' ? styles.unitBtnActive : ''}`}
-                onClick={() => setUnit('ft')}
-              >ft</button>
-              <button
-                className={`${styles.unitBtn} ${unit === 'm' ? styles.unitBtnActive : ''}`}
-                onClick={() => setUnit('m')}
-              >m</button>
+              <button className={`${styles.unitBtn} ${unit === 'ft' ? styles.unitBtnActive : ''}`}
+                onClick={() => setUnit('ft')}>ft</button>
+              <button className={`${styles.unitBtn} ${unit === 'm'  ? styles.unitBtnActive : ''}`}
+                onClick={() => setUnit('m')}>m</button>
             </div>
-            {waypoints.length > 0 && (
+          </div>
+
+          <div className={styles.toolbarRight}>
+            {ptPreview > 0 && !loading && (
+              <span className={styles.ptPreview}>~{ptPreview} pts</span>
+            )}
+            {waypoints.length > 0 && !loading && (
               <button className={styles.clearBtn} onClick={clear}>✕ Clear</button>
+            )}
+            {loading && (
+              <button className={styles.cancelBtn} onClick={() => abortRef.current?.abort()}>
+                ✕ Cancel
+              </button>
             )}
             <button
               className={styles.getBtn}
               onClick={getElevation}
               disabled={waypoints.length < 2 || loading}
             >
-              {loading ? '⏳ Querying USGS…' : '📈 Get Elevation Profile'}
+              {loading ? '⏳ Fetching…' : '📈 Get Elevation Profile'}
             </button>
           </div>
         </div>
 
+        {/* ── Status bar ── */}
+        {(loading || status) && (
+          <div className={`${styles.statusBar} ${loading ? styles.statusBarActive : ''}`}>
+            {loading && <span className={styles.spinner} />}
+            <span className={styles.statusText}>{status || 'Working…'}</span>
+          </div>
+        )}
+
         <div className={styles.mapWrap}>
           <ElevationMap waypoints={waypoints} onAddPoint={addPoint} locked={locked} />
+          {waypoints.length === 0 && (
+            <p className={styles.mapHint}>👆 Click on the map to add waypoints — at least 2 to generate a profile</p>
+          )}
         </div>
 
         {error && <p className={styles.error}>⚠ {error}</p>}
 
-        {/* Chart + Stats */}
+        {/* ── Results ── */}
         {elevData.length > 0 && (
           <div className={styles.results}>
-
-            {/* Source badge */}
             <div className={styles.sourceBadge}>
-              <span className={styles.sourceIcon}>🛰</span>
+              <span>🛰</span>
               <span>
                 <strong>USGS 3DEP</strong>
                 {resolutionM != null && ` · ${resolutionM.toFixed(1)} m resolution`}
                 {' · '}National Elevation Dataset
               </span>
-              {hasNoData && (
-                <span className={styles.noDataWarn}>
-                  ⚠ Some points outside US coverage (shown as 0)
+              {interpolated > 0 && (
+                <span className={styles.interpNote}>
+                  ↝ {interpolated} point{interpolated > 1 ? 's' : ''} interpolated (water / no-data)
                 </span>
               )}
             </div>
@@ -324,26 +468,18 @@ export default function ElevationProfilePage() {
             </div>
 
             <div className={styles.statsRow}>
-              <div className={styles.stat}>
-                <span className={styles.statVal}>{totalDist.toFixed(3)} {distUnit}</span>
-                <span className={styles.statLabel}>Total Distance</span>
-              </div>
-              <div className={styles.stat}>
-                <span className={styles.statVal}>{Math.round(minElev)} {unit}</span>
-                <span className={styles.statLabel}>Min Elevation</span>
-              </div>
-              <div className={styles.stat}>
-                <span className={styles.statVal}>{Math.round(maxElev)} {unit}</span>
-                <span className={styles.statLabel}>Max Elevation</span>
-              </div>
-              <div className={styles.stat}>
-                <span className={styles.statVal} style={{ color: '#10b981' }}>+{Math.round(gain)} {unit}</span>
-                <span className={styles.statLabel}>Elevation Gain</span>
-              </div>
-              <div className={styles.stat}>
-                <span className={styles.statVal} style={{ color: '#ef4444' }}>−{Math.round(loss)} {unit}</span>
-                <span className={styles.statLabel}>Elevation Loss</span>
-              </div>
+              {[
+                { val: `${totalDist.toFixed(3)} ${dUnit}`, label: 'Total Distance' },
+                { val: `${Math.round(minElev)} ${unit}`,   label: 'Min Elevation' },
+                { val: `${Math.round(maxElev)} ${unit}`,   label: 'Max Elevation' },
+                { val: `+${Math.round(gain)} ${unit}`,     label: 'Gain', color: '#10b981' },
+                { val: `−${Math.round(loss)} ${unit}`,     label: 'Loss', color: '#ef4444' },
+              ].map(s => (
+                <div key={s.label} className={styles.stat}>
+                  <span className={styles.statVal} style={s.color ? { color: s.color } : undefined}>{s.val}</span>
+                  <span className={styles.statLabel}>{s.label}</span>
+                </div>
+              ))}
             </div>
 
             <div className={styles.downloadRow}>
