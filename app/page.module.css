@@ -798,20 +798,28 @@
 
 @media (max-width: 640px) {
   .container {
-    padding: 20px 18px 40px;
-    margin-left: 12px;
-    margin-right: 12px;
+    padding: 20px 16px 40px;
+    margin-left: 8px;
+    margin-right: 8px;
   }
   .contentCard {
-    padding: 20px 18px;
-    margin-bottom: 28px;
+    padding: 18px 16px;
+    margin-bottom: 20px;
   }
-  .name { font-size: 2em; }
-  .headerMain { flex-direction: column-reverse; }
-  .stats { grid-template-columns: repeat(2, 1fr); }
+  .name { font-size: 1.9em; }
+  .role { font-size: 0.9em; }
+  .headerMain { flex-direction: column-reverse; gap: 16px; }
+  .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .projectsGrid { grid-template-columns: 1fr; }
   .nowGrid { grid-template-columns: 1fr; }
   .jobMeta { flex-direction: column; gap: 4px; }
+  .headerActions { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+  .aboutSection { padding: 20px 16px; }
+  .contactRow { flex-direction: column; gap: 6px; }
+}
+
+@media (max-width: 400px) {
+  .container { margin-left: 4px; margin-right: 4px; padding: 16px 12px 32px; }
+  .name { font-size: 1.6em; }
   .headerActions { flex-direction: column; }
-  .aboutSection { padding: 24px 20px; }
 }

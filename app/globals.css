@@ -1,6 +1,6 @@
-/* At 100% browser zoom, the site renders at 120% size (everything 20% bigger) */
-html {
-  zoom: 1.2;
+/* Scale up slightly on desktop only — mobile uses native 1:1 rendering */
+@media (min-width: 768px) {
+  html { zoom: 1.2; }
 }
 
 /* ── Light mode (default) ── */
