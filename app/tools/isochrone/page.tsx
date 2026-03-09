@@ -133,6 +133,8 @@ export default function IsochronePage() {
   const [poiLoading,  setPoiLoading]  = useState(false);
   const [poiError,    setPoiError]    = useState<string | null>(null);
 
+  const [locating, setLocating] = useState(false);
+
   const handleMapClick = useCallback((lat: number, lon: number) => {
     setOrigin([lat, lon]);
     setGeojson(null);
@@ -140,6 +142,29 @@ export default function IsochronePage() {
     setError(null);
     setPoiError(null);
   }, []);
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setLocating(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setOrigin([pos.coords.latitude, pos.coords.longitude]);
+        setGeojson(null);
+        setPois([]);
+        setPoiError(null);
+        setLocating(false);
+      },
+      () => {
+        setError('Could not get your location. Check browser permissions.');
+        setLocating(false);
+      },
+      { timeout: 10_000 },
+    );
+  };
 
   const toggleTime = (t: number) =>
     setTimes(prev =>
@@ -298,8 +323,15 @@ export default function IsochronePage() {
               <p className={styles.originVal}>
                 {origin
                   ? `${origin[0].toFixed(4)}, ${origin[1].toFixed(4)}`
-                  : <span className={styles.originHint}>Click the map to set</span>}
+                  : <span className={styles.originHint}>Click map or use location</span>}
               </p>
+              <button
+                className={styles.locateBtn}
+                onClick={useMyLocation}
+                disabled={locating}
+              >
+                {locating ? '⏳ Locating…' : '📍 Use My Location'}
+              </button>
             </div>
 
             <button

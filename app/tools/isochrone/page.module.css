@@ -93,6 +93,24 @@
 .originVal  { font-family: var(--font-mono); font-size: 0.8em; color: var(--text-primary); }
 .originHint { color: var(--text-muted); font-style: italic; }
 
+.locateBtn {
+  width: 100%;
+  padding: 7px 10px;
+  margin-top: 4px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-dark);
+  background: var(--paper-dark);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.78em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  text-align: center;
+}
+.locateBtn:hover:not(:disabled) { border-color: var(--accent-blue); color: var(--accent-blue); background: var(--paper-light); }
+.locateBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Generate button */
 .generateBtn {
   width: 100%;
