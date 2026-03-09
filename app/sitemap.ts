@@ -10,5 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/tools/coordinate-converter`, lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
     { url: `${baseUrl}/tools/unit-converter`,       lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
     { url: `${baseUrl}/tools/image-tools`,          lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
+    { url: `${baseUrl}/tools/isochrone`,            lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
+    { url: `${baseUrl}/tools/elevation-profile`,    lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
   ];
 }

@@ -38,6 +38,22 @@ const TOOLS = [
     tags: ['GIS', 'Privacy-first', 'No upload'],
     accent: 'green',
   },
+  {
+    href: '/tools/isochrone',
+    emoji: '🗺',
+    title: 'Isochrone Mapper',
+    desc: 'Set any origin on the map and generate reachability zones — see how far you can travel by car, foot, or bike in 10–60 minutes.',
+    tags: ['GIS', 'OpenStreetMap', 'Interactive'],
+    accent: 'blue',
+  },
+  {
+    href: '/tools/elevation-profile',
+    emoji: '📈',
+    title: 'Elevation Profile',
+    desc: 'Draw a path on the map and instantly get a real elevation profile from global terrain data. Download as CSV or SVG chart.',
+    tags: ['GIS', 'Terrain', 'Download'],
+    accent: 'green',
+  },
 ];
 
 export default function ToolsPage() {
