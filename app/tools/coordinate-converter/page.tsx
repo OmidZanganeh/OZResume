@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -69,6 +69,10 @@ function computeFromDD(lat: number, lon: number): { dms: DMSState; ddm: DDMState
 export default function CoordConverter() {
   const [active, setActive] = useState<FormatKey>('dd');
   const [copied, setCopied] = useState<string | null>(null);
+  const [elevUnit, setElevUnit] = useState<'ft' | 'm'>('ft');
+  const [elev, setElev] = useState<{ ft: number; m: number } | null>(null);
+  const [elevStatus, setElevStatus] = useState<'idle' | 'loading' | 'error' | 'nodata'>('idle');
+  const elevAbortRef = useRef<AbortController | null>(null);
 
   const [dd, setDD] = useState<DDState>({ lat: '40.7128', lon: '-74.0060' });
   const [dms, setDMS] = useState<DMSState>(() => {
@@ -119,6 +123,55 @@ export default function CoordConverter() {
     setDD({ lat: latStr, lon: lonStr });
     syncFromDD(latStr, lonStr);
   }, [syncFromDD]);
+
+  /* ── Elevation lookup via USGS 3DEP ── */
+  const fetchElevation = useCallback(async (lat: number, lon: number) => {
+    if (elevAbortRef.current) elevAbortRef.current.abort();
+    const ctrl = new AbortController();
+    elevAbortRef.current = ctrl;
+    setElevStatus('loading');
+    setElev(null);
+    try {
+      const res = await fetch('/api/elevation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ points: [{ lat, lon }] }),
+        signal: ctrl.signal,
+      });
+      if (!res.ok || !res.body) { setElevStatus('error'); return; }
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const msg = JSON.parse(line.slice(6)) as { type: string; results?: Array<{ elevFt: number | null; elevM: number | null; noData: boolean; failed: boolean }> };
+          if (msg.type === 'done') {
+            const r = msg.results?.[0];
+            if (!r || r.noData) { setElevStatus('nodata'); return; }
+            if (r.failed || r.elevFt === null || r.elevM === null) { setElevStatus('error'); return; }
+            setElev({ ft: r.elevFt, m: r.elevM });
+            setElevStatus('idle');
+            return;
+          }
+          if (msg.type === 'error') { setElevStatus('error'); return; }
+        }
+      }
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') setElevStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!validDD) { setElev(null); setElevStatus('idle'); return; }
+    const t = setTimeout(() => fetchElevation(latDD, lonDD), 700);
+    return () => clearTimeout(t);
+  }, [latDD, lonDD, validDD, fetchElevation]);
 
   const copy = (text: string, key: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -337,6 +390,45 @@ export default function CoordConverter() {
               <span className={styles.summaryVal}>{ddmCopyText}</span>
               <button className={styles.copyBtnSm} onClick={() => copy(ddmCopyText, 'sum-ddm')}>{copied === 'sum-ddm' ? '✓' : 'Copy'}</button>
             </div>
+          </div>
+        )}
+
+        {/* ── Elevation card ── */}
+        {validDD && (
+          <div className={styles.elevCard}>
+            <div className={styles.elevHeader}>
+              <span className={styles.elevLabel}>↑ Elevation</span>
+              <div className={styles.elevUnitToggle}>
+                <button
+                  className={`${styles.unitBtn} ${elevUnit === 'ft' ? styles.unitBtnActive : ''}`}
+                  onClick={() => setElevUnit('ft')}
+                >ft</button>
+                <button
+                  className={`${styles.unitBtn} ${elevUnit === 'm' ? styles.unitBtnActive : ''}`}
+                  onClick={() => setElevUnit('m')}
+                >m</button>
+              </div>
+            </div>
+            <div className={styles.elevValue}>
+              {elevStatus === 'loading' && (
+                <span className={styles.elevLoading}>querying USGS…</span>
+              )}
+              {elevStatus === 'error' && (
+                <span className={styles.elevError}>unavailable</span>
+              )}
+              {elevStatus === 'nodata' && (
+                <span className={styles.elevMuted}>no data (ocean / coverage gap)</span>
+              )}
+              {elevStatus === 'idle' && elev && (
+                <>
+                  <span className={styles.elevNum}>
+                    {elevUnit === 'ft' ? elev.ft.toFixed(1) : elev.m.toFixed(1)}
+                  </span>
+                  <span className={styles.elevUnitLabel}>{elevUnit}</span>
+                </>
+              )}
+            </div>
+            <p className={styles.elevSource}>Source: USGS 3DEP (EPQS v1)</p>
           </div>
         )}
 

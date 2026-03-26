@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Omid Resume Site – Dependency Map</title>
+  <style>
+    :root {
+      --bg: #050816;
+      --bg-alt: #0b1020;
+      --card: #111827;
+      --border: #1f2937;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59,130,246,0.16);
+      --text: #e5e7eb;
+      --text-muted: #9ca3af;
+      --pill-bg: #020617;
+      --pill-border: #1f2937;
+      --radius-lg: 10px;
+      --radius-sm: 999px;
+      --shadow-lg: 0 18px 45px rgba(15,23,42,0.8);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 24px 40px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #111827 0, #020617 40%, #020617 100%);
+      color: var(--text);
+    }
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      background: radial-gradient(circle at top left, rgba(59,130,246,0.17), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(16,185,129,0.16), transparent 55%),
+                  var(--bg-alt);
+      border-radius: 18px;
+      border: 1px solid rgba(148,163,184,0.38);
+      box-shadow: var(--shadow-lg);
+      padding: 28px 30px 32px;
+    }
+    header {
+      margin-bottom: 24px;
+      border-bottom: 1px solid rgba(148,163,184,0.45);
+      padding-bottom: 18px;
+    }
+    .eyebrow {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      font-weight: 650;
+      letter-spacing: -0.03em;
+    }
+    .subtitle {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 640px;
+      line-height: 1.7;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 18px;
+    }
+    @media (max-width: 880px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .section {
+      background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(31,41,55,0.9);
+      padding: 16px 16px 14px;
+      margin-bottom: 12px;
+    }
+    .section h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 650;
+    }
+    .section h2 span.icon {
+      font-size: 16px;
+    }
+    .section p.lead {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 4px 0 10px;
+    }
+    .pill {
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--pill-border);
+      background: var(--pill-bg);
+      padding: 3px 9px 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .pill strong {
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .block {
+      border-radius: 10px;
+      border: 1px solid rgba(31,41,55,0.9);
+      background: radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 55%),
+                  rgba(15,23,42,0.95);
+      padding: 10px 11px 9px;
+      margin-bottom: 7px;
+    }
+    .block-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .block-title code {
+      font-size: 11px;
+      color: #a5b4fc;
+      background: rgba(15,23,42,0.9);
+      padding: 1px 5px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,0.9);
+    }
+    .block-desc {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    ul {
+      margin: 4px 0 0 14px;
+      padding: 0;
+      list-style-type: disc;
+    }
+    li {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    li code {
+      font-size: 11px;
+      color: #e5e7eb;
+      background: #020617;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 2px 8px 3px;
+      font-size: 11px;
+      border: 1px solid rgba(55,65,81,0.9);
+      background: rgba(15,23,42,0.9);
+      color: var(--text-muted);
+    }
+    .tag span.key {
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    /* ── Tab navigation ──────────────────────────────────── */
+    .tab-nav {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(148,163,184,0.18);
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: var(--text-muted);
+      padding: 8px 20px 10px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+      letter-spacing: 0.03em;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+      position: relative;
+      bottom: -1px;
+      user-select: none;
+    }
+    .tab-btn:hover { color: var(--text); background: rgba(59,130,246,0.07); }
+    .tab-btn.active {
+      color: #93c5fd;
+      background: var(--bg-alt);
+      border-color: rgba(148,163,184,0.18);
+      border-bottom-color: var(--bg-alt);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Dependency graph tab ───────────────────────────── */
+    .graph-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .graph-top-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .graph-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+    .graph-ctrl-btn {
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+      border-radius: 999px;
+      padding: 4px 13px 5px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .graph-ctrl-btn:hover {
+      background: rgba(59,130,246,0.15);
+      border-color: rgba(59,130,246,0.4);
+      color: #93c5fd;
+    }
+    #graph-svg-wrap {
+      width: 100%;
+      height: 660px;
+      background:
+        radial-gradient(ellipse at 25% 25%, rgba(59,130,246,0.07), transparent 55%),
+        radial-gradient(ellipse at 75% 75%, rgba(16,185,129,0.06), transparent 55%),
+        #020917;
+      border-radius: 12px;
+      border: 1px solid rgba(31,41,55,0.9);
+      overflow: hidden;
+      position: relative;
+      cursor: grab;
+    }
+    #graph-svg-wrap:active { cursor: grabbing; }
+    .graph-tooltip {
+      position: absolute;
+      background: rgba(9,13,28,0.97);
+      border: 1px solid rgba(59,130,246,0.4);
+      border-radius: 9px;
+      padding: 9px 13px;
+      font-size: 12px;
+      color: #e5e7eb;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s;
+      max-width: 240px;
+      z-index: 20;
+      line-height: 1.65;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.65);
+    }
+    .graph-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 4px 0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="eyebrow">// omidzanganeh.com · dependency map</div>
+      <h1>How the pieces of your site connect</h1>
+      <p class="subtitle">
+        High-level overview of your Next.js app: which pages exist, which components they use,
+        and which APIs / external services power each feature.
+      </p>
+    </header>
+
+    <!-- Tab navigation -->
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="overview">📋 Overview</button>
+      <button class="tab-btn" data-tab="graph">🕸 Dependency Graph</button>
+    </div>
+
+    <!-- Tab: Overview -->
+    <div id="tab-overview" class="tab-panel active">
+    <div class="grid">
+      <!-- LEFT: Pages & components -->
+      <div>
+        <div class="section">
+          <h2><span class="icon">📄</span>Core layout & shell</h2>
+          <p class="lead">The outer shell that wraps everything and sets global SEO and theming.</p>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Root layout</span>
+              <code>app/layout.tsx</code>
+            </div>
+            <p class="block-desc">
+              Wraps all pages, injects global metadata, fonts, and theme logic.
+            </p>
+            <ul>
+              <li>Uses <code>ThemeProvider</code> from <code>app/context/ThemeContext</code>.</li>
+              <li>Loads <code>app/globals.css</code> and IBM Plex Mono font.</li>
+              <li>Adds person JSON‑LD for “Omid Zanganeh – GIS Developer”.</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>SEO helpers</span>
+              <code>app/sitemap.ts</code>
+            </div>
+            <p class="block-desc">
+              Exposes all important pages (home, projects, tools, each tool) to search engines with
+              priorities and change frequencies.
+            </p>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2><span class="icon">🧱</span>Main pages & sections</h2>
+          <p class="lead">Top-level routes and the major components each one pulls in.</p>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Home / Resume</span>
+              <code>app/page.tsx</code>
+            </div>
+            <p class="block-desc">
+              Your main resume page. Uses multiple section components with their own CSS modules.
+            </p>
+            <ul>
+              <li><code>AboutSection</code>, <code>WorkSection</code>, <code>EducationSection</code>, <code>JourneySection</code>, <code>ContactForm</code></li>
+              <li><code>GameHub</code> (games modal), <code>LandsatNameSidebars</code> (footer strip)</li>
+              <li>Styling from <code>app/page.module.css</code></li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Projects</span>
+              <code>app/projects/page.tsx</code>
+            </div>
+            <p class="block-desc">Standalone projects page with its own SEO metadata.</p>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Tools hub</span>
+              <code>app/tools/page.tsx</code>
+            </div>
+            <p class="block-desc">
+              Landing page that lists all GIS tools and links into each tool route.
+            </p>
+            <ul>
+              <li>Styling from <code>app/tools/page.module.css</code>.</li>
+              <li>Metadata + ItemList JSON‑LD for all tools (SEO for “GIS tools”).</li>
+              <li>Links to:
+                <code>/tools/coordinate-converter</code>,
+                <code>/tools/unit-converter</code>,
+                <code>/tools/image-tools</code>,
+                <code>/tools/isochrone</code>,
+                <code>/tools/elevation-profile</code>.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2><span class="icon">🎮</span>Games & Landsat strip</h2>
+          <p class="lead">Interactive extras used on the main page.</p>
+
+          <div class="block">
+            <div class="block-title">
+              <span>GameHub & FlagQuiz</span>
+              <code>app/components/GameHub.tsx</code>
+            </div>
+            <p class="block-desc">
+              Modal game hub that currently mounts the flag guessing game.
+            </p>
+            <ul>
+              <li><code>FlagQuiz.tsx</code> + <code>FlagQuiz.module.css</code> (flags via <code>flagcdn.com</code>).</li>
+              <li>Leaderboard via <code>app/api/leaderboard/route.ts</code> → Redis (<code>ioredis</code>).</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Landsat name strip</span>
+              <code>app/components/LandsatNameSidebars.tsx</code>
+            </div>
+            <p class="block-desc">
+              Displays the “OMID ZANGANEH” letters as Landsat tiles in the footer.
+            </p>
+            <ul>
+              <li>Styling from <code>LandsatNameSidebars.module.css</code>.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Tools & APIs -->
+      <div>
+        <div class="section">
+          <h2><span class="icon">🛠</span>GIS tools by route</h2>
+          <p class="lead">Each tool is its own mini‑app with a page, CSS, optional layout, and APIs.</p>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Coordinate Converter</span>
+              <code>/tools/coordinate-converter</code>
+            </div>
+            <p class="block-desc">
+              Converts coordinates between DD, DMS, DDM and syncs with a Leaflet map.
+            </p>
+            <ul>
+              <li>UI: <code>page.tsx</code> + <code>page.module.css</code></li>
+              <li>Map: <code>MapPicker.tsx</code> + <code>MapPicker.module.css</code> (Leaflet, OpenStreetMap).</li>
+              <li>SEO: <code>layout.tsx</code> with <code>WebApplication</code> JSON‑LD.</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Spatial Unit Converter</span>
+              <code>/tools/unit-converter</code>
+            </div>
+            <p class="block-desc">Pure client‑side conversions between distance, area, angle units.</p>
+            <ul>
+              <li>UI: <code>page.tsx</code> + <code>page.module.css</code></li>
+              <li>SEO: <code>layout.tsx</code> (<code>WebApplication</code> schema).</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>File Tools (CSV → GeoJSON & EXIF)</span>
+              <code>/tools/image-tools</code>
+            </div>
+            <p class="block-desc">
+              Converts CSV with lat/lon to GeoJSON and reads EXIF GPS from photos.
+            </p>
+            <ul>
+              <li>UI: <code>page.tsx</code> + <code>page.module.css</code></li>
+              <li>EXIF: uses <code>exifr</code> (client-side parser).</li>
+              <li>SEO: <code>layout.tsx</code> with JSON‑LD.</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Isochrone Mapper + POI Finder</span>
+              <code>/tools/isochrone</code>
+            </div>
+            <p class="block-desc">
+              Generates travel-time polygons from any origin, then finds POIs (restaurants, gas, etc.)
+              inside a chosen ring.
+            </p>
+            <ul>
+              <li>UI: <code>page.tsx</code> + <code>page.module.css</code></li>
+              <li>Map & polygons: <code>IsochroneMap.tsx</code> + <code>IsochroneMap.module.css</code></li>
+              <li>Travel‑time API:
+                <span class="tag"><span class="key">/api/isochrone</span><span>→ Valhalla Isochrone (OSM)</span></span>
+              </li>
+              <li>POI search:
+                <span class="tag"><span class="key">/api/overpass</span><span>→ Overpass API (OSM POIs)</span></span>
+              </li>
+              <li>SEO: <code>layout.tsx</code> (<code>WebApplication</code> schema).</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Elevation Profile Tool (USGS 3DEP)</span>
+              <code>/tools/elevation-profile</code>
+            </div>
+            <p class="block-desc">
+              Samples points every N feet along a drawn path, queries USGS 3DEP, and renders an SVG elevation chart.
+            </p>
+            <ul>
+              <li>UI: <code>page.tsx</code> + <code>page.module.css</code></li>
+              <li>Map & path drawing: <code>ElevationMap.tsx</code> + <code>ElevationMap.module.css</code></li>
+              <li>Elevation API:
+                <span class="tag"><span class="key">/api/elevation</span><span>→ USGS EPQS v1 (3DEP)</span></span>
+                <br />Retries transient errors; never interpolates, just skips true no‑data.
+              </li>
+              <li>SVG chart + CSV/SVG downloads implemented directly in <code>page.tsx</code>.</li>
+              <li>SEO: <code>layout.tsx</code> (<code>WebApplication</code> schema).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2><span class="icon">🌐</span>External services</h2>
+          <p class="lead">What your code talks to outside of Next.js.</p>
+
+          <div class="block">
+            <div class="block-title">
+              <span>OpenStreetMap stack</span>
+              <code>Leaflet / OSM tiles</code>
+            </div>
+            <ul>
+              <li>Used in <code>MapPicker</code>, <code>IsochroneMap</code>, <code>ElevationMap</code>.</li>
+              <li>Tiles from <code>https://{s}.tile.openstreetmap.org/…</code>.</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>Valhalla & Overpass</span>
+              <code>Routing + POIs</code>
+            </div>
+            <ul>
+              <li><code>/api/isochrone</code> → Valhalla isochrone service for travel-time polygons.</li>
+              <li><code>/api/overpass</code> → Overpass interpreter for POIs (restaurants, fuel, etc.).</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <div class="block-title">
+              <span>USGS & Redis</span>
+              <code>Elevation + leaderboards</code>
+            </div>
+            <ul>
+              <li><code>/api/elevation</code> → USGS EPQS (3DEP) for elevation profiles.</li>
+              <li><code>/api/leaderboard</code> → Redis via <code>ioredis</code> for game scores.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-overview -->
+
+    <!-- Tab: Dependency Graph -->
+    <div id="tab-graph" class="tab-panel">
+      <div class="graph-wrap">
+        <div class="graph-top-bar">
+          <button class="graph-ctrl-btn" id="btn-reset-view">↺ Reset view</button>
+          <button class="graph-ctrl-btn" id="btn-reset-hl">Clear highlight</button>
+          <span class="graph-hint">Scroll to zoom · drag canvas to pan · drag nodes to reposition · click node to highlight connections</span>
+        </div>
+        <div id="graph-svg-wrap">
+          <div class="graph-tooltip" id="graph-tooltip"></div>
+        </div>
+        <div class="graph-legend" id="graph-legend"></div>
+      </div>
+    </div><!-- /tab-graph -->
+
+  </div><!-- /page -->
+</body>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function () {
+  /* ── Tab switching ─────────────────────────────────────────── */
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'graph' && !window._graphInited) {
+        window._graphInited = true;
+        initGraph();
+      }
+    });
+  });
+
+  /* ── Graph data ────────────────────────────────────────────── */
+  var NODE_COLORS = {
+    shell:     '#a78bfa',
+    config:    '#64748b',
+    page:      '#60a5fa',
+    component: '#34d399',
+    api:       '#fb923c',
+    external:  '#f87171',
+    library:   '#fbbf24'
+  };
+  var NODE_LABELS = {
+    shell:     'Shell / Layout',
+    config:    'Config / Style',
+    page:      'Page',
+    component: 'Component',
+    api:       'API Route',
+    external:  'External Service',
+    library:   'Library'
+  };
+
+  var NODES = [
+    /* Shell */
+    { id: 'layout',        label: 'app/layout.tsx',        type: 'shell',     desc: 'Root wrapper: metadata, IBM Plex Mono font, ThemeProvider, JSON-LD' },
+    /* Config */
+    { id: 'theme',         label: 'ThemeContext',           type: 'config',    desc: 'Dark / light mode context provider used across the entire app' },
+    { id: 'globals',       label: 'globals.css',            type: 'config',    desc: 'Global stylesheet loaded once by root layout' },
+    { id: 'sitemap',       label: 'sitemap.ts',             type: 'config',    desc: 'Generates the XML sitemap for all routes with priorities & frequencies' },
+    /* Pages */
+    { id: 'home',          label: 'app/page.tsx',           type: 'page',      desc: 'Main resume / home page — assembles all section components' },
+    { id: 'projects',      label: 'projects/page.tsx',      type: 'page',      desc: 'Standalone projects showcase page with its own SEO metadata' },
+    { id: 'tools-hub',     label: 'tools/page.tsx',         type: 'page',      desc: 'GIS tools landing page — links to all five tool routes' },
+    { id: 'cc-page',       label: 'coordinate-converter',   type: 'page',      desc: 'Converts coordinates between DD, DMS, DDM with a live Leaflet map' },
+    { id: 'uc-page',       label: 'unit-converter',         type: 'page',      desc: 'Pure client-side spatial unit conversions (distance, area, angle)' },
+    { id: 'it-page',       label: 'image-tools',            type: 'page',      desc: 'CSV → GeoJSON converter and EXIF GPS photo reader' },
+    { id: 'iso-page',      label: 'isochrone',              type: 'page',      desc: 'Isochrone mapper + POI finder using travel-time polygons' },
+    { id: 'ep-page',       label: 'elevation-profile',      type: 'page',      desc: 'USGS 3DEP elevation profile along a user-drawn path. SVG + CSV export' },
+    /* Components */
+    { id: 'journey',       label: 'JourneySection',         type: 'component', desc: 'Career journey / timeline section on the home page' },
+    { id: 'contact',       label: 'ContactForm',            type: 'component', desc: 'Contact form section with validation' },
+    { id: 'gamehub',       label: 'GameHub',                type: 'component', desc: 'Modal game hub container; mounts individual game components' },
+    { id: 'landsat',       label: 'LandsatNameSidebars',    type: 'component', desc: 'Footer strip displaying "OMID ZANGANEH" as Landsat satellite tiles' },
+    { id: 'visitor',       label: 'VisitorCounter',         type: 'component', desc: 'Live visitor count display powered by /api/visitors' },
+    { id: 'mappicker',     label: 'MapPicker',              type: 'component', desc: 'Interactive Leaflet map for selecting / copying coordinates' },
+    { id: 'isomap',        label: 'IsochroneMap',           type: 'component', desc: 'Leaflet map that renders Valhalla isochrone polygons' },
+    { id: 'elevmap',       label: 'ElevationMap',           type: 'component', desc: 'Leaflet map for drawing the elevation-profile path' },
+    { id: 'flagquiz',      label: 'FlagQuiz',               type: 'component', desc: 'Flag guessing mini-game; uses flagcdn.com for images' },
+    { id: 'typeracer',     label: 'TypeRacer',              type: 'component', desc: 'Typing speed mini-game inside GameHub' },
+    { id: 'worddrop',      label: 'WordDrop',               type: 'component', desc: 'Word drop / puzzle mini-game inside GameHub' },
+    { id: 'skillbar',      label: 'SkillBar',               type: 'component', desc: 'Animated skill bar used in the resume sections' },
+    { id: 'skillradar',    label: 'SkillRadar',             type: 'component', desc: 'Radar chart visualising skill categories' },
+    { id: 'githubheat',    label: 'GithubHeatmap',          type: 'component', desc: 'GitHub contribution heatmap on the home page' },
+    /* API Routes */
+    { id: 'api-leaderboard', label: '/api/leaderboard',     type: 'api',       desc: 'Game leaderboard CRUD operations backed by Redis' },
+    { id: 'api-isochrone',   label: '/api/isochrone',       type: 'api',       desc: 'Proxies the Valhalla engine to compute travel-time polygons' },
+    { id: 'api-overpass',    label: '/api/overpass',        type: 'api',       desc: 'Queries the Overpass interpreter for OSM POIs' },
+    { id: 'api-elevation',   label: '/api/elevation',       type: 'api',       desc: 'Fetches USGS 3DEP elevation values with automatic retry' },
+    { id: 'api-visitors',    label: '/api/visitors',        type: 'api',       desc: 'Tracks and returns the site visitor count' },
+    /* External */
+    { id: 'ext-redis',     label: 'Redis / ioredis',        type: 'external',  desc: 'In-memory store for leaderboard scores; accessed via ioredis client' },
+    { id: 'ext-valhalla',  label: 'Valhalla (OSM)',         type: 'external',  desc: 'Open-source routing engine that produces travel-time isochrones' },
+    { id: 'ext-overpass',  label: 'Overpass API',           type: 'external',  desc: 'OSM query service for POIs (restaurants, fuel stations, parks…)' },
+    { id: 'ext-usgs',      label: 'USGS 3DEP',              type: 'external',  desc: 'US 3D Elevation Program — metre-resolution DEM via EPQS v1 API' },
+    { id: 'ext-osm',       label: 'Leaflet / OSM Tiles',    type: 'external',  desc: 'OpenStreetMap raster tiles rendered by Leaflet in map components' },
+    { id: 'ext-flagcdn',   label: 'flagcdn.com',            type: 'external',  desc: 'Country flag image CDN used by FlagQuiz for flag images' },
+    /* Libraries */
+    { id: 'ext-exifr',     label: 'exifr',                  type: 'library',   desc: 'Client-side EXIF metadata parser — extracts GPS coords from photos' },
+  ];
+
+  var LINKS = [
+    /* layout */
+    { source: 'layout',      target: 'theme' },
+    { source: 'layout',      target: 'globals' },
+    /* home page */
+    { source: 'home',        target: 'journey' },
+    { source: 'home',        target: 'contact' },
+    { source: 'home',        target: 'gamehub' },
+    { source: 'home',        target: 'landsat' },
+    { source: 'home',        target: 'visitor' },
+    { source: 'home',        target: 'skillbar' },
+    { source: 'home',        target: 'skillradar' },
+    { source: 'home',        target: 'githubheat' },
+    /* tools hub → tool pages */
+    { source: 'tools-hub',   target: 'cc-page' },
+    { source: 'tools-hub',   target: 'uc-page' },
+    { source: 'tools-hub',   target: 'it-page' },
+    { source: 'tools-hub',   target: 'iso-page' },
+    { source: 'tools-hub',   target: 'ep-page' },
+    /* tool pages → components / libs / APIs */
+    { source: 'cc-page',     target: 'mappicker' },
+    { source: 'it-page',     target: 'ext-exifr' },
+    { source: 'iso-page',    target: 'isomap' },
+    { source: 'iso-page',    target: 'api-isochrone' },
+    { source: 'iso-page',    target: 'api-overpass' },
+    { source: 'ep-page',     target: 'elevmap' },
+    { source: 'ep-page',     target: 'api-elevation' },
+    /* GameHub → games → external */
+    { source: 'gamehub',     target: 'flagquiz' },
+    { source: 'gamehub',     target: 'typeracer' },
+    { source: 'gamehub',     target: 'worddrop' },
+    { source: 'gamehub',     target: 'api-leaderboard' },
+    { source: 'flagquiz',    target: 'ext-flagcdn' },
+    /* visitor counter */
+    { source: 'visitor',     target: 'api-visitors' },
+    /* APIs → external services */
+    { source: 'api-leaderboard', target: 'ext-redis' },
+    { source: 'api-visitors',    target: 'ext-redis' },
+    { source: 'api-isochrone',   target: 'ext-valhalla' },
+    { source: 'api-overpass',    target: 'ext-overpass' },
+    { source: 'api-elevation',   target: 'ext-usgs' },
+    /* map components → OSM */
+    { source: 'mappicker',   target: 'ext-osm' },
+    { source: 'isomap',      target: 'ext-osm' },
+    { source: 'elevmap',     target: 'ext-osm' },
+  ];
+
+  /* ── Render legend ─────────────────────────────────────────── */
+  (function buildLegend() {
+    var el = document.getElementById('graph-legend');
+    Object.keys(NODE_LABELS).forEach(function (type) {
+      var item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML =
+        '<div class="legend-dot" style="background:' + NODE_COLORS[type] + '"></div>' +
+        NODE_LABELS[type];
+      el.appendChild(item);
+    });
+  })();
+
+  /* ── D3 Force Graph ────────────────────────────────────────── */
+  function initGraph() {
+    var wrap = document.getElementById('graph-svg-wrap');
+    var tooltip = document.getElementById('graph-tooltip');
+    var W = wrap.clientWidth;
+    var H = wrap.clientHeight;
+
+    function nodeRadius(d) {
+      if (d.type === 'shell' || d.type === 'page') return 13;
+      if (d.type === 'external') return 11;
+      return 9;
+    }
+
+    var svg = d3.select('#graph-svg-wrap').append('svg')
+      .attr('width', W)
+      .attr('height', H);
+
+    /* Arrow markers per type */
+    var defs = svg.append('defs');
+    Object.keys(NODE_COLORS).forEach(function (type) {
+      defs.append('marker')
+        .attr('id', 'arrow-' + type)
+        .attr('viewBox', '0 -4 8 8')
+        .attr('refX', 8)
+        .attr('refY', 0)
+        .attr('markerWidth', 5)
+        .attr('markerHeight', 5)
+        .attr('orient', 'auto')
+        .append('path')
+          .attr('d', 'M0,-4L8,0L0,4')
+          .attr('fill', NODE_COLORS[type])
+          .attr('opacity', 0.7);
+    });
+
+    /* Zoom / pan */
+    var gRoot = svg.append('g');
+    var zoom = d3.zoom()
+      .scaleExtent([0.25, 4])
+      .on('zoom', function (event) { gRoot.attr('transform', event.transform); });
+    svg.call(zoom);
+    var currentTransform = d3.zoomIdentity.translate(W / 2, H / 2);
+    svg.call(zoom.transform, currentTransform);
+
+    document.getElementById('btn-reset-view').addEventListener('click', function () {
+      svg.transition().duration(500)
+        .call(zoom.transform, d3.zoomIdentity.translate(W / 2, H / 2));
+    });
+
+    /* Simulation */
+    var sim = d3.forceSimulation(NODES)
+      .force('link', d3.forceLink(LINKS).id(function (d) { return d.id; }).distance(110).strength(0.6))
+      .force('charge', d3.forceManyBody().strength(-520))
+      .force('center', d3.forceCenter(0, 0))
+      .force('collide', d3.forceCollide().radius(function (d) { return nodeRadius(d) + 18; }));
+
+    /* Links */
+    var linkG = gRoot.append('g');
+    var linkEls = linkG.selectAll('line').data(LINKS).enter().append('line')
+      .attr('stroke', function (d) {
+        var src = typeof d.source === 'object' ? d.source : NODES.find(function (n) { return n.id === d.source; });
+        return src ? NODE_COLORS[src.type] : '#444';
+      })
+      .attr('stroke-opacity', 0.35)
+      .attr('stroke-width', 1.4)
+      .attr('marker-end', function (d) {
+        var src = typeof d.source === 'object' ? d.source : NODES.find(function (n) { return n.id === d.source; });
+        return src ? 'url(#arrow-' + src.type + ')' : '';
+      });
+
+    /* Nodes */
+    var nodeG = gRoot.append('g');
+    var nodeEls = nodeG.selectAll('g').data(NODES).enter().append('g')
+      .attr('class', 'node')
+      .style('cursor', 'pointer')
+      .call(d3.drag()
+        .on('start', function (event, d) {
+          if (!event.active) sim.alphaTarget(0.3).restart();
+          d.fx = d.x; d.fy = d.y;
+        })
+        .on('drag', function (event, d) { d.fx = event.x; d.fy = event.y; })
+        .on('end', function (event, d) {
+          if (!event.active) sim.alphaTarget(0);
+          d.fx = null; d.fy = null;
+        })
+      );
+
+    /* Circle glow ring */
+    nodeEls.append('circle')
+      .attr('r', function (d) { return nodeRadius(d) + 5; })
+      .attr('fill', function (d) { return NODE_COLORS[d.type]; })
+      .attr('fill-opacity', 0.08)
+      .attr('stroke', 'none')
+      .attr('class', 'glow');
+
+    /* Main circle */
+    nodeEls.append('circle')
+      .attr('r', nodeRadius)
+      .attr('fill', function (d) { return NODE_COLORS[d.type]; })
+      .attr('fill-opacity', 0.82)
+      .attr('stroke', function (d) { return NODE_COLORS[d.type]; })
+      .attr('stroke-width', 1.8)
+      .attr('stroke-opacity', 0.5)
+      .attr('class', 'main-circle');
+
+    /* Labels */
+    nodeEls.append('text')
+      .attr('dy', function (d) { return nodeRadius(d) + 12; })
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '9.5px')
+      .attr('fill', '#6b7280')
+      .attr('pointer-events', 'none')
+      .attr('class', 'node-label')
+      .text(function (d) {
+        return d.label.length > 22 ? d.label.slice(0, 20) + '…' : d.label;
+      });
+
+    /* Hover tooltip */
+    nodeEls
+      .on('mouseover', function (event, d) {
+        tooltip.style.opacity = '1';
+        tooltip.innerHTML =
+          '<strong style="color:#e5e7eb;font-size:13px">' + d.label + '</strong><br>' +
+          '<span style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:' + NODE_COLORS[d.type] + '">' +
+            NODE_LABELS[d.type] + '</span><br><br>' +
+          '<span style="color:#9ca3af;">' + d.desc + '</span>';
+        d3.select(this).select('.main-circle')
+          .attr('stroke-width', 3).attr('stroke-opacity', 1);
+      })
+      .on('mousemove', function (event) {
+        var rect = wrap.getBoundingClientRect();
+        var tx = event.clientX - rect.left + 16;
+        var ty = event.clientY - rect.top - 10;
+        if (tx + 250 > W) tx = event.clientX - rect.left - 260;
+        tooltip.style.left = tx + 'px';
+        tooltip.style.top  = ty + 'px';
+      })
+      .on('mouseout', function () {
+        tooltip.style.opacity = '0';
+        d3.select(this).select('.main-circle')
+          .attr('stroke-width', 1.8).attr('stroke-opacity', 0.5);
+      })
+      .on('click', function (event, d) {
+        var connected = new Set([d.id]);
+        LINKS.forEach(function (l) {
+          var s = typeof l.source === 'object' ? l.source.id : l.source;
+          var t = typeof l.target === 'object' ? l.target.id : l.target;
+          if (s === d.id) connected.add(t);
+          if (t === d.id) connected.add(s);
+        });
+        /* dim everything then highlight connected */
+        nodeEls.select('.main-circle').attr('fill-opacity', function (n) { return connected.has(n.id) ? 0.95 : 0.1; });
+        nodeEls.select('.glow').attr('fill-opacity', function (n) { return connected.has(n.id) ? 0.18 : 0.0; });
+        nodeEls.select('.node-label').attr('fill', function (n) { return connected.has(n.id) ? '#d1d5db' : '#374151'; });
+        linkEls
+          .attr('stroke-opacity', function (l) {
+            var s = typeof l.source === 'object' ? l.source.id : l.source;
+            var t = typeof l.target === 'object' ? l.target.id : l.target;
+            return (s === d.id || t === d.id) ? 0.9 : 0.04;
+          })
+          .attr('stroke-width', function (l) {
+            var s = typeof l.source === 'object' ? l.source.id : l.source;
+            var t = typeof l.target === 'object' ? l.target.id : l.target;
+            return (s === d.id || t === d.id) ? 2.4 : 1.4;
+          });
+        event.stopPropagation();
+      });
+
+    /* Reset highlight */
+    function resetHighlight() {
+      nodeEls.select('.main-circle').attr('fill-opacity', 0.82);
+      nodeEls.select('.glow').attr('fill-opacity', 0.08);
+      nodeEls.select('.node-label').attr('fill', '#6b7280');
+      linkEls.attr('stroke-opacity', 0.35).attr('stroke-width', 1.4);
+    }
+    svg.on('click', resetHighlight);
+    document.getElementById('btn-reset-hl').addEventListener('click', resetHighlight);
+
+    /* Tick — shorten links so arrows sit outside circles */
+    sim.on('tick', function () {
+      linkEls
+        .attr('x1', function (d) { return d.source.x; })
+        .attr('y1', function (d) { return d.source.y; })
+        .attr('x2', function (d) {
+          var dx = d.target.x - d.source.x;
+          var dy = d.target.y - d.source.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          var r = nodeRadius(d.target) + 6;
+          return d.target.x - (dx / dist) * r;
+        })
+        .attr('y2', function (d) {
+          var dx = d.target.x - d.source.x;
+          var dy = d.target.y - d.source.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          var r = nodeRadius(d.target) + 6;
+          return d.target.y - (dy / dist) * r;
+        });
+      nodeEls.attr('transform', function (d) { return 'translate(' + d.x + ',' + d.y + ')'; });
+    });
+  }
+})();
+</script>
+</html>
+
+
