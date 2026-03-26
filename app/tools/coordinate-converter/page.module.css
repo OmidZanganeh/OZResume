@@ -258,7 +258,7 @@
 
 /* ── Elevation card ── */
 .elevCard {
-  margin-top: 12px;
+  margin-top: 10px;
   border: 1px solid var(--border-light);
   border-radius: 8px;
   overflow: hidden;

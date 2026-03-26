@@ -393,50 +393,50 @@ export default function CoordConverter() {
           </div>
         )}
 
-        {/* ── Elevation card ── */}
-        {validDD && (
-          <div className={styles.elevCard}>
-            <div className={styles.elevHeader}>
-              <span className={styles.elevLabel}>↑ Elevation</span>
-              <div className={styles.elevUnitToggle}>
-                <button
-                  className={`${styles.unitBtn} ${elevUnit === 'ft' ? styles.unitBtnActive : ''}`}
-                  onClick={() => setElevUnit('ft')}
-                >ft</button>
-                <button
-                  className={`${styles.unitBtn} ${elevUnit === 'm' ? styles.unitBtnActive : ''}`}
-                  onClick={() => setElevUnit('m')}
-                >m</button>
-              </div>
-            </div>
-            <div className={styles.elevValue}>
-              {elevStatus === 'loading' && (
-                <span className={styles.elevLoading}>querying USGS…</span>
-              )}
-              {elevStatus === 'error' && (
-                <span className={styles.elevError}>unavailable</span>
-              )}
-              {elevStatus === 'nodata' && (
-                <span className={styles.elevMuted}>no data (ocean / coverage gap)</span>
-              )}
-              {elevStatus === 'idle' && elev && (
-                <>
-                  <span className={styles.elevNum}>
-                    {elevUnit === 'ft' ? elev.ft.toFixed(1) : elev.m.toFixed(1)}
-                  </span>
-                  <span className={styles.elevUnitLabel}>{elevUnit}</span>
-                </>
-              )}
-            </div>
-            <p className={styles.elevSource}>Source: USGS 3DEP (EPQS v1)</p>
-          </div>
-        )}
-
           </div>{/* end formCol */}
 
           {/* ── Right column: map ── */}
           <div className={styles.mapCol}>
             <MapPicker lat={latDD} lon={lonDD} onPick={handleMapPick} />
+
+            {/* ── Elevation card ── */}
+            {validDD && (
+              <div className={styles.elevCard}>
+                <div className={styles.elevHeader}>
+                  <span className={styles.elevLabel}>↑ Elevation</span>
+                  <div className={styles.elevUnitToggle}>
+                    <button
+                      className={`${styles.unitBtn} ${elevUnit === 'ft' ? styles.unitBtnActive : ''}`}
+                      onClick={() => setElevUnit('ft')}
+                    >ft</button>
+                    <button
+                      className={`${styles.unitBtn} ${elevUnit === 'm' ? styles.unitBtnActive : ''}`}
+                      onClick={() => setElevUnit('m')}
+                    >m</button>
+                  </div>
+                </div>
+                <div className={styles.elevValue}>
+                  {elevStatus === 'loading' && (
+                    <span className={styles.elevLoading}>querying USGS…</span>
+                  )}
+                  {elevStatus === 'error' && (
+                    <span className={styles.elevError}>unavailable</span>
+                  )}
+                  {elevStatus === 'nodata' && (
+                    <span className={styles.elevMuted}>no data (ocean / coverage gap)</span>
+                  )}
+                  {elevStatus === 'idle' && elev && (
+                    <>
+                      <span className={styles.elevNum}>
+                        {elevUnit === 'ft' ? elev.ft.toFixed(1) : elev.m.toFixed(1)}
+                      </span>
+                      <span className={styles.elevUnitLabel}>{elevUnit}</span>
+                    </>
+                  )}
+                </div>
+                <p className={styles.elevSource}>Source: USGS 3DEP (EPQS v1)</p>
+              </div>
+            )}
           </div>
 
         </div>{/* end mainGrid */}
