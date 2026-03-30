@@ -114,7 +114,7 @@ function MiniStat({ label, value, color }: { label: string; value: string; color
 }
 
 /* ─── Collapsible section ─── */
-function Section({ title, icon, children, defaultOpen = false }: { title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean }) {
+function Section({ title, icon, children, defaultOpen = true }: { title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className={styles.section}>
