@@ -47,6 +47,7 @@ const toolsJsonLd = {
     { '@type': 'ListItem', position: 3, name: 'File Tools (CSV to GeoJSON + EXIF Reader)', url: `${BASE}/tools/image-tools` },
     { '@type': 'ListItem', position: 4, name: 'Isochrone Mapper',       url: `${BASE}/tools/isochrone` },
     { '@type': 'ListItem', position: 5, name: 'Elevation Profile Tool', url: `${BASE}/tools/elevation-profile` },
+    { '@type': 'ListItem', position: 6, name: 'Geocoder & Reverse Geocoder', url: `${BASE}/tools/geocoder` },
   ],
 };
 
@@ -90,6 +91,14 @@ const TOOLS = [
     desc: 'Draw a path on the map and instantly get a real elevation profile from global terrain data. Download as CSV or SVG chart.',
     tags: ['GIS', 'Terrain', 'Download'],
     accent: 'green',
+  },
+  {
+    href: '/tools/geocoder',
+    emoji: '🌐',
+    title: 'Geocoder & Reverse Geocoder',
+    desc: 'Paste a list of addresses to get coordinates, or coordinates to get addresses. Batch up to 200 rows, see results on a live map, download CSV.',
+    tags: ['GIS', 'OpenStreetMap', 'Batch'],
+    accent: 'orange',
   },
 ];
 
