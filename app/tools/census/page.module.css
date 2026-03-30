@@ -190,7 +190,6 @@
 
 @media (max-width: 900px) {
   .statsGrid    { grid-template-columns: repeat(2, 1fr); }
-  .miniGrid     { grid-template-columns: repeat(2, 1fr); }
   .barRow       { grid-template-columns: 120px 1fr 44px; }
   .sectionsGrid { grid-template-columns: 1fr; }
   .sectionsGrid > *:nth-child(odd) { border-right: none; }
@@ -198,7 +197,6 @@
 @media (max-width: 600px) {
   .container  { padding: 24px 18px 36px; }
   .statsGrid  { grid-template-columns: 1fr 1fr; }
-  .miniGrid   { grid-template-columns: 1fr 1fr; }
   .barRow     { grid-template-columns: 96px 1fr 40px; }
 }
 
@@ -252,7 +250,7 @@
 /* ── Mini stats grid (inside sections) ── */
 .miniGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 1px;
   background: var(--border-light);
   border-radius: 6px;
