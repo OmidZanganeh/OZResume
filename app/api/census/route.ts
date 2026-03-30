@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
   try {
     const geoUrl =
       `${GEOCODER_URL}?x=${lon}&y=${lat}` +
-      `&benchmark=Public_AR_Current&vintage=Current_Vintages&format=json`;
+      `&benchmark=Public_AR_Current&vintage=Census2020_Current&format=json`;
 
     const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(12_000) });
     if (!geoRes.ok) return NextResponse.json({ error: `Census Geocoder: HTTP ${geoRes.status}` }, { status: 502 });
