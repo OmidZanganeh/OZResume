@@ -231,6 +231,9 @@ export default function CensusPage() {
                   />
                 </div>
 
+                {/* ── Sections 2-col grid ── */}
+                <div className={styles.sectionsGrid}>
+
                 {/* ── Economy & Poverty ── */}
                 <Section icon="💰" title="Economy & Poverty" defaultOpen>
                   <div className={styles.miniGrid}>
@@ -244,7 +247,7 @@ export default function CensusPage() {
                 </Section>
 
                 {/* ── Race & Ethnicity ── */}
-                {data.race && (
+                {data.race ? (
                   <Section icon="🌎" title="Race & Ethnicity" defaultOpen>
                     <StackedBar total={data.race.total} segs={[
                       { label: 'White',          value: data.race.white,         color: '#60a5fa' },
@@ -256,10 +259,10 @@ export default function CensusPage() {
                       { label: 'Other',          value: data.race.other,         color: '#9ca3af' },
                     ]} />
                   </Section>
-                )}
+                ) : <div />}
 
                 {/* ── Education ── */}
-                {data.education && (
+                {data.education ? (
                   <Section icon="🎓" title="Education (age 25+)">
                     <BarRow label="Less than HS"   count={data.education.lessThanHS}  total={data.education.total} color="#ef4444" />
                     <BarRow label="HS diploma/GED" count={data.education.hsOrGed}     total={data.education.total} color="#f59e0b" />
@@ -267,37 +270,37 @@ export default function CensusPage() {
                     <BarRow label="Bachelor's"     count={data.education.bachelors}   total={data.education.total} color="#34d399" />
                     <BarRow label="Graduate"       count={data.education.graduate}    total={data.education.total} color="#a78bfa" />
                   </Section>
-                )}
+                ) : <div />}
 
                 {/* ── Commute ── */}
-                {data.commute && (
+                {data.commute ? (
                   <Section icon="🚗" title="Commute & Transportation">
                     {data.commute.avgMinutes !== null && (
                       <p className={styles.sectionHighlight}>
                         Avg commute: <strong>{data.commute.avgMinutes} min</strong>
                       </p>
                     )}
-                    <BarRow label="Drives alone"   count={data.commute.driveAlone}   total={data.commute.total} color="#60a5fa" />
-                    <BarRow label="Carpools"       count={data.commute.carpool}       total={data.commute.total} color="#34d399" />
-                    <BarRow label="Public transit" count={data.commute.transit}       total={data.commute.total} color="#fbbf24" />
-                    <BarRow label="Walks"          count={data.commute.walk}          total={data.commute.total} color="#fb923c" />
-                    <BarRow label="Bicycle"        count={data.commute.bicycle}       total={data.commute.total} color="#a78bfa" />
-                    <BarRow label="Works from home" count={data.commute.workFromHome} total={data.commute.total} color="#f87171" />
+                    <BarRow label="Drives alone"    count={data.commute.driveAlone}   total={data.commute.total} color="#60a5fa" />
+                    <BarRow label="Carpools"        count={data.commute.carpool}       total={data.commute.total} color="#34d399" />
+                    <BarRow label="Public transit"  count={data.commute.transit}       total={data.commute.total} color="#fbbf24" />
+                    <BarRow label="Walks"           count={data.commute.walk}          total={data.commute.total} color="#fb923c" />
+                    <BarRow label="Bicycle"         count={data.commute.bicycle}       total={data.commute.total} color="#a78bfa" />
+                    <BarRow label="Works from home" count={data.commute.workFromHome}  total={data.commute.total} color="#f87171" />
                   </Section>
-                )}
+                ) : <div />}
 
                 {/* ── Housing ── */}
                 <Section icon="🏠" title="Housing">
                   <div className={styles.miniGrid}>
-                    <MiniStat label="Vacancy Rate"   value={fmtPct(data.housing.vacancyRate)} />
+                    <MiniStat label="Vacancy Rate"      value={fmtPct(data.housing.vacancyRate)} />
                     <MiniStat label="Median Year Built" value={data.housing.medianYearBuilt?.toString() ?? 'N/A'} />
                   </div>
                   {data.housing.singleFamily !== null && data.housing.totalUnits !== null && (
                     <div style={{ marginTop: 10 }}>
-                      <BarRow label="Single-family" count={data.housing.singleFamily} total={data.housing.totalUnits ?? 1} color="#60a5fa" />
-                      <BarRow label="Small multi (2–4 units)" count={data.housing.smallMulti} total={data.housing.totalUnits ?? 1} color="#34d399" />
-                      <BarRow label="Large multi (5+ units)"  count={data.housing.largeMulti} total={data.housing.totalUnits ?? 1} color="#fbbf24" />
-                      <BarRow label="Mobile home"   count={data.housing.mobile}       total={data.housing.totalUnits ?? 1} color="#f87171" />
+                      <BarRow label="Single-family"          count={data.housing.singleFamily} total={data.housing.totalUnits ?? 1} color="#60a5fa" />
+                      <BarRow label="Small multi (2–4 units)" count={data.housing.smallMulti}  total={data.housing.totalUnits ?? 1} color="#34d399" />
+                      <BarRow label="Large multi (5+ units)"  count={data.housing.largeMulti}  total={data.housing.totalUnits ?? 1} color="#fbbf24" />
+                      <BarRow label="Mobile home"             count={data.housing.mobile}       total={data.housing.totalUnits ?? 1} color="#f87171" />
                     </div>
                   )}
                 </Section>
@@ -310,12 +313,14 @@ export default function CensusPage() {
                   </div>
                   {data.language && (
                     <div style={{ marginTop: 10 }}>
-                      <BarRow label="English only"  count={data.language.englishOnly} total={data.language.total} color="#60a5fa" />
-                      <BarRow label="Spanish"       count={data.language.spanish}     total={data.language.total} color="#fbbf24" />
-                      <BarRow label="Other language" count={data.language.other}      total={data.language.total} color="#9ca3af" />
+                      <BarRow label="English only"   count={data.language.englishOnly} total={data.language.total} color="#60a5fa" />
+                      <BarRow label="Spanish"        count={data.language.spanish}     total={data.language.total} color="#fbbf24" />
+                      <BarRow label="Other language" count={data.language.other}       total={data.language.total} color="#9ca3af" />
                     </div>
                   )}
                 </Section>
+
+                </div>
 
                 <p className={styles.sourceNote}>
                   Source: US Census Bureau, ACS 5-Year Estimates (2019–2023). Figures are estimates subject to margin of error.
