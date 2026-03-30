@@ -11,7 +11,8 @@ import { NextRequest, NextResponse } from 'next/server';
 const GEOCODER_URL = 'https://geocoding.geo.census.gov/geocoder/geographies/coordinates';
 const ACS_URL      = 'https://api.census.gov/data/2023/acs/acs5';
 
-const ACS_VARS = [
+// Census API limit: 50 variables per request. Split into two batches.
+const ACS_VARS_1 = [
   'NAME',
   // Core population & income
   'B01003_001E', 'B01002_001E', 'B19013_001E',
@@ -35,16 +36,22 @@ const ACS_VARS = [
   // Commute mode (B08301) + aggregate time (B08136)
   'B08301_001E', 'B08301_003E', 'B08301_004E', 'B08301_010E',
   'B08301_018E', 'B08301_019E', 'B08301_021E', 'B08136_001E',
-  // Housing units, vacancy, year built, structure type (B25024)
-  'B25002_001E', 'B25002_003E', 'B25035_001E',
-  'B25024_001E', 'B25024_002E', 'B25024_003E', 'B25024_004E',
-  'B25024_005E', 'B25024_006E', 'B25024_007E', 'B25024_008E',
-  'B25024_009E', 'B25024_010E',
+]; // 40 vars
+
+const ACS_VARS_2 = [
+  'NAME',
+  // Housing vacancy
+  'B25002_001E', 'B25002_003E',
+  // Median year built
+  'B25035_001E',
+  // Units in structure (B25024)
+  'B25024_002E', 'B25024_003E', 'B25024_004E', 'B25024_005E',
+  'B25024_006E', 'B25024_007E', 'B25024_008E', 'B25024_009E', 'B25024_010E',
   // Internet / broadband
   'B28002_001E', 'B28002_004E',
   // Language spoken at home
   'B16001_001E', 'B16001_002E', 'B16001_003E',
-];
+]; // 18 vars
 
 interface GeocoderTract {
   STATE:  string;
@@ -94,23 +101,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: `Geocoder failed: ${e instanceof Error ? e.message : 'unknown'}` }, { status: 502 });
   }
 
-  /* ── Step 2: ACS 5-year ── */
+  /* ── Step 2: ACS 5-year (two parallel requests, each ≤ 50 vars) ── */
   try {
-    const acsUrl =
-      `${ACS_URL}?get=${ACS_VARS.join(',')}` +
-      `&for=tract:${tract.TRACT}` +
-      `&in=state:${tract.STATE}%20county:${tract.COUNTY}`;
+    const forClause = `&for=tract:${tract.TRACT}&in=state:${tract.STATE}%20county:${tract.COUNTY}`;
+    const [acsRes1, acsRes2] = await Promise.all([
+      fetch(`${ACS_URL}?get=${ACS_VARS_1.join(',')}${forClause}`, { signal: AbortSignal.timeout(12_000) }),
+      fetch(`${ACS_URL}?get=${ACS_VARS_2.join(',')}${forClause}`, { signal: AbortSignal.timeout(12_000) }),
+    ]);
+    if (!acsRes1.ok) return NextResponse.json({ error: `ACS API: HTTP ${acsRes1.status}` }, { status: 502 });
+    if (!acsRes2.ok) return NextResponse.json({ error: `ACS API (batch 2): HTTP ${acsRes2.status}` }, { status: 502 });
 
-    const acsRes = await fetch(acsUrl, { signal: AbortSignal.timeout(12_000) });
-    if (!acsRes.ok) return NextResponse.json({ error: `ACS API: HTTP ${acsRes.status}` }, { status: 502 });
-
-    const acsData = await acsRes.json() as string[][];
-    if (!Array.isArray(acsData) || acsData.length < 2) {
+    const [acsData1, acsData2] = await Promise.all([
+      acsRes1.json() as Promise<string[][]>,
+      acsRes2.json() as Promise<string[][]>,
+    ]);
+    if (!Array.isArray(acsData1) || acsData1.length < 2) {
       return NextResponse.json({ error: 'No ACS data for this tract.' }, { status: 404 });
     }
 
-    const headers = acsData[0];
-    const row     = acsData[1];
+    // Merge both responses into a single flat row (skip duplicate NAME/geo columns from batch 2)
+    const geo2Skip = new Set(['NAME', 'state', 'county', 'tract']);
+    const extraHeaders = (acsData2[0] ?? []).filter(h => !geo2Skip.has(h));
+    const extraRow     = (acsData2[1] ?? []).filter((_, i) => !geo2Skip.has((acsData2[0] ?? [])[i]));
+    const headers = [...acsData1[0], ...extraHeaders];
+    const row     = [...acsData1[1], ...extraRow];
     const get = (key: string) => {
       const idx = headers.indexOf(key);
       if (idx === -1) return null;
