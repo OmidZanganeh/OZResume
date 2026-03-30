@@ -124,6 +124,23 @@
   font-family: var(--font-mono);
   flex-shrink: 0;
 }
+.panelBadgeLoading {
+  font-size: 0.68em;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(245,158,11,0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,0.35);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+  animation: pulse 1s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
 
 /* ── Stats grid (3 cols × 2 rows for 6 core stats) ── */
 .statsGrid {
@@ -235,7 +252,7 @@
 /* ── Mini stats grid (inside sections) ── */
 .miniGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 1px;
   background: var(--border-light);
   border-radius: 6px;

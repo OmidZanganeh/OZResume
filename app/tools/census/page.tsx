@@ -137,8 +137,8 @@ export default function CensusPage() {
   const handlePick = useCallback(async (lat: number, lon: number) => {
     setPin({ lat, lon });
     setStatus('loading');
-    setData(null);
     setError('');
+    // Don't clear data — keep the previous result visible while the new one loads
     try {
       const res  = await fetch(`/api/census?lat=${lat}&lon=${lon}`);
       const json = await res.json() as CensusData & { error?: string };
@@ -197,14 +197,6 @@ export default function CensusPage() {
               </div>
             )}
 
-            {status === 'loading' && (
-              <div className={styles.emptyState}>
-                <span className={styles.emptyIcon}>⏳</span>
-                <p className={styles.emptyTitle}>Looking up tract…</p>
-                <p className={styles.emptyDesc}>Querying Census Geocoder and ACS API…</p>
-              </div>
-            )}
-
             {status === 'error' && (
               <div className={styles.errorState}>
                 <p className={styles.errorTitle}>⚠ Could not load data</p>
@@ -215,7 +207,7 @@ export default function CensusPage() {
               </div>
             )}
 
-            {status === 'done' && data && (
+            {(status === 'done' || (status === 'loading' && data)) && data && (
               <div className={styles.dataPanel}>
 
                 {/* Panel header */}
@@ -226,7 +218,10 @@ export default function CensusPage() {
                       State {data.tract.STATE} · County {data.tract.COUNTY} · Tract {data.tract.TRACT}
                     </p>
                   </div>
-                  <span className={styles.panelBadge}>ACS 5-Year · 2023</span>
+                  {status === 'loading'
+                    ? <span className={styles.panelBadgeLoading}>Updating…</span>
+                    : <span className={styles.panelBadge}>ACS 5-Year · 2023</span>
+                  }
                 </div>
 
                 {/* ── Core stats ── */}
