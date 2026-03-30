@@ -49,8 +49,8 @@ const ACS_VARS_2 = [
   'B25024_006E', 'B25024_007E', 'B25024_008E', 'B25024_009E', 'B25024_010E',
   // Internet / broadband
   'B28002_001E', 'B28002_004E',
-  // Language spoken at home
-  'B16001_001E', 'B16001_002E', 'B16001_003E',
+  // Language spoken at home (C16001 — available at tract level)
+  'C16001_001E', 'C16001_002E', 'C16001_003E',
 ]; // 18 vars
 
 interface GeocoderTract {
@@ -208,9 +208,9 @@ export async function GET(req: NextRequest) {
     const hhInt       = get('B28002_001E');
     const hhBroadband = get('B28002_004E');
     // Language
-    const langTotal   = get('B16001_001E');
-    const langEnglish = get('B16001_002E');
-    const langSpanish = get('B16001_003E');
+    const langTotal   = get('C16001_001E');
+    const langEnglish = get('C16001_002E');
+    const langSpanish = get('C16001_003E');
     const langOther   = (langTotal !== null && langEnglish !== null && langSpanish !== null)
       ? Math.max(0, langTotal - langEnglish - langSpanish) : null;
 

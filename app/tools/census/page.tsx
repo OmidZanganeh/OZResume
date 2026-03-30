@@ -8,6 +8,9 @@ const CensusMap = dynamic<{
   lat: number | null;
   lon: number | null;
   onPick: (lat: number, lon: number) => void;
+  tractState?: string | null;
+  tractCounty?: string | null;
+  tractTract?: string | null;
 }>(() => import('./CensusMap'), {
   ssr: false,
   loading: () => <div className={styles.mapLoading}>Loading map…</div>,
@@ -168,7 +171,14 @@ export default function CensusPage() {
         <div className={styles.mainGrid}>
           {/* ── Map ── */}
           <div className={styles.mapCol}>
-            <CensusMap lat={pin?.lat ?? null} lon={pin?.lon ?? null} onPick={handlePick} />
+            <CensusMap
+              lat={pin?.lat ?? null}
+              lon={pin?.lon ?? null}
+              onPick={handlePick}
+              tractState={data?.tract.STATE ?? null}
+              tractCounty={data?.tract.COUNTY ?? null}
+              tractTract={data?.tract.TRACT ?? null}
+            />
             <p className={styles.mapHint}>
               {pin
                 ? `📍 ${pin.lat.toFixed(5)}, ${pin.lon.toFixed(5)} — click elsewhere to update`
