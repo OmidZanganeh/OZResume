@@ -1,0 +1,12 @@
+.map {
+  width: 100%;
+  min-height: 500px;
+  border-radius: 8px;
+  border: 2px solid var(--border-dark);
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+:global(.leaflet-container) {
+  font-family: var(--font-mono), monospace;
+}

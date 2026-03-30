@@ -48,6 +48,7 @@ const toolsJsonLd = {
     { '@type': 'ListItem', position: 4, name: 'Isochrone Mapper',       url: `${BASE}/tools/isochrone` },
     { '@type': 'ListItem', position: 5, name: 'Elevation Profile Tool', url: `${BASE}/tools/elevation-profile` },
     { '@type': 'ListItem', position: 6, name: 'Geocoder & Reverse Geocoder', url: `${BASE}/tools/geocoder` },
+    { '@type': 'ListItem', position: 7, name: 'US Census Demographics Lookup', url: `${BASE}/tools/census` },
   ],
 };
 
@@ -99,6 +100,14 @@ const TOOLS = [
     desc: 'Paste a list of addresses to get coordinates, or coordinates to get addresses. Batch up to 200 rows, see results on a live map, download CSV.',
     tags: ['GIS', 'OpenStreetMap', 'Batch'],
     accent: 'orange',
+  },
+  {
+    href: '/tools/census',
+    emoji: '🏡',
+    title: 'US Census Demographics',
+    desc: 'Click any US location to see census tract data: population, median age, household income, home value, homeownership, and unemployment. Powered by the US Census Bureau ACS.',
+    tags: ['Demographics', 'Census', 'No signup'],
+    accent: 'green',
   },
 ];
 
