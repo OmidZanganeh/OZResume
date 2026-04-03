@@ -25,6 +25,23 @@ interface ResultRow {
   lat: number | null;
   lon: number | null;
   display_name: string | null;
+  confidence: number | null;
+  place_rank: number | null;
+  addresstype: string | null;
+  osm_type: string | null;
+  osm_id: number | null;
+  road: string | null;
+  suburb: string | null;
+  city: string | null;
+  county: string | null;
+  state: string | null;
+  postcode: string | null;
+  country: string | null;
+  country_code: string | null;
+  population: number | null;
+  website: string | null;
+  wikidata: string | null;
+  boundingbox: [string, string, string, string] | null;
   error?: string;
 }
 
@@ -53,29 +70,25 @@ function parseReverseCSV(raw: string): Array<{ lat: number; lon: number }> | str
 }
 
 function toCSV(rows: ResultRow[], mode: Mode): string {
+  const q = (s: string | null | undefined) => s ? `"${String(s).replace(/"/g, '""')}"` : '';
   if (mode === 'forward') {
-    const header = 'input_address,latitude,longitude,display_name,error';
-    const body = rows.map(r =>
-      [
-        `"${r.input.replace(/"/g, '""')}"`,
-        r.lat ?? '',
-        r.lon ?? '',
-        r.display_name ? `"${r.display_name.replace(/"/g, '""')}"` : '',
-        r.error ? `"${r.error}"` : '',
-      ].join(',')
-    );
+    const header = 'input_address,latitude,longitude,confidence,addresstype,place_rank,road,suburb,city,county,state,postcode,country,country_code,population,website,wikidata,osm_type,osm_id,display_name,error';
+    const body = rows.map(r => [
+      q(r.input), r.lat ?? '', r.lon ?? '',
+      r.confidence ?? '', r.addresstype ?? '', r.place_rank ?? '',
+      q(r.road), q(r.suburb), q(r.city), q(r.county), q(r.state),
+      q(r.postcode), q(r.country), r.country_code ?? '',
+      r.population ?? '', q(r.website), q(r.wikidata),
+      r.osm_type ?? '', r.osm_id ?? '',
+      q(r.display_name), q(r.error),
+    ].join(','));
     return [header, ...body].join('\n');
   } else {
     const header = 'input,latitude,longitude,display_name,error';
-    const body = rows.map(r =>
-      [
-        `"${r.input}"`,
-        r.lat ?? '',
-        r.lon ?? '',
-        r.display_name ? `"${r.display_name.replace(/"/g, '""')}"` : '',
-        r.error ? `"${r.error}"` : '',
-      ].join(',')
-    );
+    const body = rows.map(r => [
+      q(r.input), r.lat ?? '', r.lon ?? '',
+      q(r.display_name), q(r.error),
+    ].join(','));
     return [header, ...body].join('\n');
   }
 }
@@ -332,13 +345,20 @@ export default function GeocoderPage() {
                         <th>{mode === 'forward' ? 'Address' : 'Input'}</th>
                         {mode === 'forward' ? (
                           <>
-                            <th>Latitude</th>
-                            <th>Longitude</th>
+                            <th>Lat</th>
+                            <th>Lon</th>
+                            <th title="Nominatim importance score 0–1">Conf.</th>
+                            <th>Type</th>
+                            <th>City</th>
+                            <th>State</th>
+                            <th>ZIP</th>
+                            <th>Country</th>
+                            <th>Population</th>
                           </>
                         ) : (
                           <th>Address</th>
                         )}
-                        <th>{mode === 'forward' ? 'Result' : 'Notes'}</th>
+                        <th>{mode === 'forward' ? 'Display Name / Error' : 'Notes'}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -348,8 +368,15 @@ export default function GeocoderPage() {
                           <td className={styles.tdInput}>{r.input}</td>
                           {mode === 'forward' ? (
                             <>
-                              <td className={styles.tdCoord}>{r.lat?.toFixed(6) ?? '—'}</td>
-                              <td className={styles.tdCoord}>{r.lon?.toFixed(6) ?? '—'}</td>
+                              <td className={styles.tdCoord}>{r.lat?.toFixed(5) ?? '—'}</td>
+                              <td className={styles.tdCoord}>{r.lon?.toFixed(5) ?? '—'}</td>
+                              <td className={styles.tdCoord}>{r.confidence !== null ? `${(r.confidence * 100).toFixed(0)}%` : '—'}</td>
+                              <td className={styles.tdCoord}>{r.addresstype ?? '—'}</td>
+                              <td className={styles.tdAddress}>{r.city ?? '—'}</td>
+                              <td className={styles.tdAddress}>{r.state ?? '—'}</td>
+                              <td className={styles.tdCoord}>{r.postcode ?? '—'}</td>
+                              <td className={styles.tdCoord}>{r.country_code ?? '—'}</td>
+                              <td className={styles.tdCoord}>{r.population != null ? r.population.toLocaleString() : '—'}</td>
                             </>
                           ) : (
                             <td className={styles.tdAddress}>{r.display_name ?? '—'}</td>

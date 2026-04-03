@@ -14,6 +14,26 @@ export interface GeocodeRow {
   lat: number | null;
   lon: number | null;
   display_name: string | null;
+  // Confidence & classification
+  confidence: number | null;      // Nominatim importance 0–1 (higher = more certain)
+  place_rank: number | null;       // 4=country … 16=city … 30=building
+  addresstype: string | null;      // city, village, county, road, suburb …
+  osm_type: string | null;         // node | way | relation
+  osm_id: number | null;
+  // Structured address breakdown
+  road: string | null;
+  suburb: string | null;
+  city: string | null;
+  county: string | null;
+  state: string | null;
+  postcode: string | null;
+  country: string | null;
+  country_code: string | null;
+  // Extras
+  population: number | null;
+  website: string | null;
+  wikidata: string | null;
+  boundingbox: [string, string, string, string] | null; // [minLat, maxLat, minLon, maxLon]
   error?: string;
 }
 
@@ -46,7 +66,20 @@ export async function POST(req: NextRequest) {
     // These labels appear in Census TIGER data but Nominatim doesn't recognize them.
     const PLACE_TYPE_RE = /\s+(city|town|village|CDP|borough|township|county)\b/gi;
 
-    type NomResult = Array<{ lat: string; lon: string; display_name: string }>;
+    type NomResult = Array<{
+      lat: string; lon: string; display_name: string;
+      importance: number; place_rank: number; addresstype: string;
+      osm_type: string; osm_id: number;
+      boundingbox: [string, string, string, string];
+      address?: {
+        road?: string; suburb?: string; city?: string; town?: string; village?: string;
+        county?: string; state?: string; postcode?: string;
+        country?: string; country_code?: string;
+      };
+      extratags?: {
+        population?: string; website?: string; wikidata?: string;
+      };
+    }>;
 
     // Parse "Name [type], ST" → { city, state } for structured fallback
     function parseUSCityState(input: string): { city: string; state: string } | null {
@@ -72,19 +105,50 @@ export async function POST(req: NextRequest) {
     }
 
     async function nominatimFetch(url: string): Promise<NomResult> {
-      const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10_000) });
+      // Always request addressdetails + extratags so all enriched fields are available
+      const enriched = url.includes('?')
+        ? url + '&addressdetails=1&extratags=1'
+        : url + '?addressdetails=1&extratags=1';
+      const res = await fetch(enriched, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10_000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json() as Promise<NomResult>;
+    }
+
+    function rowFromHit(input: string, h: NomResult[0]): GeocodeRow {
+      const a = h.address ?? {};
+      return {
+        input,
+        lat: parseFloat(h.lat),
+        lon: parseFloat(h.lon),
+        display_name: h.display_name,
+        confidence: Math.round(h.importance * 100) / 100,
+        place_rank: h.place_rank,
+        addresstype: h.addresstype,
+        osm_type: h.osm_type,
+        osm_id: h.osm_id,
+        road: a.road ?? null,
+        suburb: a.suburb ?? null,
+        city: a.city ?? a.town ?? a.village ?? null,
+        county: a.county ?? null,
+        state: a.state ?? null,
+        postcode: a.postcode ?? null,
+        country: a.country ?? null,
+        country_code: a.country_code?.toUpperCase() ?? null,
+        population: h.extratags?.population ? parseInt(h.extratags.population, 10) : null,
+        website: h.extratags?.website ?? null,
+        wikidata: h.extratags?.wikidata ?? null,
+        boundingbox: h.boundingbox ?? null,
+      };
     }
 
     const results: GeocodeRow[] = [];
     for (const addr of addresses) {
       const trimmed = addr.trim();
-      if (!trimmed) { results.push({ input: addr, lat: null, lon: null, display_name: null, error: 'empty' }); continue; }
+      if (!trimmed) { results.push({ input: addr, lat: null, lon: null, display_name: null, confidence: null, place_rank: null, addresstype: null, osm_type: null, osm_id: null, road: null, suburb: null, city: null, county: null, state: null, postcode: null, country: null, country_code: null, population: null, website: null, wikidata: null, boundingbox: null, error: 'empty' }); continue; }
       try {
         // Pass 1: free-text search with original input
         let data = await nominatimFetch(
-          `${NOMINATIM}/search?q=${encodeURIComponent(trimmed)}&format=json&limit=1&addressdetails=0&countrycodes=us`,
+          `${NOMINATIM}/search?q=${encodeURIComponent(trimmed)}&format=json&limit=1&countrycodes=us`,
         );
 
         // Pass 2: if no result, try stripping place-type label and retry
@@ -92,7 +156,7 @@ export async function POST(req: NextRequest) {
           const cleaned = trimmed.replace(PLACE_TYPE_RE, '');
           if (cleaned !== trimmed) {
             data = await nominatimFetch(
-              `${NOMINATIM}/search?q=${encodeURIComponent(cleaned)}&format=json&limit=1&addressdetails=0&countrycodes=us`,
+              `${NOMINATIM}/search?q=${encodeURIComponent(cleaned)}&format=json&limit=1&countrycodes=us`,
             );
             await new Promise(r => setTimeout(r, 1050));
           }
@@ -103,19 +167,23 @@ export async function POST(req: NextRequest) {
           const parsed = parseUSCityState(trimmed);
           if (parsed) {
             data = await nominatimFetch(
-              `${NOMINATIM}/search?city=${encodeURIComponent(parsed.city)}&state=${encodeURIComponent(parsed.state)}&format=json&limit=1&addressdetails=0&countrycodes=us`,
+              `${NOMINATIM}/search?city=${encodeURIComponent(parsed.city)}&state=${encodeURIComponent(parsed.state)}&format=json&limit=1&countrycodes=us`,
             );
             await new Promise(r => setTimeout(r, 1050));
           }
         }
 
         if (data.length === 0) {
-          results.push({ input: addr, lat: null, lon: null, display_name: null, error: 'not found' });
+          results.push({ input: addr, lat: null, lon: null, display_name: null,
+            confidence: null, place_rank: null, addresstype: null, osm_type: null, osm_id: null,
+            road: null, suburb: null, city: null, county: null, state: null, postcode: null,
+            country: null, country_code: null, population: null, website: null, wikidata: null,
+            boundingbox: null, error: 'not found' });
         } else {
-          results.push({ input: addr, lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), display_name: data[0].display_name });
+          results.push(rowFromHit(addr, data[0]));
         }
       } catch (e) {
-        results.push({ input: addr, lat: null, lon: null, display_name: null, error: e instanceof Error ? e.message : 'unknown' });
+        results.push({ input: addr, lat: null, lon: null, display_name: null, confidence: null, place_rank: null, addresstype: null, osm_type: null, osm_id: null, road: null, suburb: null, city: null, county: null, state: null, postcode: null, country: null, country_code: null, population: null, website: null, wikidata: null, boundingbox: null, error: e instanceof Error ? e.message : 'unknown' });
       }
       // Nominatim rate-limit: 1 req/s
       await new Promise(r => setTimeout(r, 1050));
