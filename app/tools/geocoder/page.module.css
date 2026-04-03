@@ -53,17 +53,23 @@
 }
 .modeSub { font-weight: 400; font-size: 0.88em; opacity: 0.85; }
 
-/* ── Two-column layout ── */
+/* ── Top row: input left, map right ── */
 .mainGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 420px 1fr;
   gap: 24px;
   align-items: start;
+  margin-bottom: 24px;
 }
 
 .leftCol { display: flex; flex-direction: column; gap: 16px; }
 
 .mapCol { position: sticky; top: 24px; }
+
+/* ── Full-width results below the top row ── */
+.resultsRow {
+  width: 100%;
+}
 .mapLoading {
   min-height: 480px;
   border-radius: 8px;

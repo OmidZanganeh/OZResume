@@ -268,7 +268,7 @@ export default function GeocoderPage() {
         </div>
 
         <div className={styles.mainGrid}>
-          {/* ── Left: input + results ── */}
+          {/* ── Left: input ── */}
           <div className={styles.leftCol}>
 
             {/* Input area */}
@@ -321,9 +321,22 @@ export default function GeocoderPage() {
 
             {errorMsg && <p className={styles.errorMsg}>⚠ {errorMsg}</p>}
 
-            {/* Results table */}
-            {results.length > 0 && (
-              <div className={styles.resultsCard}>
+          </div>
+
+          {/* ── Right: map ── */}
+          <div className={styles.mapCol}>
+            <GeocoderMap points={mapPoints} />
+            <p className={styles.mapHint}>
+              {mapPoints.length > 0
+                ? `${mapPoints.length} location${mapPoints.length !== 1 ? 's' : ''} plotted — click a marker for details`
+                : 'Results will appear here once geocoding starts'}
+            </p>
+          </div>
+        </div>
+
+        {/* ── Full-width results table below ── */}
+        {results.length > 0 && (
+          <div className={styles.resultsRow}>
                 <div className={styles.resultsHeader}>
                   <div className={styles.resultsMeta}>
                     <span className={styles.resultsBadgeOk}>{successCount} matched</span>
@@ -396,19 +409,7 @@ export default function GeocoderPage() {
                   </table>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* ── Right: map ── */}
-          <div className={styles.mapCol}>
-            <GeocoderMap points={mapPoints} />
-            <p className={styles.mapHint}>
-              {mapPoints.length > 0
-                ? `${mapPoints.length} location${mapPoints.length !== 1 ? 's' : ''} plotted — click a marker for details`
-                : 'Results will appear here once geocoding starts'}
-            </p>
-          </div>
-        </div>
+          )}
       </div>
     </div>
   );
