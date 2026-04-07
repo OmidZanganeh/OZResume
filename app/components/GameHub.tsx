@@ -4,8 +4,9 @@ import styles from './GameHub.module.css';
 import WordDrop from './games/WordDrop';
 import FlagQuiz from './games/FlagQuiz';
 import TypeRacer from './games/TypeRacer';
+import WordOrder from './games/WordOrder';
 
-type Game = 'worddrop' | 'flagquiz' | 'typeracer';
+type Game = 'worddrop' | 'flagquiz' | 'typeracer' | 'wordorder';
 type LeaderEntry = { name: string; score: number };
 type Screen = 'lobby' | 'playing' | 'result';
 
@@ -28,12 +29,19 @@ const GAMES = [
     title: 'Type Racer',
     desc: 'Type GIS sentences as fast as possible. Score = average WPM over 3 rounds.',
   },
+  {
+    id: 'wordorder' as Game,
+    emoji: '🔤',
+    title: 'Word Order',
+    desc: 'Guess the secret word — after each try you\'ll learn if it comes before or after yours alphabetically.',
+  },
 ];
 
 const SCORE_LABELS: Record<Game, string> = {
   worddrop: 'pts',
   flagquiz: 'pts',
   typeracer: 'wpm',
+  wordorder: 'pts',
 };
 
 async function fetchLeaders(game: Game): Promise<LeaderEntry[]> {
@@ -62,7 +70,7 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [activeTab, setActiveTab] = useState<Game>('worddrop');
   const [allLeaders, setAllLeaders] = useState<Record<Game, LeaderEntry[]>>({
-    worddrop: [], flagquiz: [], typeracer: [],
+    worddrop: [], flagquiz: [], typeracer: [], wordorder: [],
   });
   const [lastScore, setLastScore] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -73,8 +81,9 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
       fetchLeaders('worddrop'),
       fetchLeaders('flagquiz'),
       fetchLeaders('typeracer'),
-    ]).then(([wd, fq, tr]) => {
-      setAllLeaders({ worddrop: wd, flagquiz: fq, typeracer: tr });
+      fetchLeaders('wordorder'),
+    ]).then(([wd, fq, tr, wo]) => {
+      setAllLeaders({ worddrop: wd, flagquiz: fq, typeracer: tr, wordorder: wo });
     });
   }, []);
 
@@ -211,6 +220,13 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
               <TypeRacer
                 playerName={playerName}
                 leaders={allLeaders.typeracer}
+                onFinish={handleFinish}
+              />
+            )}
+            {selectedGame === 'wordorder' && (
+              <WordOrder
+                playerName={playerName}
+                leaders={allLeaders.wordorder}
                 onFinish={handleFinish}
               />
             )}

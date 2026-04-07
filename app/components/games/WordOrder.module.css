@@ -1,0 +1,320 @@
+.startPane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bigEmoji { font-size: 3rem; }
+
+.gameTitle {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.desc {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #666);
+  line-height: 1.6;
+}
+
+.ruleList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #666);
+}
+
+.ruleList li::before { content: "→ "; }
+
+.startBtn {
+  padding: 0.65rem 2.2rem;
+  background: var(--accent, #2563eb);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.startBtn:hover { background: var(--accent-hover, #1d4ed8); }
+
+/* ── Game layout ── */
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+}
+
+.guessCount { font-weight: 600; }
+
+.remaining {
+  color: var(--text-secondary, #666);
+  transition: color 0.2s;
+}
+.remainingWarn { color: #e53e3e; font-weight: 700; }
+
+/* ── Hint banner ── */
+.hint {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+}
+
+.hintBefore {
+  background: #ede9fe;
+  border-color: #a78bfa;
+  color: #5b21b6;
+}
+
+.hintAfter {
+  background: #dbeafe;
+  border-color: #60a5fa;
+  color: #1e40af;
+}
+
+:global(.dark) .hintBefore {
+  background: #3b0764;
+  border-color: #7c3aed;
+  color: #ddd6fe;
+}
+
+:global(.dark) .hintAfter {
+  background: #1e3a5f;
+  border-color: #3b82f6;
+  color: #bfdbfe;
+}
+
+.hintArrow { font-size: 1.1em; }
+
+.hintEmpty {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #888);
+  background: var(--surface-elevated, #f1f5f9);
+  text-align: center;
+}
+
+/* ── Won / Lost ── */
+.wonBanner {
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-size: 0.95rem;
+  text-align: center;
+  line-height: 1.6;
+}
+
+:global(.dark) .wonBanner {
+  background: #14532d;
+  border-color: #22c55e;
+  color: #bbf7d0;
+}
+
+.scoreNote {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.lostBanner {
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+:global(.dark) .lostBanner {
+  background: #450a0a;
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+/* ── Input ── */
+.inputRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input {
+  flex: 1;
+  padding: 0.6rem 0.85rem;
+  border: 2px solid var(--border, #d1d5db);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: var(--surface, #fff);
+  color: var(--text, #111);
+  outline: none;
+  transition: border-color 0.15s;
+  text-transform: lowercase;
+}
+.input:focus { border-color: var(--accent, #2563eb); }
+
+.guessBtn {
+  padding: 0.6rem 1.2rem;
+  background: var(--accent, #2563eb);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.guessBtn:hover:not(:disabled) { background: var(--accent-hover, #1d4ed8); }
+.guessBtn:disabled { opacity: 0.4; cursor: default; }
+
+.errorMsg {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #e53e3e;
+  padding-left: 0.25rem;
+}
+
+/* ── History ── */
+.history { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.historyLabel {
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #888);
+}
+
+.guessList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.guessRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 0.88rem;
+}
+
+.rowCorrect {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+.rowBefore {
+  background: #ede9fe;
+  border-color: #c4b5fd;
+  color: #5b21b6;
+}
+.rowAfter {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+:global(.dark) .rowCorrect { background: #14532d; border-color: #22c55e; color: #bbf7d0; }
+:global(.dark) .rowBefore { background: #3b0764; border-color: #7c3aed; color: #ddd6fe; }
+:global(.dark) .rowAfter { background: #1e3a5f; border-color: #3b82f6; color: #bfdbfe; }
+
+.guessWord { font-weight: 700; font-family: monospace; letter-spacing: 0.04em; }
+.guessHint { font-size: 0.78rem; opacity: 0.85; }
+
+/* ── Alphabet ruler ── */
+.ruler {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.rulerLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary, #888);
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.rulerTrack {
+  flex: 1;
+  height: 6px;
+  background: var(--surface-elevated, #e2e8f0);
+  border-radius: 3px;
+  position: relative;
+}
+
+.rulerMark {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+}
+
+.markBefore { background: #8b5cf6; }
+.markAfter  { background: #3b82f6; }
+
+/* ── Play again ── */
+.playAgainBtn {
+  margin-top: 0.25rem;
+  padding: 0.6rem 1.6rem;
+  background: var(--accent, #2563eb);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: center;
+  transition: background 0.15s;
+}
+.playAgainBtn:hover { background: var(--accent-hover, #1d4ed8); }
