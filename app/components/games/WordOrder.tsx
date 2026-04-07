@@ -2,40 +2,77 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import styles from './WordOrder.module.css';
 
-/* ── Word list: common English words of varying lengths ── */
+/* ── Word list: common everyday English words (no jargon) ── */
 const WORDS = [
-  'apple','brave','chess','dance','eagle','flame','globe','happy','igloo','joker',
-  'knife','lemon','magic','noble','ocean','pride','queen','river','smoke','tiger',
-  'ultra','vivid','witch','xenon','yacht','zebra','angel','blaze','crane','dream',
-  'event','frost','grace','hinge','ivory','jazzy','karma','lunar','mercy','nerve',
-  'olive','pixel','quota','rally','storm','torch','unity','vigor','waltz','xerox',
-  'yield','zonal','album','bench','civil','depot','elbow','fable','giant','honor',
-  'inbox','jewel','knack','label','major','ninja','opera','piano','quest','radar',
-  'solar','table','under','valve','waste','exact','young','zippy','aloft','blend',
-  'crisp','delta','elder','fiery','grasp','hover','imply','jumbo','kings','lusty',
-  'metro','niche','onset','perch','quirk','robin','swift','truce','usher','vault',
-  'words','xenon','zesty','balmy','cello','dingo','elite','finch','groan','hulk',
-  'irony','joust','kneel','latch','mango','notch','odder','plumb','qualm','regal',
-  'snack','tithe','unfed','verge','whelp','expel','yearn','zoned','abbot','boxer',
-  'camel','dwell','ember','fjord','gloom','haste','imbue','jelly','kayak','lyric',
-  'mourn','nymph','ozone','pluck','quell','rivet','sling','trawl','untie','venom',
-  'world','expat','yikes','zingy','afoot','brood','cinch','dross','envoy','flute',
-  'gusto','hedge','impel','jaunt','knave','llama','maxim','north','outdo','plaza',
-  'quaff','rebut','skulk','tapir','umbra','vicar','whirl','expel','yeoman','zonal',
-  'pixel','realm','scone','tepid','unwed','vixen','woken','exert','yodel','zilch',
-  // longer words for variety
-  'bridge','castle','famine','garden','hamlet','island','jungle','kettle','lander',
-  'marble','narwhal','ocelot','parrot','quartz','rocket','saddle','tundra','uglier',
-  'velvet','walrus','xyster','yankee','zephyr','absent','battle','candle','danger',
-  'enigma','falcon','goblin','harbor','insect','jigsaw','kitten','lizard','muffin',
-  'noodle','oolong','puffin','quiver','robber','silver','tunnel','unfold','victim',
-  'wander','zealot','answer','bisect','cobalt','donkey','effect','factor','gravel',
-  'hunter','impact','jockey','kosher','llamas','method','nectar','origin','pencil',
-  'quarry','rescue','sphinx','turnip','unload','vector','weasel','exodus','yearly',
-  'zipper',
+  // 5-letter
+  'about','above','actor','again','agree','anger','ankle','apple','arrow','aside',
+  'baker','beard','below','bench','berry','birth','black','blade','blank','blast',
+  'blend','blind','block','blood','bloom','blown','blunt','board','bonus','boost',
+  'brave','bread','break','brick','bride','brief','bring','broad','broke','brown',
+  'brush','build','burst','buyer','cabin','carry','catch','cause','chain','chair',
+  'chalk','chaos','charm','chart','chase','cheap','check','cheek','chess','child',
+  'chunk','civic','claim','class','clean','clear','click','cliff','climb','clock',
+  'close','cloth','cloud','clown','coast','color','coral','count','court','cover',
+  'crack','craft','crash','cream','creek','crime','crisp','cross','crowd','cruel',
+  'crush','curve','daily','dance','decay','depth','devil','dirty','draft','drain',
+  'drama','dream','dress','drink','drive','Dutch','eager','early','earth','email',
+  'empty','enemy','enjoy','enter','equal','error','essay','event','every','exact',
+  'extra','faith','false','fancy','fault','feast','fence','fetch','fever','fiber',
+  'field','fight','final','first','flame','flash','flesh','float','flood','floor',
+  'flour','focal','force','forge','found','frame','fraud','fresh','front','fruit',
+  'funny','ghost','given','glass','grace','grade','grain','grand','grant','graph',
+  'grasp','grass','greet','grief','grind','group','grove','grown','guard','guide',
+  'guild','gusto','habit','happy','harsh','heard','heart','heavy','hence','honor',
+  'horse','house','human','hurry','image','inbox','inner','input','judge','juice',
+  'jumbo','kneel','label','large','laser','laugh','layer','learn','leave','legal',
+  'lemon','level','light','limit','liver','local','logic','loose','lower','loyal',
+  'lucky','lunch','magic','major','maple','march','match','medal','mercy','merge',
+  'metal','might','minor','mirth','mixed','money','month','moral','motor','mouse',
+  'mouth','moved','music','nerve','never','night','noise','north','novel','nurse',
+  'occur','other','outer','owned','owner','ozone','paint','panel','paper','patch',
+  'pause','peace','pearl','penny','phase','phone','photo','piano','pilot','pitch',
+  'place','plain','plane','plant','plate','plaza','point','power','press','print',
+  'prior','probe','proof','proud','prove','punch','pupil','purse','queen','query',
+  'quick','quiet','quota','quote','radio','raise','ranch','range','rapid','reach',
+  'ready','realm','rebel','refer','reign','relax','repay','reset','robin','rocky',
+  'round','route','royal','ruler','rural','saint','salad','sauce','scale','scope',
+  'score','scout','sense','serve','seven','shape','share','sharp','shell','shift',
+  'shine','shirt','shock','shoot','short','shout','sight','silly','since','skill',
+  'skull','slant','slash','sleep','slide','slope','small','smart','smell','smile',
+  'smoke','snake','solid','solve','sorry','speak','speed','spend','spice','spike',
+  'spine','split','spoon','sport','spray','squad','stack','staff','stage','stain',
+  'stand','stark','start','stays','steam','steel','steep','stone','store','storm',
+  'strip','stuck','study','style','sugar','suite','super','sweet','swift','sword',
+  'table','taste','teach','teeth','tempo','tense','thank','thick','thing','think',
+  'third','thorn','three','threw','throw','thumb','tight','timer','title','today',
+  'token','touch','tower','track','trade','train','trait','trial','tribe','trick',
+  'tried','truck','truly','trust','truth','tutor','twice','twist','under','union',
+  'until','upper','urban','valid','value','valve','venue','video','viral','visit',
+  'vital','vivid','vocal','voice','voted','watch','water','weave','wedge','weird',
+  'where','while','white','whole','world','worse','worst','worth','write','wrong',
+  'yeast','yield','young','youth','zebra',
+  // 6-letter
+  'absent','anyone','around','castle','beauty','before','broken','button','camera',
+  'candle','carbon','carpet','casual','cattle','center','circle','clever','closet',
+  'coffee','coming','corner','cotton','course','create','danger','decide','desert',
+  'dinner','divide','doctor','dollar','donkey','double','dragon','during','easily',
+  'elegant','empire','enable','ending','engine','enough','escape','estate','evolve',
+  'falter','family','farmer','faster','father','female','finger','flower','follow',
+  'forest','formal','foster','friend','frozen','future','garden','gentle','golden',
+  'gothic','gravel','hammer','handle','happen','harbor','health','helper','hidden',
+  'higher','honest','hunter','impact','insect','island','jigsaw','kitten','knight',
+  'ladder','launch','latest','leader','legend','lesson','letter','listen','lizard',
+  'manage','margin','market','master','mellow','modern','monkey','mother','muffin',
+  'murder','mutual','narrow','nature','notice','noodle','number','object','office',
+  'orange','origin','pardon','parrot','pencil','person','pillow','pirate','planet',
+  'player','pocket','police','portal','potato','pretty','prison','profit','purple',
+  'rabbit','raisin','random','reason','record','rescue','result','ribbon','rocket',
+  'rubber','saddle','sample','screen','season','secret','settle','should','simple',
+  'silver','sister','slowly','social','spoken','spring','square','statue','stream',
+  'street','strong','summer','symbol','talent','target','theory','throat','through',
+  'toward','travel','tunnel','turban','unfold','unique','unless','useful','valley',
+  'victim','village','vision','wander','winter','wooden','yearly','yellow','zealot',
 ];
-
-const MAX_GUESSES = 10;
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -48,9 +85,8 @@ function compareAlpha(guess: string, secret: string): 'before' | 'after' | 'corr
 
 function scoreFromGuesses(guesses: number): number {
   if (guesses <= 0) return 0;
-  // Fewer guesses = higher score: 1→1000, 2→850, 3→700 ... 10→100
-  const scores = [1000, 850, 700, 575, 460, 360, 270, 190, 140, 100];
-  return scores[Math.min(guesses - 1, scores.length - 1)];
+  // Fewer guesses = higher score, no hard cap: 1→1000, -80 per extra, floor 50
+  return Math.max(50, 1000 - (guesses - 1) * 80);
 }
 
 interface GuessEntry {
@@ -68,7 +104,7 @@ export default function WordOrder({ playerName, leaders: _leaders, onFinish }: P
   const [secret, setSecret] = useState('');
   const [guesses, setGuesses] = useState<GuessEntry[]>([]);
   const [input, setInput] = useState('');
-  const [phase, setPhase] = useState<'start' | 'playing' | 'won' | 'lost'>('start');
+  const [phase, setPhase] = useState<'start' | 'playing' | 'won'>('start');
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -99,9 +135,6 @@ export default function WordOrder({ playerName, leaders: _leaders, onFinish }: P
     if (result === 'correct') {
       setPhase('won');
       onFinish(scoreFromGuesses(newGuesses.length));
-    } else if (newGuesses.length >= MAX_GUESSES) {
-      setPhase('lost');
-      onFinish(0);
     }
   }, [input, guesses, secret, onFinish]);
 
@@ -118,125 +151,120 @@ export default function WordOrder({ playerName, leaders: _leaders, onFinish }: P
           <h2 className={styles.gameTitle}>Word Order</h2>
         </div>
         <p className={styles.desc}>
-          I'm thinking of a secret word. After each guess I'll tell you whether
+          I&rsquo;m thinking of a secret word. After each guess I&rsquo;ll tell you whether
           the secret word comes <strong>before</strong> or <strong>after</strong> yours
-          alphabetically. Use it like a compass to zero in on the answer.
+          alphabetically. Your guesses stack above and below the input to show
+          the narrowing range — close in from both sides!
         </p>
         <ul className={styles.ruleList}>
-          <li>Up to <strong>{MAX_GUESSES} guesses</strong></li>
-          <li>Word can be <strong>any length</strong></li>
+          <li>No guess limit — take as many as you need</li>
           <li>Fewer guesses = higher score</li>
+          <li>Guess any word you like</li>
         </ul>
         <button className={styles.startBtn} onClick={startGame}>Start Game</button>
       </div>
     );
   }
 
-  const remaining = MAX_GUESSES - guesses.length;
-  const lastGuess = guesses[guesses.length - 1];
+  // Split guesses into upper bounds (secret BEFORE this) and lower bounds (secret AFTER this)
+  // Upper bounds sorted ascending → tightest (smallest) sits nearest the input at bottom of zone
+  const upperBounds = guesses
+    .filter(g => g.result === 'before')
+    .sort((a, b) => a.word.localeCompare(b.word));
+  // Lower bounds sorted descending → tightest (largest) sits nearest the input at top of zone
+  const lowerBounds = guesses
+    .filter(g => g.result === 'after')
+    .sort((a, b) => b.word.localeCompare(a.word));
 
   return (
     <div className={styles.game}>
-      {/* Header */}
+      {/* Counter */}
       <div className={styles.header}>
         <span className={styles.guessCount}>
-          Guess {guesses.length + (phase === 'playing' ? 1 : 0)} / {MAX_GUESSES}
+          {guesses.length === 0 ? 'No guesses yet' : `${guesses.length} ${guesses.length === 1 ? 'guess' : 'guesses'}`}
         </span>
-        <span className={`${styles.remaining} ${remaining <= 3 ? styles.remainingWarn : ''}`}>
-          {remaining} left
-        </span>
+        {phase === 'playing' && guesses.length > 0 && (
+          <span className={styles.scorePreview}>
+            Current score: {scoreFromGuesses(guesses.length + 1)} pts if next is correct
+          </span>
+        )}
       </div>
 
-      {/* Hint banner */}
-      {phase === 'playing' && lastGuess && (
-        <div className={`${styles.hint} ${lastGuess.result === 'before' ? styles.hintBefore : styles.hintAfter}`}>
-          {lastGuess.result === 'before' ? (
-            <><span className={styles.hintArrow}>⬆</span> The secret word comes <strong>BEFORE</strong> &ldquo;{lastGuess.word}&rdquo;</>
-          ) : (
-            <><span className={styles.hintArrow}>⬇</span> The secret word comes <strong>AFTER</strong> &ldquo;{lastGuess.word}&rdquo;</>
-          )}
-        </div>
-      )}
-      {phase === 'playing' && guesses.length === 0 && (
-        <div className={styles.hintEmpty}>
-          Make your first guess — any word!
-        </div>
-      )}
-
-      {/* Won / Lost banner */}
+      {/* Won banner */}
       {phase === 'won' && (
         <div className={styles.wonBanner}>
-          🎉 Correct! &ldquo;<strong>{secret}</strong>&rdquo; — solved in {guesses.length} {guesses.length === 1 ? 'guess' : 'guesses'}!
+          🎉 Correct! &ldquo;<strong>{secret}</strong>&rdquo; in {guesses.length} {guesses.length === 1 ? 'guess' : 'guesses'}!
           <br />
           <span className={styles.scoreNote}>Score: {scoreFromGuesses(guesses.length)} pts</span>
         </div>
       )}
-      {phase === 'lost' && (
-        <div className={styles.lostBanner}>
-          😞 Out of guesses. The word was &ldquo;<strong>{secret}</strong>&rdquo;.
-        </div>
-      )}
 
-      {/* Input row */}
-      {phase === 'playing' && (
-        <div className={styles.inputRow}>
-          <input
-            ref={inputRef}
-            className={styles.input}
-            value={input}
-            onChange={e => setInput(e.target.value.toLowerCase().replace(/[^a-z]/g, ''))}
-            onKeyDown={handleKey}
-            placeholder="Type a word…"
-            maxLength={30}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-          />
-          <button className={styles.guessBtn} onClick={handleGuess} disabled={!input.trim()}>
-            Guess
-          </button>
-        </div>
-      )}
-      {error && <p className={styles.errorMsg}>{error}</p>}
+      {/* ── SANDWICH LAYOUT ── */}
+      <div className={styles.sandwich}>
 
-      {/* Guess history */}
-      {guesses.length > 0 && (
-        <div className={styles.history}>
-          <p className={styles.historyLabel}>Your guesses:</p>
-          <div className={styles.guessList}>
-            {[...guesses].reverse().map((g, i) => (
-              <div key={i} className={`${styles.guessRow} ${g.result === 'correct' ? styles.rowCorrect : g.result === 'before' ? styles.rowBefore : styles.rowAfter}`}>
-                <span className={styles.guessWord}>{g.word}</span>
-                <span className={styles.guessHint}>
-                  {g.result === 'correct' ? '✓ correct' : g.result === 'before' ? '⬆ secret is before this' : '⬇ secret is after this'}
-                </span>
+        {/* TOP ZONE — upper bounds (secret is BEFORE these, so these are too late alphabetically) */}
+        <div className={`${styles.zone} ${styles.zoneTop}`}>
+          {upperBounds.length === 0 ? (
+            <span className={styles.zoneEmpty}>⬆ Words where secret comes BEFORE will appear here</span>
+          ) : (
+            upperBounds.map((g, i) => (
+              <div key={i} className={`${styles.chip} ${styles.chipBefore}`}>
+                <span className={styles.chipArrow}>⬆</span>
+                <span className={styles.chipWord}>{g.word}</span>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
-      )}
 
-      {/* Play again (end state) */}
-      {(phase === 'won' || phase === 'lost') && (
-        <button className={styles.playAgainBtn} onClick={startGame}>Play Again</button>
-      )}
-
-      {/* Alphabet ruler — shows where guesses land */}
-      {guesses.length > 0 && phase === 'playing' && (
-        <div className={styles.ruler}>
-          <span className={styles.rulerLabel}>A</span>
-          <div className={styles.rulerTrack}>
-            {guesses.filter(g => g.result !== 'correct').map((g, i) => {
-              const pos = ((g.word.charCodeAt(0) - 97) / 25) * 100;
-              return (
-                <div key={i} className={`${styles.rulerMark} ${g.result === 'before' ? styles.markBefore : styles.markAfter}`}
-                  style={{ left: `${pos}%` }} title={g.word} />
-              );
-            })}
+        {/* DIVIDER + INPUT */}
+        <div className={styles.inputZone}>
+          <div className={styles.dividerLabel}>
+            <span className={styles.dividerLine} />
+            <span className={styles.dividerText}>secret word is somewhere between</span>
+            <span className={styles.dividerLine} />
           </div>
-          <span className={styles.rulerLabel}>Z</span>
+
+          {phase === 'playing' ? (
+            <>
+              <div className={styles.inputRow}>
+                <input
+                  ref={inputRef}
+                  className={styles.input}
+                  value={input}
+                  onChange={e => setInput(e.target.value.toLowerCase().replace(/[^a-z]/g, ''))}
+                  onKeyDown={handleKey}
+                  placeholder={guesses.length === 0 ? 'Type any word to start…' : 'Type your next guess…'}
+                  maxLength={30}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                <button className={styles.guessBtn} onClick={handleGuess} disabled={!input.trim()}>
+                  Guess
+                </button>
+              </div>
+              {error && <p className={styles.errorMsg}>{error}</p>}
+            </>
+          ) : (
+            <button className={styles.playAgainBtn} onClick={startGame}>Play Again</button>
+          )}
         </div>
-      )}
+
+        {/* BOTTOM ZONE — lower bounds (secret is AFTER these, so these are too early alphabetically) */}
+        <div className={`${styles.zone} ${styles.zoneBottom}`}>
+          {lowerBounds.length === 0 ? (
+            <span className={styles.zoneEmpty}>⬇ Words where secret comes AFTER will appear here</span>
+          ) : (
+            lowerBounds.map((g, i) => (
+              <div key={i} className={`${styles.chip} ${styles.chipAfter}`}>
+                <span className={styles.chipArrow}>⬇</span>
+                <span className={styles.chipWord}>{g.word}</span>
+              </div>
+            ))
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }
