@@ -86,7 +86,7 @@ function compareAlpha(guess: string, secret: string): 'before' | 'after' | 'corr
 function scoreFromGuesses(guesses: number): number {
   if (guesses <= 0) return 0;
   // Fewer guesses = higher score, no hard cap: 1→1000, -80 per extra, floor 50
-  return Math.max(50, 1000 - (guesses - 1) * 80);
+  return Math.max(50, 10000 - (guesses - 1) * 80);
 }
 
 interface GuessEntry {
