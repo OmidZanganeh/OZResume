@@ -167,10 +167,10 @@ export default function WordOrder({ playerName, leaders: _leaders, onFinish }: P
   }
 
   // TOP ZONE: guesses where secret is AFTER (these are too early alphabetically — closer to A)
-  // Sorted descending → tightest (largest of the too-early words) sits nearest the input
+  // Sorted ascending → earliest letters at top, tightest (largest) sits at bottom nearest the input
   const upperBounds = guesses
     .filter(g => g.result === 'after')
-    .sort((a, b) => b.word.localeCompare(a.word));
+    .sort((a, b) => a.word.localeCompare(b.word));
   // BOTTOM ZONE: guesses where secret is BEFORE (these are too late alphabetically — closer to Z)
   // Sorted ascending → tightest (smallest of the too-late words) sits nearest the input
   const lowerBounds = guesses
