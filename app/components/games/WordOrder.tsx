@@ -166,15 +166,16 @@ export default function WordOrder({ playerName, leaders: _leaders, onFinish }: P
     );
   }
 
-  // Split guesses into upper bounds (secret BEFORE this) and lower bounds (secret AFTER this)
-  // Upper bounds sorted ascending → tightest (smallest) sits nearest the input at bottom of zone
+  // TOP ZONE: guesses where secret is AFTER (these are too early alphabetically — closer to A)
+  // Sorted descending → tightest (largest of the too-early words) sits nearest the input
   const upperBounds = guesses
-    .filter(g => g.result === 'before')
-    .sort((a, b) => a.word.localeCompare(b.word));
-  // Lower bounds sorted descending → tightest (largest) sits nearest the input at top of zone
-  const lowerBounds = guesses
     .filter(g => g.result === 'after')
     .sort((a, b) => b.word.localeCompare(a.word));
+  // BOTTOM ZONE: guesses where secret is BEFORE (these are too late alphabetically — closer to Z)
+  // Sorted ascending → tightest (smallest of the too-late words) sits nearest the input
+  const lowerBounds = guesses
+    .filter(g => g.result === 'before')
+    .sort((a, b) => a.word.localeCompare(b.word));
 
   return (
     <div className={styles.game}>
@@ -202,14 +203,14 @@ export default function WordOrder({ playerName, leaders: _leaders, onFinish }: P
       {/* ── SANDWICH LAYOUT ── */}
       <div className={styles.sandwich}>
 
-        {/* TOP ZONE — upper bounds (secret is BEFORE these, so these are too late alphabetically) */}
+        {/* TOP ZONE — too early (secret is AFTER these, closer to A end) */}
         <div className={`${styles.zone} ${styles.zoneTop}`}>
           {upperBounds.length === 0 ? (
-            <span className={styles.zoneEmpty}>⬆ Words where secret comes BEFORE will appear here</span>
+            <span className={styles.zoneEmpty}>↓ Words that come before the secret will appear here</span>
           ) : (
             upperBounds.map((g, i) => (
-              <div key={i} className={`${styles.chip} ${styles.chipBefore}`}>
-                <span className={styles.chipArrow}>⬆</span>
+              <div key={i} className={`${styles.chip} ${styles.chipAfter}`}>
+                <span className={styles.chipArrow}>↓</span>
                 <span className={styles.chipWord}>{g.word}</span>
               </div>
             ))
@@ -250,14 +251,14 @@ export default function WordOrder({ playerName, leaders: _leaders, onFinish }: P
           )}
         </div>
 
-        {/* BOTTOM ZONE — lower bounds (secret is AFTER these, so these are too early alphabetically) */}
+        {/* BOTTOM ZONE — too late (secret is BEFORE these, closer to Z end) */}
         <div className={`${styles.zone} ${styles.zoneBottom}`}>
           {lowerBounds.length === 0 ? (
-            <span className={styles.zoneEmpty}>⬇ Words where secret comes AFTER will appear here</span>
+            <span className={styles.zoneEmpty}>↑ Words that come after the secret will appear here</span>
           ) : (
             lowerBounds.map((g, i) => (
-              <div key={i} className={`${styles.chip} ${styles.chipAfter}`}>
-                <span className={styles.chipArrow}>⬇</span>
+              <div key={i} className={`${styles.chip} ${styles.chipBefore}`}>
+                <span className={styles.chipArrow}>↑</span>
                 <span className={styles.chipWord}>{g.word}</span>
               </div>
             ))
