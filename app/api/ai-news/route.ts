@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 // Falls back to 'test' which works at low rate for demos.
 const KEY = process.env.GUARDIAN_API_KEY ?? 'test';
 
-const AI_TAG = 'technology/ai-artificial-intelligence';
+const AI_QUERY   = 'artificial intelligence OR machine learning OR generative AI OR ChatGPT OR "large language model"';
+const AI_SECTION = 'technology';
 
 export interface NewsArticle {
   id:        string;
@@ -31,7 +32,8 @@ function stripHtml(html: string): string {
 
 export async function GET(_req: NextRequest) {
   const url = new URL('https://content.guardianapis.com/search');
-  url.searchParams.set('tag',         AI_TAG);
+  url.searchParams.set('q',           AI_QUERY);
+  url.searchParams.set('section',     AI_SECTION);
   url.searchParams.set('show-fields', 'thumbnail,trailText');
   url.searchParams.set('page-size',   '12');
   url.searchParams.set('order-by',    'newest');
