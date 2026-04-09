@@ -738,17 +738,30 @@ quitBtn.addEventListener('click',    goToMenu);
 menuBtn.addEventListener('click',    goToMenu);
 pauseBtn.addEventListener('click',   pauseGame);
 
-document.addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-    e.preventDefault();
+function handleKeyCode(code) {
+  if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
     if (state === 'playing') flap();
     else if (state === 'start') startGame();
     else if (state === 'gameover') startGame();
     else if (state === 'paused') resumeGame();
   }
-  if (e.code === 'KeyP' || e.code === 'Escape') {
+  if (code === 'KeyP' || code === 'Escape') {
     if (state === 'playing') pauseGame();
     else if (state === 'paused') resumeGame();
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (['Space', 'ArrowUp', 'KeyW', 'KeyP', 'Escape'].includes(e.code)) {
+    e.preventDefault();
+  }
+  handleKeyCode(e.code);
+});
+
+// Keys forwarded from the parent page via postMessage (iframe focus not required)
+window.addEventListener('message', e => {
+  if (e.data?.type === 'flappy-keydown') {
+    handleKeyCode(e.data.code);
   }
 });
 
