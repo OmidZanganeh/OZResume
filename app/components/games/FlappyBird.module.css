@@ -1,8 +1,5 @@
 .container {
-  width: 360px;
-  height: 540px; /* 720 * 0.75 */
-  overflow: hidden;
-  position: relative;
+  width: 480px;
   margin: 0 auto;
 }
 
@@ -12,8 +9,4 @@
   border: none;
   border-radius: 18px;
   display: block;
-  /* Scale from 480 wide down to 360 visible (0.75) */
-  transform: scale(0.75);
-  transform-origin: top left;
-  pointer-events: all;
 }
