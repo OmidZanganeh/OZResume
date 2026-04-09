@@ -1,6 +1,8 @@
 .container {
   width: 480px;
   margin: 0 auto;
+  /* prevent parent page from zooming when tapping inside the iframe area */
+  touch-action: none;
 }
 
 .iframe {
