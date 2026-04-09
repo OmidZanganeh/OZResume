@@ -47,7 +47,7 @@ const GAMES = [
     id: 'flappy' as Game,
     emoji: '🐦',
     title: 'Flappy Bird',
-    desc: 'Flap through neon pipes. Press Space to fly. Each pipe = 100 pts.',
+    desc: 'Flap through neon pipes. Space on desktop, tap on mobile. Each pipe = 100 pts.',
   },
 ];
 
