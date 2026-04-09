@@ -6,8 +6,9 @@ import FlagQuiz from './games/FlagQuiz';
 import TypeRacer from './games/TypeRacer';
 import WordOrder from './games/WordOrder';
 import SudokuGame from './games/Sudoku';
+import FlappyBird from './games/FlappyBird';
 
-type Game = 'worddrop' | 'flagquiz' | 'typeracer' | 'wordorder' | 'sudoku';
+type Game = 'worddrop' | 'flagquiz' | 'typeracer' | 'wordorder' | 'sudoku' | 'flappy';
 type LeaderEntry = { name: string; score: number };
 type Screen = 'lobby' | 'playing' | 'result';
 
@@ -42,6 +43,12 @@ const GAMES = [
     title: 'Sudoku',
     desc: 'Fill the 9×9 grid so every row, column, and box contains 1–9. Fewer mistakes + faster = higher score.',
   },
+  {
+    id: 'flappy' as Game,
+    emoji: '🐦',
+    title: 'Flappy SPLAT!',
+    desc: 'Flap through neon pipes. Space or tap to fly. Each pipe = 100 pts.',
+  },
 ];
 
 const SCORE_LABELS: Record<Game, string> = {
@@ -50,6 +57,7 @@ const SCORE_LABELS: Record<Game, string> = {
   typeracer: 'wpm',
   wordorder: 'pts',
   sudoku: 'pts',
+  flappy: 'pts',
 };
 
 async function fetchLeaders(game: Game): Promise<LeaderEntry[]> {
@@ -78,7 +86,7 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [activeTab, setActiveTab] = useState<Game>('worddrop');
   const [allLeaders, setAllLeaders] = useState<Record<Game, LeaderEntry[]>>({
-    worddrop: [], flagquiz: [], typeracer: [], wordorder: [], sudoku: [],
+    worddrop: [], flagquiz: [], typeracer: [], wordorder: [], sudoku: [], flappy: [],
   });
   const [lastScore, setLastScore] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -91,8 +99,9 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
       fetchLeaders('typeracer'),
       fetchLeaders('wordorder'),
       fetchLeaders('sudoku'),
-    ]).then(([wd, fq, tr, wo, su]) => {
-      setAllLeaders({ worddrop: wd, flagquiz: fq, typeracer: tr, wordorder: wo, sudoku: su });
+      fetchLeaders('flappy'),
+    ]).then(([wd, fq, tr, wo, su, fl]) => {
+      setAllLeaders({ worddrop: wd, flagquiz: fq, typeracer: tr, wordorder: wo, sudoku: su, flappy: fl });
     });
   }, []);
 
@@ -246,6 +255,13 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
                 onFinish={handleFinish}
               />
             )}
+            {selectedGame === 'flappy' && (
+              <FlappyBird
+                playerName={playerName}
+                leaders={allLeaders.flappy}
+                onFinish={handleFinish}
+              />
+            )}
           </div>
         )}
 
@@ -256,7 +272,9 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
             <p className={styles.resultTitle}>
               {lastScore > 0 && (selectedGame === 'wordorder' || selectedGame === 'sudoku')
                 ? '🎉 You Got It!'
-                : 'GAME OVER'}
+                : selectedGame === 'flappy'
+                  ? `💥 SPLAT! — ${lastScore} pts`
+                  : 'GAME OVER'}
             </p>
             <p className={styles.resultScore}>
               {playerName} · <strong>{lastScore}</strong> {SCORE_LABELS[selectedGame]}

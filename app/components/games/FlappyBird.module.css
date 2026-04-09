@@ -1,0 +1,17 @@
+.container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  /* Give the game a fixed viewport height that fits the modal */
+  height: 520px;
+  overflow: hidden;
+}
+
+.iframe {
+  width: 100%;
+  height: 520px;
+  border: none;
+  border-radius: 12px;
+  display: block;
+}
