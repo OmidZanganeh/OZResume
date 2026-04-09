@@ -46,8 +46,8 @@ const GAMES = [
   {
     id: 'flappy' as Game,
     emoji: '🐦',
-    title: 'Flappy SPLAT!',
-    desc: 'Flap through neon pipes. Space or tap to fly. Each pipe = 100 pts.',
+    title: 'Flappy Bird',
+    desc: 'Flap through neon pipes. Press Space to fly. Each pipe = 100 pts.',
   },
 ];
 
@@ -272,9 +272,7 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
             <p className={styles.resultTitle}>
               {lastScore > 0 && (selectedGame === 'wordorder' || selectedGame === 'sudoku')
                 ? '🎉 You Got It!'
-                : selectedGame === 'flappy'
-                  ? `💥 SPLAT! — ${lastScore} pts`
-                  : 'GAME OVER'}
+                : 'GAME OVER'}
             </p>
             <p className={styles.resultScore}>
               {playerName} · <strong>{lastScore}</strong> {SCORE_LABELS[selectedGame]}
