@@ -745,10 +745,13 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Touch / click on canvas
-gameCanvas.addEventListener('pointerdown', e => {
+// Touch / click on app container (gameCanvas has pointer-events:none in CSS)
+document.getElementById('app').addEventListener('pointerdown', e => {
   e.preventDefault();
   if (state === 'playing') flap();
+  else if (state === 'start') startGame();
+  else if (state === 'gameover') startGame();
+  else if (state === 'paused') resumeGame();
 });
 
 // ─── Init ────────────────────────────────────────────────────────────────────
