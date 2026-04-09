@@ -5,11 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 // Falls back to 'test' which works at low rate for demos.
 const KEY = process.env.GUARDIAN_API_KEY ?? 'test';
 
-const QUERIES: Record<string, string> = {
-  ai:    '"artificial intelligence" OR "machine learning" OR "large language model" OR "generative AI"',
-  geo:   'geospatial OR "remote sensing" OR "satellite imagery" OR "GIS" OR mapping OR lidar',
-  space: 'satellite OR "earth observation" OR NASA OR SpaceX OR "space exploration" OR climate',
-};
+// Guardian tag for articles specifically about AI — much more precise than keyword search
+const AI_TAG = 'technology/artificial-intelligence';
 
 export interface NewsArticle {
   id:        string;
@@ -34,15 +31,15 @@ function stripHtml(html: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const cat = new URL(req.url).searchParams.get('cat') ?? 'ai';
-  const q   = QUERIES[cat] ?? QUERIES.ai;
+  // Ignore cat param — always serve AI-tagged articles
+  void new URL(req.url).searchParams.get('cat');
 
   const url = new URL('https://content.guardianapis.com/search');
-  url.searchParams.set('q', q);
+  url.searchParams.set('tag',         AI_TAG);
   url.searchParams.set('show-fields', 'thumbnail,trailText');
-  url.searchParams.set('page-size', '12');
-  url.searchParams.set('order-by', 'newest');
-  url.searchParams.set('api-key', KEY);
+  url.searchParams.set('page-size',   '12');
+  url.searchParams.set('order-by',    'newest');
+  url.searchParams.set('api-key',     KEY);
 
   try {
     const res = await fetch(url.toString(), { next: { revalidate: 300 } });
