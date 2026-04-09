@@ -1,0 +1,230 @@
+/* ── Start screen ─────────────────────────────────────────────────────────── */
+.startPane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.bigEmoji { font-size: 3rem; }
+
+.gameTitle {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.desc {
+  margin: 0;
+  font-size: 0.93rem;
+  color: var(--text-secondary, #666);
+  line-height: 1.6;
+}
+
+.ruleList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary, #666);
+  text-align: left;
+  align-self: stretch;
+}
+.ruleList li::before { content: "→ "; }
+
+.startBtn {
+  padding: 0.65rem 2.2rem;
+  background: var(--accent, #2563eb);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.startBtn:hover { background: var(--accent-hover, #1d4ed8); }
+
+.loading {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-secondary, #888);
+  font-size: 1rem;
+}
+
+/* ── Game container ───────────────────────────────────────────────────────── */
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 1rem;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* ── Stats bar ────────────────────────────────────────────────────────────── */
+.statsBar {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary, #666);
+}
+
+.stat { font-weight: 600; }
+
+/* ── Won banner ───────────────────────────────────────────────────────────── */
+.wonBanner {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-size: 0.9rem;
+  text-align: center;
+  line-height: 1.6;
+}
+
+:global(.dark) .wonBanner {
+  background: #14532d;
+  border-color: #22c55e;
+  color: #bbf7d0;
+}
+
+.scoreNote { font-size: 0.82rem; opacity: 0.85; }
+
+/* ── Grid ─────────────────────────────────────────────────────────────────── */
+.gridWrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  border: 2.5px solid var(--grid-bold, #334155);
+  width: min(360px, 92vw);
+  aspect-ratio: 1;
+  background: var(--grid-bold, #334155);
+  gap: 0;
+}
+
+:global(.dark) .grid { background: #94a3b8; border-color: #94a3b8; }
+
+.cell {
+  background: var(--surface, #fff);
+  border: 1px solid var(--grid-thin, #cbd5e1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.85rem, 2.8vw, 1.15rem);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.08s;
+  /* ensure square cells */
+  aspect-ratio: 1;
+}
+
+:global(.dark) .cell {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+/* Box dividers — bold border every 3rd cell */
+.boxRight  { border-right:  2.5px solid var(--grid-bold, #334155); }
+.boxBottom { border-bottom: 2.5px solid var(--grid-bold, #334155); }
+:global(.dark) .boxRight  { border-right-color:  #94a3b8; }
+:global(.dark) .boxBottom { border-bottom-color: #94a3b8; }
+
+/* Cell states */
+.cellSelected {
+  background: #bfdbfe !important;
+}
+:global(.dark) .cellSelected { background: #1e40af !important; }
+
+.cellPeer {
+  background: #e0f2fe;
+}
+:global(.dark) .cellPeer { background: #0f2942; }
+
+.cellSameNum {
+  background: #c7d2fe;
+}
+:global(.dark) .cellSameNum { background: #312e81; }
+
+.cellFixed {
+  color: #0f172a;
+  font-weight: 700;
+}
+:global(.dark) .cellFixed { color: #f1f5f9; }
+
+.cellEditable {
+  color: #2563eb;
+}
+:global(.dark) .cellEditable { color: #93c5fd; }
+
+.cellError {
+  color: #dc2626 !important;
+  background: #fee2e2 !important;
+}
+:global(.dark) .cellError { background: #450a0a !important; color: #fca5a5 !important; }
+
+/* ── Number pad ───────────────────────────────────────────────────────────── */
+.numPad {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
+  width: 100%;
+  max-width: 320px;
+}
+
+.numBtn {
+  padding: 0.55rem 0;
+  background: var(--surface-elevated, #f1f5f9);
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 7px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s;
+  color: var(--text, #111);
+}
+.numBtn:hover:not(:disabled) { background: var(--border, #d1d5db); }
+.numBtn:disabled { opacity: 0.4; cursor: default; }
+
+:global(.dark) .numBtn {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+:global(.dark) .numBtn:hover:not(:disabled) { background: #334155; }
+
+.numBtnClear {
+  color: #dc2626;
+}
+:global(.dark) .numBtnClear { color: #fca5a5; }
+
+/* ── Play again ───────────────────────────────────────────────────────────── */
+.playAgainBtn {
+  padding: 0.6rem 1.75rem;
+  background: var(--accent, #2563eb);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.playAgainBtn:hover { background: var(--accent-hover, #1d4ed8); }
