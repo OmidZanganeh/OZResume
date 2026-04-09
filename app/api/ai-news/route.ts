@@ -73,7 +73,7 @@ export async function GET(_req: NextRequest) {
 
     return NextResponse.json(
       { articles, fetchedAt: new Date().toISOString() },
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
+      { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=120' } },
     );
   } catch (err) {
     console.error('ai-news route error:', err);

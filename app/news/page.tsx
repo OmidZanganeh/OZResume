@@ -5,7 +5,7 @@ import Image from 'next/image';
 import type { NewsArticle } from '../api/ai-news/route';
 import styles from './page.module.css';
 
-const REFRESH_SECS = 300; // 5 minutes
+const REFRESH_SECS = 900; // 15 minutes
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -135,7 +135,7 @@ export default function NewsPage() {
           <h1 className={styles.pageTitle}>
             <span className={styles.titleGlow}>AI News Feed</span>
           </h1>
-          <p className={styles.pageSubtitle}>Latest artificial intelligence headlines — auto-refreshes every 5 min</p>
+          <p className={styles.pageSubtitle}>Latest artificial intelligence headlines — auto-refreshes every 15 min</p>
         </div>
         <div className={styles.refreshBar}>
           {fetchedAt && (
