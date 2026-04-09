@@ -7,14 +7,6 @@ import styles from './page.module.css';
 
 const REFRESH_SECS = 300; // 5 minutes
 
-const CATEGORIES = [
-  { id: 'ai',    label: '🤖 AI & Machine Learning' },
-  { id: 'geo',   label: '🌍 GeoTech & Satellites'  },
-  { id: 'space', label: '🚀 Space & Climate'        },
-] as const;
-
-type CatId = typeof CATEGORIES[number]['id'];
-
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
@@ -92,22 +84,21 @@ function SkeletonCard() {
 }
 
 export default function NewsPage() {
-  const [cat, setCat]             = useState<CatId>('ai');
-  const [articles, setArticles]   = useState<NewsArticle[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(false);
-  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(REFRESH_SECS);
+  const [articles, setArticles]     = useState<NewsArticle[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(false);
+  const [fetchedAt, setFetchedAt]   = useState<string | null>(null);
+  const [countdown, setCountdown]   = useState(REFRESH_SECS);
   const [refreshing, setRefreshing] = useState(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchNews = useCallback(async (category: CatId, isManual = false) => {
+  const fetchNews = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
     else setLoading(true);
     setError(false);
 
     try {
-      const res = await fetch(`/api/ai-news?cat=${category}`, { cache: 'no-store' });
+      const res = await fetch('/api/ai-news?cat=ai', { cache: 'no-store' });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setArticles(data.articles ?? []);
@@ -121,73 +112,46 @@ export default function NewsPage() {
     }
   }, []);
 
-  // Fetch on category change
-  useEffect(() => {
-    fetchNews(cat);
-  }, [cat, fetchNews]);
+  useEffect(() => { fetchNews(); }, [fetchNews]);
 
-  // Auto-refresh countdown + trigger
+  // Auto-refresh countdown
   useEffect(() => {
     if (countdownRef.current) clearInterval(countdownRef.current);
     countdownRef.current = setInterval(() => {
       setCountdown(prev => {
-        if (prev <= 1) {
-          fetchNews(cat);
-          return REFRESH_SECS;
-        }
+        if (prev <= 1) { fetchNews(); return REFRESH_SECS; }
         return prev - 1;
       });
     }, 1000);
     return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
-  }, [cat, fetchNews]);
+  }, [fetchNews]);
 
   return (
     <div className={styles.page}>
-      {/* ── Header bar ── */}
+      {/* ── Header ── */}
       <header className={styles.header}>
         <Link href="/" className={styles.backBtn}>← Back</Link>
         <div className={styles.headerCenter}>
           <h1 className={styles.pageTitle}>
-            <span className={styles.titleGlow}>AI Intelligence Feed</span>
+            <span className={styles.titleGlow}>AI News Feed</span>
           </h1>
-          <p className={styles.pageSubtitle}>Live news in AI, GeoTech &amp; Space — auto-refreshes every 5 min</p>
+          <p className={styles.pageSubtitle}>Latest artificial intelligence headlines — auto-refreshes every 5 min</p>
         </div>
-        <div className={styles.headerRight} />
-      </header>
-
-      {/* ── Controls ── */}
-      <div className={styles.controls}>
-        <div className={styles.catTabs}>
-          {CATEGORIES.map(c => (
-            <button
-              key={c.id}
-              className={`${styles.catTab} ${cat === c.id ? styles.catTabActive : ''}`}
-              onClick={() => setCat(c.id)}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-
         <div className={styles.refreshBar}>
           {fetchedAt && (
-            <span className={styles.lastUpdated}>
-              Updated {timeAgo(fetchedAt)}
-            </span>
+            <span className={styles.lastUpdated}>Updated {timeAgo(fetchedAt)}</span>
           )}
           <button
             className={`${styles.refreshBtn} ${refreshing ? styles.refreshBtnSpin : ''}`}
-            onClick={() => fetchNews(cat, true)}
+            onClick={() => fetchNews(true)}
             disabled={refreshing}
             title="Refresh now"
           >
             ↻
           </button>
-          <span className={styles.countdown}>
-            {formatCountdown(countdown)}
-          </span>
+          <span className={styles.countdown}>{formatCountdown(countdown)}</span>
         </div>
-      </div>
+      </header>
 
       {/* ── Content ── */}
       <main className={styles.main}>
@@ -198,12 +162,12 @@ export default function NewsPage() {
         ) : error ? (
           <div className={styles.errorState}>
             <p className={styles.errorIcon}>⚠️</p>
-            <p className={styles.errorMsg}>Couldn&apos;t load the news feed. Check your <code>GUARDIAN_API_KEY</code> in <code>.env.local</code>.</p>
-            <button className={styles.retryBtn} onClick={() => fetchNews(cat)}>Try again</button>
+            <p className={styles.errorMsg}>Couldn&apos;t load the news feed.</p>
+            <button className={styles.retryBtn} onClick={() => fetchNews()}>Try again</button>
           </div>
         ) : articles.length === 0 ? (
           <div className={styles.errorState}>
-            <p className={styles.errorMsg}>No articles found for this category right now.</p>
+            <p className={styles.errorMsg}>No articles found right now. Try refreshing.</p>
           </div>
         ) : (
           <div className={styles.grid}>
