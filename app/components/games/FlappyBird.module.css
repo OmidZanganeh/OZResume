@@ -1,6 +1,6 @@
 .container {
-  width: 480px;
-  height: 450px; /* visible height after scale */
+  width: 360px;
+  height: 540px; /* 720 * 0.75 */
   overflow: hidden;
   position: relative;
   margin: 0 auto;
@@ -12,8 +12,8 @@
   border: none;
   border-radius: 18px;
   display: block;
-  /* Scale 720px tall game to ~450px visible */
-  transform: scale(0.625);
-  transform-origin: top center;
+  /* Scale from 480 wide down to 360 visible (0.75) */
+  transform: scale(0.75);
+  transform-origin: top left;
   pointer-events: all;
 }
