@@ -29,10 +29,7 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-export async function GET(req: NextRequest) {
-  // Ignore cat param — always serve AI-tagged articles
-  void new URL(req.url).searchParams.get('cat');
-
+export async function GET(_req: NextRequest) {
   const url = new URL('https://content.guardianapis.com/search');
   url.searchParams.set('tag',         AI_TAG);
   url.searchParams.set('show-fields', 'thumbnail,trailText');
@@ -41,11 +38,21 @@ export async function GET(req: NextRequest) {
   url.searchParams.set('api-key',     KEY);
 
   try {
-    const res = await fetch(url.toString(), { next: { revalidate: 300 } });
-    if (!res.ok) throw new Error(`Guardian ${res.status}`);
+    // cache: 'no-store' — always fetch fresh from Guardian, never serve stale
+    const res = await fetch(url.toString(), { cache: 'no-store' });
 
     const json = await res.json();
-    const articles: NewsArticle[] = json.response.results.map((r: {
+
+    if (!res.ok || json?.response?.status !== 'ok') {
+      console.error('Guardian API error:', JSON.stringify(json));
+      return NextResponse.json(
+        { error: 'Guardian error', detail: json },
+        { status: 502 },
+      );
+    }
+
+    const results = json.response?.results ?? [];
+    const articles: NewsArticle[] = results.map((r: {
       id: string;
       webTitle: string;
       webUrl: string;
