@@ -12,6 +12,7 @@
   padding: 16px;
   box-sizing: border-box;
   touch-action: none;
+  overscroll-behavior: none;
 }
 
 @keyframes fadeIn {

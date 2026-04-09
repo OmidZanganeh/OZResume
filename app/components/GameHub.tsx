@@ -92,6 +92,13 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [isNewRecord, setIsNewRecord] = useState(false);
 
+  // Lock body scroll while modal is open (prevents bounce/shake on mobile)
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   useEffect(() => {
     Promise.all([
       fetchLeaders('worddrop'),
