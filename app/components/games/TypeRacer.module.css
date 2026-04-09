@@ -81,7 +81,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.8em;
-  color: rgba(240, 238, 255, 0.55);
+  color: rgba(240, 238, 255, 0.8);
   padding: 4px 0;
 }
 .miniBoardRow strong { color: #00f5ff; }
@@ -145,7 +145,7 @@
 }
 
 .charPending {
-  color: rgba(240, 238, 255, 0.55);
+  color: rgba(240, 238, 255, 0.72);
 }
 
 .charDone {
@@ -189,6 +189,11 @@
 }
 
 /* ── Round result ── */
+.roundResultHidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .roundResult {
   display: flex;
   align-items: center;

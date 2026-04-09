@@ -114,7 +114,7 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.78rem;
-  color: rgba(240, 238, 255, 0.45);
+  color: rgba(240, 238, 255, 0.75);
   font-family: 'Orbitron', monospace;
   letter-spacing: 0.05em;
 }
@@ -127,7 +127,7 @@
 
 .scorePreview {
   font-size: 0.75rem;
-  color: rgba(240, 238, 255, 0.35);
+  color: rgba(240, 238, 255, 0.7);
 }
 
 /* ── Won banner ── */
@@ -194,7 +194,7 @@
 
 .zoneEmpty {
   font-size: 0.75rem;
-  color: rgba(240, 238, 255, 0.5);
+  color: rgba(240, 238, 255, 0.72);
   font-style: italic;
   align-self: center;
   padding: 4px 0;
@@ -264,7 +264,7 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(240, 238, 255, 0.55);
+  color: rgba(240, 238, 255, 0.78);
   white-space: nowrap;
   font-family: 'Orbitron', monospace;
 }

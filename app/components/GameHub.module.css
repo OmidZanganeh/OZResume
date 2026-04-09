@@ -209,7 +209,7 @@
 
 .gameCardDesc {
   font-size: 0.68em;
-  color: rgba(240, 238, 255, 0.45);
+  color: rgba(240, 238, 255, 0.75);
   line-height: 1.6;
   letter-spacing: 0.02em;
   font-family: 'Inter', sans-serif;
@@ -242,7 +242,7 @@
   font-family: 'Orbitron', monospace;
   font-size: 0.68em;
   letter-spacing: 0.04em;
-  color: rgba(240, 238, 255, 0.4);
+  color: rgba(240, 238, 255, 0.7);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
@@ -271,7 +271,7 @@
 
 .noScores {
   font-size: 0.76em;
-  color: rgba(240, 238, 255, 0.3);
+  color: rgba(240, 238, 255, 0.65);
   margin: 0;
   font-family: 'Inter', sans-serif;
   font-style: italic;
@@ -282,7 +282,7 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.82em;
-  color: rgba(240, 238, 255, 0.55);
+  color: rgba(240, 238, 255, 0.8);
   padding: 5px 0;
   border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
   font-family: 'Inter', sans-serif;
@@ -348,7 +348,7 @@
 
 .playingPlayer {
   font-size: 0.75em;
-  color: rgba(240, 238, 255, 0.4);
+  color: rgba(240, 238, 255, 0.7);
   letter-spacing: 0.05em;
 }
 
@@ -401,7 +401,7 @@
 
 .savingText {
   font-size: 0.78em;
-  color: rgba(240, 238, 255, 0.4);
+  color: rgba(240, 238, 255, 0.7);
   animation: pulse 1s ease-in-out infinite;
 }
 
@@ -484,7 +484,7 @@
   font-size: 0.82em;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(240, 238, 255, 0.5);
+  color: rgba(240, 238, 255, 0.8);
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }

@@ -153,14 +153,12 @@ export default function TypeRacer({ playerName, leaders, onFinish }: Props) {
         spellCheck={false}
       />
 
-      {roundDone && (
-        <div className={styles.roundResult}>
-          <span>✅ {liveWpm} WPM</span>
-          <button className={styles.nextBtn} onClick={nextRound}>
-            {round + 1 >= ROUNDS ? '[ See Final Score ]' : '[ Next Round → ]'}
-          </button>
-        </div>
-      )}
+      <div className={`${styles.roundResult} ${!roundDone ? styles.roundResultHidden : ''}`}>
+        <span>✅ {liveWpm} WPM</span>
+        <button className={styles.nextBtn} onClick={nextRound}>
+          {round + 1 >= ROUNDS ? '[ See Final Score ]' : '[ Next Round → ]'}
+        </button>
+      </div>
 
       {wpmHistory.length > 0 && (
         <div className={styles.history}>
