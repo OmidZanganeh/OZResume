@@ -143,7 +143,7 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
       <div className={styles.modal}>
         <button className={styles.closeBtn} onClick={onClose}>✕</button>
         <div className={styles.modalHeader}>
-          <span className={styles.modalTitle}>// GIS Arcade</span>
+          <span className={styles.modalTitle}>🎮 Games</span>
         </div>
 
         {/* ── LOBBY ── */}
