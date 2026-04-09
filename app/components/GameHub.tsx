@@ -253,7 +253,11 @@ export default function GameHub({ onClose }: { onClose: () => void }) {
         {screen === 'result' && selectedGame && (
           <div className={styles.result}>
             {isNewRecord && <p className={styles.newRecord}>🎉 New High Score!</p>}
-            <p className={styles.resultTitle}>GAME OVER</p>
+            <p className={styles.resultTitle}>
+              {lastScore > 0 && (selectedGame === 'wordorder' || selectedGame === 'sudoku')
+                ? '🎉 You Got It!'
+                : 'GAME OVER'}
+            </p>
             <p className={styles.resultScore}>
               {playerName} · <strong>{lastScore}</strong> {SCORE_LABELS[selectedGame]}
             </p>
