@@ -745,6 +745,22 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// Keys forwarded from the parent page via postMessage (works when iframe lacks focus)
+window.addEventListener('message', e => {
+  if (e.data?.type !== 'flappy-keydown') return;
+  const code = e.data.code;
+  if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
+    if (state === 'playing') flap();
+    else if (state === 'start') startGame();
+    else if (state === 'gameover') startGame();
+    else if (state === 'paused') resumeGame();
+  }
+  if (code === 'KeyP' || code === 'Escape') {
+    if (state === 'playing') pauseGame();
+    else if (state === 'paused') resumeGame();
+  }
+});
+
 // Touch / click on app container (gameCanvas has pointer-events:none in CSS)
 document.getElementById('app').addEventListener('pointerdown', e => {
   e.preventDefault();
