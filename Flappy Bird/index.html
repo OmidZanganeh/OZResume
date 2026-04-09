@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPLAT! – A Flappy Bird Experience</title>
+  <meta name="description" content="SPLAT! – A premium, visually stunning Flappy Bird browser game with beautiful neon aesthetics, particle effects, and smooth gameplay." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Background layers -->
+    <canvas id="bg-canvas"></canvas>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Screens -->
+    <div id="start-screen" class="screen active">
+      <div class="screen-content">
+        <div class="logo-wrapper">
+          <div class="logo-glow"></div>
+          <h1 class="logo-title">SPLAT!</h1>
+          <p class="logo-sub">A Flappy Bird Experience</p>
+        </div>
+        <div class="bird-preview" id="bird-preview"></div>
+        <div class="start-instructions">
+          <div class="key-hint">
+            <kbd>SPACE</kbd> or <span class="tap-icon">👆 Tap</span> to flap
+          </div>
+          <p class="hint-text">Navigate through the pipes to score!</p>
+        </div>
+        <button id="start-btn" class="btn btn-primary">
+          <span class="btn-text">PLAY NOW</span>
+          <div class="btn-shine"></div>
+        </button>
+        <div class="high-score-display" id="hs-display" style="display:none">
+          <span class="hs-label">BEST</span>
+          <span class="hs-value" id="hs-value">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="pause-screen" class="screen">
+      <div class="screen-content">
+        <h2 class="pause-title">PAUSED</h2>
+        <div class="pause-score">Score: <span id="pause-score-val">0</span></div>
+        <button id="resume-btn" class="btn btn-primary">RESUME</button>
+        <button id="quit-btn" class="btn btn-secondary">QUIT</button>
+      </div>
+    </div>
+
+    <div id="game-over-screen" class="screen">
+      <div class="screen-content">
+        <div class="splat-effect" id="splat-effect">💥</div>
+        <h2 class="gameover-title">SPLAT!</h2>
+        <div class="score-panel">
+          <div class="score-row">
+            <span class="score-label">SCORE</span>
+            <span class="score-val" id="final-score">0</span>
+          </div>
+          <div class="score-divider"></div>
+          <div class="score-row">
+            <span class="score-label">BEST</span>
+            <span class="score-val best" id="final-best">0</span>
+          </div>
+        </div>
+        <div class="medal-display" id="medal-display"></div>
+        <button id="restart-btn" class="btn btn-primary">PLAY AGAIN</button>
+        <button id="menu-btn" class="btn btn-secondary">MENU</button>
+      </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="hud hidden">
+      <div class="hud-score" id="hud-score">0</div>
+      <button id="pause-btn" class="hud-btn" title="Pause">⏸</button>
+    </div>
+
+    <!-- Countdown -->
+    <div id="countdown" class="countdown hidden"></div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

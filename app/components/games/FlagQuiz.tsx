@@ -55,8 +55,7 @@ const COUNTRIES = [
   { code: 'cl', name: 'Chile' },
 ];
 
-const ROUNDS = 10;
-const TIME_LIMIT = 10;
+const TIME_LIMIT = 12;
 
 function flagUrl(code: string) {
   return `https://flagcdn.com/w160/${code}.png`;
@@ -66,13 +65,28 @@ function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-function makeChoices(correct: typeof COUNTRIES[number], all: typeof COUNTRIES): string[] {
-  const distractors = shuffle(all.filter(c => c.name !== correct.name)).slice(0, 3);
-  return shuffle([correct, ...distractors]).map(c => c.name);
-}
-
 function calcPoints(timeLeft: number): number {
   return 500 + Math.round((timeLeft / TIME_LIMIT) * 500);
+}
+
+// Check if user answer matches target (case-insensitive, trimmed, allow common aliases)
+function isMatch(userInput: string, countryName: string): boolean {
+  const a = userInput.trim().toLowerCase();
+  const b = countryName.toLowerCase();
+  if (a === b) return true;
+  // Common short aliases
+  const aliases: Record<string, string[]> = {
+    'united states': ['usa', 'us', 'america', 'united states of america'],
+    'united kingdom': ['uk', 'england', 'britain', 'great britain'],
+    'south korea': ['korea'],
+    'saudi arabia': ['saudi'],
+    'south africa': ['rsa'],
+    'new zealand': ['nz', 'kiwi'],
+    'czech republic': ['czechia', 'czech'],
+    'iran': ['persia'],
+  };
+  const alts = aliases[b] || [];
+  return alts.includes(a);
 }
 
 interface Props {
@@ -85,59 +99,64 @@ export default function FlagQuiz({ playerName, leaders, onFinish }: Props) {
   const [started, setStarted] = useState(false);
   const [round, setRound] = useState(0);
   const [score, setScore] = useState(0);
+  const [input, setInput] = useState('');
+  const [status, setStatus] = useState<'idle' | 'correct' | 'wrong' | 'timeout'>('idle');
   const [lastPts, setLastPts] = useState(0);
-  const [order] = useState(() => shuffle(COUNTRIES).slice(0, ROUNDS));
-  const [choices, setChoices] = useState<string[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [timedOut, setTimedOut] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
-
+  const [gameOver, setGameOver] = useState(false);
+  const [order] = useState(() => shuffle(COUNTRIES));
   const scoreRef = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   const medals = ['🥇', '🥈', '🥉'];
-  const current = order[round];
-  const answered = selected !== null || timedOut;
+  const answered = status !== 'idle';
 
-  const initRound = useCallback((r: number) => {
-    setChoices(makeChoices(order[r], COUNTRIES));
-    setSelected(null);
-    setTimedOut(false);
-    setTimeLeft(TIME_LIMIT);
-    setLastPts(0);
-  }, [order]);
+  const current = order[round % order.length];
 
+  const endGame = useCallback(() => {
+    setGameOver(true);
+    onFinish(scoreRef.current);
+  }, [onFinish]);
+
+  // Timer
   useEffect(() => {
-    if (started) initRound(round);
-  }, [started, round, initRound]);
-
-  useEffect(() => {
-    if (!started || answered) return;
-    if (timeLeft <= 0) { setTimedOut(true); return; }
+    if (!started || answered || gameOver) return;
+    if (timeLeft <= 0) {
+      setStatus('timeout');
+      setTimeout(() => endGame(), 1200);
+      return;
+    }
     const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
     return () => clearTimeout(id);
-  }, [started, answered, timeLeft]);
+  }, [started, answered, gameOver, timeLeft, endGame]);
 
-  const handleAnswer = (choice: string) => {
-    if (answered) return;
-    setSelected(choice);
-    const pts = choice === current.name ? calcPoints(timeLeft) : 0;
-    setLastPts(pts);
-    scoreRef.current += pts;
-    setScore(scoreRef.current);
-  };
-
-  const next = () => {
-    if (round + 1 >= ROUNDS) {
-      onFinish(scoreRef.current);
+  const handleSubmit = () => {
+    if (answered || !input.trim()) return;
+    if (isMatch(input, current.name)) {
+      const pts = calcPoints(timeLeft);
+      scoreRef.current += pts;
+      setScore(scoreRef.current);
+      setLastPts(pts);
+      setStatus('correct');
     } else {
-      setRound(r => r + 1);
+      setStatus('wrong');
+      setTimeout(() => endGame(), 1400);
     }
   };
 
-  const getChoiceState = (choice: string): 'correct' | 'wrong' | 'neutral' | 'idle' => {
-    if (!answered) return 'idle';
-    if (choice === current.name) return 'correct';
-    if (choice === selected) return 'wrong';
-    return 'neutral';
+  const nextFlag = () => {
+    setRound(r => r + 1);
+    setInput('');
+    setStatus('idle');
+    setTimeLeft(TIME_LIMIT);
+    setLastPts(0);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if (status === 'correct') nextFlag();
+      else handleSubmit();
+    }
   };
 
   if (!started) {
@@ -149,8 +168,9 @@ export default function FlagQuiz({ playerName, leaders, onFinish }: Props) {
           ))}
         </div>
         <p className={styles.desc}>
-          A flag appears — pick the correct country from 4 choices.<br />
-          Answer faster for bonus points. <strong>{ROUNDS} flags</strong>, max 1000 pts each.
+          A flag appears — <strong>type the country name</strong> and press Enter.<br />
+          Answer faster for bonus points.<br />
+          <strong>One wrong answer = game over!</strong> How far can you go?
         </p>
         <button className={styles.startBtn} onClick={() => setStarted(true)}>
           [ Start Quiz ]
@@ -161,7 +181,7 @@ export default function FlagQuiz({ playerName, leaders, onFinish }: Props) {
             {leaders.map((l, i) => (
               <div key={i} className={styles.miniBoardRow}>
                 <span>{medals[i]} {l.name}</span>
-                <span>{l.score}</span>
+                <span><strong>{l.score}</strong></span>
               </div>
             ))}
           </div>
@@ -173,7 +193,7 @@ export default function FlagQuiz({ playerName, leaders, onFinish }: Props) {
   return (
     <div className={styles.game}>
       <div className={styles.gameHeader}>
-        <span className={styles.progress}>Flag {round + 1} / {ROUNDS}</span>
+        <span className={styles.progress}>Flag #{round + 1}</span>
         <span className={styles.scoreDisplay}>Score: <strong>{score}</strong></span>
       </div>
 
@@ -193,42 +213,50 @@ export default function FlagQuiz({ playerName, leaders, onFinish }: Props) {
         <img
           src={flagUrl(current.code)}
           alt="Guess this flag"
-          className={styles.flagImg}
+          className={`${styles.flagImg} ${status === 'correct' ? styles.flagCorrect : status === 'wrong' || status === 'timeout' ? styles.flagWrong : ''}`}
         />
       </div>
 
-      {/* Choices */}
-      <div className={styles.choices}>
-        {choices.map(choice => {
-          const state = getChoiceState(choice);
-          return (
-            <button
-              key={choice}
-              className={`${styles.choice} ${styles[state]}`}
-              onClick={() => handleAnswer(choice)}
-              disabled={answered}
-            >
-              {state === 'correct' && '✓ '}
-              {state === 'wrong' && '✗ '}
-              {choice}
-            </button>
-          );
-        })}
+      {/* Text input */}
+      <div className={styles.inputRow}>
+        <input
+          ref={inputRef}
+          className={`${styles.typeInput} ${status === 'correct' ? styles.typeInputCorrect : status === 'wrong' || status === 'timeout' ? styles.typeInputWrong : ''}`}
+          value={input}
+          onChange={e => { if (!answered) setInput(e.target.value); }}
+          onKeyDown={handleKeyDown}
+          placeholder="Type country name…"
+          autoFocus
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          disabled={answered}
+        />
+        {!answered && (
+          <button className={styles.submitBtn} onClick={handleSubmit}>→</button>
+        )}
       </div>
 
       {/* Feedback */}
       {answered && (
         <div className={styles.feedback}>
-          {timedOut && !selected ? (
-            <span className={styles.feedbackTimeout}>⏱ Time&apos;s up! The answer was <strong>{current.name}</strong></span>
-          ) : selected === current.name ? (
-            <span className={styles.feedbackCorrect}>🎉 Correct! <strong>+{lastPts} pts</strong>{lastPts === 1000 ? ' — Perfect speed!' : ''}</span>
+          {status === 'timeout' ? (
+            <span className={styles.feedbackTimeout}>⏱ Time&apos;s up! It was <strong>{current.name}</strong></span>
+          ) : status === 'correct' ? (
+            <span className={styles.feedbackCorrect}>
+              🎉 Correct! <strong>+{lastPts} pts</strong>
+              {lastPts >= 900 ? ' — Lightning fast! ⚡' : ''}
+            </span>
           ) : (
-            <span className={styles.feedbackWrong}>❌ It was <strong>{current.name}</strong></span>
+            <span className={styles.feedbackWrong}>
+              ❌ It was <strong>{current.name}</strong> — Game over!
+            </span>
           )}
-          <button className={styles.nextBtn} onClick={next}>
-            {round + 1 >= ROUNDS ? '[ See Results ]' : '[ Next Flag → ]'}
-          </button>
+          {status === 'correct' && (
+            <button className={styles.nextBtn} onClick={nextFlag}>
+              [ Next Flag → ]
+            </button>
+          )}
         </div>
       )}
     </div>
