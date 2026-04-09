@@ -72,6 +72,9 @@ export default function Resume() {
               <Link href="/tools" className={styles.projectsBtn}>
                 🛠 Tools
               </Link>
+              <Link href="/news" className={styles.projectsBtn}>
+                📡 AI News
+              </Link>
             </div>
           </div>
 
