@@ -5,8 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // Falls back to 'test' which works at low rate for demos.
 const KEY = process.env.GUARDIAN_API_KEY ?? 'test';
 
-// Guardian tag for articles specifically about AI — much more precise than keyword search
-const AI_TAG = 'technology/artificial-intelligence';
+// Strict AI query scoped to the Technology section only
+const AI_QUERY   = '"artificial intelligence" OR "machine learning" OR "generative AI" OR "large language model" OR ChatGPT OR "AI model"';
+const AI_SECTION = 'technology';
 
 export interface NewsArticle {
   id:        string;
@@ -35,7 +36,8 @@ export async function GET(req: NextRequest) {
   void new URL(req.url).searchParams.get('cat');
 
   const url = new URL('https://content.guardianapis.com/search');
-  url.searchParams.set('tag',         AI_TAG);
+  url.searchParams.set('q',           AI_QUERY);
+  url.searchParams.set('section',     AI_SECTION);
   url.searchParams.set('show-fields', 'thumbnail,trailText');
   url.searchParams.set('page-size',   '12');
   url.searchParams.set('order-by',    'newest');
