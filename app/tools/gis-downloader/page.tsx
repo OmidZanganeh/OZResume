@@ -512,10 +512,12 @@ export default function GISDownloaderPage() {
     const nonOsmLayers = ALL_LAYERS.filter(l => !OSM_IDS.has(l.id));
     const nonOsmPromise = Promise.allSettled(nonOsmLayers.map(scanOne));
 
-    // OSM layers all hit the same Overpass server — batch 4 at a time to avoid rate-limiting
+    // OSM layers all hit the same Overpass server — batch 2 at a time with a short gap.
+    // Batching 4+ at once triggers Overpass rate-limiting (429) from the shared Vercel IP.
     const osmLayers = ALL_LAYERS.filter(l => OSM_IDS.has(l.id));
-    for (let i = 0; i < osmLayers.length; i += 4) {
-      await Promise.allSettled(osmLayers.slice(i, i + 4).map(scanOne));
+    for (let i = 0; i < osmLayers.length; i += 2) {
+      await Promise.allSettled(osmLayers.slice(i, i + 2).map(scanOne));
+      if (i + 2 < osmLayers.length) await new Promise(r => setTimeout(r, 300));
     }
 
     await nonOsmPromise;
@@ -594,9 +596,10 @@ export default function GISDownloaderPage() {
 
       // Non-OSM layers run in parallel (each uses a different API server)
       const otherPromise = Promise.allSettled(otherLayers.map(addLayer));
-      // OSM layers batch 4 at a time to avoid overwhelming Overpass
-      for (let i = 0; i < osmLayers.length; i += 4) {
-        await Promise.allSettled(osmLayers.slice(i, i + 4).map(addLayer));
+      // OSM layers batch 2 at a time with a short gap to avoid overwhelming Overpass
+      for (let i = 0; i < osmLayers.length; i += 2) {
+        await Promise.allSettled(osmLayers.slice(i, i + 2).map(addLayer));
+        if (i + 2 < osmLayers.length) await new Promise(r => setTimeout(r, 300));
       }
       await otherPromise;
 
