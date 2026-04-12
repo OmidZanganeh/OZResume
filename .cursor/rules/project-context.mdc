@@ -1,0 +1,28 @@
+---
+description: Read project map first; respect ignore patterns; scaffold ignore+archive on new repos
+alwaysApply: true
+---
+
+# Project context and Cursor hygiene
+
+## This repository
+
+1. Open **`CODEBASE_MAP.md`** before broad exploration or `@Codebase` searches. Prefer `@CODEBASE_MAP.md` plus only the paths it lists for the task.
+2. **`AGENTS.md`** restates the same — keep both in sync when workflow changes.
+3. Do not rely on indexing inside **`archive/`** or paths matched by **`.cursorignore`** (build dirs, huge exports, caches). If something was moved to `archive/`, the user did it to shrink AI context.
+4. When you add routes, APIs, or major features, update **`CODEBASE_MAP.md`** in the same change when practical.
+
+## New projects (greenfield or new repo)
+
+When creating or initializing a **new** project for this user, add:
+
+1. **`.cursorignore`** at the repo root with at least:
+   - `node_modules/`, `.next/` or framework build dirs (`dist/`, `build/`, `out/`), `coverage/`, `.turbo/`, `.vercel/` (if not needed)
+   - `archive/` (see below)
+   - `.env`, `.env.local`, `.env.*` with an exception for `.env.example` if present
+   - OS/editor noise: `.DS_Store`, `Thumbs.db`, `*.log`
+   - Optional: `package-lock.json` / `pnpm-lock.yaml` only if the team never wants them in context (usually **keep** lockfiles for dependency work)
+
+2. **`archive/`** folder with a short **`README.md`** explaining: put large downloads, exports, old screenshots, backups here; folder is in `.cursorignore`.
+
+3. **`CODEBASE_MAP.md`** + **`AGENTS.md`** once the project has enough structure to summarize.

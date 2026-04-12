@@ -19,7 +19,9 @@
 | `app/sitemap.ts`, `app/robots.ts` | SEO |
 | `app/opengraph-image.tsx` | Dynamic OG |
 | `public/` | Static assets (images, PDF resume) |
-| `.cursorignore` | Excludes `node_modules`, `.next`, huge `gis_*` exports from indexing |
+| `.cursorignore` | Excludes deps, build output, `.env*`, logs, `archive/`, root `gis_*` exports from indexing |
+| `archive/` | Local bulky files (exports, screenshots); not indexed — see `archive/README.md` |
+| `.cursor/rules/` | Cursor rules; `project-context.mdc` is always applied |
 
 ## App routes (pages)
 
@@ -77,6 +79,7 @@
 - **GIS downloader UI/layout bugs:** Often `page.module.css` + flex/`min-height: 0`; remember global `zoom` affects viewport behavior.
 - **SEO for a tool:** Prefer `app/tools/<tool>/layout.tsx` metadata + sitemap entry.
 
-## Out of repo / ignore
+## Out of index / ignore
 
-- Large local **`gis_*.geojson`** / **`gis_*.kml`** at root: listed in `.cursorignore`; do not load into context.
+- **`archive/`** and **`.cursorignore`** patterns: do not rely on these for edits; move noise into `archive/` to save tokens.
+- Root **`gis_*.geojson`** / **`gis_*.kml`**: in `.cursorignore`.

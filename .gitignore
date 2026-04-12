@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local bulky archive (Cursor also ignores via .cursorignore); keep README tracked
+/archive/*
+!/archive/README.md
