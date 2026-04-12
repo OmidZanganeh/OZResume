@@ -33,12 +33,21 @@ export const metadata: Metadata = {
       'Pick any area on the map and download free GIS data: buildings, roads, flood zones, census tracts, species observations, and more. Export as Shapefile, GeoJSON, CSV, or KML.',
     url: 'https://omidzanganeh.com/tools/gis-downloader',
     type: 'website',
+    images: [
+      {
+        url: '/gis-downloader-og.png',
+        width: 1024,
+        height: 554,
+        alt: 'GIS Data Downloader – pick an area on the map and download free GIS layers',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Free GIS Data Downloader – OSM, Census, FEMA & More',
     description:
       'Pick any area on the map and instantly download free GIS data as Shapefile, GeoJSON, CSV, or KML. No login required.',
+    images: ['/gis-downloader-og.png'],
   },
 };
 
