@@ -186,14 +186,6 @@
   transform: translateX(0);
 }
 
-/* ─── Featured card (GIS Data Downloader) ─────────────────────────────────── */
-.cardFeatured {
-  border-color: var(--border-dark);
-  background: var(--paper-dark);
-}
-.cardFeatured:hover {
-  border-color: var(--accent-blue);
-}
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 860px) {

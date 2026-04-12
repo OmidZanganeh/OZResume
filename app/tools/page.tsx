@@ -142,7 +142,7 @@ export default function ToolsPage() {
             <Link
               key={tool.href}
               href={tool.href}
-              className={`${styles.card} ${tool.featured ? styles.cardFeatured : ''}`}
+              className={styles.card}
             >
               <div className={styles.cardHead}>
                 <span className={styles.cardNum}>{String(i + 1).padStart(2, '0')}</span>
