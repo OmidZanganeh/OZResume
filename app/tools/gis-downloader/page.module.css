@@ -196,6 +196,62 @@
   background: rgba(245, 158, 11, 0.07);
 }
 
+/* ─── Idle prompt ──────────────────────────────────────────────────────────── */
+.idlePrompt {
+  text-align: center;
+  padding: 28px 12px;
+  color: var(--text-muted);
+  font-size: 0.82em;
+  line-height: 1.6;
+}
+.idleIcon { font-size: 2.4em; margin-bottom: 10px; }
+
+/* ─── Scan button ──────────────────────────────────────────────────────────── */
+.scanBtn {
+  width: 100%;
+  padding: 11px 16px;
+  margin-bottom: 16px;
+  border: 2px solid var(--accent-blue);
+  border-radius: 8px;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: 0.88em;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.scanBtn:hover  { opacity: 0.88; }
+.scanBtn:active { transform: scale(0.98); }
+
+/* ─── Layer section (scan results) ────────────────────────────────────────── */
+.layerSection {
+  margin-bottom: 14px;
+}
+
+.layerSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.82em;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.rescanBtn {
+  font-size: 0.8em;
+  padding: 3px 8px;
+  border: 1px solid var(--border-dark);
+  border-radius: 4px;
+  background: var(--paper-dark);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.rescanBtn:hover { background: var(--border-dark); color: var(--text-primary); }
+
 /* ─── Layer groups ─────────────────────────────────────────────────────────── */
 .layerGroup {
   margin-bottom: 16px;
@@ -269,6 +325,40 @@
 .lDesc {
   font-size: 0.72em;
   color: var(--text-muted);
+}
+
+/* Count badge shown during/after scan */
+.scanCount {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.74em;
+  font-family: var(--font-mono);
+  min-width: 42px;
+  text-align: right;
+}
+
+.countOk   { color: #16a34a; font-weight: 600; }
+.countZero { color: var(--text-muted); }
+.countErr  { color: var(--text-muted); }
+
+/* Empty (no data) layer row */
+.layerEmpty { opacity: 0.45; }
+.layerEmpty .lLabel { text-decoration: line-through; }
+
+/* Spinning loader dot */
+.spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--border-dark);
+  border-top-color: var(--accent-blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ─── Format ───────────────────────────────────────────────────────────────── */
