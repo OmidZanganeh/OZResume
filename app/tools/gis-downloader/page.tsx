@@ -433,9 +433,10 @@ function toKML(fc: GeoFC, name: string): string {
     }
     return `  <Placemark><name><![CDATA[${lbl}]]></name><description><![CDATA[<table>${dsc}</table>]]></description>${geo}</Placemark>`;
   }).join('\n');
-  // xmlEsc the document name — layer labels like "Roads & Streets" contain & which
-  // is an invalid XML token when placed directly in element content.
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${xmlEsc(name)}</name>\n${marks}\n</Document>\n</kml>`;
+  // Strip XML-unsafe characters from the document name — replace & with 'and'
+  // so KML parsers never encounter special characters in element content.
+  const safeName = name.replace(/&/g, 'and').replace(/[<>"']/g, '');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${safeName}</name>\n${marks}\n</Document>\n</kml>`;
 }
 
 // ─── Custom shapefile writer ──────────────────────────────────────────────────
