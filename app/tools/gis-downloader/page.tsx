@@ -552,10 +552,14 @@ function _assembleShpShx(shpType: number, records: Uint8Array[]): { shp: Uint8Ar
 function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
   const enc = new TextEncoder();
 
-  // Count how many features each key appears in, then keep the most common ones.
-  // dBASE III+ supports up to 255 fields but ArcGIS reliably handles ≤ 100.
-  // Capping here avoids bloated DBFs and "Failed to add data" errors on wide tables.
-  const MAX_DBF_FIELDS = 100;
+  // Only keep fields that have real data in ≥ 5 % of features (minimum 2 features).
+  // This drops the long tail of rare OSM tags that are null for almost every feature,
+  // keeping the DBF clean and readable. Hard cap at 25 columns.
+  const MIN_FILL_RATE = 0.05;
+  const MAX_DBF_FIELDS = 25;
+  const n = propsList.length;
+  const minCount = Math.max(2, Math.ceil(n * MIN_FILL_RATE));
+
   const keyCounts = new Map<string, number>();
   for (const props of propsList) {
     for (const k of Object.keys(props ?? {})) {
@@ -564,8 +568,9 @@ function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
       }
     }
   }
-  // Sort by frequency descending, take top MAX_DBF_FIELDS
+  // Sort by frequency descending, filter by fill-rate threshold, take top MAX_DBF_FIELDS
   const topKeys = Array.from(keyCounts.entries())
+    .filter(([, count]) => count >= minCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, MAX_DBF_FIELDS)
     .map(([k]) => k);
