@@ -396,65 +396,206 @@ function toKML(fc: GeoFC, name: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${name}</name>\n${marks}\n</Document>\n</kml>`;
 }
 
-// ─── Shapefile helpers ────────────────────────────────────────────────────────
-// DBF field names: ≤10 chars, alphanumeric + underscore, no leading digit.
-function sanitizePropsForShp(props: GeoFeature['properties']): Record<string, string | number | boolean> {
-  const out: Record<string, string | number | boolean> = {};
-  const used = new Set<string>();
-  for (const [k, v] of Object.entries(props ?? {})) {
-    let key = k.replace(/[^a-zA-Z0-9]/g, '_').replace(/^(\d)/, 'f_$1').slice(0, 10);
-    if (!key) key = 'field';
-    if (used.has(key)) {
-      const base = key.slice(0, 8);
-      let n = 2;
-      while (used.has(`${base}_${n}`)) n++;
-      key = `${base}_${n}`;
-    }
-    used.add(key);
-    out[key] = (v === null || v === undefined) ? '' : (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') ? v : String(v);
-  }
-  return out;
+// ─── Custom shapefile writer ──────────────────────────────────────────────────
+// Replaces @mapbox/shp-write which produces mismatched .shp/.dbf record counts
+// for complex OSM geometries (MultiPolygon, degenerate rings, etc.).
+// This writer processes the same features[] array for both SHP and DBF in one
+// pass, making a count mismatch structurally impossible.
+
+const WGS84_PRJ = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+
+function _i32le(v: DataView, o: number, n: number) { v.setInt32(o, n, true);  }
+function _i32be(v: DataView, o: number, n: number) { v.setInt32(o, n, false); }
+function _f64le(v: DataView, o: number, n: number) { v.setFloat64(o, n, true); }
+
+// Null shape (shape type 0) — written when geometry is invalid so SHP and DBF
+// always have the same record count.
+function _nullRec(): Uint8Array { return new Uint8Array(4); }
+
+// Point record content (20 bytes): type(4) + x(8) + y(8)
+function _ptRec(coords: unknown): Uint8Array {
+  const c = coords as number[];
+  if (!Array.isArray(c) || c.length < 2 || !isFinite(c[0]) || !isFinite(c[1])) return _nullRec();
+  const b = new ArrayBuffer(20); const v = new DataView(b);
+  _i32le(v, 0, 1); _f64le(v, 4, c[0]); _f64le(v, 12, c[1]);
+  return new Uint8Array(b);
 }
 
-// shp-write only supports Point, LineString, Polygon. Split and explode multi-types.
-function explodeForShp(fc: GeoFC): GeoFC[] {
-  const pts: GeoFeature[] = [], lns: GeoFeature[] = [], pls: GeoFeature[] = [];
-  for (const f of fc.features) {
-    if (!f.geometry) continue;
-    const p = sanitizePropsForShp(f.properties);
-    const g = f.geometry as { type: string; coordinates: unknown };
-    const mk = (type: string, coordinates: unknown): GeoFeature =>
-      ({ type: 'Feature', geometry: { type, coordinates } as GeoFeature['geometry'], properties: p });
-    switch (g.type) {
-      case 'Point':           pts.push(mk('Point', g.coordinates)); break;
-      case 'MultiPoint':      for (const c of g.coordinates as unknown[]) pts.push(mk('Point', c)); break;
-      case 'LineString':      lns.push(mk('LineString', g.coordinates)); break;
-      case 'MultiLineString': for (const c of g.coordinates as unknown[]) lns.push(mk('LineString', c)); break;
-      case 'Polygon':         pls.push(mk('Polygon', g.coordinates)); break;
-      case 'MultiPolygon':    for (const c of g.coordinates as unknown[]) pls.push(mk('Polygon', c)); break;
-    }
+// Polyline (type 3) or Polygon (type 5) record content.
+// rings: for LineString = [[x,y],...]; for Polygon = [[outer...],[hole...],...]
+function _polyRec(rings: number[][][], shpType: 3 | 5): Uint8Array {
+  const validRings = rings.filter(r => Array.isArray(r) && r.length >= (shpType === 5 ? 4 : 2));
+  if (!validRings.length) return _nullRec();
+  const allPts = validRings.flat() as [number, number][];
+  let xmin = Infinity, ymin = Infinity, xmax = -Infinity, ymax = -Infinity;
+  for (const [x, y] of allPts) {
+    if (x < xmin) xmin = x; if (x > xmax) xmax = x;
+    if (y < ymin) ymin = y; if (y > ymax) ymax = y;
   }
-  return [
-    ...(pts.length ? [{ type: 'FeatureCollection' as const, features: pts }] : []),
-    ...(lns.length ? [{ type: 'FeatureCollection' as const, features: lns }] : []),
-    ...(pls.length ? [{ type: 'FeatureCollection' as const, features: pls }] : []),
-  ];
+  const nP = validRings.length, nPts = allPts.length;
+  const b = new ArrayBuffer(4 + 32 + 4 + 4 + nP * 4 + nPts * 16);
+  const v = new DataView(b); let o = 0;
+  _i32le(v, o, shpType);         o += 4;
+  _f64le(v, o, xmin); o += 8; _f64le(v, o, ymin); o += 8;
+  _f64le(v, o, xmax); o += 8; _f64le(v, o, ymax); o += 8;
+  _i32le(v, o, nP);   o += 4; _i32le(v, o, nPts); o += 4;
+  let start = 0;
+  for (const r of validRings) { _i32le(v, o, start); o += 4; start += r.length; }
+  for (const [x, y] of allPts) { _f64le(v, o, x); o += 8; _f64le(v, o, y); o += 8; }
+  return new Uint8Array(b);
 }
 
-async function shpZip(fc: GeoFC, filename: string): Promise<Blob> {
-  const shpwrite = (await import('@mapbox/shp-write')).default;
-  const groups   = explodeForShp(fc);
-  if (!groups.length) return new Blob([], { type: 'application/zip' });
+function _geomRec(g: { type: string; coordinates: unknown }, shpType: 1 | 3 | 5): Uint8Array {
+  try {
+    if (shpType === 1) return _ptRec(g.coordinates);
+    const rings = shpType === 3
+      ? [g.coordinates as number[][]]         // LineString: wrap single ring
+      : g.coordinates as number[][][];        // Polygon: outer + holes
+    return _polyRec(rings, shpType);
+  } catch { return _nullRec(); }
+}
 
+// Assemble SHP + SHX from pre-built record content buffers.
+function _assembleShpShx(shpType: number, records: Uint8Array[]): { shp: Uint8Array; shx: Uint8Array } {
+  const n = records.length;
+  // Compute bbox from record contents
+  let xmin = Infinity, ymin = Infinity, xmax = -Infinity, ymax = -Infinity;
+  for (const rec of records) {
+    const rv = new DataView(rec.buffer, rec.byteOffset);
+    const rt = rv.getInt32(0, true);
+    if (rt === 1 && rec.length >= 20) {                         // Point
+      const x = rv.getFloat64(4, true), y = rv.getFloat64(12, true);
+      if (x < xmin) xmin = x; if (x > xmax) xmax = x;
+      if (y < ymin) ymin = y; if (y > ymax) ymax = y;
+    } else if (rt !== 0 && rec.length >= 36) {                  // Poly*
+      const x1 = rv.getFloat64(4, true),  y1 = rv.getFloat64(12, true);
+      const x2 = rv.getFloat64(20, true), y2 = rv.getFloat64(28, true);
+      if (x1 < xmin) xmin = x1; if (x2 > xmax) xmax = x2;
+      if (y1 < ymin) ymin = y1; if (y2 > ymax) ymax = y2;
+    }
+  }
+  if (!isFinite(xmin)) { xmin = 0; ymin = 0; xmax = 0; ymax = 0; }
+
+  const shpBodyLen = records.reduce((s, r) => s + 8 + r.length, 0);
+  const shpBuf = new Uint8Array(100 + shpBodyLen);
+  const shxBuf = new Uint8Array(100 + n * 8);
+  const shpV = new DataView(shpBuf.buffer), shxV = new DataView(shxBuf.buffer);
+
+  for (const v of [shpV, shxV]) {
+    _i32be(v, 0, 9994); _i32le(v, 28, 1000); _i32le(v, 32, shpType);
+    _f64le(v, 36, xmin); _f64le(v, 44, ymin); _f64le(v, 52, xmax); _f64le(v, 60, ymax);
+  }
+  _i32be(shpV, 24, (100 + shpBodyLen) / 2);
+  _i32be(shxV, 24, (100 + n * 8) / 2);
+
+  let shpOff = 50, shpByteOff = 100;
+  for (let i = 0; i < n; i++) {
+    const rec = records[i];
+    const cLen = rec.length / 2;
+    _i32be(shxV, 100 + i * 8,     shpOff);
+    _i32be(shxV, 100 + i * 8 + 4, cLen);
+    _i32be(shpV, shpByteOff,     i + 1);
+    _i32be(shpV, shpByteOff + 4, cLen);
+    shpBuf.set(rec, shpByteOff + 8);
+    shpOff += (8 + rec.length) / 2;
+    shpByteOff += 8 + rec.length;
+  }
+  return { shp: shpBuf, shx: shxBuf };
+}
+
+// Build DBF file from a list of property objects (same length as SHP records).
+// Uses a globally consistent field schema across all features.
+function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
+  const enc = new TextEncoder();
+  const schema = new Map<string, string>(); // raw key → 10-char DBF name
+  const used   = new Set<string>();
+  for (const props of propsList) {
+    for (const k of Object.keys(props ?? {})) {
+      if (schema.has(k)) continue;
+      let name = k.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^(\d)/, 'F$1').toUpperCase().slice(0, 10);
+      if (!name) name = 'FIELD';
+      if (used.has(name)) {
+        const base = name.slice(0, 8);
+        let n = 2;
+        while (used.has(`${base}_${n}`)) n++;
+        name = `${base}_${n}`.slice(0, 10);
+      }
+      used.add(name); schema.set(k, name);
+    }
+  }
+  const rawKeys  = Array.from(schema.keys());
+  const dbfNames = rawKeys.map(k => schema.get(k)!);
+  const FLEN = 254, nF = dbfNames.length;
+  const hdrSize = 32 + nF * 32 + 1;
+  const recSize = 1 + nF * FLEN;
+  const buf = new ArrayBuffer(hdrSize + propsList.length * recSize + 1);
+  const v = new DataView(buf); const u8 = new Uint8Array(buf);
+
+  v.setUint8(0, 3);
+  const d = new Date();
+  v.setUint8(1, d.getFullYear() - 1900); v.setUint8(2, d.getMonth() + 1); v.setUint8(3, d.getDate());
+  v.setInt32(4, propsList.length, true);
+  v.setInt16(8, hdrSize, true); v.setInt16(10, recSize, true);
+  for (let i = 0; i < nF; i++) {
+    const fo = 32 + i * 32;
+    u8.set(enc.encode(dbfNames[i]).slice(0, 11), fo);
+    v.setUint8(fo + 11, 67); // 'C' = character field
+    v.setUint8(fo + 16, FLEN);
+  }
+  v.setUint8(32 + nF * 32, 0x0D); // header terminator
+
+  for (let i = 0; i < propsList.length; i++) {
+    const ro = hdrSize + i * recSize;
+    v.setUint8(ro, 0x20); // not deleted
+    const props = propsList[i] ?? {};
+    for (let j = 0; j < nF; j++) {
+      const val = String(props[rawKeys[j]] ?? '').slice(0, FLEN);
+      u8.set(enc.encode(val.padEnd(FLEN, ' ')).slice(0, FLEN), ro + 1 + j * FLEN);
+    }
+  }
+  v.setUint8(hdrSize + propsList.length * recSize, 0x1A); // EOF
+  return u8;
+}
+
+async function shpZip(fc: GeoFC, _filename: string): Promise<Blob> {
   const JSZip = (await import('jszip')).default;
   const zip   = new JSZip();
-  for (const group of groups) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const blob    = await shpwrite.zip(group as any, { outputType: 'blob', compression: 'DEFLATE' } as any) as Blob;
-    const grpZip  = await JSZip.loadAsync(blob);
-    grpZip.forEach((relPath, file) => { zip.file(relPath, file.async('uint8array')); });
+
+  type Group = { name: string; shpType: 1|3|5; geoms: {type:string;coordinates:unknown}[]; props: GeoFeature['properties'][] };
+  const groups: Group[] = [
+    { name: 'POINT',    shpType: 1, geoms: [], props: [] },
+    { name: 'POLYLINE', shpType: 3, geoms: [], props: [] },
+    { name: 'POLYGON',  shpType: 5, geoms: [], props: [] },
+  ];
+
+  for (const f of fc.features) {
+    if (!f.geometry) continue;
+    const g = f.geometry as { type: string; coordinates: unknown };
+    const push = (gi: number, type: string, coords: unknown) => {
+      groups[gi].geoms.push({ type, coordinates: coords });
+      groups[gi].props.push(f.properties);  // same index in geoms and props ← key invariant
+    };
+    switch (g.type) {
+      case 'Point':           push(0, 'Point', g.coordinates); break;
+      case 'MultiPoint':      for (const c of g.coordinates as unknown[]) push(0, 'Point', c); break;
+      case 'LineString':      push(1, 'LineString', g.coordinates); break;
+      case 'MultiLineString': for (const c of g.coordinates as unknown[]) push(1, 'LineString', c); break;
+      case 'Polygon':         push(2, 'Polygon', g.coordinates); break;
+      case 'MultiPolygon':    for (const c of g.coordinates as unknown[]) push(2, 'Polygon', c); break;
+    }
   }
-  void filename; // name applied by caller
+
+  for (const { name, shpType, geoms, props } of groups) {
+    if (!geoms.length) continue;
+    // Build one SHP content record per geometry — same iteration order as DBF below.
+    const records = geoms.map(g => _geomRec(g, shpType));
+    const { shp, shx } = _assembleShpShx(shpType, records);
+    const dbf = _buildDbf(props); // props.length === records.length (guaranteed by push())
+    zip.file(`${name}.shp`, shp);
+    zip.file(`${name}.shx`, shx);
+    zip.file(`${name}.dbf`, dbf);
+    zip.file(`${name}.prj`, WGS84_PRJ);
+  }
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
 }
 
