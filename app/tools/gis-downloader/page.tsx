@@ -220,7 +220,7 @@ function overpassToGeoJSON(raw: Record<string, unknown>): GeoFC {
     .filter(f => f.geometry !== null)
     .map(f => ({
       type: 'Feature' as const,
-      geometry: f.geometry as GeoFeature['geometry'],
+      geometry: f.geometry as unknown as GeoFeature['geometry'],
       properties: (f.properties ?? {}) as GeoFeature['properties'],
     }));
   return { type: 'FeatureCollection', features };
