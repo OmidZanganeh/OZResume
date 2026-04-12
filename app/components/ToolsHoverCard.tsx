@@ -10,6 +10,7 @@ const TOOLS = [
   { emoji: '🏡', label: 'US Census Demographics',     href: '/tools/census' },
   { emoji: '📏', label: 'Spatial Unit Converter',     href: '/tools/unit-converter' },
   { emoji: '🗂️', label: 'File Tools',                 href: '/tools/image-tools' },
+  { emoji: '📎', label: 'PDF & Image Tools',          href: '/tools/pdf-image-tools' },
 ];
 
 export default function ToolsHoverCard() {

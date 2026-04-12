@@ -50,6 +50,7 @@ const toolsJsonLd = {
     { '@type': 'ListItem', position: 6, name: 'Geocoder & Reverse Geocoder', url: `${BASE}/tools/geocoder` },
     { '@type': 'ListItem', position: 7, name: 'US Census Demographics Lookup', url: `${BASE}/tools/census` },
     { '@type': 'ListItem', position: 8, name: 'GIS Data Downloader',           url: `${BASE}/tools/gis-downloader` },
+    { '@type': 'ListItem', position: 9, name: 'PDF and Image Tools',           url: `${BASE}/tools/pdf-image-tools` },
   ],
 };
 
@@ -60,7 +61,6 @@ const TOOLS = [
     title: 'GIS Data Downloader',
     desc: 'Select any area on the map and download free GIS data — buildings, roads, flood zones, census tracts, species observations, and more. Export as Shapefile, GeoJSON, CSV, or KML.',
     tags: ['OSM', 'USGS', 'FEMA', 'Census'],
-    featured: true,
   },
   {
     href: '/tools/coordinate-converter',
@@ -110,6 +110,13 @@ const TOOLS = [
     title: 'File Tools',
     desc: 'Convert CSV coordinates to GeoJSON in one click. Extract GPS and camera metadata from photo EXIF data. Nothing leaves your browser.',
     tags: ['GIS', 'Privacy-first'],
+  },
+  {
+    href: '/tools/pdf-image-tools',
+    emoji: '📎',
+    title: 'PDF & Image Tools',
+    desc: 'Merge PDFs, convert images (PNG, JPEG, WebP), build one PDF from multiple images, and export PDF pages as JPEG files.',
+    tags: ['PDF', 'Privacy-first'],
   },
 ];
 
