@@ -55,68 +55,61 @@ const toolsJsonLd = {
 
 const TOOLS = [
   {
+    href: '/tools/gis-downloader',
+    emoji: '📥',
+    title: 'GIS Data Downloader',
+    desc: 'Select any area on the map and download free GIS data — buildings, roads, flood zones, census tracts, species observations, and more. Export as Shapefile, GeoJSON, CSV, or KML.',
+    tags: ['OSM', 'USGS', 'FEMA', 'Census'],
+    featured: true,
+  },
+  {
     href: '/tools/coordinate-converter',
     emoji: '📍',
     title: 'Coordinate Converter',
-    desc: 'Convert between Decimal Degrees (DD), Degrees Minutes Seconds (DMS), and Degrees Decimal Minutes (DDM). Instant, copy-to-clipboard.',
-    tags: ['GIS', 'No signup', 'Instant'],
-    accent: 'blue',
-  },
-  {
-    href: '/tools/unit-converter',
-    emoji: '📏',
-    title: 'Spatial Unit Converter',
-    desc: 'Convert between distance, area, and angle units used in GIS and surveying — meters, kilometers, feet, acres, hectares, and more.',
-    tags: ['GIS', 'Surveying', 'Instant'],
-    accent: 'orange',
-  },
-  {
-    href: '/tools/image-tools',
-    emoji: '🗂️',
-    title: 'File Tools',
-    desc: 'Convert CSV files with coordinates to GeoJSON in one click. Also reads EXIF metadata from photos: GPS, camera model, and more.',
-    tags: ['GIS', 'Privacy-first', 'No upload'],
-    accent: 'green',
+    desc: 'Convert between Decimal Degrees, Degrees Minutes Seconds, and Degrees Decimal Minutes. Click the map to pick any point.',
+    tags: ['GIS', 'Instant'],
   },
   {
     href: '/tools/isochrone',
     emoji: '🗺',
     title: 'Isochrone Mapper',
-    desc: 'Set any origin on the map and generate reachability zones — see how far you can travel by car, foot, or bike in 10–60 minutes.',
+    desc: 'Generate travel-time reachability zones for any location — by car, foot, or bike — in 10 to 60 minute intervals.',
     tags: ['GIS', 'OpenStreetMap', 'Interactive'],
-    accent: 'blue',
   },
   {
     href: '/tools/elevation-profile',
     emoji: '📈',
     title: 'Elevation Profile',
-    desc: 'Draw a path on the map and instantly get a real elevation profile from global terrain data. Download as CSV or SVG chart.',
-    tags: ['GIS', 'Terrain', 'Download'],
-    accent: 'green',
+    desc: 'Draw a path on the map and get a real elevation profile from global terrain data. Download as CSV or SVG.',
+    tags: ['GIS', 'Terrain', 'USGS'],
   },
   {
     href: '/tools/geocoder',
     emoji: '🌐',
     title: 'Geocoder & Reverse Geocoder',
-    desc: 'Paste a list of addresses to get coordinates, or coordinates to get addresses. Batch up to 200 rows, see results on a live map, download CSV.',
-    tags: ['GIS', 'OpenStreetMap', 'Batch'],
-    accent: 'orange',
+    desc: 'Batch geocode up to 200 addresses to coordinates, or coordinates to addresses. Results shown on a live map with CSV download.',
+    tags: ['GIS', 'Batch', 'OpenStreetMap'],
   },
   {
     href: '/tools/census',
     emoji: '🏡',
     title: 'US Census Demographics',
-    desc: 'Click any US location to see census tract data: population, median age, household income, home value, homeownership, and unemployment. Powered by the US Census Bureau ACS.',
-    tags: ['Demographics', 'Census', 'No signup'],
-    accent: 'green',
+    desc: 'Click any US location to see census tract data: population, income, home value, age, and unemployment from the ACS.',
+    tags: ['Demographics', 'Census Bureau'],
   },
   {
-    href: '/tools/gis-downloader',
-    emoji: '📥',
-    title: 'GIS Data Downloader',
-    desc: 'Select any area on the map and download free geodata: buildings, roads, POIs, parks, land use, waterways, railways, USGS earthquakes, and GBIF species observations.',
-    tags: ['OSM', 'USGS', 'GeoJSON · CSV · KML'],
-    accent: 'blue',
+    href: '/tools/unit-converter',
+    emoji: '📏',
+    title: 'Spatial Unit Converter',
+    desc: 'Convert distance, area, and angle units used in GIS and surveying — meters, feet, acres, hectares, degrees, and more.',
+    tags: ['GIS', 'Surveying', 'Instant'],
+  },
+  {
+    href: '/tools/image-tools',
+    emoji: '🗂️',
+    title: 'File Tools',
+    desc: 'Convert CSV coordinates to GeoJSON in one click. Extract GPS and camera metadata from photo EXIF data. Nothing leaves your browser.',
+    tags: ['GIS', 'Privacy-first'],
   },
 ];
 
@@ -133,27 +126,33 @@ export default function ToolsPage() {
         </div>
 
         <header className={styles.header}>
-          <p className={styles.eyebrow}>// free · browser-based · no account needed</p>
+          <div className={styles.headerMeta}>
+            <span className={styles.badge}>Free</span>
+            <span className={styles.badgeDot}>Browser-based · No account needed</span>
+          </div>
           <h1 className={styles.title}>GIS Tools</h1>
           <p className={styles.subtitle}>
-            A small collection of useful tools for GIS professionals, cartographers, and spatial thinkers.
-            Everything runs in your browser — nothing is uploaded to a server.
+            Practical tools for GIS professionals, cartographers, and spatial analysts.
+            Everything runs in your browser — nothing is sent to a server.
           </p>
         </header>
 
         <div className={styles.grid}>
-          {TOOLS.map(tool => (
-            <Link key={tool.href} href={tool.href} className={`${styles.card} ${styles[`accent${tool.accent.charAt(0).toUpperCase() + tool.accent.slice(1)}`]}`}>
-              <div className={styles.cardTop}>
-                <span className={styles.cardEmoji}>{tool.emoji}</span>
-                <span className={styles.cardArrow}>→</span>
+          {TOOLS.map((tool, i) => (
+            <Link
+              key={tool.href}
+              href={tool.href}
+              className={`${styles.card} ${tool.featured ? styles.cardFeatured : ''}`}
+            >
+              <div className={styles.cardHead}>
+                <span className={styles.cardNum}>{String(i + 1).padStart(2, '0')}</span>
+                <span className={styles.cardIcon}>{tool.emoji}</span>
               </div>
               <h2 className={styles.cardTitle}>{tool.title}</h2>
               <p className={styles.cardDesc}>{tool.desc}</p>
-              <div className={styles.cardTags}>
-                {tool.tags.map(tag => (
-                  <span key={tag} className={styles.cardTag}>{tag}</span>
-                ))}
+              <div className={styles.cardFoot}>
+                <span className={styles.cardTags}>{tool.tags.join(' · ')}</span>
+                <span className={styles.cardArrow}>Launch →</span>
               </div>
             </Link>
           ))}
