@@ -47,6 +47,14 @@ const OSM_LAYERS: Layer[] = [
   { id: 'natural-areas', label: 'Natural Areas',        emoji: '🌲', desc: 'Forests, grassland, beaches, wetlands' },
   { id: 'military',      label: 'Military Areas',       emoji: '🎖', desc: 'Bases & restricted zones' },
   { id: 'cemeteries',    label: 'Cemeteries',           emoji: '🪦', desc: 'Cemeteries & grave yards' },
+  { id: 'transit',       label: 'Public Transit',       emoji: '🚌', desc: 'Bus stops, metro & tram stations, platforms' },
+  { id: 'airports',      label: 'Airports & Airstrips', emoji: '✈️', desc: 'Aerodromes, runways, helipads' },
+  { id: 'education',     label: 'Education',            emoji: '🎓', desc: 'Schools, universities, kindergartens' },
+  { id: 'emergency',     label: 'Emergency Services',   emoji: '🚒', desc: 'Fire stations & police stations' },
+  { id: 'sports',        label: 'Sports & Recreation',  emoji: '🏋', desc: 'Stadiums, pitches, sports centres, golf courses' },
+  { id: 'fuel',          label: 'Fuel & EV Charging',   emoji: '⛽', desc: 'Gas stations & EV charging points' },
+  { id: 'parking',       label: 'Parking',              emoji: '🅿', desc: 'Surface lots & parking structures' },
+  { id: 'food',          label: 'Food & Dining',        emoji: '🍽', desc: 'Restaurants, cafes & bars' },
 ];
 
 const HAZARD_LAYERS: Layer[] = [
@@ -123,6 +131,14 @@ async function countOSM(layerId: string, b: Bbox): Promise<number> {
     cycling:         `[out:json][timeout:15];(way["highway"="cycleway"](${bb});way["cycleway"~"lane|track"](${bb}););out count;`,
     military:        `[out:json][timeout:15];(way["landuse"="military"](${bb});relation["landuse"="military"](${bb}););out count;`,
     cemeteries:      `[out:json][timeout:15];(way["landuse"="cemetery"](${bb});way["amenity"="grave_yard"](${bb}););out count;`,
+    transit:         `[out:json][timeout:15];(node["highway"="bus_stop"](${bb});node["public_transport"~"stop_position|platform"](${bb});node["railway"~"station|halt|tram_stop|subway_entrance"](${bb}););out count;`,
+    airports:        `[out:json][timeout:15];(node["aeroway"~"aerodrome|helipad|airstrip"](${bb});way["aeroway"~"aerodrome|runway|taxiway|helipad"](${bb}););out count;`,
+    education:       `[out:json][timeout:15];(node["amenity"~"school|university|college|kindergarten"](${bb});way["amenity"~"school|university|college|kindergarten"](${bb}););out count;`,
+    emergency:       `[out:json][timeout:15];(node["amenity"~"fire_station|police"](${bb});way["amenity"~"fire_station|police"](${bb}););out count;`,
+    sports:          `[out:json][timeout:15];(way["leisure"~"sports_centre|stadium|pitch|golf_course|track"](${bb});node["leisure"~"sports_centre|stadium"](${bb}););out count;`,
+    fuel:            `[out:json][timeout:15];(node["amenity"="fuel"](${bb});node["amenity"="charging_station"](${bb}););out count;`,
+    parking:         `[out:json][timeout:15];(node["amenity"="parking"](${bb});way["amenity"="parking"](${bb}););out count;`,
+    food:            `[out:json][timeout:15];(node["amenity"~"restaurant|cafe|bar|fast_food|food_court|pub|biergarten"](${bb}););out count;`,
   };
   const res  = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q[layerId] }) });
   const data = await res.json() as { elements?: { tags?: { total?: string } }[] };
@@ -185,6 +201,14 @@ function buildOverpassQuery(id: string, b: Bbox): string {
     cycling:         `${hd}(way["highway"="cycleway"](${bb});way["cycleway"~"lane|track"](${bb}););out body;>;out skel qt;`,
     military:        `${hd}(way["landuse"="military"](${bb});relation["landuse"="military"](${bb});node["military"](${bb}););out body;>;out skel qt;`,
     cemeteries:      `${hd}(way["landuse"="cemetery"](${bb});way["amenity"="grave_yard"](${bb});relation["landuse"="cemetery"](${bb}););out body;>;out skel qt;`,
+    transit:         `${hd}(node["highway"="bus_stop"](${bb});node["public_transport"~"stop_position|platform"](${bb});node["railway"~"station|halt|tram_stop|subway_entrance"](${bb});way["public_transport"="platform"](${bb}););out body;>;out skel qt;`,
+    airports:        `${hd}(node["aeroway"~"aerodrome|helipad|airstrip"](${bb});way["aeroway"~"aerodrome|runway|taxiway|helipad|apron|terminal"](${bb});relation["aeroway"="aerodrome"](${bb}););out body;>;out skel qt;`,
+    education:       `${hd}(node["amenity"~"school|university|college|kindergarten"](${bb});way["amenity"~"school|university|college|kindergarten"](${bb});relation["amenity"~"school|university|college"](${bb}););out body;>;out skel qt;`,
+    emergency:       `${hd}(node["amenity"~"fire_station|police"](${bb});way["amenity"~"fire_station|police"](${bb}););out body;>;out skel qt;`,
+    sports:          `${hd}(way["leisure"~"sports_centre|stadium|pitch|golf_course|track|swimming_pool"](${bb});node["leisure"~"sports_centre|stadium|pitch"](${bb});relation["leisure"~"sports_centre|stadium|golf_course"](${bb}););out body;>;out skel qt;`,
+    fuel:            `${hd}(node["amenity"="fuel"](${bb});node["amenity"="charging_station"](${bb});way["amenity"="fuel"](${bb}););out body;>;out skel qt;`,
+    parking:         `${hd}(node["amenity"="parking"](${bb});way["amenity"="parking"](${bb});relation["amenity"="parking"](${bb}););out body;>;out skel qt;`,
+    food:            `${hd}(node["amenity"~"restaurant|cafe|bar|fast_food|food_court|pub|biergarten"](${bb});way["amenity"~"restaurant|cafe|bar|fast_food"](${bb}););out body;>;out skel qt;`,
   };
   return m[id] ?? '';
 }
