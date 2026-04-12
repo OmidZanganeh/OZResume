@@ -190,8 +190,9 @@ function buildOverpassQuery(id: string, b: Bbox): string {
     water:           `${hd}(way["natural"="water"](${bb});way["waterway"](${bb});relation["natural"="water"](${bb}););out body;>;out skel qt;`,
     landuse:         `${hd}way["landuse"](${bb});out body;>;out skel qt;`,
     railways:        `${hd}way["railway"](${bb});out body;>;out skel qt;`,
-    // is_in: fetches admin boundaries that contain the center point (skips bbox filter — state/city boundaries span beyond any city viewport)
-    'admin-bounds':  `${hd}is_in(${((b.n+b.s)/2).toFixed(6)},${((b.e+b.w)/2).toFixed(6)})->.a;relation(pivot.a)["boundary"="administrative"]["admin_level"~"^[2-8]$"];out body;>;out skel qt;`,
+    // [bbox] clips geometry to viewport (avoids downloading 100k+ nodes for state boundaries).
+    // out geom; embeds coordinates inline — osmtogeojson assembles polygons correctly.
+    'admin-bounds':  `[out:json][timeout:30][bbox:${bb}][maxsize:32000000];is_in(${((b.n+b.s)/2).toFixed(6)},${((b.e+b.w)/2).toFixed(6)})->.a;relation(pivot.a)["boundary"="administrative"]["admin_level"~"^[2-8]$"];out geom;`,
     power:           `${hd}(way["power"~"line|minor_line|cable"](${bb});node["power"~"plant|substation|tower"](${bb});way["power"="plant"](${bb}););out body;>;out skel qt;`,
     'natural-areas': `${hd}(way["natural"~"wood|forest|grassland|heath|scrub|beach|cliff|wetland"](${bb});relation["natural"~"wood|forest|grassland"](${bb}););out body;>;out skel qt;`,
     historic:        `${hd}(node["historic"](${bb});way["historic"](${bb});relation["historic"](${bb}););out body;>;out skel qt;`,
@@ -362,6 +363,68 @@ function toKML(fc: GeoFC, name: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${name}</name>\n${marks}\n</Document>\n</kml>`;
 }
 
+// ─── Shapefile helpers ────────────────────────────────────────────────────────
+// DBF field names: ≤10 chars, alphanumeric + underscore, no leading digit.
+function sanitizePropsForShp(props: GeoFeature['properties']): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  const used = new Set<string>();
+  for (const [k, v] of Object.entries(props ?? {})) {
+    let key = k.replace(/[^a-zA-Z0-9]/g, '_').replace(/^(\d)/, 'f_$1').slice(0, 10);
+    if (!key) key = 'field';
+    if (used.has(key)) {
+      const base = key.slice(0, 8);
+      let n = 2;
+      while (used.has(`${base}_${n}`)) n++;
+      key = `${base}_${n}`;
+    }
+    used.add(key);
+    out[key] = (v === null || v === undefined) ? '' : (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') ? v : String(v);
+  }
+  return out;
+}
+
+// shp-write only supports Point, LineString, Polygon. Split and explode multi-types.
+function explodeForShp(fc: GeoFC): GeoFC[] {
+  const pts: GeoFeature[] = [], lns: GeoFeature[] = [], pls: GeoFeature[] = [];
+  for (const f of fc.features) {
+    if (!f.geometry) continue;
+    const p = sanitizePropsForShp(f.properties);
+    const g = f.geometry as { type: string; coordinates: unknown };
+    const mk = (type: string, coordinates: unknown): GeoFeature =>
+      ({ type: 'Feature', geometry: { type, coordinates } as GeoFeature['geometry'], properties: p });
+    switch (g.type) {
+      case 'Point':           pts.push(mk('Point', g.coordinates)); break;
+      case 'MultiPoint':      for (const c of g.coordinates as unknown[]) pts.push(mk('Point', c)); break;
+      case 'LineString':      lns.push(mk('LineString', g.coordinates)); break;
+      case 'MultiLineString': for (const c of g.coordinates as unknown[]) lns.push(mk('LineString', c)); break;
+      case 'Polygon':         pls.push(mk('Polygon', g.coordinates)); break;
+      case 'MultiPolygon':    for (const c of g.coordinates as unknown[]) pls.push(mk('Polygon', c)); break;
+    }
+  }
+  return [
+    ...(pts.length ? [{ type: 'FeatureCollection' as const, features: pts }] : []),
+    ...(lns.length ? [{ type: 'FeatureCollection' as const, features: lns }] : []),
+    ...(pls.length ? [{ type: 'FeatureCollection' as const, features: pls }] : []),
+  ];
+}
+
+async function shpZip(fc: GeoFC, filename: string): Promise<Blob> {
+  const shpwrite = (await import('@mapbox/shp-write')).default;
+  const groups   = explodeForShp(fc);
+  if (!groups.length) return new Blob([], { type: 'application/zip' });
+
+  const JSZip = (await import('jszip')).default;
+  const zip   = new JSZip();
+  for (const group of groups) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const blob    = await shpwrite.zip(group as any, { outputType: 'blob', compression: 'DEFLATE' } as any) as Blob;
+    const grpZip  = await JSZip.loadAsync(blob);
+    grpZip.forEach((relPath, file) => { zip.file(relPath, file.async('uint8array')); });
+  }
+  void filename; // name applied by caller
+  return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+}
+
 function downloadBlob(content: string | Blob, filename: string, mime: string) {
   const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
   const url  = URL.createObjectURL(blob);
@@ -480,10 +543,8 @@ export default function GISDownloaderPage() {
       } else if (format === 'kml') {
         downloadBlob(toKML(fc, layer?.label ?? layerId), `${name}.kml`, 'application/vnd.google-earth.kml+xml');
       } else if (format === 'shapefile') {
-        const shpwrite = await import('@mapbox/shp-write');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const blob = await shpwrite.default.zip(fc as any, { outputType: 'blob', compression: 'DEFLATE' } as any);
-        downloadBlob(blob as Blob, `${name}.zip`, 'application/zip');
+        const blob = await shpZip(fc, name);
+        downloadBlob(blob, `${name}.zip`, 'application/zip');
       } else {
         downloadBlob(JSON.stringify(fc, null, 2), `${name}.geojson`, 'application/geo+json');
       }
@@ -501,10 +562,9 @@ export default function GISDownloaderPage() {
     setBundleStatus('loading');
     setBundleProgress(0);
     try {
-      const JSZip   = (await import('jszip')).default;
-      const shpwrite = format === 'shapefile' ? (await import('@mapbox/shp-write')).default : null;
-      const zip     = new JSZip();
-      const layers  = ALL_LAYERS.filter(l => selected.has(l.id));
+      const JSZip = (await import('jszip')).default;
+      const zip   = new JSZip();
+      const layers = ALL_LAYERS.filter(l => selected.has(l.id));
       let done = 0;
 
       await Promise.allSettled(layers.map(async (layer) => {
@@ -512,11 +572,9 @@ export default function GISDownloaderPage() {
           const fc = await getFeatures(layer.id, bbox);
           if (!fc.features.length) return;
 
-          if (format === 'shapefile' && shpwrite) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const layerBlob = await shpwrite.zip(fc as any, { outputType: 'blob', compression: 'DEFLATE' } as any) as Blob;
+          if (format === 'shapefile') {
+            const layerBlob = await shpZip(fc, layer.id);
             const layerZip  = await JSZip.loadAsync(layerBlob);
-            // Place each shapefile component in a named subfolder
             layerZip.forEach((relPath, file) => {
               zip.file(`${layer.id}/${relPath}`, file.async('uint8array'));
             });
