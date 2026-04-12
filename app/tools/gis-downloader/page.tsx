@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import osmtogeojson from 'osmtogeojson';
 import styles from './page.module.css';
 import type { Bbox } from './MapPanel';
 
@@ -18,11 +19,6 @@ type ScanVal  = 'scanning' | 'error' | number;
 
 interface Layer { id: string; label: string; emoji: string; desc: string; usaOnly?: boolean; }
 
-interface OsmElement {
-  type: 'node' | 'way' | 'relation';
-  id: number; lat?: number; lon?: number; nodes?: number[];
-  tags?: Record<string, string>;
-}
 interface GeoFeature {
   type: 'Feature';
   geometry: Record<string, unknown>;
@@ -141,7 +137,8 @@ async function countOSM(layerId: string, b: Bbox): Promise<number> {
     food:            `[out:json][timeout:15];(node["amenity"~"restaurant|cafe|bar|fast_food|food_court|pub|biergarten"](${bb}););out count;`,
   };
   const res  = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q[layerId] }) });
-  const data = await res.json() as { elements?: { tags?: { total?: string } }[] };
+  const data = await res.json() as { elements?: { tags?: { total?: string } }[]; error?: string };
+  if (data.error || !res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
   return parseInt(data.elements?.[0]?.tags?.total ?? '0', 10);
 }
 
@@ -213,21 +210,17 @@ function buildOverpassQuery(id: string, b: Bbox): string {
   return m[id] ?? '';
 }
 
-function osmToGeoJSON(data: { elements: OsmElement[] }): GeoFC {
-  const nc = new Map<number, [number, number]>();
-  for (const el of data.elements) if (el.type === 'node') nc.set(el.id, [el.lon!, el.lat!]);
-  const features: GeoFeature[] = [];
-  for (const el of data.elements) {
-    if (!el.tags || !Object.keys(el.tags).length) continue;
-    if (el.type === 'node') {
-      features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [el.lon!, el.lat!] }, properties: { osm_id: el.id, osm_type: 'node', ...el.tags } });
-    } else if (el.type === 'way' && el.nodes) {
-      const coords = el.nodes.map(id => nc.get(id)).filter((c): c is [number, number] => !!c);
-      if (coords.length < 2) continue;
-      const closed = el.nodes[0] === el.nodes[el.nodes.length - 1] && coords.length >= 4;
-      features.push({ type: 'Feature', geometry: closed ? { type: 'Polygon', coordinates: [coords] } : { type: 'LineString', coordinates: coords }, properties: { osm_id: el.id, osm_type: 'way', ...el.tags } });
-    }
-  }
+function overpassToGeoJSON(raw: Record<string, unknown>): GeoFC {
+  if (raw.error) throw new Error(String(raw.error));
+  const fc = osmtogeojson(raw);
+  // Filter features with null geometry (incomplete OSM data)
+  const features = fc.features
+    .filter(f => f.geometry !== null)
+    .map(f => ({
+      type: 'Feature' as const,
+      geometry: f.geometry as GeoFeature['geometry'],
+      properties: (f.properties ?? {}) as GeoFeature['properties'],
+    }));
   return { type: 'FeatureCollection', features };
 }
 
@@ -275,8 +268,10 @@ async function getCount(id: string, b: Bbox): Promise<number> {
 
 async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
   if (OSM_IDS.has(id)) {
-    const res = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: buildOverpassQuery(id, b) }) });
-    return osmToGeoJSON(await res.json() as { elements: OsmElement[] });
+    const res  = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: buildOverpassQuery(id, b) }) });
+    const raw  = await res.json() as Record<string, unknown>;
+    if (!res.ok) throw new Error((raw.error as string | undefined) ?? `Overpass HTTP ${res.status}`);
+    return overpassToGeoJSON(raw);
   }
   if (id === 'earthquakes') {
     const since = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10);
@@ -284,15 +279,24 @@ async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
     return { type: 'FeatureCollection', features: data.features ?? [] };
   }
   if (id === 'species') {
-    const poly = `${b.w} ${b.s},${b.e} ${b.s},${b.e} ${b.n},${b.w} ${b.n},${b.w} ${b.s}`;
-    const data = await (await fetch(`https://api.gbif.org/v1/occurrence/search?geometry=POLYGON((${poly}))&hasCoordinate=true&limit=300`)).json() as { results?: Record<string, unknown>[] };
+    const poly   = `${b.w} ${b.s},${b.e} ${b.s},${b.e} ${b.n},${b.w} ${b.n},${b.w} ${b.s}`;
+    const base   = `https://api.gbif.org/v1/occurrence/search?geometry=POLYGON((${poly}))&hasCoordinate=true&limit=300`;
+    const page1  = await (await fetch(base + '&offset=0')).json() as { results?: Record<string, unknown>[]; count?: number };
+    const total  = Math.min(page1.count ?? 0, 600);
+    let results  = page1.results ?? [];
+    if (total > 300) {
+      const page2 = await (await fetch(base + '&offset=300')).json() as { results?: Record<string, unknown>[] };
+      results = results.concat(page2.results ?? []);
+    }
     return {
       type: 'FeatureCollection',
-      features: (data.results ?? []).map(r => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point', coordinates: [r.decimalLongitude as number, r.decimalLatitude as number] },
-        properties: { species: String(r.species??''), scientific_name: String(r.scientificName??''), date: String(r.eventDate??''), kingdom: String(r.kingdom??''), family: String(r.family??''), country: String(r.country??'') },
-      })),
+      features: results
+        .filter(r => r.decimalLongitude != null && r.decimalLatitude != null)
+        .map(r => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point', coordinates: [r.decimalLongitude as number, r.decimalLatitude as number] },
+          properties: { species: String(r.species??''), scientific_name: String(r.scientificName??''), date: String(r.eventDate??''), kingdom: String(r.kingdom??''), family: String(r.family??''), country: String(r.country??'') },
+        })),
     };
   }
   if (id === 'flood-zones')   return fetchFEMA(b);
@@ -305,9 +309,11 @@ async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
 // ─── Format converters ───────────────────────────────────────────────────────
 function centroid(f: GeoFeature): [number, number] {
   const g = f.geometry as { type: string; coordinates: unknown };
-  if (g.type === 'Point')      return g.coordinates as [number, number];
-  if (g.type === 'LineString') { const c = g.coordinates as [number,number][]; return c[Math.floor(c.length/2)]; }
-  if (g.type === 'Polygon')    { const c = (g.coordinates as [number,number][][])[0]; return [c.reduce((s,p)=>s+p[0],0)/c.length, c.reduce((s,p)=>s+p[1],0)/c.length]; }
+  if (g.type === 'Point')           return g.coordinates as [number, number];
+  if (g.type === 'LineString')      { const c = g.coordinates as [number,number][]; return c[Math.floor(c.length/2)]; }
+  if (g.type === 'MultiLineString') { const c = (g.coordinates as [number,number][][])[0]; return c[Math.floor(c.length/2)]; }
+  if (g.type === 'Polygon')         { const c = (g.coordinates as [number,number][][])[0]; return [c.reduce((s,p)=>s+p[0],0)/c.length, c.reduce((s,p)=>s+p[1],0)/c.length]; }
+  if (g.type === 'MultiPolygon')    { const c = (g.coordinates as [number,number][][][])[0][0]; return [c.reduce((s,p)=>s+p[0],0)/c.length, c.reduce((s,p)=>s+p[1],0)/c.length]; }
   return [0, 0];
 }
 
@@ -319,14 +325,37 @@ function toCSV(fc: GeoFC): string {
   return [header, ...rows].join('\n');
 }
 
+function ringToKML(ring: [number,number][]): string {
+  return `<LinearRing><coordinates>${ring.map(c=>`${c[0]},${c[1]},0`).join(' ')}</coordinates></LinearRing>`;
+}
+function polygonToKML(rings: [number,number][][]): string {
+  const outer = `<outerBoundaryIs>${ringToKML(rings[0])}</outerBoundaryIs>`;
+  const inner = rings.slice(1).map(r=>`<innerBoundaryIs>${ringToKML(r)}</innerBoundaryIs>`).join('');
+  return `<Polygon>${outer}${inner}</Polygon>`;
+}
 function toKML(fc: GeoFC, name: string): string {
   const marks = fc.features.map(f => {
-    const p=f.properties??{}, lbl=p.name??p.title??p.osm_id??'Feature';
-    const dsc=Object.entries(p).map(([k,v])=>`<tr><td><b>${k}</b></td><td>${v}</td></tr>`).join('');
-    const g=f.geometry as {type:string;coordinates:unknown}; let geo='';
-    if(g.type==='Point'){const[x,y]=g.coordinates as[number,number];geo=`<Point><coordinates>${x},${y},0</coordinates></Point>`;}
-    else if(g.type==='LineString'){const cc=(g.coordinates as[number,number][]).map(c=>`${c[0]},${c[1]},0`).join(' ');geo=`<LineString><coordinates>${cc}</coordinates></LineString>`;}
-    else if(g.type==='Polygon'){const cc=((g.coordinates as[number,number][][])[0]).map(c=>`${c[0]},${c[1]},0`).join(' ');geo=`<Polygon><outerBoundaryIs><LinearRing><coordinates>${cc}</coordinates></LinearRing></outerBoundaryIs></Polygon>`;}
+    const p   = f.properties ?? {};
+    const lbl = String(p.name ?? p.title ?? p.osm_id ?? 'Feature');
+    const dsc = Object.entries(p).map(([k,v])=>`<tr><td><b>${k}</b></td><td>${v}</td></tr>`).join('');
+    const g   = f.geometry as { type: string; coordinates: unknown };
+    let geo   = '';
+    if (g.type === 'Point') {
+      const [x,y] = g.coordinates as [number,number];
+      geo = `<Point><coordinates>${x},${y},0</coordinates></Point>`;
+    } else if (g.type === 'LineString') {
+      const cc = (g.coordinates as [number,number][]).map(c=>`${c[0]},${c[1]},0`).join(' ');
+      geo = `<LineString><coordinates>${cc}</coordinates></LineString>`;
+    } else if (g.type === 'MultiLineString') {
+      geo = (g.coordinates as [number,number][][]).map(ls=>{
+        const cc = ls.map(c=>`${c[0]},${c[1]},0`).join(' ');
+        return `<LineString><coordinates>${cc}</coordinates></LineString>`;
+      }).join('');
+    } else if (g.type === 'Polygon') {
+      geo = polygonToKML(g.coordinates as [number,number][][]);
+    } else if (g.type === 'MultiPolygon') {
+      geo = (g.coordinates as [number,number][][][]).map(poly => polygonToKML(poly)).join('');
+    }
     return `  <Placemark><name><![CDATA[${lbl}]]></name><description><![CDATA[<table>${dsc}</table>]]></description>${geo}</Placemark>`;
   }).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${name}</name>\n${marks}\n</Document>\n</kml>`;
@@ -348,6 +377,7 @@ export default function GISDownloaderPage() {
   const [format,       setFormat]       = useState<Format>('geojson');
   const [dlStatus,     setDlStatus]     = useState<Record<string, DlStatus>>({});
   const [dlCounts,     setDlCounts]     = useState<Record<string, number>>({});
+  const [dlErrors,     setDlErrors]     = useState<Record<string, string>>({});
   const [search,       setSearch]       = useState('');
   const [searching,    setSearching]    = useState(false);
   const [stage,          setStage]          = useState<Stage>('no-area');
@@ -364,7 +394,7 @@ export default function GISDownloaderPage() {
   const kmW    = bbox ? ((bbox.n - bbox.s) * 111).toFixed(0) : '—';
   const kmH    = bbox ? ((bbox.e - bbox.w) * 111 * Math.cos(midLat * Math.PI / 180)).toFixed(0) : '—';
 
-  const clearResults = () => { setScanned({}); setDlStatus({}); setDlCounts({}); setSelected(new Set()); setBundleStatus('idle'); setBundleProgress(0); };
+  const clearResults = () => { setScanned({}); setDlStatus({}); setDlCounts({}); setDlErrors({}); setSelected(new Set()); setBundleStatus('idle'); setBundleProgress(0); };
 
   const handleViewportChange = useCallback((b: Bbox) => {
     setViewportBbox(b);
@@ -444,7 +474,9 @@ export default function GISDownloaderPage() {
         downloadBlob(JSON.stringify(fc, null, 2), `${name}.geojson`, 'application/geo+json');
       }
       setDlStatus(p => ({ ...p, [layerId]: 'done' }));
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setDlErrors(p => ({ ...p, [layerId]: msg }));
       setDlStatus(p => ({ ...p, [layerId]: 'error' }));
     }
   }, [bbox, format, tooBig]);
@@ -605,18 +637,22 @@ export default function GISDownloaderPage() {
                       <p className={styles.dlLabel}>Download Layers</p>
                       {activeSelected.length === 0 && <p className={styles.emptyMsg}>Select at least one layer above.</p>}
                       {activeSelected.map(l => {
-                        const s = dlStatus[l.id] ?? 'idle';
-                        const n = dlCounts[l.id];
+                        const s   = dlStatus[l.id] ?? 'idle';
+                        const n   = dlCounts[l.id];
+                        const err = dlErrors[l.id];
                         return (
-                          <button key={l.id}
-                            className={`${styles.dlBtn} ${s==='loading'?styles.dlLoading:s==='done'?styles.dlDone:s==='error'?styles.dlError:''}`}
-                            onClick={() => downloadLayer(l.id)} disabled={!bbox || tooBig || s === 'loading'}
-                          >
-                            <span>{l.emoji} {l.label}</span>
-                            <span className={styles.dlStatus}>
-                              {s==='loading' ? '⏳' : s==='done' ? (n===0?'0 found':`✓ ${n.toLocaleString()}`) : s==='error' ? '✗' : `↓ .${format==='shapefile'?'zip':format}`}
-                            </span>
-                          </button>
+                          <div key={l.id}>
+                            <button
+                              className={`${styles.dlBtn} ${s==='loading'?styles.dlLoading:s==='done'?styles.dlDone:s==='error'?styles.dlError:''}`}
+                              onClick={() => downloadLayer(l.id)} disabled={!bbox || tooBig || s === 'loading'}
+                            >
+                              <span>{l.emoji} {l.label}</span>
+                              <span className={styles.dlStatus}>
+                                {s==='loading' ? '⏳' : s==='done' ? (n===0?'0 found':`✓ ${n.toLocaleString()}`) : s==='error' ? '✗ Error' : `↓ .${format==='shapefile'?'zip':format}`}
+                              </span>
+                            </button>
+                            {s === 'error' && err && <p className={styles.dlErrorMsg}>{err}</p>}
+                          </div>
                         );
                       })}
 
