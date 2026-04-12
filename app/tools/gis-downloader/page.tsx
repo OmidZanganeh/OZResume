@@ -357,9 +357,11 @@ async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
   } else if (TIGER_URLS[id])         { fc = await fetchTIGER(TIGER_URLS[id], b);
   } else { return { type: 'FeatureCollection', features: [] }; }
 
-  // Fill in null for any property key that exists in some features but not others,
-  // so every format (GeoJSON, CSV, shapefile) gets a consistent column schema.
-  return normalizeSchema(fc);
+  return fc;
+  // normalizeSchema is applied by callers that need a consistent column schema
+  // (GeoJSON, CSV). Shapefile skips it because the DBF builds its own schema
+  // from each feature's actual keys, and padding 100+ null columns onto every
+  // feature inflates file size dramatically and freezes the browser.
 }
 
 // ─── Format converters ───────────────────────────────────────────────────────
@@ -550,22 +552,38 @@ function _assembleShpShx(shpType: number, records: Uint8Array[]): { shp: Uint8Ar
 function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
   const enc = new TextEncoder();
 
+  // Count how many features each key appears in, then keep the most common ones.
+  // dBASE III+ supports up to 255 fields but ArcGIS reliably handles ≤ 100.
+  // Capping here avoids bloated DBFs and "Failed to add data" errors on wide tables.
+  const MAX_DBF_FIELDS = 100;
+  const keyCounts = new Map<string, number>();
+  for (const props of propsList) {
+    for (const k of Object.keys(props ?? {})) {
+      if (props![k] != null && props![k] !== '') {
+        keyCounts.set(k, (keyCounts.get(k) ?? 0) + 1);
+      }
+    }
+  }
+  // Sort by frequency descending, take top MAX_DBF_FIELDS
+  const topKeys = Array.from(keyCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, MAX_DBF_FIELDS)
+    .map(([k]) => k);
+
   // Build global field schema: raw property key → sanitised 10-char DBF name
   const schema = new Map<string, string>();
   const used   = new Set<string>();
-  for (const props of propsList) {
-    for (const k of Object.keys(props ?? {})) {
-      if (schema.has(k)) continue;
-      let name = k.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^(\d)/, 'F$1').toUpperCase().slice(0, 10);
-      if (!name) name = 'FIELD';
-      if (used.has(name)) {
-        const base = name.slice(0, 8);
-        let n = 2;
-        while (used.has(`${base}_${n}`)) n++;
-        name = `${base}_${n}`.slice(0, 10);
-      }
-      used.add(name); schema.set(k, name);
+  for (const k of topKeys) {
+    if (schema.has(k)) continue;
+    let name = k.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^(\d)/, 'F$1').toUpperCase().slice(0, 10);
+    if (!name) name = 'FIELD';
+    if (used.has(name)) {
+      const base = name.slice(0, 8);
+      let n = 2;
+      while (used.has(`${base}_${n}`)) n++;
+      name = `${base}_${n}`.slice(0, 10);
     }
+    used.add(name); schema.set(k, name);
   }
   const rawKeys  = Array.from(schema.keys());
   const dbfNames = rawKeys.map(k => schema.get(k)!);
@@ -627,6 +645,7 @@ function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
 async function shpZip(fc: GeoFC, _filename: string): Promise<Blob> {
   const JSZip = (await import('jszip')).default;
   const zip   = new JSZip();
+  const yield_ = () => new Promise<void>(r => setTimeout(r, 0));
 
   type Group = { name: string; shpType: 1|3|5; geoms: {type:string;coordinates:unknown}[]; props: GeoFeature['properties'][] };
   const groups: Group[] = [
@@ -654,9 +673,13 @@ async function shpZip(fc: GeoFC, _filename: string): Promise<Blob> {
 
   for (const { name, shpType, geoms, props } of groups) {
     if (!geoms.length) continue;
-    // Build one SHP content record per geometry — same iteration order as DBF below.
+    // Yield to the browser so the loading spinner stays responsive,
+    // then run the CPU-heavy binary assembly steps.
+    await yield_();
     const records = geoms.map(g => _geomRec(g, shpType));
+    await yield_();
     const { shp, shx } = _assembleShpShx(shpType, records);
+    await yield_();
     const dbf = _buildDbf(props); // props.length === records.length (guaranteed by push())
     zip.file(`${name}.shp`, shp);
     zip.file(`${name}.shx`, shx);
@@ -782,14 +805,18 @@ export default function GISDownloaderPage() {
       if (!fc.features.length) { setDlStatus(p => ({ ...p, [layerId]: 'done' })); return; }
 
       if (format === 'csv') {
-        downloadBlob(toCSV(fc), `${name}.csv`, 'text/csv');
+        downloadBlob(toCSV(normalizeSchema(fc)), `${name}.csv`, 'text/csv');
       } else if (format === 'kml') {
         downloadBlob(toKML(fc, layer?.label ?? layerId), `${name}.kml`, 'application/vnd.google-earth.kml+xml');
       } else if (format === 'shapefile') {
+        // Shapefile binary generation is CPU-intensive. Yield to the browser
+        // first so the loading spinner renders, then run the conversion.
+        await new Promise<void>(r => setTimeout(r, 50));
         const blob = await shpZip(fc, name);
         downloadBlob(blob, `${name}.zip`, 'application/zip');
       } else {
-        downloadBlob(JSON.stringify(fc, null, 2), `${name}.geojson`, 'application/geo+json');
+        // GeoJSON: normalise schema so every feature has the same columns
+        downloadBlob(JSON.stringify(normalizeSchema(fc), null, 2), `${name}.geojson`, 'application/geo+json');
       }
       setDlStatus(p => ({ ...p, [layerId]: 'done' }));
     } catch (err) {
@@ -818,17 +845,18 @@ export default function GISDownloaderPage() {
           if (!fc.features.length) return;
 
           if (format === 'shapefile') {
+            await new Promise<void>(r => setTimeout(r, 50)); // yield before heavy work
             const layerBlob = await shpZip(fc, layer.id);
             const layerZip  = await JSZip.loadAsync(layerBlob);
             layerZip.forEach((relPath, file) => {
               zip.file(`${layer.id}/${relPath}`, file.async('uint8array'));
             });
           } else if (format === 'csv') {
-            zip.file(`${layer.id}.csv`, toCSV(fc));
+            zip.file(`${layer.id}.csv`, toCSV(normalizeSchema(fc)));
           } else if (format === 'kml') {
             zip.file(`${layer.id}.kml`, toKML(fc, layer.label));
           } else {
-            zip.file(`${layer.id}.geojson`, JSON.stringify(fc, null, 2));
+            zip.file(`${layer.id}.geojson`, JSON.stringify(normalizeSchema(fc), null, 2));
           }
         } catch { /* skip failed layers silently */ }
         done++;
