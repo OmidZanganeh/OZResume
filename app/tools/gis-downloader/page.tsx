@@ -324,9 +324,11 @@ export default function GISDownloaderPage() {
   const [dlCounts,     setDlCounts]     = useState<Record<string, number>>({});
   const [search,       setSearch]       = useState('');
   const [searching,    setSearching]    = useState(false);
-  const [stage,        setStage]        = useState<Stage>('no-area');
-  const [scanned,      setScanned]      = useState<Record<string, ScanVal>>({});
-  const [selected,     setSelected]     = useState<Set<string>>(new Set());
+  const [stage,          setStage]          = useState<Stage>('no-area');
+  const [scanned,        setScanned]        = useState<Record<string, ScanVal>>({});
+  const [selected,       setSelected]       = useState<Set<string>>(new Set());
+  const [bundleStatus,   setBundleStatus]   = useState<DlStatus>('idle');
+  const [bundleProgress, setBundleProgress] = useState(0);
   const flyToRef = useRef<((lat: number, lon: number, zoom?: number) => void) | null>(null);
 
   const bbox   = customBbox ?? viewportBbox;
@@ -336,7 +338,7 @@ export default function GISDownloaderPage() {
   const kmW    = bbox ? ((bbox.n - bbox.s) * 111).toFixed(0) : '—';
   const kmH    = bbox ? ((bbox.e - bbox.w) * 111 * Math.cos(midLat * Math.PI / 180)).toFixed(0) : '—';
 
-  const clearResults = () => { setScanned({}); setDlStatus({}); setDlCounts({}); setSelected(new Set()); };
+  const clearResults = () => { setScanned({}); setDlStatus({}); setDlCounts({}); setSelected(new Set()); setBundleStatus('idle'); setBundleProgress(0); };
 
   const handleViewportChange = useCallback((b: Bbox) => {
     setViewportBbox(b);
@@ -421,8 +423,53 @@ export default function GISDownloaderPage() {
     }
   }, [bbox, format, tooBig]);
 
+  // ── Bundle all selected layers into one ZIP ───────────────────────────────
+  const bundleAll = useCallback(async () => {
+    if (!bbox || tooBig || selected.size === 0) return;
+    setBundleStatus('loading');
+    setBundleProgress(0);
+    try {
+      const JSZip   = (await import('jszip')).default;
+      const shpwrite = format === 'shapefile' ? (await import('@mapbox/shp-write')).default : null;
+      const zip     = new JSZip();
+      const layers  = ALL_LAYERS.filter(l => selected.has(l.id));
+      let done = 0;
+
+      await Promise.allSettled(layers.map(async (layer) => {
+        try {
+          const fc = await getFeatures(layer.id, bbox);
+          if (!fc.features.length) return;
+
+          if (format === 'shapefile' && shpwrite) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const layerBlob = await shpwrite.zip(fc as any, { outputType: 'blob', compression: 'DEFLATE' } as any) as Blob;
+            const layerZip  = await JSZip.loadAsync(layerBlob);
+            // Place each shapefile component in a named subfolder
+            layerZip.forEach((relPath, file) => {
+              zip.file(`${layer.id}/${relPath}`, file.async('uint8array'));
+            });
+          } else if (format === 'csv') {
+            zip.file(`${layer.id}.csv`, toCSV(fc));
+          } else if (format === 'kml') {
+            zip.file(`${layer.id}.kml`, toKML(fc, layer.label));
+          } else {
+            zip.file(`${layer.id}.geojson`, JSON.stringify(fc, null, 2));
+          }
+        } catch { /* skip failed layers silently */ }
+        done++;
+        setBundleProgress(Math.round((done / layers.length) * 100));
+      }));
+
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      downloadBlob(blob, `gis_bundle_${new Date().toISOString().slice(0, 10)}.zip`, 'application/zip');
+      setBundleStatus('done');
+    } catch {
+      setBundleStatus('error');
+    }
+  }, [bbox, format, tooBig, selected]);
+
   const activeSelected = ALL_LAYERS.filter(l => selected.has(l.id));
-  const scanning = stage === 'scanning';
+  const scanning    = stage === 'scanning';
   const scannedDone = stage === 'scanned';
 
   // ─── Render ──────────────────────────────────────────────────────────────
@@ -546,6 +593,24 @@ export default function GISDownloaderPage() {
                           </button>
                         );
                       })}
+
+                      {/* Bundle all button */}
+                      {activeSelected.length > 1 && (
+                        <button
+                          className={`${styles.bundleBtn} ${bundleStatus==='loading'?styles.bundleLoading:bundleStatus==='done'?styles.bundleDone:bundleStatus==='error'?styles.bundleError:''}`}
+                          onClick={() => { setBundleStatus('idle'); bundleAll(); }}
+                          disabled={!bbox || tooBig || bundleStatus === 'loading'}
+                        >
+                          <span>📦 Bundle {activeSelected.length} layers → .zip</span>
+                          <span className={styles.dlStatus}>
+                            {bundleStatus === 'loading'
+                              ? `${bundleProgress}%`
+                              : bundleStatus === 'done'  ? '✓ Downloaded'
+                              : bundleStatus === 'error' ? '✗ Error'
+                              : '↓'}
+                          </span>
+                        </button>
+                      )}
                     </div>
                   </>
                 )}

@@ -466,6 +466,33 @@
 .dlDone    .dlStatus { color: #16a34a; }
 .dlError   .dlStatus { color: #dc2626; }
 
+/* ─── Bundle all button ────────────────────────────────────────────────────── */
+.bundleBtn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border: 2px solid var(--accent-blue);
+  border-radius: 6px;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: 0.82em;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.bundleBtn:hover:not(:disabled) { opacity: 0.88; }
+.bundleBtn:active:not(:disabled) { transform: scale(0.98); }
+.bundleBtn:disabled { opacity: 0.45; cursor: default; }
+
+.bundleLoading { background: #6366f1; border-color: #6366f1; }
+.bundleDone    { background: #16a34a; border-color: #16a34a; }
+.bundleError   { background: #dc2626; border-color: #dc2626; }
+
 /* ─── Attribution ──────────────────────────────────────────────────────────── */
 .attrib {
   font-size: 0.7em;
