@@ -421,18 +421,38 @@ function _ptRec(coords: unknown): Uint8Array {
   return new Uint8Array(b);
 }
 
+// ESRI shapefiles require CW outer rings and CCW holes (opposite of GeoJSON).
+// Compute signed area via shoelace formula (positive = CCW in geographic coords).
+function _ringArea(ring: number[][]): number {
+  let a = 0;
+  for (let i = 0, n = ring.length; i < n; i++) {
+    const j = (i + 1) % n;
+    a += ring[i][0] * ring[j][1] - ring[j][0] * ring[i][1];
+  }
+  return a / 2;
+}
+// Enforce ESRI winding: outer ring CW (area < 0), holes CCW (area > 0).
+function _esriWind(rings: number[][][]): number[][][] {
+  return rings.map((r, i) => {
+    const a = _ringArea(r);
+    if (i === 0) return a > 0 ? [...r].reverse() : r;  // outer: must be CW
+    else         return a < 0 ? [...r].reverse() : r;  // hole:  must be CCW
+  });
+}
+
 // Polyline (type 3) or Polygon (type 5) record content.
 // rings: for LineString = [[x,y],...]; for Polygon = [[outer...],[hole...],...]
 function _polyRec(rings: number[][][], shpType: 3 | 5): Uint8Array {
-  const validRings = rings.filter(r => Array.isArray(r) && r.length >= (shpType === 5 ? 4 : 2));
-  if (!validRings.length) return _nullRec();
-  const allPts = validRings.flat() as [number, number][];
+  const valid = rings.filter(r => Array.isArray(r) && r.length >= (shpType === 5 ? 4 : 2));
+  if (!valid.length) return _nullRec();
+  const wound  = shpType === 5 ? _esriWind(valid) : valid; // apply ESRI winding to polygons
+  const allPts = wound.flat() as [number, number][];
   let xmin = Infinity, ymin = Infinity, xmax = -Infinity, ymax = -Infinity;
   for (const [x, y] of allPts) {
     if (x < xmin) xmin = x; if (x > xmax) xmax = x;
     if (y < ymin) ymin = y; if (y > ymax) ymax = y;
   }
-  const nP = validRings.length, nPts = allPts.length;
+  const nP = wound.length, nPts = allPts.length;
   const b = new ArrayBuffer(4 + 32 + 4 + 4 + nP * 4 + nPts * 16);
   const v = new DataView(b); let o = 0;
   _i32le(v, o, shpType);         o += 4;
@@ -440,7 +460,7 @@ function _polyRec(rings: number[][][], shpType: 3 | 5): Uint8Array {
   _f64le(v, o, xmax); o += 8; _f64le(v, o, ymax); o += 8;
   _i32le(v, o, nP);   o += 4; _i32le(v, o, nPts); o += 4;
   let start = 0;
-  for (const r of validRings) { _i32le(v, o, start); o += 4; start += r.length; }
+  for (const r of wound)  { _i32le(v, o, start); o += 4; start += r.length; }
   for (const [x, y] of allPts) { _f64le(v, o, x); o += 8; _f64le(v, o, y); o += 8; }
   return new Uint8Array(b);
 }
@@ -504,10 +524,13 @@ function _assembleShpShx(shpType: number, records: Uint8Array[]): { shp: Uint8Ar
 }
 
 // Build DBF file from a list of property objects (same length as SHP records).
-// Uses a globally consistent field schema across all features.
+// Uses a globally consistent field schema and dynamic field widths (not a fixed
+// 254-byte width) to keep files small and avoid signed-byte interpretation issues.
 function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
   const enc = new TextEncoder();
-  const schema = new Map<string, string>(); // raw key → 10-char DBF name
+
+  // Build global field schema: raw property key → sanitised 10-char DBF name
+  const schema = new Map<string, string>();
   const used   = new Set<string>();
   for (const props of propsList) {
     for (const k of Object.keys(props ?? {})) {
@@ -525,35 +548,58 @@ function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
   }
   const rawKeys  = Array.from(schema.keys());
   const dbfNames = rawKeys.map(k => schema.get(k)!);
-  const FLEN = 254, nF = dbfNames.length;
-  const hdrSize = 32 + nF * 32 + 1;
-  const recSize = 1 + nF * FLEN;
-  const buf = new ArrayBuffer(hdrSize + propsList.length * recSize + 1);
-  const v = new DataView(buf); const u8 = new Uint8Array(buf);
+  const nF       = dbfNames.length;
 
-  v.setUint8(0, 3);
+  // Compute the actual maximum string length for each field across all records,
+  // capped at 127. Keeping lengths ≤ 127 avoids signed-byte misinterpretation
+  // in parsers that incorrectly treat the field-length byte as signed.
+  const fLens: number[] = new Array(nF).fill(1);
+  for (const props of propsList) {
+    for (let j = 0; j < nF; j++) {
+      const len = String(props?.[rawKeys[j]] ?? '').length;
+      if (len > fLens[j]) fLens[j] = len;
+    }
+  }
+  for (let j = 0; j < nF; j++) fLens[j] = Math.min(fLens[j], 127);
+
+  const hdrSize = 32 + nF * 32 + 1;
+  const recSize = 1 + fLens.reduce((s, l) => s + l, 0);
+  const buf = new ArrayBuffer(hdrSize + propsList.length * recSize + 1);
+  const dv  = new DataView(buf);
+  const u8  = new Uint8Array(buf);
+
+  dv.setUint8(0, 3); // dBASE III
   const d = new Date();
-  v.setUint8(1, d.getFullYear() - 1900); v.setUint8(2, d.getMonth() + 1); v.setUint8(3, d.getDate());
-  v.setInt32(4, propsList.length, true);
-  v.setInt16(8, hdrSize, true); v.setInt16(10, recSize, true);
+  dv.setUint8(1, d.getFullYear() - 1900); dv.setUint8(2, d.getMonth() + 1); dv.setUint8(3, d.getDate());
+  dv.setInt32(4, propsList.length, true);
+  dv.setInt16(8, hdrSize, true); dv.setInt16(10, recSize, true);
   for (let i = 0; i < nF; i++) {
     const fo = 32 + i * 32;
     u8.set(enc.encode(dbfNames[i]).slice(0, 11), fo);
-    v.setUint8(fo + 11, 67); // 'C' = character field
-    v.setUint8(fo + 16, FLEN);
+    dv.setUint8(fo + 11, 67); // 'C' = character field
+    dv.setUint8(fo + 16, fLens[i]);
   }
-  v.setUint8(32 + nF * 32, 0x0D); // header terminator
+  dv.setUint8(32 + nF * 32, 0x0D); // header terminator
+
+  // Field offsets within each record (after the 1-byte deletion flag)
+  const fOffsets: number[] = [];
+  let off = 1;
+  for (const fl of fLens) { fOffsets.push(off); off += fl; }
 
   for (let i = 0; i < propsList.length; i++) {
-    const ro = hdrSize + i * recSize;
-    v.setUint8(ro, 0x20); // not deleted
+    const ro    = hdrSize + i * recSize;
+    dv.setUint8(ro, 0x20); // not deleted
     const props = propsList[i] ?? {};
     for (let j = 0; j < nF; j++) {
-      const val = String(props[rawKeys[j]] ?? '').slice(0, FLEN);
-      u8.set(enc.encode(val.padEnd(FLEN, ' ')).slice(0, FLEN), ro + 1 + j * FLEN);
+      const fl  = fLens[j];
+      const val = String(props[rawKeys[j]] ?? '').slice(0, fl);
+      const raw = enc.encode(val);
+      // Write bytes, then space-pad up to fl bytes
+      u8.set(raw.slice(0, fl), ro + fOffsets[j]);
+      for (let b = raw.length; b < fl; b++) u8[ro + fOffsets[j] + b] = 0x20;
     }
   }
-  v.setUint8(hdrSize + propsList.length * recSize, 0x1A); // EOF
+  dv.setUint8(hdrSize + propsList.length * recSize, 0x1A); // EOF
   return u8;
 }
 
@@ -595,6 +641,7 @@ async function shpZip(fc: GeoFC, _filename: string): Promise<Blob> {
     zip.file(`${name}.shx`, shx);
     zip.file(`${name}.dbf`, dbf);
     zip.file(`${name}.prj`, WGS84_PRJ);
+    zip.file(`${name}.cpg`, 'UTF-8'); // tell ArcGIS to use UTF-8 for the DBF
   }
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
 }
