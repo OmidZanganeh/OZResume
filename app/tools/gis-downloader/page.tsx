@@ -247,6 +247,25 @@ function buildOverpassQuery(id: string, b: Bbox): string {
   return m[id] ?? '';
 }
 
+// Normalize all features in a collection to share the same property schema.
+// Every key that appears in any feature is present in all features; missing
+// values are filled with null so every row has the same columns.
+function normalizeSchema(fc: GeoFC): GeoFC {
+  const allKeys = new Set<string>();
+  for (const f of fc.features) {
+    for (const k of Object.keys(f.properties ?? {})) allKeys.add(k);
+  }
+  if (allKeys.size === 0) return fc;
+  const keys = Array.from(allKeys);
+  const features = fc.features.map(f => ({
+    ...f,
+    properties: Object.fromEntries(
+      keys.map(k => [k, (f.properties ?? {})[k] ?? null])
+    ) as GeoFeature['properties'],
+  }));
+  return { type: 'FeatureCollection', features };
+}
+
 function overpassToGeoJSON(raw: Record<string, unknown>): GeoFC {
   if (raw.error) throw new Error(String(raw.error));
   const fc = osmtogeojson(raw);
@@ -304,16 +323,15 @@ async function getCount(id: string, b: Bbox): Promise<number> {
 }
 
 async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
+  let fc: GeoFC;
   if (OSM_IDS.has(id)) {
     const raw = await fetchOverpass(buildOverpassQuery(id, b));
-    return overpassToGeoJSON(raw);
-  }
-  if (id === 'earthquakes') {
+    fc = overpassToGeoJSON(raw);
+  } else if (id === 'earthquakes') {
     const since = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10);
     const data  = await (await fetch(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=${b.s}&maxlatitude=${b.n}&minlongitude=${b.w}&maxlongitude=${b.e}&starttime=${since}&minmagnitude=2`)).json() as { features: GeoFeature[] };
-    return { type: 'FeatureCollection', features: data.features ?? [] };
-  }
-  if (id === 'species') {
+    fc = { type: 'FeatureCollection', features: data.features ?? [] };
+  } else if (id === 'species') {
     const poly   = `${b.w} ${b.s},${b.e} ${b.s},${b.e} ${b.n},${b.w} ${b.n},${b.w} ${b.s}`;
     const base   = `https://api.gbif.org/v1/occurrence/search?geometry=POLYGON((${poly}))&hasCoordinate=true&limit=300`;
     const page1  = await (await fetch(base + '&offset=0')).json() as { results?: Record<string, unknown>[]; count?: number };
@@ -323,7 +341,7 @@ async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
       const page2 = await (await fetch(base + '&offset=300')).json() as { results?: Record<string, unknown>[] };
       results = results.concat(page2.results ?? []);
     }
-    return {
+    fc = {
       type: 'FeatureCollection',
       features: results
         .filter(r => r.decimalLongitude != null && r.decimalLatitude != null)
@@ -333,12 +351,15 @@ async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
           properties: { species: String(r.species??''), scientific_name: String(r.scientificName??''), date: String(r.eventDate??''), kingdom: String(r.kingdom??''), family: String(r.family??''), country: String(r.country??'') },
         })),
     };
-  }
-  if (id === 'flood-zones')   return fetchFEMA(b);
-  if (id === 'stream-gauges') return fetchWaterGauges(b);
-  if (id === 'wikipedia')     return fetchWikipedia(b);
-  if (TIGER_URLS[id])         return fetchTIGER(TIGER_URLS[id], b);
-  return { type: 'FeatureCollection', features: [] };
+  } else if (id === 'flood-zones')   { fc = await fetchFEMA(b);
+  } else if (id === 'stream-gauges') { fc = await fetchWaterGauges(b);
+  } else if (id === 'wikipedia')     { fc = await fetchWikipedia(b);
+  } else if (TIGER_URLS[id])         { fc = await fetchTIGER(TIGER_URLS[id], b);
+  } else { return { type: 'FeatureCollection', features: [] }; }
+
+  // Fill in null for any property key that exists in some features but not others,
+  // so every format (GeoJSON, CSV, shapefile) gets a consistent column schema.
+  return normalizeSchema(fc);
 }
 
 // ─── Format converters ───────────────────────────────────────────────────────
