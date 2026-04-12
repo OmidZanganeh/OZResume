@@ -306,6 +306,10 @@
   border-color: var(--border-light);
 }
 
+.layerOff {
+  opacity: 0.5;
+}
+
 .layerRow input[type="checkbox"] {
   width: 14px;
   height: 14px;

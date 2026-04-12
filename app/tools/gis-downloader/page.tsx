@@ -734,7 +734,7 @@ export default function GISDownloaderPage() {
   const kmW    = bbox ? ((bbox.n - bbox.s) * 111).toFixed(0) : '—';
   const kmH    = bbox ? ((bbox.e - bbox.w) * 111 * Math.cos(midLat * Math.PI / 180)).toFixed(0) : '—';
 
-  const clearResults = () => { setScanned({}); setDlStatus({}); setDlCounts({}); setDlErrors({}); setSelected(new Set()); setBundleStatus('idle'); setBundleProgress(0); };
+  const clearResults = (keepSelection = false) => { setScanned({}); setDlStatus({}); setDlCounts({}); setDlErrors({}); if (!keepSelection) setSelected(new Set()); setBundleStatus('idle'); setBundleProgress(0); };
 
   const handleViewportChange = useCallback((b: Bbox) => {
     setViewportBbox(b);
@@ -766,42 +766,36 @@ export default function GISDownloaderPage() {
 
   // ── Scan ──────────────────────────────────────────────────────────────────
   const scanArea = useCallback(async () => {
-    if (!bbox || tooBig) return;
+    if (!bbox || tooBig || selected.size === 0) return;
     setStage('scanning');
-    setScanned(Object.fromEntries(ALL_LAYERS.map(l => [l.id, 'scanning'])));
-    setSelected(new Set()); setDlStatus({}); setDlCounts({});
+    setDlStatus({}); setDlCounts({});
 
-    const results: Record<string, number | 'error'> = {};
+    // Only scan the layers the user checked — mark them as in-progress
+    const layersToScan = ALL_LAYERS.filter(l => selected.has(l.id) && scanned[l.id] === undefined);
+    setScanned(p => ({ ...p, ...Object.fromEntries(layersToScan.map(l => [l.id, 'scanning'])) }));
 
     const scanOne = async (layer: Layer) => {
       try {
         const count = await getCount(layer.id, bbox);
-        results[layer.id] = count;
         setScanned(p => ({ ...p, [layer.id]: count }));
       } catch {
-        results[layer.id] = 'error';
         setScanned(p => ({ ...p, [layer.id]: 'error' }));
       }
     };
 
-    // Non-OSM layers use different APIs — run them all in parallel
-    const nonOsmLayers = ALL_LAYERS.filter(l => !OSM_IDS.has(l.id));
-    const nonOsmPromise = Promise.allSettled(nonOsmLayers.map(scanOne));
+    const nonOsmLayers = layersToScan.filter(l => !OSM_IDS.has(l.id));
+    const osmLayers    = layersToScan.filter(l =>  OSM_IDS.has(l.id));
 
-    // OSM layers now call Overpass directly from the browser (user's own IP), so
-    // rate-limiting is not a concern. Run 4 at a time for a fast scan.
-    const osmLayers = ALL_LAYERS.filter(l => OSM_IDS.has(l.id));
+    const nonOsmPromise = Promise.allSettled(nonOsmLayers.map(scanOne));
     for (let i = 0; i < osmLayers.length; i += 4) {
       await Promise.allSettled(osmLayers.slice(i, i + 4).map(scanOne));
     }
-
     await nonOsmPromise;
 
-    setSelected(new Set(ALL_LAYERS.filter(l => typeof results[l.id] === 'number' && (results[l.id] as number) > 0).map(l => l.id)));
     setStage('scanned');
-  }, [bbox, tooBig]);
+  }, [bbox, tooBig, selected, scanned]);
 
-  const rescan = useCallback(() => { setStage('has-area'); clearResults(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const rescan = useCallback(() => { setStage('has-area'); clearResults(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const toggleLayer = (id: string) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // ── Download ─────────────────────────────────────────────────────────────
@@ -890,9 +884,12 @@ export default function GISDownloaderPage() {
     }
   }, [bbox, format, tooBig, selected]);
 
-  const activeSelected = ALL_LAYERS.filter(l => selected.has(l.id));
-  const scanning    = stage === 'scanning';
-  const scannedDone = stage === 'scanned';
+  const activeSelected     = ALL_LAYERS.filter(l => selected.has(l.id));
+  const scanning           = stage === 'scanning';
+  const scannedDone        = stage === 'scanned';
+  const unscannedSelected  = ALL_LAYERS.filter(l => selected.has(l.id) && scanned[l.id] === undefined);
+  const anyScanned         = Object.keys(scanned).length > 0;
+  const selectedWithData   = ALL_LAYERS.filter(l => selected.has(l.id) && typeof scanned[l.id] === 'number' && (scanned[l.id] as number) > 0);
 
   // ─── Render ──────────────────────────────────────────────────────────────
   return (
@@ -932,14 +929,11 @@ export default function GISDownloaderPage() {
             {/* Idle prompt */}
             {stage === 'no-area' && <div className={styles.idlePrompt}><div className={styles.idleIcon}>🗺</div><p>Pan the map or search for a location to get started.</p></div>}
 
-            {/* Scan button */}
-            {stage === 'has-area' && !tooBig && <button className={styles.scanBtn} onClick={scanArea}>🔍 Scan Available Data</button>}
-
-            {/* Layer results */}
-            {(scanning || scannedDone) && (
+            {/* Layer list — visible as soon as an area is set */}
+            {stage !== 'no-area' && !tooBig && (
               <>
-                {/* Format picker — shown once scan is done, before the layer list */}
-                {scannedDone && (
+                {/* Format picker — shown once any layer has been scanned */}
+                {anyScanned && (
                   <div className={styles.fmtSection}>
                     <div className={styles.fmtBtns}>
                       {(['geojson', 'csv', 'kml', 'shapefile'] as Format[]).map(f => (
@@ -952,10 +946,17 @@ export default function GISDownloaderPage() {
                 )}
 
                 <div className={styles.layerSection}>
-                  <div className={styles.layerSectionHeader}>
-                    <span>{scanning ? 'Scanning…' : `${ALL_LAYERS.filter(l => typeof scanned[l.id] === 'number' && (scanned[l.id] as number) > 0).length} of ${ALL_LAYERS.length} layers have data`}</span>
-                    {scannedDone && <button className={styles.rescanBtn} onClick={rescan}>↺ Re-scan</button>}
-                  </div>
+                  {/* Summary header */}
+                  {anyScanned && (
+                    <div className={styles.layerSectionHeader}>
+                      <span>
+                        {scanning
+                          ? 'Scanning…'
+                          : `${selectedWithData.length} of ${selected.size} selected have data`}
+                      </span>
+                      {scannedDone && <button className={styles.rescanBtn} onClick={rescan}>↺ Re-scan</button>}
+                    </div>
+                  )}
 
                   {LAYER_GROUPS.map(group => (
                     <div key={group.key} className={styles.layerGroup}>
@@ -967,14 +968,15 @@ export default function GISDownloaderPage() {
                       </p>
 
                       {group.layers.map(l => {
-                        const sv      = scanned[l.id];
-                        const hasData = typeof sv === 'number' && sv > 0;
-                        const noData  = typeof sv === 'number' && sv === 0;
-                        const s       = dlStatus[l.id] ?? 'idle';
+                        const sv       = scanned[l.id];
+                        const isSelected = selected.has(l.id);
+                        const hasData  = typeof sv === 'number' && sv > 0;
+                        const noData   = typeof sv === 'number' && sv === 0;
+                        const s        = dlStatus[l.id] ?? 'idle';
                         return (
                           <div key={l.id}>
-                            <label className={`${styles.layerRow} ${selected.has(l.id) ? styles.layerOn : ''} ${noData ? styles.layerEmpty : ''}`}>
-                              {scannedDone && <input type="checkbox" checked={selected.has(l.id)} onChange={() => toggleLayer(l.id)} disabled={!hasData} />}
+                            <label className={`${styles.layerRow} ${isSelected ? styles.layerOn : styles.layerOff} ${noData ? styles.layerEmpty : ''}`}>
+                              <input type="checkbox" checked={isSelected} onChange={() => toggleLayer(l.id)} disabled={scanning} />
                               <span className={styles.lEmoji}>{l.emoji}</span>
                               <div className={styles.lInfo}>
                                 <span className={styles.lLabel}>{l.label}</span>
@@ -984,7 +986,7 @@ export default function GISDownloaderPage() {
                                 {sv === 'error'    && <span className={styles.countErr}>—</span>}
                                 {typeof sv === 'number' && <span className={sv > 0 ? styles.countOk : styles.countZero}>{sv > 0 ? sv.toLocaleString() : 'none'}</span>}
                               </span>
-                              {scannedDone && hasData && (
+                              {hasData && (
                                 <button
                                   className={`${styles.rowDlBtn} ${s==='loading'?styles.rowDlLoading:s==='done'?styles.rowDlDone:s==='error'?styles.rowDlError:''}`}
                                   onClick={e => { e.preventDefault(); e.stopPropagation(); downloadLayer(l.id); }}
@@ -1003,14 +1005,21 @@ export default function GISDownloaderPage() {
                   ))}
                 </div>
 
-                {/* Bundle all — shown below the list when 2+ layers are selected */}
-                {scannedDone && activeSelected.length > 1 && (
+                {/* Scan button — appears for checked layers that haven't been scanned yet */}
+                {!scanning && unscannedSelected.length > 0 && (
+                  <button className={styles.scanBtn} onClick={scanArea}>
+                    🔍 Scan {unscannedSelected.length} selected layer{unscannedSelected.length !== 1 ? 's' : ''}
+                  </button>
+                )}
+
+                {/* Bundle all — shown when 2+ scanned layers with data are selected */}
+                {selectedWithData.length > 1 && !scanning && (
                   <button
                     className={`${styles.bundleBtn} ${bundleStatus==='loading'?styles.bundleLoading:bundleStatus==='done'?styles.bundleDone:bundleStatus==='error'?styles.bundleError:''}`}
                     onClick={() => { setBundleStatus('idle'); bundleAll(); }}
                     disabled={!bbox || tooBig || bundleStatus === 'loading'}
                   >
-                    <span>📦 Bundle {activeSelected.length} layers → .zip</span>
+                    <span>📦 Bundle {selectedWithData.length} layers → .zip</span>
                     <span className={styles.dlStatus}>
                       {bundleStatus === 'loading'
                         ? `${bundleProgress}%`
