@@ -11,6 +11,7 @@ import JourneySection from "./components/JourneySection";
 import ContactForm from "./components/ContactForm";
 import GameHub from "./components/GameHub";
 import VisitorCounter from "./components/VisitorCounter";
+import ToolsHoverCard from "./components/ToolsHoverCard";
 import SkillRadar from "./components/SkillRadar";
 import HobbiesSection from "./components/HobbiesSection";
 import ScrollFadeIn from "./components/ScrollFadeIn";
@@ -69,9 +70,7 @@ export default function Resume() {
               <Link href="/projects" className={styles.projectsBtn}>
                 🗂 Projects
               </Link>
-              <Link href="/tools" className={styles.projectsBtn}>
-                🛠 Tools
-              </Link>
+              <ToolsHoverCard />
               <Link href="/news" className={styles.projectsBtn}>
                 📡 AI News
               </Link>

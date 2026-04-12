@@ -1,0 +1,180 @@
+/* ─── Wrapper ─────────────────────────────────────────────────────────────── */
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ─── Trigger (the button itself) ────────────────────────────────────────── */
+.trigger {
+  font-family: var(--font-sans);
+  font-size: 0.82em;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 2px solid var(--border-dark);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s, border-color 0.2s, color 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.wrapper:hover .trigger,
+.trigger:focus-visible {
+  transform: translateY(-2px);
+  background: var(--paper-dark);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  text-decoration: none;
+  opacity: 1;
+}
+
+/* ─── Popover ─────────────────────────────────────────────────────────────── */
+.popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 9999;
+
+  width: 260px;
+  background: var(--paper-light);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px rgba(0,0,0,0.04),
+    0 12px 32px rgba(0,0,0,0.10);
+  overflow: hidden;
+}
+
+/* Arrow pointing up */
+.popover::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: var(--paper-light);
+  border-left: 1px solid var(--border-light);
+  border-top: 1px solid var(--border-light);
+}
+
+.wrapper:hover .popover {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+/* ─── Popover Header ──────────────────────────────────────────────────────── */
+.popoverHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.popoverTitle {
+  font-size: 0.78em;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.popoverCount {
+  font-size: 0.68em;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--paper-dark);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 1px 8px;
+}
+
+/* ─── Tool List ───────────────────────────────────────────────────────────── */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  transition: background 0.12s, color 0.12s;
+  font-size: 0.8em;
+}
+
+.item:hover {
+  background: var(--paper-dark);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.itemIcon {
+  font-size: 1em;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.itemLabel {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemArrow {
+  font-size: 0.8em;
+  color: var(--accent-blue);
+  opacity: 0;
+  transform: translateX(-3px);
+  transition: opacity 0.12s, transform 0.12s;
+  flex-shrink: 0;
+}
+
+.item:hover .itemArrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ─── Popover Footer ──────────────────────────────────────────────────────── */
+.popoverFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 14px;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--accent-blue);
+  text-decoration: none;
+  transition: background 0.12s;
+  letter-spacing: 0.01em;
+}
+
+.popoverFooter:hover {
+  background: var(--paper-dark);
+  text-decoration: none;
+}
+
+/* ─── Disable on touch devices ────────────────────────────────────────────── */
+@media (hover: none) {
+  .popover { display: none; }
+}
