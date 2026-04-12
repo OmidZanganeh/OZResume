@@ -1,6 +1,10 @@
 /* ─── Page shell ───────────────────────────────────────────────────────────── */
 .page {
-  height: 100vh;
+  /* position: fixed + inset: 0 locks to the visual viewport, which correctly
+     accounts for the html { zoom: 1.2 } in globals.css. Using height: 100vh
+     would overflow because vh units ignore CSS zoom. */
+  position: fixed;
+  inset: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -584,6 +588,8 @@
 /* ─── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 780px) {
   .page {
+    position: relative;
+    inset: auto;
     height: auto;
     overflow: visible;
   }

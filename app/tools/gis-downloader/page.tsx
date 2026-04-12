@@ -51,6 +51,8 @@ const OSM_LAYERS: Layer[] = [
   { id: 'fuel',          label: 'Fuel & EV Charging',   emoji: '⛽', desc: 'Gas stations & EV charging points' },
   { id: 'parking',       label: 'Parking',              emoji: '🅿', desc: 'Surface lots & parking structures' },
   { id: 'food',          label: 'Food & Dining',        emoji: '🍽', desc: 'Restaurants, cafes & bars' },
+  { id: 'pipelines',     label: 'Pipelines',            emoji: '🔧', desc: 'Oil, gas & utility pipelines' },
+  { id: 'bridges',       label: 'Bridges',              emoji: '🌉', desc: 'Bridge structures' },
 ];
 
 const HAZARD_LAYERS: Layer[] = [
@@ -243,6 +245,8 @@ function buildOverpassQuery(id: string, b: Bbox): string {
     fuel:            `${hd}(node["amenity"="fuel"](${bb});node["amenity"="charging_station"](${bb});way["amenity"="fuel"](${bb}););out body;>;out skel qt;`,
     parking:         `${hd}(node["amenity"="parking"](${bb});way["amenity"="parking"](${bb});relation["amenity"="parking"](${bb}););out body;>;out skel qt;`,
     food:            `${hd}(node["amenity"~"restaurant|cafe|bar|fast_food|food_court|pub|biergarten"](${bb});way["amenity"~"restaurant|cafe|bar|fast_food"](${bb}););out body;>;out skel qt;`,
+    pipelines:       `${hd}way["man_made"="pipeline"](${bb});out body;>;out skel qt;`,
+    bridges:         `${hd}(way["bridge"="yes"](${bb});way["man_made"="bridge"](${bb}););out body;>;out skel qt;`,
   };
   return m[id] ?? '';
 }
