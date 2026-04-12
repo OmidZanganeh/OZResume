@@ -115,7 +115,7 @@ const TOOLS = [
     href: '/tools/pdf-image-tools',
     emoji: '📎',
     title: 'PDF & Image Tools',
-    desc: 'Merge PDFs, convert images (PNG, JPEG, WebP), build one PDF from multiple images, and export PDF pages as JPEG files.',
+    desc: 'Merge, compress, and split PDFs; convert or resize images (PNG, JPEG, WebP, AVIF, BMP, ICO); images to PDF; PDF pages to JPEG.',
     tags: ['PDF', 'Privacy-first'],
   },
 ];
