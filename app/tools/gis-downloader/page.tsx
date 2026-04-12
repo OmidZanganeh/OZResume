@@ -5,7 +5,6 @@ import Link from 'next/link';
 import styles from './page.module.css';
 import type { Bbox } from './MapPanel';
 
-// ─── Dynamic Leaflet import (avoids SSR window issues) ─────────────────────
 const MapPanel = dynamic(() => import('./MapPanel'), {
   ssr: false,
   loading: () => <div className={styles.mapLoading}>Loading map…</div>,
@@ -17,12 +16,11 @@ type Format   = 'geojson' | 'csv' | 'kml' | 'shapefile';
 type Stage    = 'no-area' | 'has-area' | 'scanning' | 'scanned';
 type ScanVal  = 'scanning' | 'error' | number;
 
+interface Layer { id: string; label: string; emoji: string; desc: string; usaOnly?: boolean; }
+
 interface OsmElement {
   type: 'node' | 'way' | 'relation';
-  id: number;
-  lat?: number;
-  lon?: number;
-  nodes?: number[];
+  id: number; lat?: number; lon?: number; nodes?: number[];
   tags?: Record<string, string>;
 }
 interface GeoFeature {
@@ -32,43 +30,107 @@ interface GeoFeature {
 }
 interface GeoFC { type: 'FeatureCollection'; features: GeoFeature[]; }
 
-// ─── Layer definitions ───────────────────────────────────────────────────────
-const OSM_LAYERS = [
-  { id: 'buildings', label: 'Buildings',            emoji: '🏘', desc: 'Building footprints' },
-  { id: 'roads',     label: 'Roads & Streets',      emoji: '🛣', desc: 'All highway types' },
-  { id: 'pois',      label: 'Points of Interest',   emoji: '📍', desc: 'Amenities, shops, tourism' },
-  { id: 'parks',     label: 'Parks & Green Spaces', emoji: '🌿', desc: 'Parks, gardens, reserves' },
-  { id: 'water',     label: 'Water Bodies',         emoji: '💧', desc: 'Lakes, rivers, waterways' },
-  { id: 'landuse',   label: 'Land Use',             emoji: '🗺', desc: 'Residential, commercial, farmland' },
-  { id: 'railways',  label: 'Railways & Transit',   emoji: '🚂', desc: 'Rail lines, stations' },
+// ─── Layer catalogue ─────────────────────────────────────────────────────────
+const OSM_LAYERS: Layer[] = [
+  { id: 'buildings',     label: 'Buildings',            emoji: '🏘', desc: 'Building footprints' },
+  { id: 'roads',         label: 'Roads & Streets',      emoji: '🛣', desc: 'All highway types' },
+  { id: 'railways',      label: 'Railways & Transit',   emoji: '🚂', desc: 'Rail lines & stations' },
+  { id: 'power',         label: 'Power Infrastructure', emoji: '⚡', desc: 'Lines, substations, power plants' },
+  { id: 'cycling',       label: 'Cycling Network',      emoji: '🚲', desc: 'Bike lanes & dedicated paths' },
+  { id: 'pois',          label: 'Points of Interest',   emoji: '📍', desc: 'Amenities, shops, tourism' },
+  { id: 'healthcare',    label: 'Healthcare',           emoji: '🏥', desc: 'Hospitals, clinics, pharmacies' },
+  { id: 'historic',      label: 'Historic Sites',       emoji: '🏛', desc: 'Monuments, ruins, castles' },
+  { id: 'admin-bounds',  label: 'Admin Boundaries',     emoji: '🔲', desc: 'States, provinces, districts' },
+  { id: 'parks',         label: 'Parks & Green Spaces', emoji: '🌿', desc: 'Parks, gardens, reserves' },
+  { id: 'water',         label: 'Water Bodies',         emoji: '💧', desc: 'Lakes, rivers, waterways' },
+  { id: 'landuse',       label: 'Land Use',             emoji: '🗂', desc: 'Residential, commercial, farmland' },
+  { id: 'natural-areas', label: 'Natural Areas',        emoji: '🌲', desc: 'Forests, grassland, beaches, wetlands' },
+  { id: 'military',      label: 'Military Areas',       emoji: '🎖', desc: 'Bases & restricted zones' },
+  { id: 'cemeteries',    label: 'Cemeteries',           emoji: '🪦', desc: 'Cemeteries & grave yards' },
 ];
-const OTHER_LAYERS = [
-  { id: 'earthquakes', label: 'Earthquakes (Past Year)', emoji: '🌊', desc: 'USGS seismic events ≥ M2.0' },
-  { id: 'species',     label: 'Species Observations',    emoji: '🦁', desc: 'GBIF biodiversity records' },
-];
-const ALL_LAYERS = [...OSM_LAYERS, ...OTHER_LAYERS];
 
-// ─── Fast count queries (for scan) ───────────────────────────────────────────
+const HAZARD_LAYERS: Layer[] = [
+  { id: 'earthquakes', label: 'Earthquakes (Past Year)', emoji: '🌋', desc: 'USGS seismic events ≥ M2.0' },
+  { id: 'flood-zones', label: 'FEMA Flood Zones',        emoji: '🌊', desc: '100-yr flood hazard areas (USA only)', usaOnly: true },
+];
+
+const ECOLOGY_LAYERS: Layer[] = [
+  { id: 'species',       label: 'Species Observations', emoji: '🦁', desc: 'GBIF biodiversity records' },
+  { id: 'stream-gauges', label: 'Stream Gauges',        emoji: '📏', desc: 'Active USGS water monitoring stations' },
+];
+
+const KNOWLEDGE_LAYERS: Layer[] = [
+  { id: 'wikipedia', label: 'Wikipedia Places', emoji: '📖', desc: 'Geotagged Wikipedia articles' },
+];
+
+const CENSUS_LAYERS: Layer[] = [
+  { id: 'census-counties', label: 'Counties',               emoji: '🏛', desc: 'US county boundaries',               usaOnly: true },
+  { id: 'census-tracts',   label: 'Census Tracts',          emoji: '📊', desc: 'Census tract boundaries',            usaOnly: true },
+  { id: 'census-zip',      label: 'ZIP Code Areas',         emoji: '📮', desc: 'Zip code tabulation areas (ZCTAs)',  usaOnly: true },
+  { id: 'census-schools',  label: 'School Districts',       emoji: '🏫', desc: 'Unified school district boundaries', usaOnly: true },
+  { id: 'census-congress', label: 'Congressional Districts',emoji: '🗳', desc: '118th US congressional districts',   usaOnly: true },
+];
+
+const LAYER_GROUPS = [
+  { key: 'osm',    label: 'OpenStreetMap', linkHref: 'https://www.openstreetmap.org/copyright', linkLabel: '© contributors', layers: OSM_LAYERS      },
+  { key: 'hazard', label: 'Hazards',       badge: 'USGS · FEMA',  layers: HAZARD_LAYERS  },
+  { key: 'eco',    label: 'Ecology & Hydrology', badge: 'GBIF · USGS', layers: ECOLOGY_LAYERS },
+  { key: 'know',   label: 'Knowledge',     badge: 'Wikipedia',    layers: KNOWLEDGE_LAYERS },
+  { key: 'census', label: 'US Census / TIGER', badge: '🇺🇸 USA only', layers: CENSUS_LAYERS  },
+];
+
+const ALL_LAYERS: Layer[] = [...OSM_LAYERS, ...HAZARD_LAYERS, ...ECOLOGY_LAYERS, ...KNOWLEDGE_LAYERS, ...CENSUS_LAYERS];
+
+// Sets for dispatch routing
+const OSM_IDS    = new Set(OSM_LAYERS.map(l => l.id));
+const TIGER_URLS: Record<string, string> = {
+  'census-counties': 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/1/query',
+  'census-tracts':   'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/2/query',
+  'census-zip':      'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/5/query',
+  'census-schools':  'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Schools/MapServer/0/query',
+  'census-congress': 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer/0/query',
+};
+const FEMA_URL  = 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query';
+const GAUGES_URL = 'https://api.waterdata.usgs.gov/ogc/v0/collections/monitoring-location/items';
+
+// ─── Shared proxy fetch (for ArcGIS REST services) ───────────────────────────
+async function proxyFetch(url: string): Promise<unknown> {
+  const res = await fetch('/api/gis-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  return res.json();
+}
+
+// ─── Count queries (fast — scan only) ────────────────────────────────────────
 async function countOSM(layerId: string, b: Bbox): Promise<number> {
   const bb = `${b.s.toFixed(6)},${b.w.toFixed(6)},${b.n.toFixed(6)},${b.e.toFixed(6)}`;
-  const counts: Record<string, string> = {
-    buildings:  `[out:json][timeout:15];(way["building"](${bb});relation["building"](${bb}););out count;`,
-    roads:      `[out:json][timeout:15];way["highway"](${bb});out count;`,
-    pois:       `[out:json][timeout:15];(node["amenity"](${bb});node["shop"](${bb});node["tourism"](${bb}););out count;`,
-    parks:      `[out:json][timeout:15];(way["leisure"~"park|garden|nature_reserve"](${bb}););out count;`,
-    water:      `[out:json][timeout:15];(way["natural"="water"](${bb});way["waterway"](${bb}););out count;`,
-    landuse:    `[out:json][timeout:15];way["landuse"](${bb});out count;`,
-    railways:   `[out:json][timeout:15];way["railway"](${bb});out count;`,
+  const q: Record<string, string> = {
+    buildings:       `[out:json][timeout:15];(way["building"](${bb});relation["building"](${bb}););out count;`,
+    roads:           `[out:json][timeout:15];way["highway"](${bb});out count;`,
+    pois:            `[out:json][timeout:15];(node["amenity"](${bb});node["shop"](${bb});node["tourism"](${bb}););out count;`,
+    parks:           `[out:json][timeout:15];(way["leisure"~"park|garden|nature_reserve"](${bb}););out count;`,
+    water:           `[out:json][timeout:15];(way["natural"="water"](${bb});way["waterway"](${bb}););out count;`,
+    landuse:         `[out:json][timeout:15];way["landuse"](${bb});out count;`,
+    railways:        `[out:json][timeout:15];way["railway"](${bb});out count;`,
+    'admin-bounds':  `[out:json][timeout:15];relation["boundary"="administrative"]["admin_level"~"^[4-9]$"](${bb});out count;`,
+    power:           `[out:json][timeout:15];(way["power"~"line|minor_line|cable"](${bb});node["power"~"plant|substation|tower"](${bb}););out count;`,
+    'natural-areas': `[out:json][timeout:15];(way["natural"~"wood|forest|grassland|heath|scrub|beach|cliff|wetland"](${bb}););out count;`,
+    historic:        `[out:json][timeout:15];(node["historic"](${bb});way["historic"](${bb}););out count;`,
+    healthcare:      `[out:json][timeout:15];(node["amenity"~"hospital|clinic|pharmacy|dentist|doctors|veterinary"](${bb}););out count;`,
+    cycling:         `[out:json][timeout:15];(way["highway"="cycleway"](${bb});way["cycleway"~"lane|track"](${bb}););out count;`,
+    military:        `[out:json][timeout:15];(way["landuse"="military"](${bb});relation["landuse"="military"](${bb}););out count;`,
+    cemeteries:      `[out:json][timeout:15];(way["landuse"="cemetery"](${bb});way["amenity"="grave_yard"](${bb}););out count;`,
   };
-  const res  = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: counts[layerId] }) });
+  const res  = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q[layerId] }) });
   const data = await res.json() as { elements?: { tags?: { total?: string } }[] };
   return parseInt(data.elements?.[0]?.tags?.total ?? '0', 10);
 }
 
 async function countEarthquakes(b: Bbox): Promise<number> {
   const since = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10);
-  const url   = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=${b.s}&maxlatitude=${b.n}&minlongitude=${b.w}&maxlongitude=${b.e}&starttime=${since}&minmagnitude=2&limit=0`;
-  const data  = await (await fetch(url)).json() as { metadata?: { count?: number } };
+  const data  = await (await fetch(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=${b.s}&maxlatitude=${b.n}&minlongitude=${b.w}&maxlongitude=${b.e}&starttime=${since}&minmagnitude=2&limit=0`)).json() as { metadata?: { count?: number } };
   return data.metadata?.count ?? 0;
 }
 
@@ -78,41 +140,140 @@ async function countSpecies(b: Bbox): Promise<number> {
   return data.count ?? 0;
 }
 
-// ─── Overpass download queries ────────────────────────────────────────────────
+async function countFEMA(b: Bbox): Promise<number> {
+  const url  = `${FEMA_URL}?geometry=${b.w},${b.s},${b.e},${b.n}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&returnCountOnly=true&f=json`;
+  const data = await proxyFetch(url) as { count?: number };
+  return data.count ?? 0;
+}
+
+async function countWaterGauges(b: Bbox): Promise<number> {
+  const data = await (await fetch(`${GAUGES_URL}?bbox=${b.w},${b.s},${b.e},${b.n}&f=json&limit=1`)).json() as { numberMatched?: number };
+  return data.numberMatched ?? 0;
+}
+
+async function countWikipedia(b: Bbox): Promise<number> {
+  const p = new URLSearchParams({ action: 'query', list: 'geosearch', gsbbox: `${b.n}|${b.w}|${b.s}|${b.e}`, gslimit: '500', format: 'json', origin: '*' });
+  const d = await (await fetch(`https://en.wikipedia.org/w/api.php?${p}`)).json() as { query?: { geosearch?: unknown[] } };
+  return d.query?.geosearch?.length ?? 0;
+}
+
+async function countTIGER(layerUrl: string, b: Bbox): Promise<number> {
+  const url  = `${layerUrl}?geometry=${b.w},${b.s},${b.e},${b.n}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&returnCountOnly=true&f=json`;
+  const data = await proxyFetch(url) as { count?: number };
+  return data.count ?? 0;
+}
+
+// ─── Full feature fetch (download) ───────────────────────────────────────────
 function buildOverpassQuery(id: string, b: Bbox): string {
   const bb = `${b.s.toFixed(6)},${b.w.toFixed(6)},${b.n.toFixed(6)},${b.e.toFixed(6)}`;
   const hd = '[out:json][timeout:30];';
-  const map: Record<string, string> = {
-    buildings:  `${hd}(way["building"](${bb});relation["building"](${bb}););out body;>;out skel qt;`,
-    roads:      `${hd}way["highway"](${bb});out body;>;out skel qt;`,
-    pois:       `${hd}(node["amenity"](${bb});node["shop"](${bb});node["tourism"](${bb}););out body;`,
-    parks:      `${hd}(way["leisure"~"park|garden|nature_reserve"](${bb}););out body;>;out skel qt;`,
-    water:      `${hd}(way["natural"="water"](${bb});way["waterway"](${bb});relation["natural"="water"](${bb}););out body;>;out skel qt;`,
-    landuse:    `${hd}way["landuse"](${bb});out body;>;out skel qt;`,
-    railways:   `${hd}way["railway"](${bb});out body;>;out skel qt;`,
+  const m: Record<string, string> = {
+    buildings:       `${hd}(way["building"](${bb});relation["building"](${bb}););out body;>;out skel qt;`,
+    roads:           `${hd}way["highway"](${bb});out body;>;out skel qt;`,
+    pois:            `${hd}(node["amenity"](${bb});node["shop"](${bb});node["tourism"](${bb}););out body;`,
+    parks:           `${hd}(way["leisure"~"park|garden|nature_reserve"](${bb}););out body;>;out skel qt;`,
+    water:           `${hd}(way["natural"="water"](${bb});way["waterway"](${bb});relation["natural"="water"](${bb}););out body;>;out skel qt;`,
+    landuse:         `${hd}way["landuse"](${bb});out body;>;out skel qt;`,
+    railways:        `${hd}way["railway"](${bb});out body;>;out skel qt;`,
+    'admin-bounds':  `${hd}relation["boundary"="administrative"]["admin_level"~"^[4-9]$"](${bb});out body;>;out skel qt;`,
+    power:           `${hd}(way["power"~"line|minor_line|cable"](${bb});node["power"~"plant|substation|tower"](${bb});way["power"="plant"](${bb}););out body;>;out skel qt;`,
+    'natural-areas': `${hd}(way["natural"~"wood|forest|grassland|heath|scrub|beach|cliff|wetland"](${bb});relation["natural"~"wood|forest|grassland"](${bb}););out body;>;out skel qt;`,
+    historic:        `${hd}(node["historic"](${bb});way["historic"](${bb});relation["historic"](${bb}););out body;>;out skel qt;`,
+    healthcare:      `${hd}(node["amenity"~"hospital|clinic|pharmacy|dentist|doctors|veterinary"](${bb});way["amenity"~"hospital|clinic"](${bb}););out body;>;out skel qt;`,
+    cycling:         `${hd}(way["highway"="cycleway"](${bb});way["cycleway"~"lane|track"](${bb}););out body;>;out skel qt;`,
+    military:        `${hd}(way["landuse"="military"](${bb});relation["landuse"="military"](${bb});node["military"](${bb}););out body;>;out skel qt;`,
+    cemeteries:      `${hd}(way["landuse"="cemetery"](${bb});way["amenity"="grave_yard"](${bb});relation["landuse"="cemetery"](${bb}););out body;>;out skel qt;`,
   };
-  return map[id] ?? '';
+  return m[id] ?? '';
 }
 
-// ─── OSM → GeoJSON ──────────────────────────────────────────────────────────
 function osmToGeoJSON(data: { elements: OsmElement[] }): GeoFC {
-  const nodeCoords = new Map<number, [number, number]>();
-  for (const el of data.elements) {
-    if (el.type === 'node') nodeCoords.set(el.id, [el.lon!, el.lat!]);
-  }
+  const nc = new Map<number, [number, number]>();
+  for (const el of data.elements) if (el.type === 'node') nc.set(el.id, [el.lon!, el.lat!]);
   const features: GeoFeature[] = [];
   for (const el of data.elements) {
     if (!el.tags || !Object.keys(el.tags).length) continue;
     if (el.type === 'node') {
       features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [el.lon!, el.lat!] }, properties: { osm_id: el.id, osm_type: 'node', ...el.tags } });
     } else if (el.type === 'way' && el.nodes) {
-      const coords = el.nodes.map(id => nodeCoords.get(id)).filter((c): c is [number, number] => !!c);
+      const coords = el.nodes.map(id => nc.get(id)).filter((c): c is [number, number] => !!c);
       if (coords.length < 2) continue;
       const closed = el.nodes[0] === el.nodes[el.nodes.length - 1] && coords.length >= 4;
       features.push({ type: 'Feature', geometry: closed ? { type: 'Polygon', coordinates: [coords] } : { type: 'LineString', coordinates: coords }, properties: { osm_id: el.id, osm_type: 'way', ...el.tags } });
     }
   }
   return { type: 'FeatureCollection', features };
+}
+
+async function fetchFEMA(b: Bbox): Promise<GeoFC> {
+  const url  = `${FEMA_URL}?geometry=${b.w},${b.s},${b.e},${b.n}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=FLD_ZONE,SFHA_TF,ZONE_SUBTY,DFIRM_ID&returnGeometry=true&f=geojson&outSR=4326`;
+  const data = await proxyFetch(url) as { features?: GeoFeature[] };
+  return { type: 'FeatureCollection', features: data.features ?? [] };
+}
+
+async function fetchWaterGauges(b: Bbox): Promise<GeoFC> {
+  const data = await (await fetch(`${GAUGES_URL}?bbox=${b.w},${b.s},${b.e},${b.n}&f=json&limit=500`)).json() as { features?: GeoFeature[] };
+  return { type: 'FeatureCollection', features: data.features ?? [] };
+}
+
+async function fetchWikipedia(b: Bbox): Promise<GeoFC> {
+  const p = new URLSearchParams({ action: 'query', list: 'geosearch', gsbbox: `${b.n}|${b.w}|${b.s}|${b.e}`, gslimit: '500', format: 'json', origin: '*' });
+  const d = await (await fetch(`https://en.wikipedia.org/w/api.php?${p}`)).json() as { query?: { geosearch?: { pageid: number; title: string; lat: number; lon: number }[] } };
+  return {
+    type: 'FeatureCollection',
+    features: (d.query?.geosearch ?? []).map(r => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point', coordinates: [r.lon, r.lat] },
+      properties: { title: r.title, pageid: r.pageid, url: `https://en.wikipedia.org/?curid=${r.pageid}` },
+    })),
+  };
+}
+
+async function fetchTIGER(layerUrl: string, b: Bbox): Promise<GeoFC> {
+  const url  = `${layerUrl}?geometry=${b.w},${b.s},${b.e},${b.n}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&f=geojson&outSR=4326`;
+  const data = await proxyFetch(url) as { features?: GeoFeature[] };
+  return { type: 'FeatureCollection', features: data.features ?? [] };
+}
+
+// ─── Unified dispatchers ─────────────────────────────────────────────────────
+async function getCount(id: string, b: Bbox): Promise<number> {
+  if (OSM_IDS.has(id))        return countOSM(id, b);
+  if (id === 'earthquakes')   return countEarthquakes(b);
+  if (id === 'species')       return countSpecies(b);
+  if (id === 'flood-zones')   return countFEMA(b);
+  if (id === 'stream-gauges') return countWaterGauges(b);
+  if (id === 'wikipedia')     return countWikipedia(b);
+  if (TIGER_URLS[id])         return countTIGER(TIGER_URLS[id], b);
+  return 0;
+}
+
+async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
+  if (OSM_IDS.has(id)) {
+    const res = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: buildOverpassQuery(id, b) }) });
+    return osmToGeoJSON(await res.json() as { elements: OsmElement[] });
+  }
+  if (id === 'earthquakes') {
+    const since = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10);
+    const data  = await (await fetch(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=${b.s}&maxlatitude=${b.n}&minlongitude=${b.w}&maxlongitude=${b.e}&starttime=${since}&minmagnitude=2`)).json() as { features: GeoFeature[] };
+    return { type: 'FeatureCollection', features: data.features ?? [] };
+  }
+  if (id === 'species') {
+    const poly = `${b.w} ${b.s},${b.e} ${b.s},${b.e} ${b.n},${b.w} ${b.n},${b.w} ${b.s}`;
+    const data = await (await fetch(`https://api.gbif.org/v1/occurrence/search?geometry=POLYGON((${poly}))&hasCoordinate=true&limit=300`)).json() as { results?: Record<string, unknown>[] };
+    return {
+      type: 'FeatureCollection',
+      features: (data.results ?? []).map(r => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point', coordinates: [r.decimalLongitude as number, r.decimalLatitude as number] },
+        properties: { species: String(r.species??''), scientific_name: String(r.scientificName??''), date: String(r.eventDate??''), kingdom: String(r.kingdom??''), family: String(r.family??''), country: String(r.country??'') },
+      })),
+    };
+  }
+  if (id === 'flood-zones')   return fetchFEMA(b);
+  if (id === 'stream-gauges') return fetchWaterGauges(b);
+  if (id === 'wikipedia')     return fetchWikipedia(b);
+  if (TIGER_URLS[id])         return fetchTIGER(TIGER_URLS[id], b);
+  return { type: 'FeatureCollection', features: [] };
 }
 
 // ─── Format converters ───────────────────────────────────────────────────────
@@ -134,14 +295,12 @@ function toCSV(fc: GeoFC): string {
 
 function toKML(fc: GeoFC, name: string): string {
   const marks = fc.features.map(f => {
-    const p   = f.properties ?? {};
-    const lbl = p.name ?? p.osm_id ?? 'Feature';
-    const dsc = Object.entries(p).map(([k,v])=>`<tr><td><b>${k}</b></td><td>${v}</td></tr>`).join('');
-    const g   = f.geometry as { type: string; coordinates: unknown };
-    let geo = '';
-    if (g.type==='Point')      { const [x,y]=g.coordinates as [number,number]; geo=`<Point><coordinates>${x},${y},0</coordinates></Point>`; }
-    else if (g.type==='LineString') { const cc=(g.coordinates as [number,number][]).map(c=>`${c[0]},${c[1]},0`).join(' '); geo=`<LineString><coordinates>${cc}</coordinates></LineString>`; }
-    else if (g.type==='Polygon')    { const cc=((g.coordinates as [number,number][][])[0]).map(c=>`${c[0]},${c[1]},0`).join(' '); geo=`<Polygon><outerBoundaryIs><LinearRing><coordinates>${cc}</coordinates></LinearRing></outerBoundaryIs></Polygon>`; }
+    const p=f.properties??{}, lbl=p.name??p.title??p.osm_id??'Feature';
+    const dsc=Object.entries(p).map(([k,v])=>`<tr><td><b>${k}</b></td><td>${v}</td></tr>`).join('');
+    const g=f.geometry as {type:string;coordinates:unknown}; let geo='';
+    if(g.type==='Point'){const[x,y]=g.coordinates as[number,number];geo=`<Point><coordinates>${x},${y},0</coordinates></Point>`;}
+    else if(g.type==='LineString'){const cc=(g.coordinates as[number,number][]).map(c=>`${c[0]},${c[1]},0`).join(' ');geo=`<LineString><coordinates>${cc}</coordinates></LineString>`;}
+    else if(g.type==='Polygon'){const cc=((g.coordinates as[number,number][][])[0]).map(c=>`${c[0]},${c[1]},0`).join(' ');geo=`<Polygon><outerBoundaryIs><LinearRing><coordinates>${cc}</coordinates></LinearRing></outerBoundaryIs></Polygon>`;}
     return `  <Placemark><name><![CDATA[${lbl}]]></name><description><![CDATA[<table>${dsc}</table>]]></description>${geo}</Placemark>`;
   }).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${name}</name>\n${marks}\n</Document>\n</kml>`;
@@ -165,12 +324,9 @@ export default function GISDownloaderPage() {
   const [dlCounts,     setDlCounts]     = useState<Record<string, number>>({});
   const [search,       setSearch]       = useState('');
   const [searching,    setSearching]    = useState(false);
-
-  // Scan state machine
-  const [stage,    setStage]    = useState<Stage>('no-area');
-  const [scanned,  setScanned]  = useState<Record<string, ScanVal>>({});
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-
+  const [stage,        setStage]        = useState<Stage>('no-area');
+  const [scanned,      setScanned]      = useState<Record<string, ScanVal>>({});
+  const [selected,     setSelected]     = useState<Set<string>>(new Set());
   const flyToRef = useRef<((lat: number, lon: number, zoom?: number) => void) | null>(null);
 
   const bbox   = customBbox ?? viewportBbox;
@@ -180,57 +336,47 @@ export default function GISDownloaderPage() {
   const kmW    = bbox ? ((bbox.n - bbox.s) * 111).toFixed(0) : '—';
   const kmH    = bbox ? ((bbox.e - bbox.w) * 111 * Math.cos(midLat * Math.PI / 180)).toFixed(0) : '—';
 
-  // ── Area management ─────────────────────────────────────────────────────
+  const clearResults = () => { setScanned({}); setDlStatus({}); setDlCounts({}); setSelected(new Set()); };
+
   const handleViewportChange = useCallback((b: Bbox) => {
     setViewportBbox(b);
     setStage(prev => prev === 'no-area' ? 'has-area' : prev);
   }, []);
 
   const handleDraw = useCallback((b: Bbox) => {
-    setCustomBbox(b);
-    setDrawMode(false);
-    setStage('has-area');
-    setScanned({}); setDlStatus({}); setDlCounts({}); setSelected(new Set());
+    setCustomBbox(b); setDrawMode(false); setStage('has-area'); clearResults();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resetToViewport = useCallback(() => {
-    setCustomBbox(null);
-    setStage(viewportBbox ? 'has-area' : 'no-area');
-    setScanned({}); setDlStatus({}); setDlCounts({}); setSelected(new Set());
+    setCustomBbox(null); setStage(viewportBbox ? 'has-area' : 'no-area'); clearResults();
   }, [viewportBbox]);
 
   const handleFlyToReady = useCallback((fn: (lat: number, lon: number, z?: number) => void) => {
     flyToRef.current = fn;
   }, []);
 
-  // ── Location search ──────────────────────────────────────────────────────
   const searchLocation = async () => {
     if (!search.trim()) return;
     setSearching(true);
     try {
-      const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&limit=1`, { headers: { 'Accept-Language': 'en' } });
-      const data = await res.json() as { lat: string; lon: string }[];
+      const data = await (await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&limit=1`, { headers: { 'Accept-Language': 'en' } })).json() as { lat: string; lon: string }[];
       if (data[0] && flyToRef.current) flyToRef.current(+data[0].lat, +data[0].lon, 13);
     } catch { /* ignore */ }
     finally { setSearching(false); }
   };
 
-  // ── Area scan ────────────────────────────────────────────────────────────
+  // ── Scan ──────────────────────────────────────────────────────────────────
   const scanArea = useCallback(async () => {
     if (!bbox || tooBig) return;
     setStage('scanning');
     setScanned(Object.fromEntries(ALL_LAYERS.map(l => [l.id, 'scanning'])));
-    setSelected(new Set());
-    setDlStatus({}); setDlCounts({});
+    setSelected(new Set()); setDlStatus({}); setDlCounts({});
 
     const results: Record<string, number | 'error'> = {};
-
     await Promise.allSettled(ALL_LAYERS.map(async (layer) => {
       try {
-        let count: number;
-        if      (layer.id === 'earthquakes') count = await countEarthquakes(bbox);
-        else if (layer.id === 'species')     count = await countSpecies(bbox);
-        else                                 count = await countOSM(layer.id, bbox);
+        const count = await getCount(layer.id, bbox);
         results[layer.id] = count;
         setScanned(p => ({ ...p, [layer.id]: count }));
       } catch {
@@ -239,53 +385,23 @@ export default function GISDownloaderPage() {
       }
     }));
 
-    // Auto-check all layers that have data
     setSelected(new Set(ALL_LAYERS.filter(l => typeof results[l.id] === 'number' && (results[l.id] as number) > 0).map(l => l.id)));
     setStage('scanned');
   }, [bbox, tooBig]);
 
-  const rescan = useCallback(() => {
-    setStage('has-area');
-    setScanned({}); setDlStatus({}); setDlCounts({}); setSelected(new Set());
-  }, []);
-
-  const toggleLayer = (id: string) =>
-    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const rescan = useCallback(() => { setStage('has-area'); clearResults(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggleLayer = (id: string) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // ── Download ─────────────────────────────────────────────────────────────
   const downloadLayer = useCallback(async (layerId: string) => {
     if (!bbox || tooBig) return;
     setDlStatus(p => ({ ...p, [layerId]: 'loading' }));
     try {
-      let fc: GeoFC;
-
-      if (layerId === 'earthquakes') {
-        const since = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10);
-        const data  = await (await fetch(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=${bbox.s}&maxlatitude=${bbox.n}&minlongitude=${bbox.w}&maxlongitude=${bbox.e}&starttime=${since}&minmagnitude=2`)).json() as { features: GeoFeature[] };
-        fc = { type: 'FeatureCollection', features: data.features ?? [] };
-
-      } else if (layerId === 'species') {
-        const poly = `${bbox.w} ${bbox.s},${bbox.e} ${bbox.s},${bbox.e} ${bbox.n},${bbox.w} ${bbox.n},${bbox.w} ${bbox.s}`;
-        const data = await (await fetch(`https://api.gbif.org/v1/occurrence/search?geometry=POLYGON((${poly}))&hasCoordinate=true&limit=300`)).json() as { results?: Record<string, unknown>[] };
-        fc = {
-          type: 'FeatureCollection',
-          features: (data.results ?? []).map(r => ({
-            type: 'Feature' as const,
-            geometry: { type: 'Point', coordinates: [r.decimalLongitude as number, r.decimalLatitude as number] },
-            properties: { species: String(r.species??''), scientific_name: String(r.scientificName??''), date: String(r.eventDate??''), kingdom: String(r.kingdom??''), family: String(r.family??''), country: String(r.country??'') },
-          })),
-        };
-
-      } else {
-        const res = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: buildOverpassQuery(layerId, bbox) }) });
-        fc = osmToGeoJSON(await res.json() as { elements: OsmElement[] });
-      }
-
-      setDlCounts(p => ({ ...p, [layerId]: fc.features.length }));
-      if (!fc.features.length) { setDlStatus(p => ({ ...p, [layerId]: 'done' })); return; }
-
+      const fc    = await getFeatures(layerId, bbox);
       const layer = ALL_LAYERS.find(l => l.id === layerId);
       const name  = `gis_${layerId}_${new Date().toISOString().slice(0, 10)}`;
+      setDlCounts(p => ({ ...p, [layerId]: fc.features.length }));
+      if (!fc.features.length) { setDlStatus(p => ({ ...p, [layerId]: 'done' })); return; }
 
       if (format === 'csv') {
         downloadBlob(toCSV(fc), `${name}.csv`, 'text/csv');
@@ -294,8 +410,8 @@ export default function GISDownloaderPage() {
       } else if (format === 'shapefile') {
         const shpwrite = await import('@mapbox/shp-write');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const content  = await shpwrite.default.zip(fc as any, { outputType: 'blob', compression: 'DEFLATE' } as any);
-        downloadBlob(content as Blob, `${name}.zip`, 'application/zip');
+        const blob = await shpwrite.default.zip(fc as any, { outputType: 'blob', compression: 'DEFLATE' } as any);
+        downloadBlob(blob as Blob, `${name}.zip`, 'application/zip');
       } else {
         downloadBlob(JSON.stringify(fc, null, 2), `${name}.geojson`, 'application/geo+json');
       }
@@ -306,6 +422,8 @@ export default function GISDownloaderPage() {
   }, [bbox, format, tooBig]);
 
   const activeSelected = ALL_LAYERS.filter(l => selected.has(l.id));
+  const scanning = stage === 'scanning';
+  const scannedDone = stage === 'scanned';
 
   // ─── Render ──────────────────────────────────────────────────────────────
   return (
@@ -315,14 +433,10 @@ export default function GISDownloaderPage() {
       </div>
 
       <div className={styles.layout}>
-        {/* ── Sidebar ── */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarScroll}>
-
             <h1 className={styles.title}>📥 GIS Data Downloader</h1>
-            <p className={styles.subtitle}>
-              Set an area on the map, scan what data exists, then download what you need.
-            </p>
+            <p className={styles.subtitle}>Set an area, scan what exists, download what you need.</p>
 
             {/* Search */}
             <div className={styles.searchBox}>
@@ -332,12 +446,8 @@ export default function GISDownloaderPage() {
 
             {/* Draw controls */}
             <div className={styles.areaControls}>
-              {!drawMode && !customBbox && (
-                <button className={styles.drawBtn} onClick={() => setDrawMode(true)}>✏️ Draw Custom Area</button>
-              )}
-              {drawMode && (
-                <button className={styles.drawBtnActive} onClick={() => setDrawMode(false)}>⏹ Cancel Drawing</button>
-              )}
+              {!drawMode && !customBbox && <button className={styles.drawBtn} onClick={() => setDrawMode(true)}>✏️ Draw Custom Area</button>}
+              {drawMode  && <button className={styles.drawBtnActive} onClick={() => setDrawMode(false)}>⏹ Cancel Drawing</button>}
               {customBbox && !drawMode && (
                 <div className={styles.customRow}>
                   <span className={styles.customLabel}>✏️ Custom area active</span>
@@ -347,108 +457,59 @@ export default function GISDownloaderPage() {
             </div>
 
             {/* Bbox info */}
-            {bbox && (
-              <div className={`${styles.bboxInfo} ${tooBig ? styles.bboxWarn : ''} ${customBbox ? styles.bboxCustom : ''}`}>
-                {tooBig
-                  ? '⚠️ Area too large — zoom in or draw a smaller area.'
-                  : `${customBbox ? '✏️' : '📐'} ~${kmW} km × ${kmH} km`}
-              </div>
-            )}
+            {bbox && <div className={`${styles.bboxInfo} ${tooBig ? styles.bboxWarn : ''} ${customBbox ? styles.bboxCustom : ''}`}>{tooBig ? '⚠️ Area too large — zoom in or draw a smaller area.' : `${customBbox?'✏️':'📐'} ~${kmW} km × ${kmH} km`}</div>}
             {!bbox && <div className={styles.bboxHint}>Pan or zoom the map to set the download area.</div>}
 
-            {/* ── Stage: no-area ── */}
-            {stage === 'no-area' && (
-              <div className={styles.idlePrompt}>
-                <div className={styles.idleIcon}>🗺</div>
-                <p>Pan the map or search for a location to get started.</p>
-              </div>
-            )}
+            {/* Idle prompt */}
+            {stage === 'no-area' && <div className={styles.idlePrompt}><div className={styles.idleIcon}>🗺</div><p>Pan the map or search for a location to get started.</p></div>}
 
-            {/* ── Stage: has-area ── */}
-            {stage === 'has-area' && !tooBig && (
-              <button className={styles.scanBtn} onClick={scanArea}>
-                🔍 Scan Available Data
-              </button>
-            )}
+            {/* Scan button */}
+            {stage === 'has-area' && !tooBig && <button className={styles.scanBtn} onClick={scanArea}>🔍 Scan Available Data</button>}
 
-            {/* ── Stage: scanning & scanned ── */}
-            {(stage === 'scanning' || stage === 'scanned') && (
+            {/* Layer results */}
+            {(scanning || scannedDone) && (
               <>
                 <div className={styles.layerSection}>
                   <div className={styles.layerSectionHeader}>
-                    <span>{stage === 'scanning' ? 'Scanning…' : 'Available Data'}</span>
-                    {stage === 'scanned' && (
-                      <button className={styles.rescanBtn} onClick={rescan}>↺ Re-scan</button>
-                    )}
+                    <span>{scanning ? 'Scanning…' : `${ALL_LAYERS.filter(l => typeof scanned[l.id] === 'number' && (scanned[l.id] as number) > 0).length} of ${ALL_LAYERS.length} layers have data`}</span>
+                    {scannedDone && <button className={styles.rescanBtn} onClick={rescan}>↺ Re-scan</button>}
                   </div>
 
-                  {/* OSM group */}
-                  <p className={styles.groupHeader}>
-                    <span>OpenStreetMap</span>
-                    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className={styles.sourceLink}>© contributors</a>
-                  </p>
-                  {OSM_LAYERS.map(l => {
-                    const sv = scanned[l.id];
-                    const hasData = typeof sv === 'number' && sv > 0;
-                    const noData  = typeof sv === 'number' && sv === 0;
-                    return (
-                      <label key={l.id} className={`${styles.layerRow} ${selected.has(l.id) ? styles.layerOn : ''} ${noData ? styles.layerEmpty : ''}`}>
-                        {stage === 'scanned' && (
-                          <input type="checkbox" checked={selected.has(l.id)} onChange={() => toggleLayer(l.id)} disabled={!hasData} />
-                        )}
-                        <span className={styles.lEmoji}>{l.emoji}</span>
-                        <div className={styles.lInfo}>
-                          <span className={styles.lLabel}>{l.label}</span>
-                          <span className={styles.lDesc}>{l.desc}</span>
-                        </div>
-                        <span className={styles.scanCount}>
-                          {sv === 'scanning' && <span className={styles.spinner} />}
-                          {sv === 'error'    && <span className={styles.countErr}>—</span>}
-                          {typeof sv === 'number' && (
-                            <span className={sv > 0 ? styles.countOk : styles.countZero}>
-                              {sv > 0 ? sv.toLocaleString() : 'none'}
-                            </span>
-                          )}
-                        </span>
-                      </label>
-                    );
-                  })}
+                  {LAYER_GROUPS.map(group => (
+                    <div key={group.key} className={styles.layerGroup}>
+                      <p className={styles.groupHeader}>
+                        <span>{group.label}</span>
+                        {group.linkHref
+                          ? <a href={group.linkHref} target="_blank" rel="noopener noreferrer" className={styles.sourceLink}>{group.linkLabel}</a>
+                          : <span className={styles.sourceHint}>{group.badge}</span>}
+                      </p>
 
-                  {/* Other sources group */}
-                  <p className={styles.groupHeader} style={{ marginTop: 10 }}>
-                    <span>USGS · GBIF</span>
-                    <span className={styles.sourceHint}>No key required</span>
-                  </p>
-                  {OTHER_LAYERS.map(l => {
-                    const sv = scanned[l.id];
-                    const hasData = typeof sv === 'number' && sv > 0;
-                    const noData  = typeof sv === 'number' && sv === 0;
-                    return (
-                      <label key={l.id} className={`${styles.layerRow} ${selected.has(l.id) ? styles.layerOn : ''} ${noData ? styles.layerEmpty : ''}`}>
-                        {stage === 'scanned' && (
-                          <input type="checkbox" checked={selected.has(l.id)} onChange={() => toggleLayer(l.id)} disabled={!hasData} />
-                        )}
-                        <span className={styles.lEmoji}>{l.emoji}</span>
-                        <div className={styles.lInfo}>
-                          <span className={styles.lLabel}>{l.label}</span>
-                          <span className={styles.lDesc}>{l.desc}</span>
-                        </div>
-                        <span className={styles.scanCount}>
-                          {sv === 'scanning' && <span className={styles.spinner} />}
-                          {sv === 'error'    && <span className={styles.countErr}>—</span>}
-                          {typeof sv === 'number' && (
-                            <span className={sv > 0 ? styles.countOk : styles.countZero}>
-                              {sv > 0 ? sv.toLocaleString() : 'none'}
+                      {group.layers.map(l => {
+                        const sv      = scanned[l.id];
+                        const hasData = typeof sv === 'number' && sv > 0;
+                        const noData  = typeof sv === 'number' && sv === 0;
+                        return (
+                          <label key={l.id} className={`${styles.layerRow} ${selected.has(l.id) ? styles.layerOn : ''} ${noData ? styles.layerEmpty : ''}`}>
+                            {scannedDone && <input type="checkbox" checked={selected.has(l.id)} onChange={() => toggleLayer(l.id)} disabled={!hasData} />}
+                            <span className={styles.lEmoji}>{l.emoji}</span>
+                            <div className={styles.lInfo}>
+                              <span className={styles.lLabel}>{l.label}</span>
+                              <span className={styles.lDesc}>{l.desc}</span>
+                            </div>
+                            <span className={styles.scanCount}>
+                              {sv === 'scanning' && <span className={styles.spinner} />}
+                              {sv === 'error'    && <span className={styles.countErr}>—</span>}
+                              {typeof sv === 'number' && <span className={sv > 0 ? styles.countOk : styles.countZero}>{sv > 0 ? sv.toLocaleString() : 'none'}</span>}
                             </span>
-                          )}
-                        </span>
-                      </label>
-                    );
-                  })}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
 
-                {/* Format + download — only when scanned and something selected */}
-                {stage === 'scanned' && (
+                {/* Format + download */}
+                {scannedDone && (
                   <>
                     <div className={styles.fmtSection}>
                       <p className={styles.fmtLabel}>Output Format</p>
@@ -461,29 +522,26 @@ export default function GISDownloaderPage() {
                       </div>
                       <p className={styles.fmtHint}>
                         {format === 'geojson'   && 'GeoJSON — works in QGIS, ArcGIS, Mapbox, and most GIS tools.'}
-                        {format === 'csv'       && 'CSV — centroid coordinates + all attributes. Opens in Excel / Python.'}
-                        {format === 'kml'       && 'KML — opens directly in Google Earth and Google Maps.'}
-                        {format === 'shapefile' && 'Shapefile — downloaded as a .zip with .shp / .dbf / .shx / .prj. Opens in QGIS and ArcGIS.'}
+                        {format === 'csv'       && 'CSV — centroid + all attributes. Opens in Excel / Python.'}
+                        {format === 'kml'       && 'KML — opens in Google Earth and Google Maps.'}
+                        {format === 'shapefile' && 'Shapefile — .zip with .shp/.dbf/.shx/.prj. Opens in QGIS & ArcGIS.'}
                       </p>
                     </div>
 
                     <div className={styles.dlSection}>
                       <p className={styles.dlLabel}>Download Layers</p>
-                      {activeSelected.length === 0 && (
-                        <p className={styles.emptyMsg}>Select at least one layer above.</p>
-                      )}
+                      {activeSelected.length === 0 && <p className={styles.emptyMsg}>Select at least one layer above.</p>}
                       {activeSelected.map(l => {
                         const s = dlStatus[l.id] ?? 'idle';
                         const n = dlCounts[l.id];
                         return (
                           <button key={l.id}
                             className={`${styles.dlBtn} ${s==='loading'?styles.dlLoading:s==='done'?styles.dlDone:s==='error'?styles.dlError:''}`}
-                            onClick={() => downloadLayer(l.id)}
-                            disabled={!bbox || tooBig || s === 'loading'}
+                            onClick={() => downloadLayer(l.id)} disabled={!bbox || tooBig || s === 'loading'}
                           >
                             <span>{l.emoji} {l.label}</span>
                             <span className={styles.dlStatus}>
-                              {s==='loading' ? '⏳' : s==='done' ? (n===0?'0 found':`✓ ${n.toLocaleString()}`) : s==='error' ? '✗' : `↓ ${format === 'shapefile' ? '.zip' : `.${format}`}`}
+                              {s==='loading' ? '⏳' : s==='done' ? (n===0?'0 found':`✓ ${n.toLocaleString()}`) : s==='error' ? '✗' : `↓ .${format==='shapefile'?'zip':format}`}
                             </span>
                           </button>
                         );
@@ -494,30 +552,22 @@ export default function GISDownloaderPage() {
               </>
             )}
 
-            {/* Attribution */}
             <div className={styles.attrib}>
-              Data: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors ·{' '}
+              © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·{' '}
               <a href="https://earthquake.usgs.gov" target="_blank" rel="noopener noreferrer">USGS</a> ·{' '}
-              <a href="https://www.gbif.org" target="_blank" rel="noopener noreferrer">GBIF</a>
+              <a href="https://www.gbif.org" target="_blank" rel="noopener noreferrer">GBIF</a> ·{' '}
+              <a href="https://msc.fema.gov" target="_blank" rel="noopener noreferrer">FEMA</a> ·{' '}
+              <a href="https://www.census.gov" target="_blank" rel="noopener noreferrer">US Census</a> ·{' '}
+              <a href="https://www.wikipedia.org" target="_blank" rel="noopener noreferrer">Wikipedia</a>
             </div>
           </div>
         </aside>
 
-        {/* ── Map ── */}
+        {/* Map */}
         <div className={styles.mapWrap}>
-          <MapPanel
-            onBoundsChange={handleViewportChange}
-            onFlyToReady={handleFlyToReady}
-            drawMode={drawMode}
-            customBbox={customBbox}
-            onDraw={handleDraw}
-          />
+          <MapPanel onBoundsChange={handleViewportChange} onFlyToReady={handleFlyToReady} drawMode={drawMode} customBbox={customBbox} onDraw={handleDraw} />
           <div className={styles.mapHint}>
-            {drawMode
-              ? '✏️ Click and drag to draw your download area'
-              : customBbox
-              ? '🟡 Custom area active — amber rectangle is your download area'
-              : '🔵 Pan & zoom to set area, or use "Draw Custom Area" above'}
+            {drawMode ? '✏️ Click and drag to draw your download area' : customBbox ? '🟡 Custom area active — amber rectangle is your download area' : '🔵 Pan & zoom to set area, or use "Draw Custom Area" above'}
           </div>
         </div>
       </div>
