@@ -58,7 +58,7 @@ const OSM_LAYERS: Layer[] = [
 ];
 
 const HAZARD_LAYERS: Layer[] = [
-  { id: 'earthquakes', label: 'Earthquakes (Past Year)', emoji: '🌋', desc: 'USGS seismic events ≥ M2.0' },
+  { id: 'earthquakes', label: 'Earthquakes (Past Year)', emoji: '🌋', desc: 'USGS seismic events ≥ M2.0 (may be 0 in low-seismicity regions)' },
   { id: 'flood-zones', label: 'FEMA Flood Zones',        emoji: '🌊', desc: '100-yr flood hazard areas (USA only)', usaOnly: true },
 ];
 
@@ -76,7 +76,7 @@ const CENSUS_LAYERS: Layer[] = [
   { id: 'census-tracts',   label: 'Census Tracts',          emoji: '📊', desc: 'Census tract boundaries',            usaOnly: true },
   { id: 'census-zip',      label: 'ZIP Code Areas',         emoji: '📮', desc: 'Zip code tabulation areas (ZCTAs)',  usaOnly: true },
   { id: 'census-schools',  label: 'School Districts',       emoji: '🏫', desc: 'Unified school district boundaries', usaOnly: true },
-  { id: 'census-congress', label: 'Congressional Districts',emoji: '🗳', desc: '118th US congressional districts',   usaOnly: true },
+  { id: 'census-congress', label: 'Congressional Districts',emoji: '🗳', desc: '119th US congressional districts',   usaOnly: true },
 ];
 
 const LAYER_GROUPS = [
@@ -94,11 +94,11 @@ const OSM_IDS    = new Set(OSM_LAYERS.map(l => l.id));
 const TIGER_URLS: Record<string, string> = {
   'census-counties': 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/1/query',
   'census-tracts':   'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/2/query',
-  'census-zip':      'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/5/query',
-  'census-schools':  'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Schools/MapServer/0/query',
+  'census-zip':      'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query',
+  'census-schools':  'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/School/MapServer/0/query',
   'census-congress': 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer/0/query',
 };
-const FEMA_URL  = 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query';
+const FEMA_URL  = 'https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query';
 const GAUGES_URL = 'https://api.waterdata.usgs.gov/ogc/v0/collections/monitoring-location/items';
 
 // ─── Shared proxy fetch (for ArcGIS REST services) ───────────────────────────
@@ -130,7 +130,7 @@ async function countOSM(layerId: string, b: Bbox): Promise<number> {
     healthcare:      `[out:json][timeout:15];(node["amenity"~"hospital|clinic|pharmacy|dentist|doctors|veterinary"](${bb}););out count;`,
     cycling:         `[out:json][timeout:15];(way["highway"="cycleway"](${bb});way["cycleway"~"lane|track"](${bb}););out count;`,
     military:        `[out:json][timeout:15];(way["landuse"="military"](${bb});relation["landuse"="military"](${bb}););out count;`,
-    cemeteries:      `[out:json][timeout:15];(way["landuse"="cemetery"](${bb});way["amenity"="grave_yard"](${bb}););out count;`,
+    cemeteries:      `[out:json][timeout:15];(way["landuse"="cemetery"](${bb});way["amenity"="grave_yard"](${bb});relation["landuse"="cemetery"](${bb}););out count;`,
     transit:         `[out:json][timeout:15];(node["highway"="bus_stop"](${bb});node["public_transport"~"stop_position|platform"](${bb});node["railway"~"station|halt|tram_stop|subway_entrance"](${bb}););out count;`,
     airports:        `[out:json][timeout:15];(node["aeroway"~"aerodrome|helipad|airstrip"](${bb});way["aeroway"~"aerodrome|runway|taxiway|helipad"](${bb}););out count;`,
     education:       `[out:json][timeout:15];(node["amenity"~"school|university|college|kindergarten"](${bb});way["amenity"~"school|university|college|kindergarten"](${bb}););out count;`,
