@@ -97,7 +97,7 @@ const TIGER_URLS: Record<string, string> = {
 const FEMA_URL  = 'https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query';
 const GAUGES_URL = 'https://api.waterdata.usgs.gov/ogc/v0/collections/monitoring-location/items';
 
-// ─── Shared proxy fetch (for ArcGIS REST services) ───────────────────────────
+// ─── Shared proxy fetch (for ArcGIS REST services that lack CORS) ────────────
 async function proxyFetch(url: string): Promise<unknown> {
   const res = await fetch('/api/gis-proxy', {
     method: 'POST',
@@ -105,6 +105,41 @@ async function proxyFetch(url: string): Promise<unknown> {
     body: JSON.stringify({ url }),
   });
   return res.json();
+}
+
+// ─── Direct Overpass fetch — runs in the BROWSER using the user's own IP ─────
+// Overpass-api.de supports CORS, so no proxy is needed. Using the user's IP
+// avoids the shared Vercel server IP being rate-limited across all users.
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
+
+async function fetchOverpass(query: string): Promise<Record<string, unknown>> {
+  let lastErr: Error = new Error('Overpass: no endpoints available');
+  for (const url of OVERPASS_ENDPOINTS) {
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30_000);
+    try {
+      const res = await fetch(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    `data=${encodeURIComponent(query)}`,
+        signal:  ctrl.signal,
+      });
+      clearTimeout(timer);
+      if (res.status === 429) { lastErr = new Error('Overpass returned 429'); continue; }
+      if (!res.ok)            { lastErr = new Error(`Overpass returned ${res.status}`); continue; }
+      const text = await res.text();
+      try { return JSON.parse(text) as Record<string, unknown>; }
+      catch { lastErr = new Error(`Overpass non-JSON: ${text.slice(0, 120)}`); continue; }
+    } catch (err) {
+      clearTimeout(timer);
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      // AbortError = timeout; try next endpoint
+    }
+  }
+  throw lastErr;
 }
 
 // ─── Count queries (fast — scan only) ────────────────────────────────────────
@@ -136,10 +171,10 @@ async function countOSM(layerId: string, b: Bbox): Promise<number> {
     parking:         `[out:json][timeout:15];(node["amenity"="parking"](${bb});way["amenity"="parking"](${bb}););out count;`,
     food:            `[out:json][timeout:15];(node["amenity"~"restaurant|cafe|bar|fast_food|food_court|pub|biergarten"](${bb}););out count;`,
   };
-  const res  = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q[layerId] }) });
-  const data = await res.json() as { elements?: { tags?: { total?: string } }[]; error?: string };
-  if (data.error || !res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-  return parseInt(data.elements?.[0]?.tags?.total ?? '0', 10);
+  const data = await fetchOverpass(q[layerId]);
+  if (data.error) throw new Error(String(data.error));
+  const elements = data.elements as { tags?: { total?: string } }[] | undefined;
+  return parseInt(elements?.[0]?.tags?.total ?? '0', 10);
 }
 
 async function countEarthquakes(b: Bbox): Promise<number> {
@@ -270,9 +305,7 @@ async function getCount(id: string, b: Bbox): Promise<number> {
 
 async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
   if (OSM_IDS.has(id)) {
-    const res  = await fetch('/api/overpass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: buildOverpassQuery(id, b) }) });
-    const raw  = await res.json() as Record<string, unknown>;
-    if (!res.ok) throw new Error((raw.error as string | undefined) ?? `Overpass HTTP ${res.status}`);
+    const raw = await fetchOverpass(buildOverpassQuery(id, b));
     return overpassToGeoJSON(raw);
   }
   if (id === 'earthquakes') {
@@ -512,12 +545,11 @@ export default function GISDownloaderPage() {
     const nonOsmLayers = ALL_LAYERS.filter(l => !OSM_IDS.has(l.id));
     const nonOsmPromise = Promise.allSettled(nonOsmLayers.map(scanOne));
 
-    // OSM layers all hit the same Overpass server — batch 2 at a time with a short gap.
-    // Batching 4+ at once triggers Overpass rate-limiting (429) from the shared Vercel IP.
+    // OSM layers now call Overpass directly from the browser (user's own IP), so
+    // rate-limiting is not a concern. Run 4 at a time for a fast scan.
     const osmLayers = ALL_LAYERS.filter(l => OSM_IDS.has(l.id));
-    for (let i = 0; i < osmLayers.length; i += 2) {
-      await Promise.allSettled(osmLayers.slice(i, i + 2).map(scanOne));
-      if (i + 2 < osmLayers.length) await new Promise(r => setTimeout(r, 300));
+    for (let i = 0; i < osmLayers.length; i += 4) {
+      await Promise.allSettled(osmLayers.slice(i, i + 4).map(scanOne));
     }
 
     await nonOsmPromise;
@@ -596,10 +628,9 @@ export default function GISDownloaderPage() {
 
       // Non-OSM layers run in parallel (each uses a different API server)
       const otherPromise = Promise.allSettled(otherLayers.map(addLayer));
-      // OSM layers batch 2 at a time with a short gap to avoid overwhelming Overpass
-      for (let i = 0; i < osmLayers.length; i += 2) {
-        await Promise.allSettled(osmLayers.slice(i, i + 2).map(addLayer));
-        if (i + 2 < osmLayers.length) await new Promise(r => setTimeout(r, 300));
+      // OSM layers now call Overpass directly from the browser — 4 at a time is fine
+      for (let i = 0; i < osmLayers.length; i += 4) {
+        await Promise.allSettled(osmLayers.slice(i, i + 4).map(addLayer));
       }
       await otherPromise;
 
