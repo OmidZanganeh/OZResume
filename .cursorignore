@@ -1,0 +1,11 @@
+﻿# Build & deps — keep out of index / @-mentions
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+
+# Huge local GIS downloads at repo root
+gis_*.geojson
+gis_*.kml
