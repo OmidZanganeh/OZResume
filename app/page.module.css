@@ -66,6 +66,35 @@
   border-color: var(--accent-orange);
 }
 
+.tourBtn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(168, 85, 247, 0.12));
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s;
+  box-shadow: 0 0 0 1px rgba(0, 245, 255, 0.08), 2px 2px 0 var(--border-light);
+}
+
+.tourBtn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow:
+    0 0 20px rgba(168, 85, 247, 0.25),
+    0 0 32px rgba(59, 130, 246, 0.15),
+    3px 3px 0 rgba(99, 102, 241, 0.35);
+  filter: brightness(1.03);
+}
+
+[data-theme="dark"] .tourBtn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.18));
+  color: #e8e6ff;
+  border-color: rgba(129, 140, 248, 0.55);
+}
+
 .headerMain {
   display: flex;
   justify-content: space-between;

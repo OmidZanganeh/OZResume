@@ -10,6 +10,7 @@ import SkillBar from "./components/SkillBar";
 import JourneySection from "./components/JourneySection";
 import ContactForm from "./components/ContactForm";
 import GameHub from "./components/GameHub";
+import RecruiterTour from "./components/RecruiterTour";
 import VisitorCounter from "./components/VisitorCounter";
 import ToolsHoverCard from "./components/ToolsHoverCard";
 import SkillRadar from "./components/SkillRadar";
@@ -21,6 +22,7 @@ const AVATARS = ['/Omid.png', '/Omid2.png'] as const;
 
 export default function Resume() {
   const [gameOpen, setGameOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const [avatarSrc, setAvatarSrc] = useState<typeof AVATARS[number]>(AVATARS[0]);
 
   useEffect(() => {
@@ -37,7 +39,10 @@ export default function Resume() {
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <DarkModeToggle />
-          <button className={styles.boredBtn} onClick={() => setGameOpen(true)}>
+          <button type="button" className={styles.tourBtn} onClick={() => setTourOpen(true)}>
+            ✨ Recruiter tour
+          </button>
+          <button type="button" className={styles.boredBtn} onClick={() => setGameOpen(true)}>
             🎮 Bored?
           </button>
         </div>
@@ -366,6 +371,7 @@ export default function Resume() {
           GAME MODAL
       ══════════════════════════════════════ */}
       {gameOpen && <GameHub onClose={() => setGameOpen(false)} />}
+      <RecruiterTour open={tourOpen} onClose={() => setTourOpen(false)} />
 
       {/* ══════════════════════════════════════
           FOOTER

@@ -61,6 +61,7 @@
 | Component | Used for |
 |-----------|-----------|
 | `GameHub.tsx` | Game modal from resume “Bored?” |
+| `RecruiterTour.tsx` | Neon “Recruiter tour” modal + Geo-Bot mascot (header **✨ Recruiter tour**) |
 | `ToolsHoverCard.tsx` | Header tools dropdown on resume |
 | `ContactForm.tsx`, `VisitorCounter.tsx` | Footer / contact |
 | `JourneySection.tsx`, `SkillRadar.tsx`, `SkillBar.tsx` | Resume sections |
