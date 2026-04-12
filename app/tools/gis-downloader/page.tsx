@@ -959,17 +959,46 @@ export default function GISDownloaderPage() {
             {/* Layer list — visible as soon as an area is set */}
             {stage !== 'no-area' && !tooBig && (
               <>
-                {/* Format picker — shown once any layer has been scanned */}
+                {/* ── Action bar — always above the layer list ── */}
+
+                {/* Scan button */}
+                {!scanning && unscannedSelected.length > 0 && (
+                  <button className={styles.scanBtn} onClick={scanArea}>
+                    🔍 Scan {unscannedSelected.length} selected layer{unscannedSelected.length !== 1 ? 's' : ''}
+                  </button>
+                )}
+
+                {/* Format picker + bundle — shown once any layer has been scanned */}
                 {anyScanned && (
-                  <div className={styles.fmtSection}>
-                    <div className={styles.fmtBtns}>
-                      {(['geojson', 'csv', 'kml', 'shapefile'] as Format[]).map(f => (
-                        <button key={f} className={`${styles.fmtBtn} ${format === f ? styles.fmtActive : ''}`} onClick={() => setFormat(f)}>
-                          {f === 'shapefile' ? 'SHP' : f.toUpperCase()}
-                        </button>
-                      ))}
+                  <>
+                    <div className={styles.fmtSection}>
+                      <div className={styles.fmtBtns}>
+                        {(['geojson', 'csv', 'kml', 'shapefile'] as Format[]).map(f => (
+                          <button key={f} className={`${styles.fmtBtn} ${format === f ? styles.fmtActive : ''}`} onClick={() => setFormat(f)}>
+                            {f === 'shapefile' ? 'SHP' : f.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Bundle all */}
+                    {selectedWithData.length > 1 && !scanning && (
+                      <button
+                        className={`${styles.bundleBtn} ${bundleStatus==='loading'?styles.bundleLoading:bundleStatus==='done'?styles.bundleDone:bundleStatus==='error'?styles.bundleError:''}`}
+                        onClick={() => { setBundleStatus('idle'); bundleAll(); }}
+                        disabled={!bbox || tooBig || bundleStatus === 'loading'}
+                      >
+                        <span>📦 Bundle {selectedWithData.length} layers → .zip</span>
+                        <span className={styles.dlStatus}>
+                          {bundleStatus === 'loading'
+                            ? `${bundleProgress}%`
+                            : bundleStatus === 'done'  ? '✓ Downloaded'
+                            : bundleStatus === 'error' ? '✗ Error'
+                            : '↓'}
+                        </span>
+                      </button>
+                    )}
+                  </>
                 )}
 
                 <div className={styles.layerSection}>
@@ -1045,30 +1074,6 @@ export default function GISDownloaderPage() {
                   ))}
                 </div>
 
-                {/* Scan button — appears for checked layers that haven't been scanned yet */}
-                {!scanning && unscannedSelected.length > 0 && (
-                  <button className={styles.scanBtn} onClick={scanArea}>
-                    🔍 Scan {unscannedSelected.length} selected layer{unscannedSelected.length !== 1 ? 's' : ''}
-                  </button>
-                )}
-
-                {/* Bundle all — shown when 2+ scanned layers with data are selected */}
-                {selectedWithData.length > 1 && !scanning && (
-                  <button
-                    className={`${styles.bundleBtn} ${bundleStatus==='loading'?styles.bundleLoading:bundleStatus==='done'?styles.bundleDone:bundleStatus==='error'?styles.bundleError:''}`}
-                    onClick={() => { setBundleStatus('idle'); bundleAll(); }}
-                    disabled={!bbox || tooBig || bundleStatus === 'loading'}
-                  >
-                    <span>📦 Bundle {selectedWithData.length} layers → .zip</span>
-                    <span className={styles.dlStatus}>
-                      {bundleStatus === 'loading'
-                        ? `${bundleProgress}%`
-                        : bundleStatus === 'done'  ? '✓ Downloaded'
-                        : bundleStatus === 'error' ? '✗ Error'
-                        : '↓'}
-                    </span>
-                  </button>
-                )}
               </>
             )}
 
