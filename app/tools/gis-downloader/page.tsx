@@ -1027,10 +1027,11 @@ export default function GISDownloaderPage() {
                       {group.layers.map(l => {
                         const sv         = scanned[l.id];
                         const isSelected = selected.has(l.id);
-                        const isScanning = sv === 'scanning';
-                        const hasData    = typeof sv === 'number' && sv > 0;
-                        const noData     = typeof sv === 'number' && sv === 0;
-                        const unscanned  = sv === undefined;
+                        const isScanning  = sv === 'scanning';
+                        const hasData     = typeof sv === 'number' && sv > 0;
+                        const noData      = typeof sv === 'number' && sv === 0;
+                        const unscanned   = sv === undefined;
+                        const scanFailed  = sv === 'error';
                         const s          = dlStatus[l.id] ?? 'idle';
                         return (
                           <div key={l.id}>
@@ -1040,24 +1041,24 @@ export default function GISDownloaderPage() {
                               <div className={styles.lInfo}>
                                 <span className={styles.lLabel}>{l.label}</span>
                               </div>
-                              {/* Scan button — shows when unscanned; replaced by count once scanned */}
-                              {unscanned && (
+                              {/* Scan / retry button — shows when unscanned or when scan failed */}
+                              {(unscanned || scanFailed) && (
                                 <button
-                                  className={styles.rowScanBtn}
+                                  className={`${styles.rowScanBtn} ${scanFailed ? styles.rowScanRetry : ''}`}
                                   onClick={e => {
                                     e.preventDefault(); e.stopPropagation();
-                                    // Auto-select the layer when the user explicitly scans it
                                     setSelected(prev => { const n = new Set(prev); n.add(l.id); return n; });
+                                    // Clear the error state before retrying
+                                    setScanned(p => { const n = { ...p }; delete n[l.id]; return n; });
                                     scanLayer(l.id);
                                   }}
                                   disabled={!bbox || tooBig}
-                                  title="Check availability"
-                                >🔍</button>
+                                  title={scanFailed ? 'Scan failed — click to retry' : 'Check availability'}
+                                >{scanFailed ? '↺' : '🔍'}</button>
                               )}
                               {/* Count badge — shown after scanning */}
                               <span className={styles.scanCount}>
                                 {isScanning && <span className={styles.spinner} />}
-                                {sv === 'error' && <span className={styles.countErr}>—</span>}
                                 {typeof sv === 'number' && <span className={sv > 0 ? styles.countOk : styles.countZero}>{sv > 0 ? sv.toLocaleString() : 'none'}</span>}
                               </span>
                               {/* Download button — shown once layer has data */}

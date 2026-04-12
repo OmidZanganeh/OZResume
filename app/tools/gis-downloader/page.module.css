@@ -414,6 +414,8 @@
 }
 .rowScanBtn:hover:not(:disabled) { background: var(--border-dark); }
 .rowScanBtn:disabled { opacity: 0.4; cursor: default; }
+.rowScanRetry { border-color: #dc2626; color: #dc2626; }
+.rowScanRetry:hover:not(:disabled) { background: rgba(220,38,38,0.08); }
 
 .spinnerSm {
   display: inline-block;
