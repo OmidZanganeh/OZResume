@@ -172,6 +172,8 @@ async function countOSM(layerId: string, b: Bbox): Promise<number> {
     fuel:            `[out:json][timeout:15];(node["amenity"="fuel"](${bb});node["amenity"="charging_station"](${bb}););out count;`,
     parking:         `[out:json][timeout:15];(node["amenity"="parking"](${bb});way["amenity"="parking"](${bb}););out count;`,
     food:            `[out:json][timeout:15];(node["amenity"~"restaurant|cafe|bar|fast_food|food_court|pub|biergarten"](${bb}););out count;`,
+    pipelines:       `[out:json][timeout:15];way["man_made"="pipeline"](${bb});out count;`,
+    bridges:         `[out:json][timeout:15];(way["bridge"="yes"](${bb});way["man_made"="bridge"](${bb}););out count;`,
   };
   const data = await fetchOverpass(q[layerId]);
   if (data.error) throw new Error(String(data.error));
