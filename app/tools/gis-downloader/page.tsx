@@ -798,6 +798,20 @@ export default function GISDownloaderPage() {
   const rescan = useCallback(() => { setStage('has-area'); clearResults(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const toggleLayer = (id: string) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
+  // Scan a single layer on demand (triggered by the per-row 🔍 button)
+  const scanLayer = useCallback(async (layerId: string) => {
+    if (!bbox || tooBig) return;
+    setScanned(p => ({ ...p, [layerId]: 'scanning' }));
+    setStage('scanning');
+    try {
+      const count = await getCount(layerId, bbox);
+      setScanned(p => ({ ...p, [layerId]: count }));
+    } catch {
+      setScanned(p => ({ ...p, [layerId]: 'error' }));
+    }
+    setStage('scanned');
+  }, [bbox, tooBig]);
+
   // ── Download ─────────────────────────────────────────────────────────────
   const downloadLayer = useCallback(async (layerId: string) => {
     if (!bbox || tooBig) return;
@@ -968,11 +982,13 @@ export default function GISDownloaderPage() {
                       </p>
 
                       {group.layers.map(l => {
-                        const sv       = scanned[l.id];
+                        const sv         = scanned[l.id];
                         const isSelected = selected.has(l.id);
-                        const hasData  = typeof sv === 'number' && sv > 0;
-                        const noData   = typeof sv === 'number' && sv === 0;
-                        const s        = dlStatus[l.id] ?? 'idle';
+                        const isScanning = sv === 'scanning';
+                        const hasData    = typeof sv === 'number' && sv > 0;
+                        const noData     = typeof sv === 'number' && sv === 0;
+                        const unscanned  = sv === undefined;
+                        const s          = dlStatus[l.id] ?? 'idle';
                         return (
                           <div key={l.id}>
                             <label className={`${styles.layerRow} ${isSelected ? styles.layerOn : styles.layerOff} ${noData ? styles.layerEmpty : ''}`}>
@@ -981,11 +997,22 @@ export default function GISDownloaderPage() {
                               <div className={styles.lInfo}>
                                 <span className={styles.lLabel}>{l.label}</span>
                               </div>
+                              {/* Scan button — shows when unscanned; replaced by count once scanned */}
+                              {unscanned && (
+                                <button
+                                  className={styles.rowScanBtn}
+                                  onClick={e => { e.preventDefault(); e.stopPropagation(); scanLayer(l.id); }}
+                                  disabled={!bbox || tooBig}
+                                  title="Check availability"
+                                >🔍</button>
+                              )}
+                              {/* Count badge — shown after scanning */}
                               <span className={styles.scanCount}>
-                                {sv === 'scanning' && <span className={styles.spinner} />}
-                                {sv === 'error'    && <span className={styles.countErr}>—</span>}
+                                {isScanning && <span className={styles.spinner} />}
+                                {sv === 'error' && <span className={styles.countErr}>—</span>}
                                 {typeof sv === 'number' && <span className={sv > 0 ? styles.countOk : styles.countZero}>{sv > 0 ? sv.toLocaleString() : 'none'}</span>}
                               </span>
+                              {/* Download button — shown once layer has data */}
                               {hasData && (
                                 <button
                                   className={`${styles.rowDlBtn} ${s==='loading'?styles.rowDlLoading:s==='done'?styles.rowDlDone:s==='error'?styles.rowDlError:''}`}

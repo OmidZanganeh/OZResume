@@ -396,6 +396,25 @@
 .rowDlDone    { border-color: #16a34a; color: #16a34a; }
 .rowDlError   { border-color: #dc2626; color: #dc2626; }
 
+/* Per-row scan button — same shape as rowDlBtn, neutral colour */
+.rowScanBtn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-dark);
+  border-radius: 5px;
+  background: transparent;
+  font-size: 0.72em;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  margin-left: 4px;
+}
+.rowScanBtn:hover:not(:disabled) { background: var(--border-dark); }
+.rowScanBtn:disabled { opacity: 0.4; cursor: default; }
+
 .spinnerSm {
   display: inline-block;
   width: 8px;
