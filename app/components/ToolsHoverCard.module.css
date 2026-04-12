@@ -4,6 +4,17 @@
   display: inline-flex;
 }
 
+/* Invisible bridge between button and popover so the mouse doesn't lose hover */
+.wrapper::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: -20px;
+  right: -20px;
+  height: 16px;
+  z-index: 9998;
+}
+
 /* ─── Trigger (the button itself) ────────────────────────────────────────── */
 .trigger {
   font-family: var(--font-sans);
@@ -42,7 +53,8 @@
   transform: translateX(-50%) translateY(-6px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  /* Delay hiding by 200ms so mouse has time to reach the popover */
+  transition: opacity 0.18s ease 0.2s, transform 0.18s ease 0.2s;
   z-index: 9999;
 
   width: 260px;
@@ -73,6 +85,8 @@
   opacity: 1;
   transform: translateX(-50%) translateY(0);
   pointer-events: auto;
+  /* Show immediately, no delay */
+  transition: opacity 0.15s ease 0s, transform 0.15s ease 0s;
 }
 
 /* ─── Popover Header ──────────────────────────────────────────────────────── */

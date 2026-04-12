@@ -88,29 +88,6 @@ export default function Resume() {
         </div>
       </header>
 
-      {/* ══════════════════════════════════════
-          IMPACT NUMBERS
-      ══════════════════════════════════════ */}
-      <ScrollFadeIn>
-      <div className={styles.stats}>
-        <div className={styles.stat}>
-          <div className={styles.statNum}><CountUp end={90} suffix="%" /></div>
-          <div className={styles.statLabel}>Reduction in Manual Steps</div>
-        </div>
-        <div className={styles.stat}>
-          <div className={styles.statNum}><CountUp end={150} suffix="+" /></div>
-          <div className={styles.statLabel}>Students Taught</div>
-        </div>
-        <div className={styles.stat}>
-          <div className={styles.statNum}><CountUp end={60} suffix=" yrs" /></div>
-          <div className={styles.statLabel}>of Aerial Data Managed</div>
-        </div>
-        <div className={styles.stat}>
-          <div className={styles.statNum}><CountUp end={4} suffix="+" /></div>
-          <div className={styles.statLabel}>AI Apps Built</div>
-        </div>
-      </div>
-      </ScrollFadeIn>
 
       {/* ══════════════════════════════════════
           ABOUT ME
