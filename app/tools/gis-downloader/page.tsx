@@ -167,7 +167,8 @@ async function countWaterGauges(b: Bbox): Promise<number> {
 
 async function countWikipedia(b: Bbox): Promise<number> {
   const p = new URLSearchParams({ action: 'query', list: 'geosearch', gsbbox: `${b.n}|${b.w}|${b.s}|${b.e}`, gslimit: '500', format: 'json', origin: '*' });
-  const d = await (await fetch(`https://en.wikipedia.org/w/api.php?${p}`)).json() as { query?: { geosearch?: unknown[] } };
+  const d = await (await fetch(`https://en.wikipedia.org/w/api.php?${p}`)).json() as { query?: { geosearch?: unknown[] }; error?: unknown };
+  if (d.error) throw new Error(`Wikipedia API error: ${JSON.stringify(d.error)}`);
   return d.query?.geosearch?.length ?? 0;
 }
 
@@ -432,7 +433,8 @@ export default function GISDownloaderPage() {
     setSelected(new Set()); setDlStatus({}); setDlCounts({});
 
     const results: Record<string, number | 'error'> = {};
-    await Promise.allSettled(ALL_LAYERS.map(async (layer) => {
+
+    const scanOne = async (layer: Layer) => {
       try {
         const count = await getCount(layer.id, bbox);
         results[layer.id] = count;
@@ -441,7 +443,19 @@ export default function GISDownloaderPage() {
         results[layer.id] = 'error';
         setScanned(p => ({ ...p, [layer.id]: 'error' }));
       }
-    }));
+    };
+
+    // Non-OSM layers use different APIs — run them all in parallel
+    const nonOsmLayers = ALL_LAYERS.filter(l => !OSM_IDS.has(l.id));
+    const nonOsmPromise = Promise.allSettled(nonOsmLayers.map(scanOne));
+
+    // OSM layers all hit the same Overpass server — batch 4 at a time to avoid rate-limiting
+    const osmLayers = ALL_LAYERS.filter(l => OSM_IDS.has(l.id));
+    for (let i = 0; i < osmLayers.length; i += 4) {
+      await Promise.allSettled(osmLayers.slice(i, i + 4).map(scanOne));
+    }
+
+    await nonOsmPromise;
 
     setSelected(new Set(ALL_LAYERS.filter(l => typeof results[l.id] === 'number' && (results[l.id] as number) > 0).map(l => l.id)));
     setStage('scanned');

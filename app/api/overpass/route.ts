@@ -31,7 +31,15 @@ export async function POST(req: NextRequest) {
         { status: res.status },
       );
 
-    const data = await res.json();
+    const text = await res.text();
+    let data: unknown;
+    try { data = JSON.parse(text); }
+    catch {
+      return NextResponse.json(
+        { error: `Overpass returned non-JSON: ${text.slice(0, 200)}` },
+        { status: 502 },
+      );
+    }
     return NextResponse.json(data);
   } catch (err: unknown) {
     return NextResponse.json(
