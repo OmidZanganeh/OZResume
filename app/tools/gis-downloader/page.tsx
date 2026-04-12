@@ -957,7 +957,6 @@ export default function GISDownloaderPage() {
                             <span className={styles.lEmoji}>{l.emoji}</span>
                             <div className={styles.lInfo}>
                               <span className={styles.lLabel}>{l.label}</span>
-                              <span className={styles.lDesc}>{l.desc}</span>
                             </div>
                             <span className={styles.scanCount}>
                               {sv === 'scanning' && <span className={styles.spinner} />}
