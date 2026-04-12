@@ -1033,7 +1033,7 @@ export default function GISDownloaderPage() {
                         const s          = dlStatus[l.id] ?? 'idle';
                         return (
                           <div key={l.id}>
-                            <label className={`${styles.layerRow} ${isSelected ? styles.layerOn : styles.layerOff} ${noData ? styles.layerEmpty : ''}`}>
+                            <label className={`${styles.layerRow} ${isSelected ? styles.layerOn : unscanned ? styles.layerOff : ''} ${noData ? styles.layerEmpty : ''}`}>
                               <input type="checkbox" checked={isSelected} onChange={() => toggleLayer(l.id)} disabled={scanning} />
                               <span className={styles.lEmoji}>{l.emoji}</span>
                               <div className={styles.lInfo}>
@@ -1043,7 +1043,12 @@ export default function GISDownloaderPage() {
                               {unscanned && (
                                 <button
                                   className={styles.rowScanBtn}
-                                  onClick={e => { e.preventDefault(); e.stopPropagation(); scanLayer(l.id); }}
+                                  onClick={e => {
+                                    e.preventDefault(); e.stopPropagation();
+                                    // Auto-select the layer when the user explicitly scans it
+                                    setSelected(prev => { const n = new Set(prev); n.add(l.id); return n; });
+                                    scanLayer(l.id);
+                                  }}
                                   disabled={!bbox || tooBig}
                                   title="Check availability"
                                 >🔍</button>
