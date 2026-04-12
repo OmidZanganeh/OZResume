@@ -1,6 +1,7 @@
 /* ─── Page shell ───────────────────────────────────────────────────────────── */
 .page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--paper-light);
@@ -545,6 +546,11 @@
 
 /* ─── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 780px) {
+  .page {
+    height: auto;
+    overflow: visible;
+  }
+
   .layout {
     flex-direction: column;
     height: auto;

@@ -114,7 +114,8 @@ async function countOSM(layerId: string, b: Bbox): Promise<number> {
     water:           `[out:json][timeout:15];(way["natural"="water"](${bb});way["waterway"](${bb}););out count;`,
     landuse:         `[out:json][timeout:15];way["landuse"](${bb});out count;`,
     railways:        `[out:json][timeout:15];way["railway"](${bb});out count;`,
-    'admin-bounds':  `[out:json][timeout:15];relation["boundary"="administrative"]["admin_level"~"^[4-9]$"](${bb});out count;`,
+    // is_in: finds admin areas that *contain* the center point (bbox query misses them since they span beyond any city viewport)
+    'admin-bounds':  `[out:json][timeout:15];is_in(${((b.n+b.s)/2).toFixed(6)},${((b.e+b.w)/2).toFixed(6)})->.a;relation(pivot.a)["boundary"="administrative"]["admin_level"~"^[2-8]$"];out count;`,
     power:           `[out:json][timeout:15];(way["power"~"line|minor_line|cable"](${bb});node["power"~"plant|substation|tower"](${bb}););out count;`,
     'natural-areas': `[out:json][timeout:15];(way["natural"~"wood|forest|grassland|heath|scrub|beach|cliff|wetland"](${bb}););out count;`,
     historic:        `[out:json][timeout:15];(node["historic"](${bb});way["historic"](${bb}););out count;`,
@@ -175,7 +176,8 @@ function buildOverpassQuery(id: string, b: Bbox): string {
     water:           `${hd}(way["natural"="water"](${bb});way["waterway"](${bb});relation["natural"="water"](${bb}););out body;>;out skel qt;`,
     landuse:         `${hd}way["landuse"](${bb});out body;>;out skel qt;`,
     railways:        `${hd}way["railway"](${bb});out body;>;out skel qt;`,
-    'admin-bounds':  `${hd}relation["boundary"="administrative"]["admin_level"~"^[4-9]$"](${bb});out body;>;out skel qt;`,
+    // is_in: fetches admin boundaries that contain the center point (skips bbox filter — state/city boundaries span beyond any city viewport)
+    'admin-bounds':  `${hd}is_in(${((b.n+b.s)/2).toFixed(6)},${((b.e+b.w)/2).toFixed(6)})->.a;relation(pivot.a)["boundary"="administrative"]["admin_level"~"^[2-8]$"];out body;>;out skel qt;`,
     power:           `${hd}(way["power"~"line|minor_line|cable"](${bb});node["power"~"plant|substation|tower"](${bb});way["power"="plant"](${bb}););out body;>;out skel qt;`,
     'natural-areas': `${hd}(way["natural"~"wood|forest|grassland|heath|scrub|beach|cliff|wetland"](${bb});relation["natural"~"wood|forest|grassland"](${bb}););out body;>;out skel qt;`,
     historic:        `${hd}(node["historic"](${bb});way["historic"](${bb});relation["historic"](${bb}););out body;>;out skel qt;`,
