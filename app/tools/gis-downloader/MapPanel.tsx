@@ -45,9 +45,14 @@ function DrawController({ active, onDraw }: { active: boolean; onDraw: (b: Bbox)
     if (!active) return;
 
     const container = map.getContainer();
-    container.style.cursor = 'crosshair';
     map.dragging.disable();
     map.scrollWheelZoom.disable();
+    // Inject a style tag — Leaflet resets inline cursor styles during dragging.disable(),
+    // so !important in a <style> element is the only reliable way to force crosshair.
+    const styleEl = document.createElement('style');
+    styleEl.textContent = '.leaflet-container.draw-active,.leaflet-container.draw-active *{cursor:crosshair!important}';
+    document.head.appendChild(styleEl);
+    container.classList.add('draw-active');
 
     let start: L.LatLng | null = null;
     let rect: L.Rectangle | null = null;
@@ -91,7 +96,8 @@ function DrawController({ active, onDraw }: { active: boolean; onDraw: (b: Bbox)
       map.off('mousemove', onMove);
       map.off('mouseup',   onUp);
       if (rect) { map.removeLayer(rect); }
-      container.style.cursor = '';
+      container.classList.remove('draw-active');
+      styleEl.remove();
       map.dragging.enable();
       map.scrollWheelZoom.enable();
     };

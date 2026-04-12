@@ -564,10 +564,12 @@ export default function GISDownloaderPage() {
     try {
       const JSZip = (await import('jszip')).default;
       const zip   = new JSZip();
-      const layers = ALL_LAYERS.filter(l => selected.has(l.id));
+      const layers    = ALL_LAYERS.filter(l => selected.has(l.id));
+      const osmLayers = layers.filter(l => OSM_IDS.has(l.id));
+      const otherLayers = layers.filter(l => !OSM_IDS.has(l.id));
       let done = 0;
 
-      await Promise.allSettled(layers.map(async (layer) => {
+      const addLayer = async (layer: Layer) => {
         try {
           const fc = await getFeatures(layer.id, bbox);
           if (!fc.features.length) return;
@@ -588,7 +590,15 @@ export default function GISDownloaderPage() {
         } catch { /* skip failed layers silently */ }
         done++;
         setBundleProgress(Math.round((done / layers.length) * 100));
-      }));
+      };
+
+      // Non-OSM layers run in parallel (each uses a different API server)
+      const otherPromise = Promise.allSettled(otherLayers.map(addLayer));
+      // OSM layers batch 4 at a time to avoid overwhelming Overpass
+      for (let i = 0; i < osmLayers.length; i += 4) {
+        await Promise.allSettled(osmLayers.slice(i, i + 4).map(addLayer));
+      }
+      await otherPromise;
 
       const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
       downloadBlob(blob, `gis_bundle_${new Date().toISOString().slice(0, 10)}.zip`, 'application/zip');
