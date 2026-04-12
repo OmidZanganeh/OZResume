@@ -397,32 +397,45 @@ function polygonToKML(rings: [number,number][][]): string {
   const inner = rings.slice(1).map(r=>`<innerBoundaryIs>${ringToKML(r)}</innerBoundaryIs>`).join('');
   return `<Polygon>${outer}${inner}</Polygon>`;
 }
+// Escape the five XML special characters for use outside CDATA sections.
+const xmlEsc = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+
 function toKML(fc: GeoFC, name: string): string {
   const marks = fc.features.map(f => {
     const p   = f.properties ?? {};
     const lbl = String(p.name ?? p.title ?? p.osm_id ?? 'Feature');
-    const dsc = Object.entries(p).map(([k,v])=>`<tr><td><b>${k}</b></td><td>${v}</td></tr>`).join('');
-    const g   = f.geometry as { type: string; coordinates: unknown };
-    let geo   = '';
+    // Property table goes inside CDATA so values need no escaping,
+    // but keys are safe OSM tag names (alphanumeric + colon/underscore).
+    const dsc = Object.entries(p)
+      .map(([k, v]) => `<tr><td><b>${k}</b></td><td>${v ?? ''}</td></tr>`)
+      .join('');
+    const g = f.geometry as { type: string; coordinates: unknown };
+    let geo = '';
     if (g.type === 'Point') {
-      const [x,y] = g.coordinates as [number,number];
+      const [x, y] = g.coordinates as [number, number];
       geo = `<Point><coordinates>${x},${y},0</coordinates></Point>`;
     } else if (g.type === 'LineString') {
-      const cc = (g.coordinates as [number,number][]).map(c=>`${c[0]},${c[1]},0`).join(' ');
+      const cc = (g.coordinates as [number, number][]).map(c => `${c[0]},${c[1]},0`).join(' ');
       geo = `<LineString><coordinates>${cc}</coordinates></LineString>`;
     } else if (g.type === 'MultiLineString') {
-      geo = (g.coordinates as [number,number][][]).map(ls=>{
-        const cc = ls.map(c=>`${c[0]},${c[1]},0`).join(' ');
+      // KML requires <MultiGeometry> when a Placemark has more than one geometry.
+      const parts = (g.coordinates as [number, number][][]).map(ls => {
+        const cc = ls.map(c => `${c[0]},${c[1]},0`).join(' ');
         return `<LineString><coordinates>${cc}</coordinates></LineString>`;
       }).join('');
+      geo = `<MultiGeometry>${parts}</MultiGeometry>`;
     } else if (g.type === 'Polygon') {
-      geo = polygonToKML(g.coordinates as [number,number][][]);
+      geo = polygonToKML(g.coordinates as [number, number][][]);
     } else if (g.type === 'MultiPolygon') {
-      geo = (g.coordinates as [number,number][][][]).map(poly => polygonToKML(poly)).join('');
+      const parts = (g.coordinates as [number, number][][][]).map(poly => polygonToKML(poly)).join('');
+      geo = `<MultiGeometry>${parts}</MultiGeometry>`;
     }
     return `  <Placemark><name><![CDATA[${lbl}]]></name><description><![CDATA[<table>${dsc}</table>]]></description>${geo}</Placemark>`;
   }).join('\n');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${name}</name>\n${marks}\n</Document>\n</kml>`;
+  // xmlEsc the document name — layer labels like "Roads & Streets" contain & which
+  // is an invalid XML token when placed directly in element content.
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${xmlEsc(name)}</name>\n${marks}\n</Document>\n</kml>`;
 }
 
 // ─── Custom shapefile writer ──────────────────────────────────────────────────
