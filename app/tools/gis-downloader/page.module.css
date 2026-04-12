@@ -362,24 +362,49 @@
   to { transform: rotate(360deg); }
 }
 
-/* ─── Format ───────────────────────────────────────────────────────────────── */
-.fmtSection {
-  margin-bottom: 16px;
+/* ─── Inline per-row download button ──────────────────────────────────────── */
+.rowDlBtn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-dark);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82em;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  margin-left: 4px;
+}
+.rowDlBtn:hover:not(:disabled) { background: var(--border-dark); color: var(--text-primary); }
+.rowDlBtn:disabled { opacity: 0.4; cursor: default; }
+
+.rowDlLoading { border-color: #6366f1; color: #6366f1; }
+.rowDlDone    { border-color: #16a34a; color: #16a34a; }
+.rowDlError   { border-color: #dc2626; color: #dc2626; }
+
+.spinnerSm {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--border-dark);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
-.fmtLabel {
-  font-size: 0.7em;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0 0 7px;
+/* ─── Format ───────────────────────────────────────────────────────────────── */
+.fmtSection {
+  margin-bottom: 10px;
 }
 
 .fmtBtns {
   display: flex;
   gap: 6px;
-  margin-bottom: 7px;
 }
 
 .fmtBtn {

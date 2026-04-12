@@ -932,6 +932,19 @@ export default function GISDownloaderPage() {
             {/* Layer results */}
             {(scanning || scannedDone) && (
               <>
+                {/* Format picker — shown once scan is done, before the layer list */}
+                {scannedDone && (
+                  <div className={styles.fmtSection}>
+                    <div className={styles.fmtBtns}>
+                      {(['geojson', 'csv', 'kml', 'shapefile'] as Format[]).map(f => (
+                        <button key={f} className={`${styles.fmtBtn} ${format === f ? styles.fmtActive : ''}`} onClick={() => setFormat(f)}>
+                          {f === 'shapefile' ? 'SHP' : f.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className={styles.layerSection}>
                   <div className={styles.layerSectionHeader}>
                     <span>{scanning ? 'Scanning…' : `${ALL_LAYERS.filter(l => typeof scanned[l.id] === 'number' && (scanned[l.id] as number) > 0).length} of ${ALL_LAYERS.length} layers have data`}</span>
@@ -951,87 +964,55 @@ export default function GISDownloaderPage() {
                         const sv      = scanned[l.id];
                         const hasData = typeof sv === 'number' && sv > 0;
                         const noData  = typeof sv === 'number' && sv === 0;
+                        const s       = dlStatus[l.id] ?? 'idle';
                         return (
-                          <label key={l.id} className={`${styles.layerRow} ${selected.has(l.id) ? styles.layerOn : ''} ${noData ? styles.layerEmpty : ''}`}>
-                            {scannedDone && <input type="checkbox" checked={selected.has(l.id)} onChange={() => toggleLayer(l.id)} disabled={!hasData} />}
-                            <span className={styles.lEmoji}>{l.emoji}</span>
-                            <div className={styles.lInfo}>
-                              <span className={styles.lLabel}>{l.label}</span>
-                            </div>
-                            <span className={styles.scanCount}>
-                              {sv === 'scanning' && <span className={styles.spinner} />}
-                              {sv === 'error'    && <span className={styles.countErr}>—</span>}
-                              {typeof sv === 'number' && <span className={sv > 0 ? styles.countOk : styles.countZero}>{sv > 0 ? sv.toLocaleString() : 'none'}</span>}
-                            </span>
-                          </label>
+                          <div key={l.id}>
+                            <label className={`${styles.layerRow} ${selected.has(l.id) ? styles.layerOn : ''} ${noData ? styles.layerEmpty : ''}`}>
+                              {scannedDone && <input type="checkbox" checked={selected.has(l.id)} onChange={() => toggleLayer(l.id)} disabled={!hasData} />}
+                              <span className={styles.lEmoji}>{l.emoji}</span>
+                              <div className={styles.lInfo}>
+                                <span className={styles.lLabel}>{l.label}</span>
+                              </div>
+                              <span className={styles.scanCount}>
+                                {sv === 'scanning' && <span className={styles.spinner} />}
+                                {sv === 'error'    && <span className={styles.countErr}>—</span>}
+                                {typeof sv === 'number' && <span className={sv > 0 ? styles.countOk : styles.countZero}>{sv > 0 ? sv.toLocaleString() : 'none'}</span>}
+                              </span>
+                              {scannedDone && hasData && (
+                                <button
+                                  className={`${styles.rowDlBtn} ${s==='loading'?styles.rowDlLoading:s==='done'?styles.rowDlDone:s==='error'?styles.rowDlError:''}`}
+                                  onClick={e => { e.preventDefault(); e.stopPropagation(); downloadLayer(l.id); }}
+                                  disabled={s === 'loading' || !bbox || tooBig}
+                                  title={`Download as .${format === 'shapefile' ? 'zip' : format}`}
+                                >
+                                  {s === 'loading' ? <span className={styles.spinnerSm} /> : s === 'done' ? '✓' : s === 'error' ? '✗' : '↓'}
+                                </button>
+                              )}
+                            </label>
+                            {s === 'error' && dlErrors[l.id] && <p className={styles.dlErrorMsg}>{dlErrors[l.id]}</p>}
+                          </div>
                         );
                       })}
                     </div>
                   ))}
                 </div>
 
-                {/* Format + download */}
-                {scannedDone && (
-                  <>
-                    <div className={styles.fmtSection}>
-                      <p className={styles.fmtLabel}>Output Format</p>
-                      <div className={styles.fmtBtns}>
-                        {(['geojson', 'csv', 'kml', 'shapefile'] as Format[]).map(f => (
-                          <button key={f} className={`${styles.fmtBtn} ${format === f ? styles.fmtActive : ''}`} onClick={() => setFormat(f)}>
-                            {f === 'shapefile' ? 'SHP' : f.toUpperCase()}
-                          </button>
-                        ))}
-                      </div>
-                      <p className={styles.fmtHint}>
-                        {format === 'geojson'   && 'GeoJSON — works in QGIS, ArcGIS, Mapbox, and most GIS tools.'}
-                        {format === 'csv'       && 'CSV — centroid + all attributes. Opens in Excel / Python.'}
-                        {format === 'kml'       && 'KML — opens in Google Earth and Google Maps.'}
-                        {format === 'shapefile' && 'Shapefile — .zip with .shp/.dbf/.shx/.prj. Opens in QGIS & ArcGIS.'}
-                      </p>
-                    </div>
-
-                    <div className={styles.dlSection}>
-                      <p className={styles.dlLabel}>Download Layers</p>
-                      {activeSelected.length === 0 && <p className={styles.emptyMsg}>Select at least one layer above.</p>}
-                      {activeSelected.map(l => {
-                        const s   = dlStatus[l.id] ?? 'idle';
-                        const n   = dlCounts[l.id];
-                        const err = dlErrors[l.id];
-                        return (
-                          <div key={l.id}>
-                            <button
-                              className={`${styles.dlBtn} ${s==='loading'?styles.dlLoading:s==='done'?styles.dlDone:s==='error'?styles.dlError:''}`}
-                              onClick={() => downloadLayer(l.id)} disabled={!bbox || tooBig || s === 'loading'}
-                            >
-                              <span>{l.emoji} {l.label}</span>
-                              <span className={styles.dlStatus}>
-                                {s==='loading' ? '⏳' : s==='done' ? (n===0?'0 found':`✓ ${n.toLocaleString()}`) : s==='error' ? '✗ Error' : `↓ .${format==='shapefile'?'zip':format}`}
-                              </span>
-                            </button>
-                            {s === 'error' && err && <p className={styles.dlErrorMsg}>{err}</p>}
-                          </div>
-                        );
-                      })}
-
-                      {/* Bundle all button */}
-                      {activeSelected.length > 1 && (
-                        <button
-                          className={`${styles.bundleBtn} ${bundleStatus==='loading'?styles.bundleLoading:bundleStatus==='done'?styles.bundleDone:bundleStatus==='error'?styles.bundleError:''}`}
-                          onClick={() => { setBundleStatus('idle'); bundleAll(); }}
-                          disabled={!bbox || tooBig || bundleStatus === 'loading'}
-                        >
-                          <span>📦 Bundle {activeSelected.length} layers → .zip</span>
-                          <span className={styles.dlStatus}>
-                            {bundleStatus === 'loading'
-                              ? `${bundleProgress}%`
-                              : bundleStatus === 'done'  ? '✓ Downloaded'
-                              : bundleStatus === 'error' ? '✗ Error'
-                              : '↓'}
-                          </span>
-                        </button>
-                      )}
-                    </div>
-                  </>
+                {/* Bundle all — shown below the list when 2+ layers are selected */}
+                {scannedDone && activeSelected.length > 1 && (
+                  <button
+                    className={`${styles.bundleBtn} ${bundleStatus==='loading'?styles.bundleLoading:bundleStatus==='done'?styles.bundleDone:bundleStatus==='error'?styles.bundleError:''}`}
+                    onClick={() => { setBundleStatus('idle'); bundleAll(); }}
+                    disabled={!bbox || tooBig || bundleStatus === 'loading'}
+                  >
+                    <span>📦 Bundle {activeSelected.length} layers → .zip</span>
+                    <span className={styles.dlStatus}>
+                      {bundleStatus === 'loading'
+                        ? `${bundleProgress}%`
+                        : bundleStatus === 'done'  ? '✓ Downloaded'
+                        : bundleStatus === 'error' ? '✗ Error'
+                        : '↓'}
+                    </span>
+                  </button>
                 )}
               </>
             )}
