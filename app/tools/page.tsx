@@ -49,6 +49,7 @@ const toolsJsonLd = {
     { '@type': 'ListItem', position: 5, name: 'Elevation Profile Tool', url: `${BASE}/tools/elevation-profile` },
     { '@type': 'ListItem', position: 6, name: 'Geocoder & Reverse Geocoder', url: `${BASE}/tools/geocoder` },
     { '@type': 'ListItem', position: 7, name: 'US Census Demographics Lookup', url: `${BASE}/tools/census` },
+    { '@type': 'ListItem', position: 8, name: 'GIS Data Downloader',           url: `${BASE}/tools/gis-downloader` },
   ],
 };
 
@@ -108,6 +109,14 @@ const TOOLS = [
     desc: 'Click any US location to see census tract data: population, median age, household income, home value, homeownership, and unemployment. Powered by the US Census Bureau ACS.',
     tags: ['Demographics', 'Census', 'No signup'],
     accent: 'green',
+  },
+  {
+    href: '/tools/gis-downloader',
+    emoji: '📥',
+    title: 'GIS Data Downloader',
+    desc: 'Select any area on the map and download free geodata: buildings, roads, POIs, parks, land use, waterways, railways, USGS earthquakes, and GBIF species observations.',
+    tags: ['OSM', 'USGS', 'GeoJSON · CSV · KML'],
+    accent: 'blue',
   },
 ];
 
