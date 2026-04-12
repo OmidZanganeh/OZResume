@@ -149,20 +149,37 @@ function downloadBlob(content: string, filename: string, mime: string) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function GISDownloaderPage() {
-  const [bbox,     setBbox]     = useState<Bbox | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set(['buildings', 'roads', 'pois']));
-  const [format,   setFormat]   = useState<Format>('geojson');
-  const [status,   setStatus]   = useState<Record<string, Status>>({});
-  const [counts,   setCounts]   = useState<Record<string, number>>({});
-  const [search,   setSearch]   = useState('');
-  const [searching, setSearching] = useState(false);
+  const [viewportBbox, setViewportBbox] = useState<Bbox | null>(null);
+  const [customBbox,   setCustomBbox]   = useState<Bbox | null>(null);
+  const [drawMode,     setDrawMode]     = useState(false);
+  const [selected,     setSelected]     = useState<Set<string>>(new Set(['buildings', 'roads', 'pois']));
+  const [format,       setFormat]       = useState<Format>('geojson');
+  const [status,       setStatus]       = useState<Record<string, Status>>({});
+  const [counts,       setCounts]       = useState<Record<string, number>>({});
+  const [search,       setSearch]       = useState('');
+  const [searching,    setSearching]    = useState(false);
   const flyToRef = useRef<((lat: number, lon: number, zoom?: number) => void) | null>(null);
 
-  const area      = bbox ? Math.abs((bbox.n - bbox.s) * (bbox.e - bbox.w)) : 0;
-  const tooBig    = area > 0.5;
-  const midLat    = bbox ? (bbox.n + bbox.s) / 2 : 0;
-  const kmW       = bbox ? ((bbox.n - bbox.s) * 111).toFixed(0) : '—';
-  const kmH       = bbox ? ((bbox.e - bbox.w) * 111 * Math.cos(midLat * Math.PI / 180)).toFixed(0) : '—';
+  // The active bbox used for downloads is the custom drawn one, or the viewport
+  const bbox   = customBbox ?? viewportBbox;
+  const area   = bbox ? Math.abs((bbox.n - bbox.s) * (bbox.e - bbox.w)) : 0;
+  const tooBig = area > 0.5;
+  const midLat = bbox ? (bbox.n + bbox.s) / 2 : 0;
+  const kmW    = bbox ? ((bbox.n - bbox.s) * 111).toFixed(0) : '—';
+  const kmH    = bbox ? ((bbox.e - bbox.w) * 111 * Math.cos(midLat * Math.PI / 180)).toFixed(0) : '—';
+
+  const handleDraw = useCallback((b: Bbox) => {
+    setCustomBbox(b);
+    setDrawMode(false);
+    setStatus({});
+    setCounts({});
+  }, []);
+
+  const resetToViewport = useCallback(() => {
+    setCustomBbox(null);
+    setStatus({});
+    setCounts({});
+  }, []);
 
   const toggleLayer = (id: string) =>
     setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -277,12 +294,32 @@ export default function GISDownloaderPage() {
               </button>
             </div>
 
+            {/* Draw area controls */}
+            <div className={styles.areaControls}>
+              {!drawMode && !customBbox && (
+                <button className={styles.drawBtn} onClick={() => setDrawMode(true)}>
+                  ✏️ Draw Custom Area
+                </button>
+              )}
+              {drawMode && (
+                <button className={styles.drawBtnActive} onClick={() => setDrawMode(false)}>
+                  ⏹ Cancel Drawing
+                </button>
+              )}
+              {customBbox && !drawMode && (
+                <div className={styles.customRow}>
+                  <span className={styles.customLabel}>✏️ Custom area active</span>
+                  <button className={styles.resetBtn} onClick={resetToViewport}>↺ Use Viewport</button>
+                </div>
+              )}
+            </div>
+
             {/* Bbox info */}
             {bbox && (
-              <div className={`${styles.bboxInfo} ${tooBig ? styles.bboxWarn : ''}`}>
+              <div className={`${styles.bboxInfo} ${tooBig ? styles.bboxWarn : ''} ${customBbox ? styles.bboxCustom : ''}`}>
                 {tooBig
-                  ? '⚠️ Area is too large — zoom in for best results (max ~50 × 50 km).'
-                  : `📐 ~${kmW} km × ${kmH} km  ·  bbox ready`}
+                  ? '⚠️ Area too large — zoom in or draw a smaller area.'
+                  : `${customBbox ? '✏️' : '📐'} ~${kmW} km × ${kmH} km  ·  ready`}
               </div>
             )}
             {!bbox && (
@@ -378,8 +415,20 @@ export default function GISDownloaderPage() {
 
         {/* ── Map ── */}
         <div className={styles.mapWrap}>
-          <MapPanel onBoundsChange={setBbox} onFlyToReady={handleFlyToReady} />
-          <div className={styles.mapHint}>The blue rectangle = your download area. Pan and zoom to adjust.</div>
+          <MapPanel
+            onBoundsChange={setViewportBbox}
+            onFlyToReady={handleFlyToReady}
+            drawMode={drawMode}
+            customBbox={customBbox}
+            onDraw={handleDraw}
+          />
+          <div className={styles.mapHint}>
+            {drawMode
+              ? '✏️ Click and drag to draw your download area'
+              : customBbox
+              ? '🟡 Custom area active — amber rectangle is your download area'
+              : '🔵 Pan & zoom to set area, or use "Draw Custom Area" above'}
+          </div>
         </div>
       </div>
     </div>

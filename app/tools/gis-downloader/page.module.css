@@ -99,6 +99,78 @@
 .searchBtn:hover:not(:disabled) { background: var(--border-dark); }
 .searchBtn:disabled { opacity: 0.5; cursor: default; }
 
+/* ─── Draw area controls ───────────────────────────────────────────────────── */
+.areaControls {
+  margin-bottom: 10px;
+}
+
+.drawBtn {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px dashed var(--border-dark);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82em;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.drawBtn:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.drawBtnActive {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #f59e0b;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  font-size: 0.82em;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
+.customRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+}
+
+.customLabel {
+  font-size: 0.78em;
+  color: #d97706;
+  font-weight: 600;
+}
+
+.resetBtn {
+  font-size: 0.75em;
+  padding: 3px 8px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 4px;
+  background: transparent;
+  color: #d97706;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.resetBtn:hover { background: rgba(245, 158, 11, 0.12); }
+
 /* ─── BBox info ────────────────────────────────────────────────────────────── */
 .bboxInfo,
 .bboxHint {
@@ -116,6 +188,12 @@
   border-color: #d97706;
   color: #d97706;
   background: rgba(217, 119, 6, 0.06);
+}
+
+.bboxCustom {
+  border-color: #f59e0b;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.07);
 }
 
 /* ─── Layer groups ─────────────────────────────────────────────────────────── */
