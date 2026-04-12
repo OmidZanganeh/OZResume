@@ -133,7 +133,6 @@ export default function ToolsPage() {
           <h1 className={styles.title}>GIS Tools</h1>
           <p className={styles.subtitle}>
             Practical tools for GIS professionals, cartographers, and spatial analysts.
-            Everything runs in your browser — nothing is sent to a server.
           </p>
         </header>
 
