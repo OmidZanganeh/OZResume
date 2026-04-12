@@ -715,6 +715,18 @@ async function shpZip(fc: GeoFC, _filename: string): Promise<Blob> {
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
 }
 
+// Retry a failing async operation up to `attempts` times with linear back-off.
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 1200): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try { return await fn(); } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 function downloadBlob(content: string | Blob, filename: string, mime: string) {
   const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
   const url  = URL.createObjectURL(blob);
@@ -790,7 +802,7 @@ export default function GISDownloaderPage() {
 
     const scanOne = async (layer: Layer) => {
       try {
-        const count = await getCount(layer.id, bbox);
+        const count = await withRetry(() => getCount(layer.id, bbox));
         setScanned(p => ({ ...p, [layer.id]: count }));
       } catch {
         setScanned(p => ({ ...p, [layer.id]: 'error' }));
@@ -818,7 +830,7 @@ export default function GISDownloaderPage() {
     setScanned(p => ({ ...p, [layerId]: 'scanning' }));
     setStage('scanning');
     try {
-      const count = await getCount(layerId, bbox);
+      const count = await withRetry(() => getCount(layerId, bbox));
       setScanned(p => ({ ...p, [layerId]: count }));
     } catch {
       setScanned(p => ({ ...p, [layerId]: 'error' }));
@@ -831,7 +843,7 @@ export default function GISDownloaderPage() {
     if (!bbox || tooBig) return;
     setDlStatus(p => ({ ...p, [layerId]: 'loading' }));
     try {
-      const fc    = await getFeatures(layerId, bbox);
+      const fc    = await withRetry(() => getFeatures(layerId, bbox));
       const layer = ALL_LAYERS.find(l => l.id === layerId);
       const name  = `gis_${layerId}_${new Date().toISOString().slice(0, 10)}`;
       setDlCounts(p => ({ ...p, [layerId]: fc.features.length }));
@@ -874,7 +886,7 @@ export default function GISDownloaderPage() {
 
       const addLayer = async (layer: Layer) => {
         try {
-          const fc = await getFeatures(layer.id, bbox);
+          const fc = await withRetry(() => getFeatures(layer.id, bbox));
           if (!fc.features.length) return;
 
           if (format === 'shapefile') {
