@@ -35,7 +35,7 @@
 .mapLoading {
   min-height: 500px;
   border-radius: 8px;
-  border: 2px dashed var(--border-dark);
+  border: 1.5px dashed var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,7 +69,7 @@
   gap: 8px;
   min-height: 300px;
 }
-.emptyIcon { font-size: 2.4em; }
+.emptyIcon { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0 auto; color: var(--text-muted); }
 .emptyTitle { font-size: 0.9em; font-weight: 600; color: var(--text-primary); margin: 0; }
 .emptyDesc  { font-size: 0.8em; color: var(--text-muted); margin: 0; line-height: 1.6; }
 
@@ -84,7 +84,7 @@
 
 /* ── Data panel ── */
 .dataPanel {
-  border: 2px solid var(--border-dark);
+  border: 1px solid var(--border-light);
   border-radius: 10px;
   overflow: hidden;
   background: var(--paper-dark);

@@ -118,7 +118,7 @@ function CsvToGeoJSON() {
           onClick={() => fileRef.current?.click()}
           onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) loadFile(f); }}
           onDragOver={e => e.preventDefault()}>
-          <span className={styles.dropIcon}>📄</span>
+          <span className={styles.dropIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
           <p className={styles.dropText}>Drop a CSV file or <span className={styles.dropLink}>click to upload</span></p>
           <p className={styles.dropHint}>Must have a header row with lat/lon columns</p>
           <input ref={fileRef} type="file" accept=".csv,text/csv" className={styles.hiddenInput}
@@ -254,7 +254,7 @@ function ExifReader() {
           onClick={() => inputRef.current?.click()}
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}>
-          <span className={styles.dropIcon}>📷</span>
+          <span className={styles.dropIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
           <p className={styles.dropText}>Drop a photo or <span className={styles.dropLink}>click to upload</span></p>
           <p className={styles.dropHint}>Works best with JPEG photos from cameras and phones</p>
           <input ref={inputRef} type="file" accept="image/*" className={styles.hiddenInput}
@@ -276,7 +276,7 @@ function ExifReader() {
         <div>
           {gps && (
             <div className={styles.gpsCard}>
-              <span className={styles.gpsIcon}>📍</span>
+              <span className={styles.gpsIcon}><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
               <div>
                 <p className={styles.gpsTitle}>GPS Location Found</p>
                 <p className={styles.gpsCoords}>{gps.lat.toFixed(6)}, {gps.lon.toFixed(6)}</p>

@@ -967,7 +967,7 @@ export default function GISDownloaderPage() {
             {!bbox && <div className={styles.bboxHint}>Pan or zoom the map to set the download area.</div>}
 
             {/* Idle prompt */}
-            {stage === 'no-area' && <div className={styles.idlePrompt}><div className={styles.idleIcon}>🗺</div><p>Pan the map or search for a location to get started.</p></div>}
+            {stage === 'no-area' && <div className={styles.idlePrompt}><div className={styles.idleIcon}><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div><p>Pan the map or search for a location to get started.</p></div>}
 
             {/* Layer list — visible as soon as an area is set */}
             {stage !== 'no-area' && !tooBig && (

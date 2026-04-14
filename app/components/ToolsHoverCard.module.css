@@ -141,10 +141,22 @@
 }
 
 .itemIcon {
-  font-size: 1em;
-  width: 18px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(37,99,235,0.08);
+  color: var(--accent-blue);
   flex-shrink: 0;
+  transition: background 0.12s;
+}
+.item:hover .itemIcon {
+  background: rgba(37,99,235,0.14);
+}
+[data-theme="dark"] .itemIcon {
+  background: rgba(59,130,246,0.1);
 }
 
 .itemLabel {

@@ -46,7 +46,7 @@
 .toolDesc { font-size: 0.88em; color: var(--text-secondary); line-height: 1.7; margin: 0; }
 
 .dropzone {
-  border: 2px dashed var(--border-dark);
+  border: 1.5px dashed var(--border-light);
   border-radius: 8px;
   padding: 36px 20px;
   text-align: center;
@@ -57,7 +57,7 @@
 }
 .dropzone:hover { border-color: var(--accent-blue); background: var(--paper-light); }
 .hiddenInput { display: none; }
-.dropIcon { font-size: 2.2em; display: block; margin-bottom: 10px; }
+.dropIcon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin: 0 auto 10px; color: var(--text-muted); }
 .dropText { font-size: 0.9em; color: var(--text-secondary); margin-bottom: 6px; }
 .dropLink { color: var(--accent-blue); font-weight: 600; }
 .dropHint { font-size: 0.76em; color: var(--text-muted); }
@@ -95,8 +95,8 @@
   font-size: 0.75em;
   font-weight: 600;
   padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--border-dark);
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
   background: var(--paper-light);
   color: var(--text-muted);
   cursor: pointer;
@@ -107,8 +107,8 @@
 
 .select {
   background: var(--paper-bg);
-  border: 1px solid var(--border-dark);
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
   padding: 8px 10px;
   font-family: var(--font-mono);
   font-size: 0.86em;
@@ -165,9 +165,9 @@
   background: var(--accent-blue);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 10px 22px;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.88em;
   font-weight: 600;
   cursor: pointer;
@@ -178,8 +178,8 @@
 
 .retryBtn {
   background: var(--paper-dark);
-  border: 1px solid var(--border-dark);
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
   padding: 9px 18px;
   font-family: var(--font-mono);
   font-size: 0.86em;

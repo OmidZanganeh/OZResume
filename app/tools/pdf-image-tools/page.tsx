@@ -187,7 +187,7 @@ function MergePdfsPanel() {
     <div className={styles.toolBody}>
       <p className={styles.toolDesc}>Combine multiple PDFs into one file. Order matters — use the arrows to reorder pages.</p>
       <div className={styles.dropzone} onClick={() => inputRef.current?.click()}>
-        <span className={styles.dropIcon}>📄</span>
+        <span className={styles.dropIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
         <p className={styles.dropText}>
           <span className={styles.dropLink}>Add PDFs</span> — click or tap here
         </p>
@@ -263,7 +263,7 @@ function CompressPdfPanel() {
         <strong>Repack</strong> rewrites the PDF with object streams (sometimes smaller). <strong>Rasterize</strong> redraws every page as a JPEG — often much smaller but text is no longer selectable.
       </p>
       <div className={styles.dropzone} onClick={() => inputRef.current?.click()}>
-        <span className={styles.dropIcon}>🗜</span>
+        <span className={styles.dropIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
         <p className={styles.dropText}>
           <span className={styles.dropLink}>Choose PDF</span>
         </p>
@@ -357,7 +357,7 @@ function SplitPdfPanel() {
     <div className={styles.toolBody}>
       <p className={styles.toolDesc}>One PDF per page, packaged in a ZIP file. Filenames include the original name and page number.</p>
       <div className={styles.dropzone} onClick={() => inputRef.current?.click()}>
-        <span className={styles.dropIcon}>✂</span>
+        <span className={styles.dropIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
         <p className={styles.dropText}>
           <span className={styles.dropLink}>Choose PDF</span>
         </p>
@@ -481,7 +481,7 @@ function ImageConvertPanel() {
         PNG, JPEG, WebP, AVIF (if the browser supports it), 24-bit BMP, and multi-size ICO (16–256 px). Also accepts SVG and ICO as input when the browser can decode them.
       </p>
       <div className={styles.dropzone} onClick={() => inputRef.current?.click()}>
-        <span className={styles.dropIcon}>🖼</span>
+        <span className={styles.dropIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
         <p className={styles.dropText}>
           <span className={styles.dropLink}>Choose image</span>
         </p>
@@ -635,7 +635,7 @@ function ResizeImagePanel() {
     <div className={styles.toolBody}>
       <p className={styles.toolDesc}>Scale down (or up) by max width, max height, exact width, exact height, or percentage. Then pick the output format.</p>
       <div className={styles.dropzone} onClick={() => inputRef.current?.click()}>
-        <span className={styles.dropIcon}>↔</span>
+        <span className={styles.dropIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
         <p className={styles.dropText}>
           <span className={styles.dropLink}>Choose image</span>
         </p>
@@ -778,7 +778,7 @@ function ImagesToPdfPanel() {
     <div className={styles.toolBody}>
       <p className={styles.toolDesc}>Turn JPG, PNG, WebP, and other images into a single PDF — one image per page, sized to the image.</p>
       <div className={styles.dropzone} onClick={() => inputRef.current?.click()}>
-        <span className={styles.dropIcon}>📑</span>
+        <span className={styles.dropIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
         <p className={styles.dropText}>
           <span className={styles.dropLink}>Add images</span>
         </p>
@@ -868,7 +868,7 @@ function PdfToJpegPanel() {
     <div className={styles.toolBody}>
       <p className={styles.toolDesc}>Rasterize each PDF page to a JPEG. One page → one .jpg file. Multiple pages download as a ZIP of numbered images.</p>
       <div className={styles.dropzone} onClick={() => inputRef.current?.click()}>
-        <span className={styles.dropIcon}>📷</span>
+        <span className={styles.dropIcon}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
         <p className={styles.dropText}>
           <span className={styles.dropLink}>Choose PDF</span>
         </p>

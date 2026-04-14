@@ -46,7 +46,7 @@
 
 /* ── Dropzone ── */
 .dropzone {
-  border: 2px dashed var(--border-dark);
+  border: 1.5px dashed var(--border-light);
   border-radius: 8px;
   padding: 40px 20px;
   text-align: center;
@@ -57,7 +57,7 @@
 }
 .dropzone:hover { border-color: var(--accent-blue); background: var(--paper-light); }
 .hiddenInput { display: none; }
-.dropIcon { font-size: 2.4em; display: block; margin-bottom: 10px; }
+.dropIcon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin: 0 auto 10px; color: var(--text-muted); }
 .dropText { font-size: 0.9em; color: var(--text-secondary); margin-bottom: 6px; }
 .dropLink { color: var(--accent-blue); font-weight: 600; }
 .dropHint { font-size: 0.76em; color: var(--text-muted); }
@@ -144,8 +144,8 @@
 .colLabel { font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
 .select {
   background: var(--paper-bg);
-  border: 1px solid var(--border-dark);
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
   padding: 8px 10px;
   font-family: var(--font-mono);
   font-size: 0.88em;
@@ -156,14 +156,13 @@
   background: var(--accent-blue);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 10px 22px;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.9em;
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
-  box-shadow: 2px 2px 0 rgba(59,130,246,0.4);
 }
 .convertBtn:hover { opacity: 0.88; }
 
@@ -184,8 +183,8 @@
   font-size: 0.82em;
   font-weight: 600;
   padding: 6px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
   background: var(--paper-dark);
   color: var(--text-muted);
   cursor: pointer;
@@ -214,9 +213,9 @@
   background: var(--accent-blue);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 10px 22px;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.88em;
   font-weight: 600;
   cursor: pointer;
@@ -226,8 +225,8 @@
 
 .retryBtn {
   background: var(--paper-dark);
-  border: 1px solid var(--border-dark);
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
   padding: 9px 18px;
   font-family: var(--font-mono);
   font-size: 0.86em;
@@ -250,7 +249,8 @@
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
-.gpsIcon { font-size: 1.5em; }
+.gpsIcon { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; color: #065f46; flex-shrink: 0; }
+[data-theme="dark"] .gpsIcon { color: #34d399; }
 .gpsTitle { font-size: 0.78em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #065f46; margin: 0 0 3px; }
 [data-theme="dark"] .gpsTitle { color: #34d399; }
 .gpsCoords { font-family: var(--font-mono); font-size: 0.9em; color: var(--text-primary); margin: 0; }

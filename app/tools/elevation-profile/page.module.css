@@ -75,7 +75,7 @@
 /* Cancel button */
 .cancelBtn {
   padding: 7px 14px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #ef4444;
   background: transparent;
   color: #ef4444;
@@ -89,8 +89,8 @@
 
 .clearBtn {
   padding: 7px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
   background: transparent;
   color: var(--text-muted);
   font-family: var(--font-mono);
@@ -103,11 +103,11 @@
 
 .getBtn {
   padding: 7px 18px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 2px solid var(--accent-blue);
   background: var(--accent-blue);
   color: #fff;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.82em;
   font-weight: 700;
   cursor: pointer;
@@ -163,7 +163,7 @@
 .mapLoading {
   height: 420px;
   border-radius: 8px;
-  border: 2px dashed var(--border-dark);
+  border: 1.5px dashed var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,8 +185,8 @@
 /* ── Unit toggle ── */
 .unitToggle {
   display: flex;
-  border: 2px solid var(--border-dark);
-  border-radius: 6px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 8px;
   overflow: hidden;
 }
 .unitBtn {
@@ -200,7 +200,7 @@
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-.unitBtn + .unitBtn { border-left: 1px solid var(--border-dark); }
+.unitBtn + .unitBtn { border-left: 1px solid var(--border-light); }
 .unitBtnActive { background: var(--accent-blue); color: #fff; }
 
 /* ── Results section ── */
@@ -284,7 +284,7 @@
 .dlBtn {
   padding: 9px 20px;
   border-radius: 8px;
-  border: 2px solid var(--border-dark);
+  border: 1.5px solid var(--border-light);
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-mono);

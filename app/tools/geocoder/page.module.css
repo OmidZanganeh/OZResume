@@ -73,7 +73,7 @@
 .mapLoading {
   min-height: 480px;
   border-radius: 8px;
-  border: 2px dashed var(--border-dark);
+  border: 1.5px dashed var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -91,7 +91,7 @@
 
 /* ── Input card ── */
 .inputCard {
-  border: 2px solid var(--border-dark);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   overflow: hidden;
   background: var(--paper-dark);
@@ -160,7 +160,7 @@
 
 .runBtn {
   padding: 8px 20px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: none;
   background: var(--accent-blue);
   color: white;
@@ -175,7 +175,7 @@
 
 .stopBtn {
   padding: 8px 20px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #ef4444;
   background: transparent;
   color: #ef4444;
@@ -227,7 +227,7 @@
 
 /* ── Results card ── */
 .resultsCard {
-  border: 2px solid var(--border-dark);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -264,8 +264,8 @@
   font-size: 0.78em;
   font-weight: 700;
   padding: 5px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
   background: var(--paper-bg);
   color: var(--text-muted);
   cursor: pointer;

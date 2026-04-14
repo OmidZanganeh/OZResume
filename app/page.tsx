@@ -344,6 +344,7 @@ export default function Resume() {
               <p className={styles.degree}>
                 Master of Science: Geography – Geographic Information Science and Technology
                 <span className={styles.gpaBadge}>GPA 4.00</span>
+                <span className={styles.awardBadge}>GRACA Award</span>
               </p>
               <p className={styles.school}>University of Nebraska at Omaha, Nebraska</p>
               <p className={styles.eduDate}>August 2025</p>

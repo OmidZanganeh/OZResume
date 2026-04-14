@@ -65,7 +65,7 @@
 .mapLoading {
   min-height: 460px;
   border-radius: 8px;
-  border: 2px dashed var(--border-dark);
+  border: 1.5px dashed var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,8 +121,8 @@
   font-size: 0.75em;
   font-weight: 600;
   padding: 4px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
   background: var(--paper-dark);
   color: var(--text-muted);
   cursor: pointer;
@@ -144,8 +144,8 @@
 
 .input {
   background: var(--paper-bg);
-  border: 1px solid var(--border-dark);
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
   padding: 7px 10px;
   font-family: var(--font-mono);
   font-size: 0.82em;
@@ -175,8 +175,8 @@
 
 .inputSm {
   background: var(--paper-bg);
-  border: 1px solid var(--border-dark);
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
   padding: 6px 7px;
   font-family: var(--font-mono);
   font-size: 0.8em;
@@ -189,8 +189,8 @@
 
 .dirSelect {
   background: var(--paper-dark);
-  border: 1px solid var(--border-dark);
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
   padding: 6px 7px;
   font-family: var(--font-mono);
   font-size: 0.8em;

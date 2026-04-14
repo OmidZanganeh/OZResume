@@ -249,30 +249,12 @@
 /* ─── Avatar ─── */
 .avatarWrap {
   flex-shrink: 0;
-  border-radius: 50%;
-  overflow: hidden;
   width: 130px;
   height: 130px;
-  border: 3px solid var(--paper-light);
-  outline: 2.5px solid var(--accent-blue);
-  outline-offset: 2px;
-  box-shadow:
-    0 0 0 6px rgba(37,99,235,0.08),
-    0 8px 24px rgba(0,0,0,0.12);
-  transition: box-shadow 0.3s ease;
-}
-
-.avatarWrap:hover {
-  box-shadow:
-    0 0 0 6px rgba(37,99,235,0.14),
-    0 12px 32px rgba(0,0,0,0.16);
 }
 
 .avatar {
-  width: 130px;
-  height: 130px;
-  object-fit: cover;
-  display: block;
+  flex-shrink: 0;
 }
 
 /* ─── Section Titles ─── */
@@ -583,6 +565,24 @@
   vertical-align: middle;
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
+}
+
+.awardBadge {
+  display: inline-block;
+  font-size: 0.7em;
+  font-weight: 700;
+  background: #D97706;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .awardBadge {
+  background: #B45309;
 }
 
 .school {
