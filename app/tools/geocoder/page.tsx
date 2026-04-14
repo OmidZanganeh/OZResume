@@ -241,7 +241,7 @@ export default function GeocoderPage() {
         </div>
 
         <header className={styles.header}>
-          <h1 className={styles.title}>🌐 Geocoder &amp; Reverse Geocoder</h1>
+          <h1 className={styles.title}>Geocoder &amp; Reverse Geocoder</h1>
           <p className={styles.subtitle}>
             Paste a list of addresses to get coordinates, or a list of coordinates to get addresses.
             Up to 200 rows per batch. Powered by{' '}

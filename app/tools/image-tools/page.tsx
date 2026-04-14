@@ -322,7 +322,7 @@ export default function FileToolsPage() {
           <Link href="/tools" className={styles.back}>← Back to Tools</Link>
         </div>
         <header className={styles.header}>
-          <h1 className={styles.title}>🗂️ File Tools</h1>
+          <h1 className={styles.title}>File Tools</h1>
           <p className={styles.subtitle}>
             Convert CSV to GeoJSON in one click, or read hidden EXIF metadata from any photo.
             Everything runs in your browser — nothing is uploaded to a server.

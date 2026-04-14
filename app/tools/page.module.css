@@ -133,9 +133,23 @@
 }
 
 .cardIcon {
-  font-size: 1.25em;
-  line-height: 1;
-  opacity: 0.75;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(37,99,235,0.08);
+  color: var(--accent-blue);
+  flex-shrink: 0;
+  transition: background 0.18s;
+}
+.card:hover .cardIcon {
+  background: rgba(37,99,235,0.14);
+}
+
+[data-theme="dark"] .cardIcon {
+  background: rgba(59,130,246,0.1);
 }
 
 /* ─── Card body ───────────────────────────────────────────────────────────── */

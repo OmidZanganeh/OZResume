@@ -2,6 +2,53 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import styles from './page.module.css';
 
+// ─── Tool Card Icons (Heroicon-style SVG) ────────────────────────────────────
+const IconDownload = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+);
+const IconMapPin = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+  </svg>
+);
+const IconClock = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </svg>
+);
+const IconTrendingUp = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+  </svg>
+);
+const IconSearch = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+);
+const IconUsers = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+const IconRuler = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21.3 8.7 8.7 21.3c-1 1-2.5 1-3.4 0l-2.6-2.6c-1-1-1-2.5 0-3.4L15.3 2.7c1-1 2.5-1 3.4 0l2.6 2.6c1 1 1 2.5 0 3.4Z"/><path d="m7.5 10.5 2 2"/><path d="m10.5 7.5 2 2"/><path d="m13.5 4.5 2 2"/><path d="m4.5 13.5 2 2"/>
+  </svg>
+);
+const IconFolder = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+  </svg>
+);
+const IconLayers = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+  </svg>
+);
+
 export const metadata: Metadata = {
   title: 'Free Online GIS Tools – Coordinate Converter, Elevation Profile, Isochrone Map & More | Omid Zanganeh',
   description:
@@ -57,63 +104,63 @@ const toolsJsonLd = {
 const TOOLS = [
   {
     href: '/tools/gis-downloader',
-    emoji: '📥',
+    icon: <IconDownload />,
     title: 'GIS Data Downloader',
     desc: 'Select any area on the map and download free GIS data — buildings, roads, flood zones, census tracts, species observations, and more. Export as Shapefile, GeoJSON, CSV, or KML.',
     tags: ['OSM', 'USGS', 'FEMA', 'Census'],
   },
   {
     href: '/tools/coordinate-converter',
-    emoji: '📍',
+    icon: <IconMapPin />,
     title: 'Coordinate Converter',
     desc: 'Convert between Decimal Degrees, Degrees Minutes Seconds, and Degrees Decimal Minutes. Click the map to pick any point.',
     tags: ['GIS', 'Instant'],
   },
   {
     href: '/tools/isochrone',
-    emoji: '🗺',
+    icon: <IconClock />,
     title: 'Isochrone Mapper',
     desc: 'Generate travel-time reachability zones for any location — by car, foot, or bike — in 10 to 60 minute intervals.',
     tags: ['GIS', 'OpenStreetMap', 'Interactive'],
   },
   {
     href: '/tools/elevation-profile',
-    emoji: '📈',
+    icon: <IconTrendingUp />,
     title: 'Elevation Profile',
     desc: 'Draw a path on the map and get a real elevation profile from global terrain data. Download as CSV or SVG.',
     tags: ['GIS', 'Terrain', 'USGS'],
   },
   {
     href: '/tools/geocoder',
-    emoji: '🌐',
+    icon: <IconSearch />,
     title: 'Geocoder & Reverse Geocoder',
     desc: 'Batch geocode up to 200 addresses to coordinates, or coordinates to addresses. Results shown on a live map with CSV download.',
     tags: ['GIS', 'Batch', 'OpenStreetMap'],
   },
   {
     href: '/tools/census',
-    emoji: '🏡',
+    icon: <IconUsers />,
     title: 'US Census Demographics',
     desc: 'Click any US location to see census tract data: population, income, home value, age, and unemployment from the ACS.',
     tags: ['Demographics', 'Census Bureau'],
   },
   {
     href: '/tools/unit-converter',
-    emoji: '📏',
+    icon: <IconRuler />,
     title: 'Spatial Unit Converter',
     desc: 'Convert distance, area, and angle units used in GIS and surveying — meters, feet, acres, hectares, degrees, and more.',
     tags: ['GIS', 'Surveying', 'Instant'],
   },
   {
     href: '/tools/image-tools',
-    emoji: '🗂️',
+    icon: <IconFolder />,
     title: 'File Tools',
     desc: 'Convert CSV coordinates to GeoJSON in one click. Extract GPS and camera metadata from photo EXIF data. Nothing leaves your browser.',
     tags: ['GIS', 'Privacy-first'],
   },
   {
     href: '/tools/pdf-image-tools',
-    emoji: '📎',
+    icon: <IconLayers />,
     title: 'PDF & Image Tools',
     desc: 'Merge, compress, and split PDFs; convert or resize images (PNG, JPEG, WebP, AVIF, BMP, ICO); images to PDF; PDF pages to JPEG.',
     tags: ['PDF', 'Privacy-first'],
@@ -152,7 +199,7 @@ export default function ToolsPage() {
             >
               <div className={styles.cardHead}>
                 <span className={styles.cardNum}>{String(i + 1).padStart(2, '0')}</span>
-                <span className={styles.cardIcon}>{tool.emoji}</span>
+                <span className={styles.cardIcon}>{tool.icon}</span>
               </div>
               <h2 className={styles.cardTitle}>{tool.title}</h2>
               <p className={styles.cardDesc}>{tool.desc}</p>

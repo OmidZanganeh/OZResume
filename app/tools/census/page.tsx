@@ -159,7 +159,7 @@ export default function CensusPage() {
         </div>
 
         <header className={styles.header}>
-          <h1 className={styles.title}>🏘 US Census Demographics</h1>
+          <h1 className={styles.title}>US Census Demographics</h1>
           <p className={styles.subtitle}>
             Click anywhere on the US map to see census tract demographics from the{' '}
             <a href="https://www.census.gov/data/developers/data-sets/acs-5year.html" target="_blank" rel="noopener noreferrer" className={styles.link}>

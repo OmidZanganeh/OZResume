@@ -4,13 +4,13 @@
   max-width: 1200px;
   margin: 0 auto;
   background: var(--paper-light);
-  border: 2px solid var(--border-dark);
-  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
   padding: 36px 52px 56px;
-  box-shadow: 0 0 0 1px var(--border-light) inset, 6px 8px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 12px 32px -6px rgba(0,0,0,0.08);
 }
 [data-theme="dark"] .container {
-  box-shadow: 0 0 0 1px var(--border-light) inset, 6px 8px 28px rgba(0,0,0,0.35);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.35), 0 12px 32px -6px rgba(0,0,0,0.45);
 }
 
 .topBar { margin-bottom: 24px; }

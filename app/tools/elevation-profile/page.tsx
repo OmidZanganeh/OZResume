@@ -350,7 +350,7 @@ export default function ElevationProfilePage() {
         </div>
 
         <header className={styles.header}>
-          <h1 className={styles.title}>📈 Elevation Profile Tool</h1>
+          <h1 className={styles.title}>Elevation Profile Tool</h1>
           <p className={styles.subtitle}>
             Draw a path, choose a point interval, and generate a real elevation profile from{' '}
             <strong>USGS 3DEP</strong> — the same 1-meter dataset used by US engineers and surveyors.

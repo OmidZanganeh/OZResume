@@ -194,7 +194,7 @@ export default function CoordConverter() {
         </div>
 
         <header className={styles.header}>
-          <h1 className={styles.title}>📍 Coordinate Converter</h1>
+          <h1 className={styles.title}>Coordinate Converter</h1>
           <p className={styles.subtitle}>
             Convert between coordinate formats used in GIS, GPS, and mapping.
             Edit any format — others update instantly. Click the map or drag the pin to pick a location.

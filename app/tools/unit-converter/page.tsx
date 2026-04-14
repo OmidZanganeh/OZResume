@@ -36,10 +36,10 @@ const ANGLE_UNITS = [
   { key: 'turn', label: 'Full Turn',    abbr: 'turn', factor: 360 },
 ];
 
-const CATEGORIES: { key: Category; label: string; emoji: string }[] = [
-  { key: 'distance', label: 'Distance', emoji: '📏' },
-  { key: 'area',     label: 'Area',     emoji: '⬛' },
-  { key: 'angle',    label: 'Angle',    emoji: '📐' },
+const CATEGORIES: { key: Category; label: string }[] = [
+  { key: 'distance', label: 'Distance' },
+  { key: 'area',     label: 'Area' },
+  { key: 'angle',    label: 'Angle' },
 ];
 
 function getUnits(cat: Category) {
@@ -100,7 +100,7 @@ export default function UnitConverter() {
         </div>
 
         <header className={styles.header}>
-          <h1 className={styles.title}>📏 Spatial Unit Converter</h1>
+          <h1 className={styles.title}>Spatial Unit Converter</h1>
           <p className={styles.subtitle}>
             Convert between GIS and surveying units for distance, area, and angles.
             Type in any field — all others update instantly.
@@ -115,7 +115,7 @@ export default function UnitConverter() {
               className={`${styles.tab} ${category === c.key ? styles.tabActive : ''}`}
               onClick={() => switchCategory(c.key)}
             >
-              {c.emoji} {c.label}
+              {c.label}
             </button>
           ))}
         </div>
@@ -144,7 +144,11 @@ export default function UnitConverter() {
                   disabled={!val}
                   title={`Copy ${u.label} value`}
                 >
-                  {copied === u.key ? '✓' : '⧉'}
+                  {copied === u.key ? (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  ) : (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  )}
                 </button>
               </div>
             );

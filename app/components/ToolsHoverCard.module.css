@@ -21,8 +21,8 @@
   font-size: 0.82em;
   font-weight: 600;
   padding: 8px 18px;
-  border-radius: 20px;
-  border: 2px solid var(--border-dark);
+  border-radius: 8px;
+  border: 1.5px solid var(--border-dark);
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
@@ -37,8 +37,8 @@
 
 .wrapper:hover .trigger,
 .trigger:focus-visible {
-  transform: translateY(-2px);
-  background: var(--paper-dark);
+  transform: translateY(-1px);
+  background: rgba(37,99,235,0.05);
   border-color: var(--accent-blue);
   color: var(--accent-blue);
   text-decoration: none;

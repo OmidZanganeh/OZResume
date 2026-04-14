@@ -5,36 +5,45 @@
 
 /* ── Light mode (default) ── */
 :root {
-  --paper-bg: #F5F1E8;
-  --paper-light: #FDFBF7;
-  --paper-dark: #EBE6DA;
-  --text-primary: #1a1a1a;
-  --text-secondary: #3a3a3a;
-  --text-muted: #6b6b6b;
-  --accent-blue: #3B82F6;
-  --accent-green: #10B981;
-  --accent-orange: #F97316;
-  --accent-cyan: #06B6D4;
-  --border-light: #d4cfc1;
-  --border-dark: #a39f92;
+  --paper-bg: #F3EFE6;
+  --paper-light: #FDFCF9;
+  --paper-dark: #EDE8DC;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6B7280;
+  --accent-blue: #2563EB;
+  --accent-green: #059669;
+  --accent-orange: #EA580C;
+  --accent-cyan: #0891B2;
+  --border-light: #E5E0D5;
+  --border-dark: #C4BDB0;
   --font-mono: var(--font-mono, 'IBM Plex Mono', 'Courier New', monospace);
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.04);
+  --shadow-lg: 0 10px 30px -5px rgba(0,0,0,0.09), 0 4px 8px -2px rgba(0,0,0,0.05);
 }
 
 /* ── Dark mode ── */
 [data-theme="dark"] {
-  --paper-bg: #18181a;
-  --paper-light: #222226;
-  --paper-dark: #2a2a30;
-  --text-primary: #e8e4d8;
-  --text-secondary: #c0bba8;
-  --text-muted: #8a8680;
-  --accent-blue: #60a5fa;
-  --accent-green: #34d399;
-  --accent-orange: #fb923c;
-  --accent-cyan: #22d3ee;
-  --border-light: #38383f;
-  --border-dark: #4a4a52;
+  --paper-bg: #16161A;
+  --paper-light: #1E1E24;
+  --paper-dark: #26262E;
+  --text-primary: #F1EDE3;
+  --text-secondary: #C9C3B4;
+  --text-muted: #8A847C;
+  --accent-blue: #3B82F6;
+  --accent-green: #10B981;
+  --accent-orange: #F97316;
+  --accent-cyan: #06B6D4;
+  --border-light: #2E2E38;
+  --border-dark: #42424E;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.35), 0 2px 4px -1px rgba(0,0,0,0.25);
+  --shadow-lg: 0 10px 30px -5px rgba(0,0,0,0.45), 0 4px 8px -2px rgba(0,0,0,0.3);
 }
 
 * {
@@ -44,9 +53,9 @@
 }
 
 body {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   background-color: var(--paper-bg);
-  background-image: linear-gradient(rgba(245, 241, 232, 0.88), rgba(245, 241, 232, 0.88)), url('/Hillshade.jpg');
+  background-image: linear-gradient(rgba(243, 239, 230, 0.9), rgba(243, 239, 230, 0.9)), url('/Hillshade.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -63,7 +72,7 @@ body {
 }
 
 [data-theme="dark"] body {
-  background-image: linear-gradient(rgba(24, 24, 26, 0.9), rgba(24, 24, 26, 0.9)), url('/Hillshade.jpg');
+  background-image: linear-gradient(rgba(22, 22, 26, 0.93), rgba(22, 22, 26, 0.93)), url('/Hillshade.jpg');
 }
 
 body::before {

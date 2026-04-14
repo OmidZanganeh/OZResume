@@ -16,10 +16,10 @@ const IsochroneMap = dynamic(() => import('./IsochroneMap'), {
 
 type Costing = 'auto' | 'pedestrian' | 'bicycle';
 
-const MODES: { value: Costing; label: string; icon: string }[] = [
-  { value: 'auto',       label: 'Driving', icon: '🚗' },
-  { value: 'pedestrian', label: 'Walking', icon: '🚶' },
-  { value: 'bicycle',    label: 'Cycling', icon: '🚲' },
+const MODES: { value: Costing; label: string }[] = [
+  { value: 'auto',       label: 'Driving' },
+  { value: 'pedestrian', label: 'Walking' },
+  { value: 'bicycle',    label: 'Cycling' },
 ];
 
 const ALL_TIMES = [10, 15, 20, 30, 45, 60];
@@ -277,7 +277,7 @@ export default function IsochronePage() {
         </div>
 
         <header className={styles.header}>
-          <h1 className={styles.title}>🗺 Isochrone Mapper</h1>
+          <h1 className={styles.title}>Isochrone Mapper</h1>
           <p className={styles.subtitle}>
             Click the map to set an origin, generate travel-time zones, then search for
             restaurants, gas stations, parks, and more within any ring.
@@ -297,7 +297,7 @@ export default function IsochronePage() {
                     className={`${styles.modeBtn} ${costing === m.value ? styles.modeBtnActive : ''}`}
                     onClick={() => setCosting(m.value)}
                   >
-                    <span>{m.icon}</span><span>{m.label}</span>
+                    {m.label}
                   </button>
                 ))}
               </div>

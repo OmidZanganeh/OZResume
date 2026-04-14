@@ -941,7 +941,7 @@ export default function GISDownloaderPage() {
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
           <div className={styles.sidebarScroll}>
-            <h1 className={styles.title}>📥 GIS Data Downloader</h1>
+            <h1 className={styles.title}>GIS Data Downloader</h1>
             <p className={styles.subtitle}>Set an area, scan what exists, download what you need.</p>
 
             {/* Search */}
