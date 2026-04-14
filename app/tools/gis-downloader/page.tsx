@@ -82,8 +82,12 @@ const LAYER_GROUPS = [
   { key: 'hazard', label: 'Hazards',       badge: 'USGS · FEMA',  layers: HAZARD_LAYERS  },
   { key: 'eco',    label: 'Ecology & Hydrology', badge: 'GBIF · USGS', layers: ECOLOGY_LAYERS },
   { key: 'know',   label: 'Knowledge',     badge: 'Wikipedia',    layers: KNOWLEDGE_LAYERS },
-  { key: 'census', label: 'US Census / TIGER', badge: '🇺🇸 USA only', layers: CENSUS_LAYERS  },
+  { key: 'census', label: 'US Census / TIGER', badge: 'USA only', layers: CENSUS_LAYERS  },
 ];
+
+const GROUP_COLOR_KEY: Record<string, string> = {
+  osm: 'dotOsm', hazard: 'dotHazard', eco: 'dotEco', know: 'dotKnow', census: 'dotCensus',
+};
 
 const ALL_LAYERS: Layer[] = [...OSM_LAYERS, ...HAZARD_LAYERS, ...ECOLOGY_LAYERS, ...KNOWLEDGE_LAYERS, ...CENSUS_LAYERS];
 
@@ -822,7 +826,9 @@ export default function GISDownloaderPage() {
   }, [bbox, tooBig, selected, scanned]);
 
   const rescan = useCallback(() => { setStage('has-area'); clearResults(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const toggleLayer = (id: string) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleLayer       = (id: string) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const selectAllLayers   = () => setSelected(new Set(ALL_LAYERS.map(l => l.id)));
+  const deselectAllLayers = () => setSelected(new Set());
 
   // Scan a single layer on demand (triggered by the per-row 🔍 button)
   const scanLayer = useCallback(async (layerId: string) => {
@@ -941,29 +947,51 @@ export default function GISDownloaderPage() {
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
           <div className={styles.sidebarScroll}>
-            <h1 className={styles.title}>GIS Data Downloader</h1>
-            <p className={styles.subtitle}>Set an area, scan what exists, download what you need.</p>
+            <div className={styles.sidebarHeader}>
+              <h1 className={styles.title}>GIS Data Downloader</h1>
+              <p className={styles.subtitle}>Set an area · Scan · Download</p>
+            </div>
 
             {/* Search */}
             <div className={styles.searchBox}>
               <input className={styles.searchInput} value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchLocation()} placeholder="Search city or place…" />
-              <button className={styles.searchBtn} onClick={searchLocation} disabled={searching}>{searching ? '…' : '🔍'}</button>
+              <button className={styles.searchBtn} onClick={searchLocation} disabled={searching} aria-label="Search">
+                {searching
+                  ? <span className={styles.spinnerSm} />
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>}
+              </button>
             </div>
 
             {/* Draw controls */}
             <div className={styles.areaControls}>
-              {!drawMode && !customBbox && <button className={styles.drawBtn} onClick={() => setDrawMode(true)}>✏️ Draw Custom Area</button>}
-              {drawMode  && <button className={styles.drawBtnActive} onClick={() => setDrawMode(false)}>⏹ Cancel Drawing</button>}
+              {!drawMode && !customBbox && (
+                <button className={styles.drawBtn} onClick={() => setDrawMode(true)}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  {' '}Draw Custom Area
+                </button>
+              )}
+              {drawMode && (
+                <button className={styles.drawBtnActive} onClick={() => setDrawMode(false)}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  {' '}Cancel Drawing
+                </button>
+              )}
               {customBbox && !drawMode && (
                 <div className={styles.customRow}>
-                  <span className={styles.customLabel}>✏️ Custom area active</span>
+                  <span className={styles.customLabel}>Custom area active</span>
                   <button className={styles.resetBtn} onClick={resetToViewport}>↺ Use Viewport</button>
                 </div>
               )}
             </div>
 
             {/* Bbox info */}
-            {bbox && <div className={`${styles.bboxInfo} ${tooBig ? styles.bboxWarn : ''} ${customBbox ? styles.bboxCustom : ''}`}>{tooBig ? '⚠️ Area too large — zoom in or draw a smaller area.' : `${customBbox?'✏️':'📐'} ~${kmW} km × ${kmH} km`}</div>}
+            {bbox && (
+              <div className={`${styles.bboxInfo} ${tooBig ? styles.bboxWarn : ''} ${customBbox ? styles.bboxCustom : ''}`}>
+                {tooBig
+                  ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}} aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Area too large — zoom in or draw a smaller area.</>
+                  : `~${kmW} km × ${kmH} km${customBbox ? ' (custom)' : ''}`}
+              </div>
+            )}
             {!bbox && <div className={styles.bboxHint}>Pan or zoom the map to set the download area.</div>}
 
             {/* Idle prompt */}
@@ -977,7 +1005,8 @@ export default function GISDownloaderPage() {
                 {/* Scan button */}
                 {!scanning && unscannedSelected.length > 0 && (
                   <button className={styles.scanBtn} onClick={scanArea}>
-                    🔍 Scan {unscannedSelected.length} selected layer{unscannedSelected.length !== 1 ? 's' : ''}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    {' '}Scan {unscannedSelected.length} layer{unscannedSelected.length !== 1 ? 's' : ''}
                   </button>
                 )}
 
@@ -1001,13 +1030,16 @@ export default function GISDownloaderPage() {
                         onClick={() => { setBundleStatus('idle'); bundleAll(); }}
                         disabled={!bbox || tooBig || bundleStatus === 'loading'}
                       >
-                        <span>📦 Bundle {selectedWithData.length} layers → .zip</span>
+                        <span className={styles.bundleLabel}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                          Bundle {selectedWithData.length} layers
+                        </span>
                         <span className={styles.dlStatus}>
                           {bundleStatus === 'loading'
                             ? `${bundleProgress}%`
-                            : bundleStatus === 'done'  ? '✓ Downloaded'
+                            : bundleStatus === 'done'  ? '✓ Done'
                             : bundleStatus === 'error' ? '✗ Error'
-                            : '↓'}
+                            : '.zip'}
                         </span>
                       </button>
                     )}
@@ -1015,13 +1047,24 @@ export default function GISDownloaderPage() {
                 )}
 
                 <div className={styles.layerSection}>
+                  {/* Selection bar — always visible once area is set */}
+                  <div className={styles.selectionBar}>
+                    <span className={styles.selectionCount}>
+                      {selected.size === 0 ? 'No layers selected' : `${selected.size} / ${ALL_LAYERS.length} layers`}
+                    </span>
+                    <div className={styles.selectionActions}>
+                      <button className={styles.selBtn} onClick={selectAllLayers} disabled={scanning || selected.size === ALL_LAYERS.length}>All</button>
+                      <button className={styles.selBtn} onClick={deselectAllLayers} disabled={scanning || selected.size === 0}>None</button>
+                    </div>
+                  </div>
+
                   {/* Summary header */}
                   {anyScanned && (
                     <div className={styles.layerSectionHeader}>
                       <span>
                         {scanning
                           ? 'Scanning…'
-                          : `${selectedWithData.length} of ${selected.size} selected have data`}
+                          : `${selectedWithData.length} of ${selected.size} have data`}
                       </span>
                       {scannedDone && <button className={styles.rescanBtn} onClick={rescan}>↺ Re-scan</button>}
                     </div>
@@ -1049,7 +1092,7 @@ export default function GISDownloaderPage() {
                           <div key={l.id}>
                             <label className={`${styles.layerRow} ${isSelected ? styles.layerOn : unscanned ? styles.layerOff : ''} ${noData ? styles.layerEmpty : ''}`}>
                               <input type="checkbox" checked={isSelected} onChange={() => toggleLayer(l.id)} disabled={scanning} />
-                              <span className={styles.lEmoji}>{l.emoji}</span>
+                              <span className={`${styles.categoryDot} ${styles[GROUP_COLOR_KEY[group.key]] ?? ''}`} aria-hidden="true" />
                               <div className={styles.lInfo}>
                                 <span className={styles.lLabel}>{l.label}</span>
                               </div>
@@ -1066,7 +1109,7 @@ export default function GISDownloaderPage() {
                                   }}
                                   disabled={!bbox || tooBig}
                                   title={scanFailed ? 'Scan failed — click to retry' : 'Check availability'}
-                                >{scanFailed ? '↺' : '🔍'}</button>
+                                >{scanFailed ? '↺' : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>}</button>
                               )}
                               {/* Count badge — shown after scanning */}
                               <span className={styles.scanCount}>
@@ -1111,7 +1154,7 @@ export default function GISDownloaderPage() {
         <div className={styles.mapWrap}>
           <MapPanel onBoundsChange={handleViewportChange} onFlyToReady={handleFlyToReady} drawMode={drawMode} customBbox={customBbox} onDraw={handleDraw} />
           <div className={styles.mapHint}>
-            {drawMode ? '✏️ Click and drag to draw your download area' : customBbox ? '🟡 Custom area active — amber rectangle is your download area' : '🔵 Pan & zoom to set area, or use "Draw Custom Area" above'}
+            {drawMode ? 'Click and drag to draw your download area' : customBbox ? 'Custom area active — amber rectangle is your download area' : 'Pan & zoom to set area, or use Draw Custom Area above'}
           </div>
         </div>
       </div>
