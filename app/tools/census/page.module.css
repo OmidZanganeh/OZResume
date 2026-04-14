@@ -23,17 +23,24 @@
 .link { color: var(--accent-blue); text-decoration: none; }
 .link:hover { text-decoration: underline; }
 
-/* ── Stacked layout: map on top, info below ── */
+/* ── Side-by-side layout on desktop ── */
 .mainGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: 440px 1fr;
+  gap: 28px;
+  align-items: start;
 }
 
 /* ── Map column ── */
-.mapCol { display: flex; flex-direction: column; gap: 8px; }
+.mapCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  top: 24px;
+}
 .mapLoading {
-  min-height: 500px;
+  min-height: 600px;
   border-radius: 8px;
   border: 1.5px dashed var(--border-light);
   display: flex;
@@ -49,6 +56,10 @@
   font-family: var(--font-mono);
   text-align: center;
   margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
 }
 
 /* ── Data column ── */
@@ -79,7 +90,7 @@
   border-radius: 10px;
   background: rgba(239,68,68,0.05);
 }
-.errorTitle { font-size: 0.88em; font-weight: 700; color: #ef4444; margin: 0 0 6px; }
+.errorTitle { font-size: 0.88em; font-weight: 700; color: #ef4444; margin: 0 0 6px; display: flex; align-items: center; gap: 6px; }
 .errorDesc  { font-size: 0.8em; color: var(--text-muted); margin: 0; line-height: 1.6; }
 
 /* ── Data panel ── */
@@ -188,7 +199,12 @@
   line-height: 1.6;
 }
 
+@media (max-width: 1060px) {
+  .mainGrid { grid-template-columns: 360px 1fr; }
+}
 @media (max-width: 900px) {
+  .mainGrid { grid-template-columns: 1fr; }
+  .mapCol   { position: static; }
   .statsGrid    { grid-template-columns: repeat(2, 1fr); }
   .barRow       { grid-template-columns: 120px 1fr 44px; }
   .sectionsGrid { grid-template-columns: 1fr; }
@@ -223,7 +239,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 11px 14px;
+  padding: 10px 14px;
   background: none;
   border: none;
   cursor: pointer;
@@ -234,10 +250,34 @@
   text-align: left;
   transition: background 0.15s;
 }
-.sectionToggle:hover { background: var(--paper-dark); }
-.sectionArrow { font-size: 0.7em; color: var(--text-muted); }
+.sectionToggle:hover { background: rgba(0,0,0,0.03); }
+[data-theme="dark"] .sectionToggle:hover { background: rgba(255,255,255,0.03); }
+.sectionTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sectionIconBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: rgba(59,130,246,0.1);
+  color: var(--accent-blue);
+  flex-shrink: 0;
+}
+.sectionChevron {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.sectionChevronOpen { transform: rotate(180deg); }
 .sectionBody {
-  padding: 4px 14px 14px;
+  padding: 8px 14px 16px;
   background: var(--paper-light);
 }
 .sectionHighlight {
@@ -281,21 +321,21 @@
 /* ── Bar chart rows ── */
 .barRow {
   display: grid;
-  grid-template-columns: 160px 1fr 48px;
+  grid-template-columns: 148px 1fr 44px;
   align-items: center;
   gap: 10px;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
 }
 .barLabel {
   font-size: 0.7em;
-  color: var(--text-muted);
-  text-align: right;
+  color: var(--text-secondary);
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .barTrack {
-  height: 8px;
+  height: 10px;
   background: var(--paper-dark);
   border-radius: 999px;
   overflow: hidden;
@@ -304,7 +344,7 @@
 .barFill {
   height: 100%;
   border-radius: 999px;
-  transition: width 0.4s ease;
+  transition: width 0.5s ease;
 }
 .barPct {
   font-size: 0.68em;

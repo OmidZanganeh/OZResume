@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -113,14 +113,29 @@ function MiniStat({ label, value, color }: { label: string; value: string; color
   );
 }
 
+/* ─── Section SVG icons ─── */
+const IconDollar = () => <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+const IconGlobe = () => <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+const IconBook = () => <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>;
+const IconCar = () => <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>;
+const IconHome = () => <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+const IconWifi = () => <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>;
+const IconPin = () => <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+const IconAlertTriangle = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+
 /* ─── Collapsible section ─── */
-function Section({ title, icon, children, defaultOpen = true }: { title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean }) {
+function Section({ title, icon, children, defaultOpen = true }: { title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className={styles.section}>
       <button className={styles.sectionToggle} onClick={() => setOpen(o => !o)}>
-        <span>{icon}&nbsp;{title}</span>
-        <span className={styles.sectionArrow}>{open ? '▲' : '▼'}</span>
+        <span className={styles.sectionTitleRow}>
+          <span className={styles.sectionIconBox}>{icon}</span>
+          {title}
+        </span>
+        <span className={`${styles.sectionChevron} ${open ? styles.sectionChevronOpen : ''}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
       </button>
       {open && <div className={styles.sectionBody}>{children}</div>}
     </div>
@@ -181,7 +196,7 @@ export default function CensusPage() {
             />
             <p className={styles.mapHint}>
               {pin
-                ? `📍 ${pin.lat.toFixed(5)}, ${pin.lon.toFixed(5)} — click elsewhere to update`
+                ? <><IconPin /> {pin.lat.toFixed(5)}, {pin.lon.toFixed(5)} — click elsewhere to update</>
                 : 'Click anywhere on the US map to load census tract data'}
             </p>
           </div>
@@ -199,7 +214,7 @@ export default function CensusPage() {
 
             {status === 'error' && (
               <div className={styles.errorState}>
-                <p className={styles.errorTitle}>⚠ Could not load data</p>
+                <p className={styles.errorTitle}><IconAlertTriangle /> Could not load data</p>
                 <p className={styles.errorDesc}>{error}</p>
                 <p className={styles.errorDesc} style={{ marginTop: 6 }}>
                   This tool only covers the United States (including territories). Try clicking inside a US state.
@@ -240,7 +255,7 @@ export default function CensusPage() {
                 <div className={styles.sectionsGrid}>
 
                 {/* ── Economy & Poverty ── */}
-                <Section icon="💰" title="Economy & Poverty" defaultOpen>
+                <Section icon={<IconDollar />} title="Economy & Poverty" defaultOpen>
                   <div className={styles.miniGrid}>
                     <MiniStat label="Poverty Rate" value={fmtPct(data.povertyRate)}
                       color={data.povertyRate !== null ? (data.povertyRate > 20 ? '#ef4444' : data.povertyRate > 12 ? '#f59e0b' : '#34d399') : undefined} />
@@ -253,7 +268,7 @@ export default function CensusPage() {
 
                 {/* ── Race & Ethnicity ── */}
                 {data.race ? (
-                  <Section icon="🌎" title="Race & Ethnicity" defaultOpen>
+                  <Section icon={<IconGlobe />} title="Race & Ethnicity" defaultOpen>
                     <StackedBar total={data.race.total} segs={[
                       { label: 'White',          value: data.race.white,         color: '#60a5fa' },
                       { label: 'Hispanic',       value: data.race.hispanic,      color: '#fbbf24' },
@@ -268,7 +283,7 @@ export default function CensusPage() {
 
                 {/* ── Education ── */}
                 {data.education ? (
-                  <Section icon="🎓" title="Education (age 25+)">
+                  <Section icon={<IconBook />} title="Education (age 25+)">
                     <BarRow label="Less than HS"   count={data.education.lessThanHS}  total={data.education.total} color="#ef4444" />
                     <BarRow label="HS diploma/GED" count={data.education.hsOrGed}     total={data.education.total} color="#f59e0b" />
                     <BarRow label="Some college"   count={data.education.someCollege} total={data.education.total} color="#60a5fa" />
@@ -279,7 +294,7 @@ export default function CensusPage() {
 
                 {/* ── Commute ── */}
                 {data.commute ? (
-                  <Section icon="🚗" title="Commute & Transportation">
+                  <Section icon={<IconCar />} title="Commute & Transportation">
                     {data.commute.avgMinutes !== null && (
                       <p className={styles.sectionHighlight}>
                         Avg commute: <strong>{data.commute.avgMinutes} min</strong>
@@ -295,7 +310,7 @@ export default function CensusPage() {
                 ) : <div />}
 
                 {/* ── Housing ── */}
-                <Section icon="🏠" title="Housing">
+                <Section icon={<IconHome />} title="Housing">
                   <div className={styles.miniGrid}>
                     <MiniStat label="Vacancy Rate"      value={fmtPct(data.housing.vacancyRate)} />
                     <MiniStat label="Median Year Built" value={data.housing.medianYearBuilt?.toString() ?? 'N/A'} />
@@ -311,7 +326,7 @@ export default function CensusPage() {
                 </Section>
 
                 {/* ── Digital & Language ── */}
-                <Section icon="💻" title="Digital Access & Language">
+                <Section icon={<IconWifi />} title="Digital Access & Language">
                   <div className={styles.miniGrid}>
                     <MiniStat label="Broadband Internet" value={fmtPct(data.broadbandRate)}
                       color={data.broadbandRate !== null ? (data.broadbandRate < 60 ? '#ef4444' : data.broadbandRate < 80 ? '#f59e0b' : '#34d399') : undefined} />
