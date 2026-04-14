@@ -259,10 +259,10 @@
 
 /* ─── Section Titles ─── */
 .sectionTitle {
-  font-size: 0.7em;
+  font-size: 1.06em;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 1.6px;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-light);
   padding-bottom: 12px;
@@ -427,7 +427,7 @@
   margin: 0;
 }
 .sidebar .sectionTitle {
-  font-size: 0.62em;
+  font-size: 0.96em;
   margin-bottom: 14px;
   padding-top: 0.8em;
 }
