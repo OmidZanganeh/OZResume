@@ -321,19 +321,18 @@
 }
 .rescanBtn:hover { background: var(--border-dark); color: var(--text-primary); }
 
-/* ─── Category dot ─────────────────────────────────────────────────────────── */
-.categoryDot {
+/* ─── Layer icons ──────────────────────────────────────────────────────────── */
+.layerIcon {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--border-dark);
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
 }
-.dotOsm    { background: #3b82f6; }
-.dotHazard { background: #f59e0b; }
-.dotEco    { background: #16a34a; }
-.dotKnow   { background: #8b5cf6; }
-.dotCensus { background: #64748b; }
+.dotOsm    { color: #3b82f6; }
+.dotHazard { color: #d97706; }
+.dotEco    { color: #16a34a; }
+.dotKnow   { color: #8b5cf6; }
+.dotCensus { color: #64748b; }
 
 /* ─── Layer groups ─────────────────────────────────────────────────────────── */
 .layerGroup {
@@ -396,6 +395,8 @@
 }
 
 .lInfo {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1px;

@@ -739,6 +739,59 @@ function downloadBlob(content: string | Blob, filename: string, mime: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// ─── Layer icon component ────────────────────────────────────────────────────
+function LayerIcon({ id, className }: { id: string; className?: string }) {
+  const a = {
+    width: 15, height: 15, viewBox: '0 0 24 24',
+    fill: 'none' as const, stroke: 'currentColor',
+    strokeWidth: 1.75, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
+    className, 'aria-hidden': true as const,
+  };
+  switch (id) {
+    // ── OSM ─────────────────────────────────────────────────────────────────
+    case 'buildings':     return <svg {...a}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>;
+    case 'roads':         return <svg {...a}><path d="M5 20L12 4l7 16M5 20h14"/><path d="M9 13h6"/><path d="M10.5 17h3"/></svg>;
+    case 'railways':      return <svg {...a}><path d="M6 3v18M18 3v18"/><path d="M3 9h18M3 15h18"/></svg>;
+    case 'power':         return <svg {...a}><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>;
+    case 'cycling':       return <svg {...a}><circle cx="7" cy="14" r="4"/><circle cx="17" cy="14" r="4"/><path d="M7 14h4l2-8 4 8"/></svg>;
+    case 'pois':          return <svg {...a}><path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>;
+    case 'healthcare':    return <svg {...a}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 7v10M7 12h10"/></svg>;
+    case 'historic':      return <svg {...a}><path d="M2 20h20M6 20V10M12 20V5M18 20V10M2 10h20"/></svg>;
+    case 'admin-bounds':  return <svg {...a}><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 12h18M12 3v18" strokeWidth={1}/></svg>;
+    case 'parks':         return <svg {...a}><path d="M12 2L7 10h3l-3 7h10l-3-7h3z"/><path d="M12 17v5"/></svg>;
+    case 'water':         return <svg {...a}><path d="M2 12c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0"/><path d="M2 17c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0"/></svg>;
+    case 'landuse':       return <svg {...a}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>;
+    case 'natural-areas': return <svg {...a}><path d="M3 20l6-9 3 3 4-7 5 13H3z"/></svg>;
+    case 'military':      return <svg {...a}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+    case 'cemeteries':    return <svg {...a}><path d="M12 3v10M7 8h10M6 22V15a6 6 0 0 1 12 0v7"/></svg>;
+    case 'transit':       return <svg {...a}><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 12h18M9 19v3M15 19v3M7 6V4h10v2"/></svg>;
+    case 'airports':      return <svg {...a}><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>;
+    case 'education':     return <svg {...a}><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12.5v5c3 3 9 3 12 0v-5"/></svg>;
+    case 'emergency':     return <svg {...a}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>;
+    case 'sports':        return <svg {...a}><circle cx="12" cy="12" r="9"/><path d="M12 3c-1.8 2-3 5-3 9s1.2 7 3 9M12 3c1.8 2 3 5 3 9s-1.2 7-3 9M3 9h18M3 15h18"/></svg>;
+    case 'fuel':          return <svg {...a}><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M3 22h14"/><path d="M13 8l4 2v6a2 2 0 0 0 4 0V8"/></svg>;
+    case 'parking':       return <svg {...a}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h5a3 3 0 0 1 0 6H9"/></svg>;
+    case 'food':          return <svg {...a}><path d="M3 2v7c0 2.8 2.2 5 5 5s5-2.2 5-5V2M3 5h10M15 2v20"/></svg>;
+    case 'pipelines':     return <svg {...a}><path d="M3 9h18M3 15h18"/><path d="M3 9a4 4 0 0 1 8 0M21 15a4 4 0 0 1-8 0"/></svg>;
+    case 'bridges':       return <svg {...a}><path d="M3 18h18"/><path d="M5 18v-6a7 7 0 0 1 14 0v6"/><path d="M9 18V13M15 18V13"/></svg>;
+    // ── Hazards ─────────────────────────────────────────────────────────────
+    case 'earthquakes':   return <svg {...a}><path d="M2 12h4l2-5 3 10 3-8 2 3h6"/></svg>;
+    case 'flood-zones':   return <svg {...a}><path d="M2 10c1.5-2.5 3.5-2.5 5 0s3.5 2.5 5 0 3.5-2.5 5 0"/><path d="M2 15c1.5-2.5 3.5-2.5 5 0s3.5 2.5 5 0 3.5-2.5 5 0"/><path d="M8 5V2M12 4V2M16 5V2"/></svg>;
+    // ── Ecology ─────────────────────────────────────────────────────────────
+    case 'species':       return <svg {...a}><path d="M6 21c0 0 12-4 12-14 0 0-8 2-12 14z"/><path d="M6 21L18 7"/></svg>;
+    case 'stream-gauges': return <svg {...a}><path d="M3 20v-8M9 20V8M15 20v-5M21 20V4"/><path d="M2 20h20"/></svg>;
+    // ── Knowledge ───────────────────────────────────────────────────────────
+    case 'wikipedia':     return <svg {...a}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+    // ── Census ──────────────────────────────────────────────────────────────
+    case 'census-counties':  return <svg {...a}><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 12h18M12 3v18"/></svg>;
+    case 'census-tracts':    return <svg {...a}><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" strokeWidth={0.9}/></svg>;
+    case 'census-zip':       return <svg {...a}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7L12 14 2 7"/></svg>;
+    case 'census-schools':   return <svg {...a}><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12.5v4c3 2.5 9 2.5 12 0v-4"/></svg>;
+    case 'census-congress':  return <svg {...a}><path d="M3 22h18M6 18V10M18 18V10M2 10h20M12 3l-10 7h20z"/></svg>;
+    default:              return <svg {...a}><circle cx="12" cy="12" r="4"/></svg>;
+  }
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function GISDownloaderPage() {
   const [viewportBbox, setViewportBbox] = useState<Bbox | null>(null);
@@ -1092,7 +1145,7 @@ export default function GISDownloaderPage() {
                           <div key={l.id}>
                             <label className={`${styles.layerRow} ${isSelected ? styles.layerOn : unscanned ? styles.layerOff : ''} ${noData ? styles.layerEmpty : ''}`}>
                               <input type="checkbox" checked={isSelected} onChange={() => toggleLayer(l.id)} disabled={scanning} />
-                              <span className={`${styles.categoryDot} ${styles[GROUP_COLOR_KEY[group.key]] ?? ''}`} aria-hidden="true" />
+                              <LayerIcon id={l.id} className={`${styles.layerIcon} ${styles[GROUP_COLOR_KEY[group.key]] ?? ''}`} />
                               <div className={styles.lInfo}>
                                 <span className={styles.lLabel}>{l.label}</span>
                               </div>
