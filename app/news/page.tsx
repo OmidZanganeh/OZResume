@@ -7,6 +7,20 @@ import styles from './page.module.css';
 
 const REFRESH_SECS = 900; // 15 minutes
 
+/* ── Inline SVG icons ── */
+const IcoRefresh = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+  </svg>
+);
+const IcoWarn = () => (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+);
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
@@ -132,9 +146,7 @@ export default function NewsPage() {
       <header className={styles.header}>
         <Link href="/" className={styles.backBtn}>← Back</Link>
         <div className={styles.headerCenter}>
-          <h1 className={styles.pageTitle}>
-            <span className={styles.titleGlow}>AI News Feed</span>
-          </h1>
+          <h1 className={styles.pageTitle}>AI News Feed</h1>
           <p className={styles.pageSubtitle}>Latest artificial intelligence headlines — auto-refreshes every 15 min</p>
         </div>
         <div className={styles.refreshBar}>
@@ -145,9 +157,10 @@ export default function NewsPage() {
             className={`${styles.refreshBtn} ${refreshing ? styles.refreshBtnSpin : ''}`}
             onClick={() => fetchNews(true)}
             disabled={refreshing}
+            aria-label="Refresh news"
             title="Refresh now"
           >
-            ↻
+            <IcoRefresh />
           </button>
           <span className={styles.countdown}>{formatCountdown(countdown)}</span>
         </div>
@@ -161,8 +174,8 @@ export default function NewsPage() {
           </div>
         ) : error ? (
           <div className={styles.errorState}>
-            <p className={styles.errorIcon}>⚠️</p>
-            <p className={styles.errorMsg}>Couldn&apos;t load the news feed.</p>
+            <span className={styles.errorIcon}><IcoWarn /></span>
+            <p className={styles.errorMsg}>Couldn&apos;t load the news feed. Check your connection and try again.</p>
             <button className={styles.retryBtn} onClick={() => fetchNews()}>Try again</button>
           </div>
         ) : articles.length === 0 ? (
