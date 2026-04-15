@@ -47,6 +47,81 @@ interface CensusData {
 
 type FetchStatus = 'idle'|'loading'|'done'|'error';
 
+/* ─── Export helpers ─── */
+function dlBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildExportFlat(data: CensusData, pin: { lat: number; lon: number } | null) {
+  return {
+    tract_name:            data.NAME,
+    state_fips:            data.tract.STATE,
+    county_fips:           data.tract.COUNTY,
+    tract_fips:            data.tract.TRACT,
+    latitude:              pin?.lat ?? null,
+    longitude:             pin?.lon ?? null,
+    source:                'ACS 5-Year Estimates 2019–2023',
+    population:            data.population,
+    median_age:            data.medianAge,
+    median_income_usd:     data.medianIncome,
+    median_home_value_usd: data.medianHomeValue,
+    ownership_rate_pct:    data.ownershipRate,
+    unemployment_rate_pct: data.unemploymentRate,
+    poverty_rate_pct:      data.povertyRate,
+    median_rent_usd:       data.medianRent,
+    rent_burden_pct:       data.rentBurden,
+    snap_rate_pct:         data.snapRate,
+    broadband_rate_pct:    data.broadbandRate,
+    race_total:            data.race?.total ?? null,
+    race_white:            data.race?.white ?? null,
+    race_black:            data.race?.black ?? null,
+    race_asian:            data.race?.asian ?? null,
+    race_hispanic:         data.race?.hispanic ?? null,
+    race_native_american:  data.race?.nativeAmerican ?? null,
+    race_two_or_more:      data.race?.twoOrMore ?? null,
+    edu_total:             data.education?.total ?? null,
+    edu_less_than_hs:      data.education?.lessThanHS ?? null,
+    edu_hs_or_ged:         data.education?.hsOrGed ?? null,
+    edu_some_college:      data.education?.someCollege ?? null,
+    edu_bachelors:         data.education?.bachelors ?? null,
+    edu_graduate:          data.education?.graduate ?? null,
+    commute_total:         data.commute?.total ?? null,
+    commute_drives_alone:  data.commute?.driveAlone ?? null,
+    commute_carpool:       data.commute?.carpool ?? null,
+    commute_transit:       data.commute?.transit ?? null,
+    commute_bicycle:       data.commute?.bicycle ?? null,
+    commute_walk:          data.commute?.walk ?? null,
+    commute_wfh:           data.commute?.workFromHome ?? null,
+    commute_avg_minutes:   data.commute?.avgMinutes ?? null,
+    housing_units:         data.housing.totalUnits,
+    housing_vacancy_pct:   data.housing.vacancyRate,
+    housing_median_yr_built: data.housing.medianYearBuilt,
+    housing_single_family: data.housing.singleFamily,
+    housing_small_multi:   data.housing.smallMulti,
+    housing_large_multi:   data.housing.largeMulti,
+    housing_mobile:        data.housing.mobile,
+    lang_english_only:     data.language?.englishOnly ?? null,
+    lang_spanish:          data.language?.spanish ?? null,
+    lang_other:            data.language?.other ?? null,
+  };
+}
+
+function exportCSV(data: CensusData, pin: { lat: number; lon: number } | null) {
+  const obj = buildExportFlat(data, pin);
+  const header = Object.keys(obj).join(',');
+  const row    = Object.values(obj).map(v => v === null ? '' : String(v)).join(',');
+  dlBlob(new Blob([header + '\n' + row], { type: 'text/csv;charset=utf-8;' }),
+    `census_${data.tract.STATE}_${data.tract.COUNTY}_${data.tract.TRACT}.csv`);
+}
+
+function exportJSON(data: CensusData, pin: { lat: number; lon: number } | null) {
+  dlBlob(new Blob([JSON.stringify(buildExportFlat(data, pin), null, 2)], { type: 'application/json' }),
+    `census_${data.tract.STATE}_${data.tract.COUNTY}_${data.tract.TRACT}.json`);
+}
+
 /* ─── Helper functions ─── */
 function fmt(n: number|null, prefix = '', suffix = '') {
   if (n === null) return 'N/A';
@@ -233,10 +308,30 @@ export default function CensusPage() {
                       State {data.tract.STATE} · County {data.tract.COUNTY} · Tract {data.tract.TRACT}
                     </p>
                   </div>
-                  {status === 'loading'
-                    ? <span className={styles.panelBadgeLoading}>Updating…</span>
-                    : <span className={styles.panelBadge}>ACS 5-Year · 2023</span>
-                  }
+                  <div className={styles.panelActions}>
+                    {status === 'loading'
+                      ? <span className={styles.panelBadgeLoading}>Updating…</span>
+                      : <span className={styles.panelBadge}>ACS 5-Year · 2023</span>
+                    }
+                    <button
+                      className={styles.exportBtn}
+                      onClick={() => exportCSV(data, pin)}
+                      title="Download tract data as CSV"
+                      disabled={status === 'loading'}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      CSV
+                    </button>
+                    <button
+                      className={styles.exportBtn}
+                      onClick={() => exportJSON(data, pin)}
+                      title="Download tract data as JSON"
+                      disabled={status === 'loading'}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      JSON
+                    </button>
+                  </div>
                 </div>
 
                 {/* ── Core stats ── */}

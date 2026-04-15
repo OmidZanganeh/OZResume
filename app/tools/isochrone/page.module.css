@@ -48,6 +48,10 @@
   color: var(--text-muted);
 }
 
+/* Spinner animation */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.75s linear infinite; display: inline-block; }
+
 /* Travel mode buttons */
 .modeRow { display: flex; flex-direction: column; gap: 6px; }
 
@@ -95,6 +99,10 @@
 
 .locateBtn {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 7px 10px;
   margin-top: 4px;
   border-radius: 6px;
@@ -106,7 +114,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
-  text-align: center;
 }
 .locateBtn:hover:not(:disabled) { border-color: var(--accent-blue); color: var(--accent-blue); background: var(--paper-light); }
 .locateBtn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -114,6 +121,10 @@
 /* Generate button */
 .generateBtn {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 10px 14px;
   border-radius: 8px;
   border: 2px solid var(--accent-blue);
@@ -129,6 +140,9 @@
 .generateBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   font-size: 0.78em;
   color: #ef4444;
   background: rgba(239,68,68,0.08);
@@ -157,17 +171,20 @@
 /* Download button */
 .downloadBtn {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 9px 14px;
   border-radius: 8px;
   border: 1.5px solid var(--border-light);
   background: transparent;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 0.82em;
   font-weight: 600;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
-  text-align: center;
 }
 .downloadBtn:hover { border-color: var(--accent-blue); color: var(--accent-blue); background: var(--paper-dark); }
 
@@ -269,6 +286,9 @@
 /* Find button */
 .findBtn {
   align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 9px 20px;
   border-radius: 8px;
   border: 2px solid var(--accent-blue);
@@ -284,6 +304,9 @@
 .findBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .poiError {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   font-size: 0.78em;
   color: #f97316;
   background: rgba(249,115,22,0.08);

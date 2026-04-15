@@ -5,6 +5,14 @@ import Link from 'next/link';
 import styles from './page.module.css';
 import type { POI } from './IsochroneMap';
 
+/* ── Inline SVG icons ── */
+const IcoLocate  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>;
+const IcoPlay    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+const IcoDownload= () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const IcoSearch  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+const IcoSpinner = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" className={styles.spin}><path d="M12 2a10 10 0 1 0 10 10" /></svg>;
+const IcoWarn    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+
 /* Must live here (not in IsochroneMap) to avoid a static import of leaflet
    during SSR, which crashes with "window is not defined". */
 const RING_COLORS = ['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6'];
@@ -330,7 +338,7 @@ export default function IsochronePage() {
                 onClick={useMyLocation}
                 disabled={locating}
               >
-                {locating ? '⏳ Locating…' : '📍 Use My Location'}
+                {locating ? <><IcoSpinner /> Locating…</> : <><IcoLocate /> Use My Location</>}
               </button>
             </div>
 
@@ -339,10 +347,10 @@ export default function IsochronePage() {
               onClick={generate}
               disabled={!origin || times.length === 0 || loading}
             >
-              {loading ? '⏳ Generating…' : '⚡ Generate Isochrone'}
+              {loading ? <><IcoSpinner /> Generating…</> : <><IcoPlay /> Generate Isochrone</>}
             </button>
 
-            {error && <p className={styles.error}>⚠ {error}</p>}
+            {error && <p className={styles.error}><IcoWarn /> {error}</p>}
 
             {geojson && !loading && (
               <>
@@ -356,7 +364,7 @@ export default function IsochronePage() {
                   ))}
                 </div>
                 <button className={styles.downloadBtn} onClick={downloadGeoJSON}>
-                  ↓ Download GeoJSON
+                  <IcoDownload /> Download GeoJSON
                 </button>
               </>
             )}
@@ -373,7 +381,7 @@ export default function IsochronePage() {
               activePoi={activePoi}
             />
             {!origin && (
-              <p className={styles.mapHint}>👆 Click anywhere on the map to place an origin pin</p>
+              <p className={styles.mapHint}>Click anywhere on the map to place an origin pin</p>
             )}
           </div>
         </div>
@@ -382,7 +390,7 @@ export default function IsochronePage() {
         {geojson && (
           <section className={styles.poiSection}>
             <div className={styles.poiHeader}>
-              <h2 className={styles.poiTitle}>📍 Find Places Nearby</h2>
+              <h2 className={styles.poiTitle}>Find Places Nearby</h2>
               <p className={styles.poiSubtitle}>
                 Search for places within a travel-time ring using OpenStreetMap data.
               </p>
@@ -427,12 +435,12 @@ export default function IsochronePage() {
                 disabled={poiLoading}
               >
                 {poiLoading
-                  ? '⏳ Searching…'
-                  : `🔍 Find ${activeCat?.label ?? 'Places'} within ${ringTime} min`}
+                  ? <><IcoSpinner /> Searching…</>
+                  : <><IcoSearch /> Find {activeCat?.label ?? 'Places'} within {ringTime} min</>}
               </button>
             </div>
 
-            {poiError && <p className={styles.poiError}>⚠ {poiError}</p>}
+            {poiError && <p className={styles.poiError}><IcoWarn /> {poiError}</p>}
 
             {/* Results */}
             {pois.length > 0 && (

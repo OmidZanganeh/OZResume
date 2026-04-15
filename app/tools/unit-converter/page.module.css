@@ -117,6 +117,131 @@
 .copyBtn:hover:not(:disabled) { background: var(--paper-dark); color: var(--accent-blue); }
 .copyBtn:disabled { opacity: 0.3; cursor: default; }
 
+/* ── Map Scale calculator ── */
+.scaleCalc {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.scaleDenomBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scaleDenomLabel {
+  font-size: 0.68em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.scaleDenomRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scaleRatio {
+  font-family: var(--font-mono);
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.scaleDenomInput {
+  flex: 1;
+  max-width: 200px;
+  background: var(--paper-bg);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-family: var(--font-mono);
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--text-primary);
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.scaleDenomInput:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+.scalePresets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scalePreset {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-light);
+  background: var(--paper-dark);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.76em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.scalePreset:hover { color: var(--text-primary); }
+.scalePresetActive {
+  background: var(--paper-light);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.scaleTableWrap {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.scaleTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.84em;
+}
+
+.scaleTable thead tr {
+  background: var(--paper-dark);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.scaleTable th {
+  padding: 9px 14px;
+  font-size: 0.68em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.scaleTable tbody tr {
+  border-bottom: 1px solid var(--border-light);
+  transition: background 0.1s;
+}
+.scaleTable tbody tr:last-child { border-bottom: none; }
+.scaleTable tbody tr:hover { background: var(--paper-dark); }
+
+.scaleTable td {
+  padding: 10px 14px;
+  color: var(--text-primary);
+}
+.scaleTable td:first-child {
+  color: var(--text-secondary);
+  font-size: 0.88em;
+}
+.scaleTable td:not(:first-child) { font-weight: 600; }
+
 .note {
   margin-top: 16px;
   font-size: 0.75em;
