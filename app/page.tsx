@@ -285,7 +285,7 @@ export default function Resume() {
                   <span className={styles.company}>Olsson</span>
                   <span className={styles.datePill}>Mar 2025 – Present</span>
                 </div>
-                <p className={styles.jobTitle}>GIS Developer – Telecom Engineering &amp; Design</p>
+                <p className={styles.jobTitle}>GIS Developer – Telecom Engineering &amp; Design <span className={styles.awardBadge}>Edison Award Nominee</span></p>
                 <p className={styles.location}>Lincoln, Nebraska</p>
                 <ul className={styles.bullets}>
                   <li>Developed Python and C# desktop applications for deep learning-based object detection, data parsing, and SQL Server management — improving efficiency across multiple workflows.</li>
@@ -293,7 +293,6 @@ export default function Resume() {
                   <li>Automated complex ArcGIS Pro workflows with custom Python geoprocessing toolboxes, reducing manual steps by <CountUp end={90} suffix="%" /> and accelerating fiber network design.</li>
                   <li>Designed fiber optic network layouts in ArcGIS to optimize routing, reduce build costs, and ensure full coverage.</li>
                   <li>Built AI-powered tools using Google AI Studio and Azure AI Foundry for RFP data classification — cutting sourcing time from <strong>months to hours</strong>.</li>
-                  <li>Nominated for the <strong>2025 Edison Award</strong> at Olsson for innovative contributions to workflow automation.</li>
                 </ul>
               </div>
 
