@@ -792,6 +792,47 @@ function LayerIcon({ id, className }: { id: string; className?: string }) {
   }
 }
 
+// ─── Coordinate parser ───────────────────────────────────────────────────────
+// Handles common formats:
+//   "96.7053484°W 40.8085672°N"  (lon°W lat°N — degree-symbol optional)
+//   "40.8085672°N, 96.7053484°W" (lat°N lon°W)
+//   "40.8085672N 96.7053484W"    (no degree symbol)
+//   "40.8085672, -96.7053484"    (signed decimal lat,lon)
+//   "40.8085672 -96.7053484"     (signed decimal space-separated)
+//   "-96.7053484, 40.8085672"    (lon,lat detected by range)
+function tryParseCoords(raw: string): { lat: number; lon: number } | null {
+  const inRange = (lat: number, lon: number) =>
+    lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+
+  // Strategy 1: hemisphere letters (N/S/E/W)
+  // Matches any two occurrences of "number + optional° + N/S/E/W"
+  const hemRe = /(\d+\.?\d*)\s*°?\s*([NSEWnsew])/g;
+  const hemHits = [...raw.matchAll(hemRe)];
+  if (hemHits.length >= 2) {
+    let lat: number | null = null;
+    let lon: number | null = null;
+    for (const m of hemHits) {
+      const v = parseFloat(m[1]);
+      const d = m[2].toUpperCase();
+      if      (d === 'N') lat =  v;
+      else if (d === 'S') lat = -v;
+      else if (d === 'E') lon =  v;
+      else if (d === 'W') lon = -v;
+    }
+    if (lat !== null && lon !== null && inRange(lat, lon)) return { lat, lon };
+  }
+
+  // Strategy 2: two signed decimal numbers (e.g. "40.808, -96.705")
+  const nums = [...raw.matchAll(/(-?\d+\.?\d*)/g)].map(m => parseFloat(m[1]));
+  if (nums.length >= 2) {
+    const [a, b] = nums;
+    if (Math.abs(a) <= 90  && Math.abs(b) <= 180 && inRange(a, b)) return { lat: a, lon: b };
+    if (Math.abs(b) <= 90  && Math.abs(a) <= 180 && inRange(b, a)) return { lat: b, lon: a };
+  }
+
+  return null;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function GISDownloaderPage() {
   const [viewportBbox, setViewportBbox] = useState<Bbox | null>(null);
@@ -839,6 +880,15 @@ export default function GISDownloaderPage() {
 
   const searchLocation = async () => {
     if (!search.trim()) return;
+
+    // ── Try coordinate parse first (no network call needed) ──
+    const coords = tryParseCoords(search);
+    if (coords) {
+      if (flyToRef.current) flyToRef.current(coords.lat, coords.lon, 14);
+      return;
+    }
+
+    // ── Fall back to Nominatim geocoding ──
     setSearching(true);
     try {
       const data = await (await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&limit=1`, { headers: { 'Accept-Language': 'en' } })).json() as { lat: string; lon: string }[];
@@ -1007,7 +1057,7 @@ export default function GISDownloaderPage() {
 
             {/* Search */}
             <div className={styles.searchBox}>
-              <input className={styles.searchInput} value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchLocation()} placeholder="Search city or place…" />
+              <input className={styles.searchInput} value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchLocation()} placeholder="Search place or paste coordinates…" />
               <button className={styles.searchBtn} onClick={searchLocation} disabled={searching} aria-label="Search">
                 {searching
                   ? <span className={styles.spinnerSm} />
