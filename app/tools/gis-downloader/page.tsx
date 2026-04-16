@@ -77,22 +77,30 @@ const CENSUS_LAYERS: Layer[] = [
   { id: 'census-congress', label: 'Congressional Districts',emoji: '🗳', desc: '119th US congressional districts',   usaOnly: true },
 ];
 
+const GADM_LAYERS: Layer[] = [
+  { id: 'gadm-country', label: 'Country Boundary',            emoji: '🌐', desc: 'National outline — GADM 4.1 (global)' },
+  { id: 'gadm-admin1',  label: 'States / Provinces (Lvl 1)', emoji: '🗺', desc: 'First-level admin divisions — GADM 4.1 (global)' },
+  { id: 'gadm-admin2',  label: 'Counties / Districts (Lvl 2)',emoji: '📌', desc: 'Second-level admin divisions — GADM 4.1 (global, may be slow for large countries)' },
+];
+
 const LAYER_GROUPS = [
   { key: 'osm',    label: 'OpenStreetMap', linkHref: 'https://www.openstreetmap.org/copyright', linkLabel: '© contributors', layers: OSM_LAYERS      },
   { key: 'hazard', label: 'Hazards',       badge: 'USGS · FEMA',  layers: HAZARD_LAYERS  },
   { key: 'eco',    label: 'Ecology & Hydrology', badge: 'GBIF · USGS', layers: ECOLOGY_LAYERS },
   { key: 'know',   label: 'Knowledge',     badge: 'Wikipedia',    layers: KNOWLEDGE_LAYERS },
   { key: 'census', label: 'US Census / TIGER', badge: 'USA only', layers: CENSUS_LAYERS  },
+  { key: 'gadm',   label: 'Global Admin Boundaries', linkHref: 'https://gadm.org', linkLabel: 'GADM 4.1', layers: GADM_LAYERS },
 ];
 
 const GROUP_COLOR_KEY: Record<string, string> = {
-  osm: 'dotOsm', hazard: 'dotHazard', eco: 'dotEco', know: 'dotKnow', census: 'dotCensus',
+  osm: 'dotOsm', hazard: 'dotHazard', eco: 'dotEco', know: 'dotKnow', census: 'dotCensus', gadm: 'dotGadm',
 };
 
-const ALL_LAYERS: Layer[] = [...OSM_LAYERS, ...HAZARD_LAYERS, ...ECOLOGY_LAYERS, ...KNOWLEDGE_LAYERS, ...CENSUS_LAYERS];
+const ALL_LAYERS: Layer[] = [...OSM_LAYERS, ...HAZARD_LAYERS, ...ECOLOGY_LAYERS, ...KNOWLEDGE_LAYERS, ...CENSUS_LAYERS, ...GADM_LAYERS];
 
 // Sets for dispatch routing
-const OSM_IDS    = new Set(OSM_LAYERS.map(l => l.id));
+const OSM_IDS   = new Set(OSM_LAYERS.map(l => l.id));
+const GADM_IDS  = new Set(GADM_LAYERS.map(l => l.id));
 const TIGER_URLS: Record<string, string> = {
   'census-counties': 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/1/query',
   'census-tracts':   'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/2/query',
@@ -100,8 +108,98 @@ const TIGER_URLS: Record<string, string> = {
   'census-schools':  'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/School/MapServer/0/query',
   'census-congress': 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer/0/query',
 };
-const FEMA_URL  = 'https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query';
+const FEMA_URL   = 'https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query';
 const GAUGES_URL = 'https://api.waterdata.usgs.gov/ogc/v0/collections/monitoring-location/items';
+
+// ─── GADM helpers ─────────────────────────────────────────────────────────────
+// Full ISO-3166-1 alpha-2 → alpha-3 mapping
+const ISO2_TO_ISO3: Record<string, string> = {
+  AF:'AFG',AL:'ALB',DZ:'DZA',AD:'AND',AO:'AGO',AG:'ATG',AR:'ARG',AM:'ARM',AU:'AUS',AT:'AUT',
+  AZ:'AZE',BS:'BHS',BH:'BHR',BD:'BGD',BB:'BRB',BY:'BLR',BE:'BEL',BZ:'BLZ',BJ:'BEN',BT:'BTN',
+  BO:'BOL',BA:'BIH',BW:'BWA',BR:'BRA',BN:'BRN',BG:'BGR',BF:'BFA',BI:'BDI',CV:'CPV',KH:'KHM',
+  CM:'CMR',CA:'CAN',CF:'CAF',TD:'TCD',CL:'CHL',CN:'CHN',CO:'COL',KM:'COM',CD:'COD',CG:'COG',
+  CR:'CRI',CI:'CIV',HR:'HRV',CU:'CUB',CY:'CYP',CZ:'CZE',DK:'DNK',DJ:'DJI',DM:'DMA',DO:'DOM',
+  EC:'ECU',EG:'EGY',SV:'SLV',GQ:'GNQ',ER:'ERI',EE:'EST',SZ:'SWZ',ET:'ETH',FJ:'FJI',FI:'FIN',
+  FR:'FRA',GA:'GAB',GM:'GMB',GE:'GEO',DE:'DEU',GH:'GHA',GR:'GRC',GD:'GRD',GT:'GTM',GN:'GIN',
+  GW:'GNB',GY:'GUY',HT:'HTI',HN:'HND',HU:'HUN',IS:'ISL',IN:'IND',ID:'IDN',IR:'IRN',IQ:'IRQ',
+  IE:'IRL',IL:'ISR',IT:'ITA',JM:'JAM',JP:'JPN',JO:'JOR',KZ:'KAZ',KE:'KEN',KI:'KIR',KP:'PRK',
+  KR:'KOR',KW:'KWT',KG:'KGZ',LA:'LAO',LV:'LVA',LB:'LBN',LS:'LSO',LR:'LBR',LY:'LBY',LI:'LIE',
+  LT:'LTU',LU:'LUX',MG:'MDG',MW:'MWI',MY:'MYS',MV:'MDV',ML:'MLI',MT:'MLT',MH:'MHL',MR:'MRT',
+  MU:'MUS',MX:'MEX',FM:'FSM',MD:'MDA',MC:'MCO',MN:'MNG',ME:'MNE',MA:'MAR',MZ:'MOZ',MM:'MMR',
+  NA:'NAM',NR:'NRU',NP:'NPL',NL:'NLD',NZ:'NZL',NI:'NIC',NE:'NER',NG:'NGA',MK:'MKD',NO:'NOR',
+  OM:'OMN',PK:'PAK',PW:'PLW',PA:'PAN',PG:'PNG',PY:'PRY',PE:'PER',PH:'PHL',PL:'POL',PT:'PRT',
+  QA:'QAT',RO:'ROU',RU:'RUS',RW:'RWA',KN:'KNA',LC:'LCA',VC:'VCT',WS:'WSM',SM:'SMR',ST:'STP',
+  SA:'SAU',SN:'SEN',RS:'SRB',SC:'SYC',SL:'SLE',SG:'SGP',SK:'SVK',SI:'SVN',SB:'SLB',SO:'SOM',
+  ZA:'ZAF',SS:'SSD',ES:'ESP',LK:'LKA',SD:'SDN',SR:'SUR',SE:'SWE',CH:'CHE',SY:'SYR',TW:'TWN',
+  TJ:'TJK',TZ:'TZA',TH:'THA',TL:'TLS',TG:'TGO',TO:'TON',TT:'TTO',TN:'TUN',TR:'TUR',TM:'TKM',
+  TV:'TUV',UG:'UGA',UA:'UKR',AE:'ARE',GB:'GBR',US:'USA',UY:'URY',UZ:'UZB',VU:'VUT',VE:'VEN',
+  VN:'VNM',YE:'YEM',ZM:'ZMB',ZW:'ZWE',XK:'XKX',PS:'PSE',MO:'MAC',HK:'HKG',PR:'PRI',
+};
+
+const GADM_LEVEL: Record<string, number> = { 'gadm-country': 0, 'gadm-admin1': 1, 'gadm-admin2': 2 };
+
+/** Reverse-geocode the bbox centre → ISO-3 country code */
+async function getBboxCountry(b: Bbox): Promise<string> {
+  const lat = ((b.n + b.s) / 2).toFixed(5);
+  const lon = ((b.e + b.w) / 2).toFixed(5);
+  const data = await (
+    await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
+      headers: { 'Accept-Language': 'en' },
+    })
+  ).json() as { address?: { country_code?: string } };
+  const iso2 = (data.address?.country_code ?? '').toUpperCase();
+  const iso3 = ISO2_TO_ISO3[iso2];
+  if (!iso3) throw new Error(`Country not found for bbox centre (${lat}, ${lon})`);
+  return iso3;
+}
+
+/** Fast bbox-overlap test on a GeoFeature's coordinate extent */
+function featInBbox(feat: GeoFeature, b: Bbox): boolean {
+  let minLon =  Infinity, maxLon = -Infinity;
+  let minLat =  Infinity, maxLat = -Infinity;
+  function walk(v: unknown): void {
+    if (!Array.isArray(v)) return;
+    if (typeof v[0] === 'number') {
+      const lon = v[0] as number, lat = v[1] as number;
+      if (lon < minLon) minLon = lon; if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat;
+    } else { v.forEach(walk); }
+  }
+  walk((feat.geometry as { coordinates: unknown }).coordinates);
+  return maxLon >= b.w && minLon <= b.e && maxLat >= b.s && minLat <= b.n;
+}
+
+/** Fetch GADM GeoJSON for one country + level, filter to bbox */
+async function fetchGADM(layerId: string, b: Bbox): Promise<GeoFC> {
+  const iso3  = await getBboxCountry(b);
+  const level = GADM_LEVEL[layerId];
+  const url   = `https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_${iso3}_${level}.json`;
+
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 45_000);
+  let data: { features?: GeoFeature[] };
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`GADM fetch ${res.status} for ${iso3} L${level}`);
+    data = await res.json() as { features?: GeoFeature[] };
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
+  }
+
+  // Level 0 → one feature, no bbox filtering needed
+  const features = level === 0
+    ? (data.features ?? [])
+    : (data.features ?? []).filter(f => featInBbox(f, b));
+
+  return { type: 'FeatureCollection', features };
+}
+
+async function countGADM(layerId: string, b: Bbox): Promise<number> {
+  const fc = await fetchGADM(layerId, b);
+  return fc.features.length;
+}
 
 // ─── Shared proxy fetch (for ArcGIS REST services that lack CORS) ────────────
 async function proxyFetch(url: string): Promise<unknown> {
@@ -329,6 +427,7 @@ async function getCount(id: string, b: Bbox): Promise<number> {
   if (id === 'stream-gauges') return countWaterGauges(b);
   if (id === 'wikipedia')     return countWikipedia(b);
   if (TIGER_URLS[id])         return countTIGER(TIGER_URLS[id], b);
+  if (GADM_IDS.has(id))       return countGADM(id, b);
   return 0;
 }
 
@@ -364,7 +463,8 @@ async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
   } else if (id === 'flood-zones')   { fc = await fetchFEMA(b);
   } else if (id === 'stream-gauges') { fc = await fetchWaterGauges(b);
   } else if (id === 'wikipedia')     { fc = await fetchWikipedia(b);
-  } else if (TIGER_URLS[id])         { fc = await fetchTIGER(TIGER_URLS[id], b);
+  } else if (TIGER_URLS[id])   { fc = await fetchTIGER(TIGER_URLS[id], b);
+  } else if (GADM_IDS.has(id)) { fc = await fetchGADM(id, b);
   } else { return { type: 'FeatureCollection', features: [] }; }
 
   return fc;
@@ -788,6 +888,9 @@ function LayerIcon({ id, className }: { id: string; className?: string }) {
     case 'census-zip':       return <svg {...a}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7L12 14 2 7"/></svg>;
     case 'census-schools':   return <svg {...a}><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12.5v4c3 2.5 9 2.5 12 0v-4"/></svg>;
     case 'census-congress':  return <svg {...a}><path d="M3 22h18M6 18V10M18 18V10M2 10h20M12 3l-10 7h20z"/></svg>;
+    case 'gadm-country':  return <svg {...a}><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>;
+    case 'gadm-admin1':   return <svg {...a}><rect x="2" y="3" width="20" height="18" rx="1"/><path d="M2 9h20M9 9v12"/></svg>;
+    case 'gadm-admin2':   return <svg {...a}><rect x="2" y="3" width="20" height="18" rx="1"/><path d="M2 9h20M2 15h20M9 3v18M15 3v18" strokeWidth={0.9}/></svg>;
     default:              return <svg {...a}><circle cx="12" cy="12" r="4"/></svg>;
   }
 }
