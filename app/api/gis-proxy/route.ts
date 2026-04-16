@@ -8,6 +8,7 @@ const ALLOWED_PREFIXES = [
   'https://tigerweb.geo.census.gov/',
   'https://hazards.fema.gov/',
   'https://api.waterdata.usgs.gov/',
+  'https://geodata.ucdavis.edu/',   // GADM global admin boundaries
 ];
 
 export async function POST(req: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const res  = await fetch(url, { signal: AbortSignal.timeout(25_000) });
+    const res  = await fetch(url, { signal: AbortSignal.timeout(45_000) });
     const data = await res.json();
     return NextResponse.json(data, {
       headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=60' },

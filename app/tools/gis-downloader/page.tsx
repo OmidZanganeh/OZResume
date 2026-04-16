@@ -169,23 +169,16 @@ function featInBbox(feat: GeoFeature, b: Bbox): boolean {
   return maxLon >= b.w && minLon <= b.e && maxLat >= b.s && minLat <= b.n;
 }
 
-/** Fetch GADM GeoJSON for one country + level, filter to bbox */
+/** Fetch GADM GeoJSON for one country + level, filter to bbox.
+ *  Routed through /api/gis-proxy to avoid CORS issues with the GADM CDN. */
 async function fetchGADM(layerId: string, b: Bbox): Promise<GeoFC> {
   const iso3  = await getBboxCountry(b);
   const level = GADM_LEVEL[layerId];
   const url   = `https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_${iso3}_${level}.json`;
 
-  const ctrl  = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 45_000);
-  let data: { features?: GeoFeature[] };
-  try {
-    const res = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(timer);
-    if (!res.ok) throw new Error(`GADM fetch ${res.status} for ${iso3} L${level}`);
-    data = await res.json() as { features?: GeoFeature[] };
-  } catch (e) {
-    clearTimeout(timer);
-    throw e;
+  const data = await proxyFetch(url) as { features?: GeoFeature[] };
+  if (!data || !Array.isArray(data.features)) {
+    throw new Error(`GADM: unexpected response for ${iso3} L${level}`);
   }
 
   // Level 0 → one feature, no bbox filtering needed
@@ -196,9 +189,11 @@ async function fetchGADM(layerId: string, b: Bbox): Promise<GeoFC> {
   return { type: 'FeatureCollection', features };
 }
 
-async function countGADM(layerId: string, b: Bbox): Promise<number> {
-  const fc = await fetchGADM(layerId, b);
-  return fc.features.length;
+/** Scan: only reverse-geocode to verify data exists — do NOT download the full file.
+ *  Returns 1 for all levels (availability check only); real count shown after download. */
+async function countGADM(_layerId: string, b: Bbox): Promise<number> {
+  await getBboxCountry(b); // throws if country cannot be identified
+  return 1;
 }
 
 // ─── Shared proxy fetch (for ArcGIS REST services that lack CORS) ────────────
