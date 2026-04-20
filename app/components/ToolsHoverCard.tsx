@@ -69,7 +69,7 @@ export default function ToolsHoverCard() {
   return (
     <div className={styles.wrapper}>
       <Link href="/tools" className={styles.trigger}>
-        <IconWrench /> Tools
+        <IconWrench /> GIS tools
       </Link>
 
       <div className={styles.popover}>
