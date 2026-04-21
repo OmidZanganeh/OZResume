@@ -65,9 +65,11 @@ const TOOLS = [
   { icon: <IconLayers />,   label: 'PDF & Image Tools',         href: '/tools/pdf-image-tools' },
 ];
 
-export default function ToolsHoverCard() {
+type Props = { suppressPopover?: boolean };
+
+export default function ToolsHoverCard({ suppressPopover = false }: Props) {
   return (
-    <div className={styles.wrapper}>
+    <div className={`${styles.wrapper}${suppressPopover ? ` ${styles.suppressPopover}` : ''}`}>
       <Link href="/tools" className={styles.trigger}>
         <IconWrench /> GIS tools
       </Link>

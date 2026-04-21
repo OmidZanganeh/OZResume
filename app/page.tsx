@@ -171,7 +171,7 @@ export default function Resume() {
               <Link href="/projects" className={styles.projectsBtn}>
                 <FolderIcon /> Projects
               </Link>
-              <ToolsHoverCard />
+              <ToolsHoverCard suppressPopover={gameOpen} />
               <Link href="/news" className={styles.projectsBtn}>
                 <SignalIcon /> AI News
               </Link>

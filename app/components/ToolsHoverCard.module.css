@@ -89,6 +89,27 @@
   transition: opacity 0.15s ease 0s, transform 0.15s ease 0s;
 }
 
+/* Game modal / other overlays: never show popover (avoids stacking above modals) */
+.wrapper.suppressPopover::after {
+  display: none;
+}
+
+.wrapper.suppressPopover:hover .popover,
+.wrapper.suppressPopover .popover {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-6px);
+  pointer-events: none;
+  transition: opacity 0.18s ease 0.2s, transform 0.18s ease 0.2s;
+}
+
+.wrapper.suppressPopover:hover .trigger,
+.wrapper.suppressPopover .trigger:focus-visible {
+  transform: none;
+  background: transparent;
+  border-color: var(--border-dark);
+  color: var(--text-primary);
+}
+
 /* ─── Popover Header ──────────────────────────────────────────────────────── */
 .popoverHead {
   display: flex;
