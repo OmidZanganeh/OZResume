@@ -80,6 +80,18 @@
 - **GIS downloader UI/layout bugs:** Often `page.module.css` + flex/`min-height: 0`; remember global `zoom` affects viewport behavior.
 - **SEO for a tool:** Prefer `app/tools/<tool>/layout.tsx` metadata + sitemap entry.
 
+## Gym Flow PWA
+
+| Item | Path / value |
+|------|--------------|
+| Source | `Gym Webapp/src/` — React + Vite app |
+| Build cmd | `cd "Gym Webapp" && npm run build` (runs `tsc && vite build`) |
+| Output | `public/gym-flow/` ← Vite writes directly here (see `vite.config.ts`) |
+| Served at | `/gym-flow/` (Next.js treats `public/` as static) |
+| PWA listing | `app/web-apps/page.tsx` |
+
+**Edit flow:** change files in `Gym Webapp/src/` → run build → commit `public/gym-flow/` → deploy to Vercel.
+
 ## Out of index / ignore
 
 - **`archive/`** and **`.cursorignore`** patterns: do not rely on these for edits; move noise into `archive/` to save tokens.
