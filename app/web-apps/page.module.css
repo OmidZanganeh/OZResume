@@ -1,0 +1,247 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 44px 60px;
+}
+
+.header {
+  margin-bottom: 40px;
+  padding-bottom: 28px;
+  border-bottom: 2px solid var(--border-dark);
+  position: relative;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  width: 100%;
+  height: 3px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 3'%3E%3Cpath d='M0,1.5 Q5,1 10,1.5 T20,1.5 T30,1.5 T40,1.5 T50,1.5 T60,1.5 T70,1.5 T80,1.5 T90,1.5 T100,1.5' stroke='%23a39f92' stroke-width='2.5' fill='none'/%3E%3C/svg%3E")
+    repeat-x;
+  background-size: 200px 3px;
+}
+
+.back {
+  display: inline-block;
+  font-size: 0.82em;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--accent-blue);
+  opacity: 1;
+}
+
+.title {
+  font-size: 2.4em;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: 0.95em;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 52ch;
+}
+
+.section {
+  margin-bottom: 44px;
+}
+
+.sectionTitle {
+  font-size: 1.15em;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.guideIntro {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: 20px;
+}
+
+.platform {
+  background: var(--paper-light);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  box-shadow: 2px 2px 0 rgba(163, 159, 146, 0.08);
+}
+
+.platformTitle {
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.15em;
+  font-size: 0.88em;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.steps li {
+  margin-bottom: 6px;
+}
+
+.note {
+  font-size: 0.82em;
+  color: var(--text-muted);
+  margin-top: 12px;
+  line-height: 1.55;
+}
+
+.appList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.appCard {
+  background: var(--paper-light);
+  border: 1px solid var(--border-light);
+  border-left: 5px solid var(--accent-blue);
+  border-radius: 8px;
+  padding: 24px 26px 22px;
+  box-shadow: 2px 2px 0 rgba(163, 159, 146, 0.1);
+}
+
+.appTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.appTitleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.appIcon {
+  font-size: 1.75em;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.appTitle {
+  font-size: 1.12em;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.appTagline {
+  font-size: 0.86em;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.techRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.techTag {
+  font-size: 0.72em;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--paper-dark);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+}
+
+.appDesc {
+  font-size: 0.88em;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 0.82em;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1.5px solid var(--accent-blue);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--accent-blue);
+  text-decoration: none;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.primaryBtn:hover {
+  background: rgba(37, 99, 235, 0.14);
+  transform: translateY(-1px);
+  text-decoration: none;
+  opacity: 1;
+}
+
+.comingSoon {
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--border-light);
+  background: var(--paper-dark);
+}
+
+.footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.88em;
+  color: var(--text-muted);
+}
+
+.footer a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 28px 18px 48px;
+  }
+
+  .title {
+    font-size: 1.85em;
+  }
+}

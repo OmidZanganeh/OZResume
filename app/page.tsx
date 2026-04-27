@@ -90,6 +90,13 @@ const GamepadIcon = () => (
   </svg>
 );
 
+const AppWindowIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect width="18" height="18" x="3" y="3" rx="2"/>
+    <path d="M3 9h18"/>
+  </svg>
+);
+
 const CogIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="12" cy="12" r="3"/>
@@ -170,6 +177,9 @@ export default function Resume() {
               </a>
               <Link href="/projects" className={styles.projectsBtn}>
                 <FolderIcon /> Projects
+              </Link>
+              <Link href="/web-apps" className={styles.projectsBtn}>
+                <AppWindowIcon /> Web apps
               </Link>
               <ToolsHoverCard suppressPopover={gameOpen} />
               <Link href="/news" className={styles.projectsBtn}>

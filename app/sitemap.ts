@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // ── Core pages ──
     { url: BASE,               lastModified: now, changeFrequency: "monthly", priority: 1.0 },
     { url: `${BASE}/projects`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE}/web-apps`, lastModified: now, changeFrequency: "monthly", priority: 0.75 },
     { url: `${BASE}/news`,     lastModified: now, changeFrequency: "daily",   priority: 0.7 },
 
     // ── Tools hub ──
