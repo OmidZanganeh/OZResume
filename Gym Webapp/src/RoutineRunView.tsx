@@ -331,7 +331,7 @@ export function RoutineRunView({ planId }: Props) {
                       />
                     </label>
                     <label className="routine-run-log-field routine-run-log-field--wide">
-                      Weight
+                      Weight (today)
                       <input
                         type="text"
                         placeholder="e.g. 60kg"
