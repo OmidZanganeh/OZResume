@@ -699,6 +699,94 @@ body {
   line-height: 1.4;
 }
 
+/* —— Sample history backfill (body map) */
+.history-backfill {
+  margin-top: 1.1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.history-backfill-title {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.history-backfill-intro {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.history-backfill-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.history-backfill-row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.history-backfill-muscle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  padding-top: 0.2rem;
+}
+
+.history-backfill-tiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.history-backfill-radio {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.3rem;
+  font-size: 0.76rem;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.history-backfill-radio input {
+  margin-top: 0.15rem;
+}
+
+.history-backfill-radio span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.history-backfill-radio small {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.history-backfill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.history-backfill-status {
+  margin: 0.55rem 0 0;
+}
+
 @media (max-width: 740px) {
   .panel-title-row {
     display: block;

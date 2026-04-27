@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { BodyMapFigure } from './components/BodyMapFigure';
+import { HistoryBackfillPanel } from './components/HistoryBackfillPanel';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
+import { SEED_SESSION_ID_PREFIX } from './utils/historySeed';
 import { migrateV1ToV2, STORAGE_V1, STORAGE_V2 } from './data/migrateStorage';
 import {
   type CatalogSortMode,
@@ -388,6 +390,14 @@ export default function App() {
           selectedGroups={selectedGroups}
           onToggleGroup={toggleGroup}
         />
+        <HistoryBackfillPanel
+          practiceWindowDays={PRACTICE_WINDOW_DAYS}
+          allExercises={allExercises}
+          sessions={data.sessions}
+          onPersist={({ sessions: nextSessions, stats: nextStats }) =>
+            persist({ ...data, sessions: nextSessions, stats: nextStats })
+          }
+        />
         <div className="selected-muscles" aria-label="Muscles selected for filter">
           {selectedGroups.length === 0 ? (
             <p className="empty-text" style={{ margin: '0.75rem 0 0' }}>
@@ -755,7 +765,11 @@ export default function App() {
             {recentSessions.map((session) => (
               <div key={session.id} className="small-list-row">
                 <span>
-                  {formatDate(session.date)} <small>{session.entries.length} moves completed</small>
+                  {formatDate(session.date)}{' '}
+                  <small>
+                    {session.id.startsWith(SEED_SESSION_ID_PREFIX) ? 'sample · ' : ''}
+                    {session.entries.length} moves completed
+                  </small>
                 </span>
                 <small>{session.groups.join(', ')}</small>
               </div>
