@@ -27,6 +27,7 @@ import {
   equipmentToSlug,
 } from './utils/catalogSort';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
+import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
 import {
   candidateMuscleGroupsForExercise,
   getDefaultDraft,
@@ -42,11 +43,19 @@ function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]
   return exercise.secondaryGroups?.some((group) => selectedGroups.includes(group)) ?? false;
 }
 
-/** Exercise names in template order (valid catalog ids only). */
-function orderedNamesForSavedPlan(plan: SavedPlan, allExercises: Exercise[]): string[] {
+/** Moves in template order (valid catalog ids only). */
+function orderedPlanEntriesForSavedPlan(
+  plan: SavedPlan,
+  allExercises: Exercise[],
+): { id: string; name: string }[] {
   const ids = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
-  const map = new Map(allExercises.map((e) => [e.id, e.name]));
-  return ids.map((id) => map.get(id)).filter((n): n is string => typeof n === 'string');
+  const map = new Map(allExercises.map((e) => [e.id, e]));
+  return ids
+    .map((id) => {
+      const ex = map.get(id);
+      return ex ? { id, name: ex.name } : null;
+    })
+    .filter((x): x is { id: string; name: string } => x !== null);
 }
 
 function createExerciseId(name: string) {
@@ -356,7 +365,7 @@ export default function App() {
     setActiveRoutineName(plan.name);
     setEditingSavedPlanId(null);
     setMessage(
-      `Loaded “${plan.name}” — ${validIds.length} moves. Open Use today for the image tab, or log each move below.`,
+      `Loaded “${plan.name}” — ${validIds.length} moves. Open Workout sheet for the image tab, or log below.`,
     );
   }
 
@@ -413,8 +422,36 @@ export default function App() {
   }
 
   function cancelEditSavedPlan() {
+    const id = editingSavedPlanId;
+    if (!id) return;
+    const plan = data.savedPlans.find((p) => p.id === id);
     setEditingSavedPlanId(null);
-    setMessage('Stopped editing — routine in the list was not changed.');
+    if (!plan) {
+      setMessage('Edit cancelled.');
+      return;
+    }
+    const validIds = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
+    if (validIds.length === 0) {
+      setMessage('Could not restore that routine from storage.');
+      return;
+    }
+    setSelectedGroups([...plan.muscleGroups]);
+    setSelectedEquipment([...plan.equipment]);
+    setSelectedExerciseIds(validIds);
+    const nextDrafts: Record<string, ExerciseLogDraft> = {};
+    for (const vid of validIds) {
+      const ex = exerciseById.get(vid);
+      nextDrafts[vid] = getDefaultDraftForExercise(ex);
+      if (ex) {
+        const c = candidateMuscleGroupsForExercise(ex);
+        const t = nextDrafts[vid].trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        nextDrafts[vid].trainedMuscleGroups = t.length > 0 ? t : [...c];
+      }
+    }
+    setExerciseDrafts(nextDrafts);
+    setVisibleExerciseCount(24);
+    setPlanStep(2);
+    setMessage(`Restored “${plan.name}” to your last saved version (edits discarded).`);
   }
 
   function deleteSavedPlanTemplate(id: string) {
@@ -424,12 +461,21 @@ export default function App() {
   }
 
   function saveWorkout() {
+    const includedIds = selectedExerciseIds.filter((id) => exerciseDrafts[id]?.completed);
+    if (
+      includedIds.length > 0 &&
+      isLikelyDuplicateWorkoutSave(data.sessions, includedIds) &&
+      !window.confirm(
+        'This matches a workout you saved a few minutes ago (same moves). Save again anyway?',
+      )
+    ) {
+      return;
+    }
     const result = commitWorkoutSession({
       data,
       exerciseOrderIds: selectedExerciseIds,
       exerciseDrafts,
       exerciseById,
-      sessionGroupSeed: selectedGroups,
     });
     if (!result.ok) {
       setMessage(result.error);
@@ -548,10 +594,10 @@ export default function App() {
               <div className="saved-routines-hub-header">
                 <h2 className="panel-heading panel-heading--plain">My saved routines</h2>
                 <p className="panel-subtle saved-routines-hub-lead">
-                  <strong>Use today</strong> opens a <strong>new tab</strong> with move images and order (for the floor).{' '}
-                  <strong>Log in planner</strong> loads this list here so you can log sets and save the workout.{' '}
-                  <strong>Edit routine</strong> sends you to Moves to add/remove moves, then <strong>Update routine</strong>.{' '}
-                  <strong>Review order</strong> expands the names on this page.
+                  <strong>Workout sheet</strong> opens a <strong>new tab</strong> with images, history, and logging (same data as
+                  here). <strong>Log in planner</strong> loads this list into the Plan tab. <strong>Edit routine</strong> goes
+                  to Moves to add/remove moves, then <strong>Update routine</strong>. <strong>Review order</strong> expands the
+                  list on this page.
                 </p>
               </div>
               {activeRoutineName ? (
@@ -567,7 +613,7 @@ export default function App() {
               ) : (
                 <ul className="saved-routine-quick-list">
                   {data.savedPlans.map((plan) => {
-                    const names = orderedNamesForSavedPlan(plan, allExercises);
+                    const planEntries = orderedPlanEntriesForSavedPlan(plan, allExercises);
                     const expanded = expandedSavedPlanId === plan.id;
                     return (
                       <li key={plan.id} className="saved-routine-quick-item">
@@ -575,7 +621,7 @@ export default function App() {
                           <div className="saved-routine-quick-info">
                             <strong>{plan.name}</strong>
                             <span className="saved-routine-quick-meta">
-                              {names.length} moves · saved {formatDate(plan.createdAt)}
+                              {planEntries.length} moves · saved {formatDate(plan.createdAt)}
                             </span>
                           </div>
                           <div className="saved-routine-quick-actions">
@@ -584,7 +630,7 @@ export default function App() {
                               className="button button-small"
                               onClick={() => openRoutineWorkoutTab(plan.id)}
                             >
-                              Use today
+                              Workout sheet
                             </button>
                             <button
                               type="button"
@@ -612,10 +658,10 @@ export default function App() {
                             </button>
                           </div>
                         </div>
-                        {expanded && names.length > 0 ? (
+                        {expanded && planEntries.length > 0 ? (
                           <ol className="saved-routine-preview-list">
-                            {names.map((n) => (
-                              <li key={n}>{n}</li>
+                            {planEntries.map((e) => (
+                              <li key={e.id}>{e.name}</li>
                             ))}
                           </ol>
                         ) : null}
@@ -924,6 +970,12 @@ export default function App() {
         <h2 className="panel-heading panel-heading--plain">
           Today&apos;s plan <span className="panel-heading-meta">({planExercises.length} moves)</span>
         </h2>
+        {planExercises.length > 0 ? (
+          <p className="panel-subtle plan-log-hint">
+            Check <strong>Include when I save</strong> only for moves you actually do this session, then fill sets / weight.
+            Open <strong>Workout sheet</strong> from My saved routines if you prefer the full-screen log.
+          </p>
+        ) : null}
         {planExercises.length === 0 ? (
           <div className="plan-empty">
             <p className="empty-text">
@@ -950,13 +1002,16 @@ export default function App() {
                         {exercise.name}
                       </ExerciseYoutubeLink>
                     </h3>
-                    <label className="checkbox">
+                    <label
+                      className="checkbox"
+                      title="Only checked moves are written when you tap Save workout"
+                    >
                       <input
                         type="checkbox"
-                        checked={draft?.completed ?? true}
+                        checked={draft?.completed ?? false}
                         onChange={(event) => updateDraft(exercise.id, { completed: event.target.checked })}
                       />
-                      Completed
+                      Include when I save
                     </label>
                   </div>
 
@@ -1226,7 +1281,7 @@ export default function App() {
                     className="button button-small"
                     onClick={() => openRoutineWorkoutTab(plan.id)}
                   >
-                    Use today
+                    Workout sheet
                   </button>
                   <button type="button" className="button button-muted button-small" onClick={() => loadSavedPlanTemplate(plan)}>
                     Log in planner

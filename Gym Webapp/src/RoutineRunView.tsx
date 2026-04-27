@@ -11,6 +11,7 @@ import { MuscleTargetPick } from './components/MuscleTargetPick';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
+import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
 import { getRecentLogsForExercise } from './utils/sessionExerciseHistory';
 import { getEffectiveCategory } from './utils/catalogSort';
 import {
@@ -56,22 +57,29 @@ export function RoutineRunView({ planId }: Props) {
     savePersistedGymData(next);
   }, []);
 
-  /** Seed drafts when routine composition changes; pre-fill from last logged sets. */
+  /** Add defaults for new ids only; keep in-progress drafts when the routine list changes slightly. */
   useEffect(() => {
     if (exercises.length === 0) return;
     const fresh = loadPersistedGymData();
-    const next: Record<string, ExerciseLogDraft> = {};
-    for (const ex of exercises) {
-      const d = getDefaultDraftForExercise(ex);
-      const hist = getRecentLogsForExercise(fresh.sessions, ex.id, 1)[0];
-      if (hist) {
-        if (hist.weight.trim()) d.weight = hist.weight;
-        if (hist.reps.trim()) d.reps = hist.reps;
-        d.sets = hist.sets >= 1 ? hist.sets : d.sets;
+    setExerciseDrafts((prev) => {
+      const next = { ...prev };
+      const keep = new Set(exercises.map((e) => e.id));
+      for (const id of Object.keys(next)) {
+        if (!keep.has(id)) delete next[id];
       }
-      next[ex.id] = d;
-    }
-    setExerciseDrafts(next);
+      for (const ex of exercises) {
+        if (next[ex.id]) continue;
+        const d = getDefaultDraftForExercise(ex);
+        const hist = getRecentLogsForExercise(fresh.sessions, ex.id, 1)[0];
+        if (hist) {
+          if (hist.weight.trim()) d.weight = hist.weight;
+          if (hist.reps.trim()) d.reps = hist.reps;
+          d.sets = hist.sets >= 1 ? hist.sets : d.sets;
+        }
+        next[ex.id] = d;
+      }
+      return next;
+    });
     setSaveMessage('');
   }, [exerciseIdsKey]);
 
@@ -129,12 +137,21 @@ export function RoutineRunView({ planId }: Props) {
   function handleSaveWorkout() {
     if (!plan) return;
     const orderIds = exercises.map((e) => e.id);
+    const includedIds = orderIds.filter((id) => exerciseDrafts[id]?.completed);
+    if (
+      includedIds.length > 0 &&
+      isLikelyDuplicateWorkoutSave(data.sessions, includedIds) &&
+      !window.confirm(
+        'This matches a workout you saved a few minutes ago (same moves). Save again anyway?',
+      )
+    ) {
+      return;
+    }
     const result = commitWorkoutSession({
       data,
       exerciseOrderIds: orderIds,
       exerciseDrafts,
       exerciseById,
-      sessionGroupSeed: plan.muscleGroups,
     });
     if (!result.ok) {
       setSaveMessage(result.error);
@@ -195,8 +212,8 @@ export function RoutineRunView({ planId }: Props) {
         <div>
           <h1 className="routine-run-title">{plan.name}</h1>
           <p className="routine-run-sub">
-            Log sets, reps, and weight below. Data saves to the same history as the main planner. Uncheck{' '}
-            <strong>Count this move</strong> for anything you skip.
+            Check <strong>Include when I save</strong> for each move you perform, then enter sets / weight. Everything saves to
+            the same history and body map as the Plan tab. Leave moves unchecked if you skip them.
           </p>
         </div>
         <a className="button button-muted routine-run-planner-link" href={plannerHref}>
@@ -268,13 +285,16 @@ export function RoutineRunView({ planId }: Props) {
                 <p className="routine-run-history-empty">No history yet for this move.</p>
               )}
 
-              <label className="routine-run-count-toggle checkbox">
+              <label
+                className="routine-run-count-toggle checkbox"
+                title="Only checked moves are written when you tap Save workout"
+              >
                 <input
                   type="checkbox"
-                  checked={draft?.completed ?? true}
+                  checked={draft?.completed ?? false}
                   onChange={(e) => updateDraft(ex.id, { completed: e.target.checked })}
                 />
-                Count this move in saved workout
+                Include when I save
               </label>
 
               <MuscleTargetPick exercise={ex} draft={draft} onPatch={(patch) => updateDraft(ex.id, patch)} />

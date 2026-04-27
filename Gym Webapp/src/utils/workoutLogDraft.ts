@@ -35,7 +35,7 @@ export function nextTrainedMusclesAfterToggle(
 
 export function getDefaultDraft(): ExerciseLogDraft {
   return {
-    completed: true,
+    completed: false,
     sets: 3,
     reps: '8-12',
     weight: '',
@@ -47,7 +47,7 @@ export function getDefaultDraftForExercise(exercise: Exercise | undefined): Exer
   if (!exercise) return getDefaultDraft();
   const muscles = [...candidateMuscleGroupsForExercise(exercise)];
   if (getEffectiveCategory(exercise) === 'cardio') {
-    return { completed: true, sets: 1, reps: '20', weight: '', notes: '', trainedMuscleGroups: muscles };
+    return { completed: false, sets: 1, reps: '20', weight: '', notes: '', trainedMuscleGroups: muscles };
   }
   return { ...getDefaultDraft(), trainedMuscleGroups: muscles };
 }

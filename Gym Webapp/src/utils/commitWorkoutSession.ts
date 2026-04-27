@@ -12,11 +12,10 @@ export function commitWorkoutSession(params: {
   exerciseOrderIds: string[];
   exerciseDrafts: Record<string, ExerciseLogDraft | undefined>;
   exerciseById: Map<string, Exercise>;
-  sessionGroupSeed: MuscleGroup[];
 }):
   | { ok: true; nextData: PersistedGymData; completedCount: number }
   | { ok: false; error: string } {
-  const { data, exerciseOrderIds, exerciseDrafts, exerciseById, sessionGroupSeed } = params;
+  const { data, exerciseOrderIds, exerciseDrafts, exerciseById } = params;
 
   const completedEntries = exerciseOrderIds
     .map((exerciseId) => ({ exerciseId, draft: exerciseDrafts[exerciseId] }))
@@ -35,11 +34,14 @@ export function commitWorkoutSession(params: {
     });
 
   if (completedEntries.length === 0) {
-    return { ok: false, error: 'Pick and complete at least one planned move before saving.' };
+    return {
+      ok: false,
+      error: 'Check at least one move to include when saving, then try again.',
+    };
   }
 
   const nowIso = new Date().toISOString();
-  const autoGroups = new Set<MuscleGroup>(sessionGroupSeed);
+  const autoGroups = new Set<MuscleGroup>();
   completedEntries.forEach((entry) => {
     const exercise = exerciseById.get(entry.exerciseId);
     if (!exercise) return;
