@@ -1,0 +1,17 @@
+{
+  "name": "Gym Flow",
+  "short_name": "GymFlow",
+  "description": "Offline-first gym planner and progress tracker.",
+  "start_url": "/gym-flow/",
+  "scope": "/gym-flow/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "/gym-flow/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

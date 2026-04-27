@@ -1,0 +1,675 @@
+{
+  "generated": "2026-04-27T18:56:59.346Z",
+  "report": {
+    "ok": [
+      {
+        "name": "Ab Wheel Rollout",
+        "file": "ab-wheel-rollout.jpg",
+        "wger": "Ab wheel",
+        "score": 0.6666666666666666,
+        "wgerId": 1573
+      },
+      {
+        "name": "Ankle Mobility Rock",
+        "file": "ankle-mobility-rock.png",
+        "wger": "Banded Ankle Mobility",
+        "score": 0.5,
+        "wgerId": 1865
+      },
+      {
+        "name": "Barbell Bench Press",
+        "file": "barbell-bench-press.png",
+        "wger": "Decline Bench Press Barbell",
+        "score": 0.75,
+        "wgerId": 185
+      },
+      {
+        "name": "Barbell Bent Over Row",
+        "file": "barbell-bent-over-row.jpg",
+        "wger": "Dumbbell Bent Over Row",
+        "score": 0.6,
+        "wgerId": 1085
+      },
+      {
+        "name": "Barbell Curl",
+        "file": "barbell-curl.webp",
+        "wger": "Barbell Wrist Curl",
+        "score": 0.6666666666666666,
+        "wgerId": 51
+      },
+      {
+        "name": "Barbell Hip Thrust",
+        "file": "barbell-hip-thrust.webp",
+        "wger": "Dumbbell Hip Thrust",
+        "score": 0.5,
+        "wgerId": 1642
+      },
+      {
+        "name": "Bulgarian Split Squat",
+        "file": "bulgarian-split-squat.jfif",
+        "wger": "Bulgarian Squat with Dumbbells",
+        "score": 0.4,
+        "wgerId": 1706
+      },
+      {
+        "name": "Cable Curl",
+        "file": "cable-curl.png",
+        "wger": "Cable Concentration Curl",
+        "score": 0.6666666666666666,
+        "wgerId": 1109
+      },
+      {
+        "name": "Cable Fly",
+        "file": "cable-fly.png",
+        "wger": "Fly With Cable",
+        "score": 0.6666666666666666,
+        "wgerId": 237
+      },
+      {
+        "name": "Close Grip Bench Press",
+        "file": "close-grip-bench-press.png",
+        "wger": "Bench Press Narrow Grip",
+        "score": 0.6,
+        "wgerId": 76
+      },
+      {
+        "name": "Concentration Curl",
+        "file": "concentration-curl.jpg",
+        "wger": "Concentration Curl",
+        "score": 1,
+        "wgerId": 1649
+      },
+      {
+        "name": "Deadlift",
+        "file": "deadlift.webp",
+        "wger": "Romanian Deadlift",
+        "score": 0.5,
+        "wgerId": 1750
+      },
+      {
+        "name": "Decline Bench Press",
+        "file": "decline-bench-press.png",
+        "wger": "Decline Bench Press Barbell",
+        "score": 0.75,
+        "wgerId": 185
+      },
+      {
+        "name": "Donkey Calf Raise",
+        "file": "donkey-calf-raise.png",
+        "wger": "Double Leg Calf Raise",
+        "score": 0.4,
+        "wgerId": 1243
+      },
+      {
+        "name": "Dumbbell Curl",
+        "file": "dumbbell-curl.png",
+        "wger": "Alternating dumbbell hammer curl",
+        "score": 0.5,
+        "wgerId": 1567
+      },
+      {
+        "name": "Dumbbell Fly",
+        "file": "dumbbell-fly.webp",
+        "wger": "Dumbbell Incline Fly",
+        "score": 0.6666666666666666,
+        "wgerId": 1643
+      },
+      {
+        "name": "Dumbbell Shrug",
+        "file": "dumbbell-shrug.webp",
+        "wger": "Dumbbell Shrug",
+        "score": 1,
+        "wgerId": 1645
+      },
+      {
+        "name": "Face Pull",
+        "file": "face-pull.webp",
+        "wger": "Dumbbell Bent Over Face Pull",
+        "score": 0.4,
+        "wgerId": 1639
+      },
+      {
+        "name": "Flat Dumbbell Press",
+        "file": "flat-dumbbell-press.jpg",
+        "wger": "Incline Dumbbell Press",
+        "score": 0.5,
+        "wgerId": 1277
+      },
+      {
+        "name": "Floor Press",
+        "file": "floor-press.jpg",
+        "wger": "Floor Bench Press",
+        "score": 0.6666666666666666,
+        "wgerId": 1946
+      },
+      {
+        "name": "Front Squat",
+        "file": "front-squat.webp",
+        "wger": "Dumbbell Front Squat",
+        "score": 0.6666666666666666,
+        "wgerId": 1640
+      },
+      {
+        "name": "Goblet Squat",
+        "file": "goblet-squat.jpeg",
+        "wger": "Dumbbell Goblet Squat",
+        "score": 0.6666666666666666,
+        "wgerId": 203
+      },
+      {
+        "name": "Hammer Curl",
+        "file": "hammer-curl.png",
+        "wger": "Alternating dumbbell hammer curl",
+        "score": 0.5,
+        "wgerId": 1567
+      },
+      {
+        "name": "Hanging Leg Raise",
+        "file": "hanging-leg-raise.png",
+        "wger": "Double Leg Calf Raise",
+        "score": 0.4,
+        "wgerId": 1243
+      },
+      {
+        "name": "Hip Abduction Machine",
+        "file": "hip-abduction-machine.jpg",
+        "wger": "Machine Hip Abduction",
+        "score": 1,
+        "wgerId": 1748
+      },
+      {
+        "name": "Hip Flexor Stretch",
+        "file": "hip-flexor-stretch.png",
+        "wger": "Hip Flexor Stretch",
+        "score": 1,
+        "wgerId": 1867
+      },
+      {
+        "name": "Incline Dumbbell Curl",
+        "file": "incline-dumbbell-curl.webp",
+        "wger": "Dumbbell Incline Fly",
+        "score": 0.5,
+        "wgerId": 1643
+      },
+      {
+        "name": "Incline Dumbbell Press",
+        "file": "incline-dumbbell-press.jpg",
+        "wger": "Incline Dumbbell Press",
+        "score": 1,
+        "wgerId": 1277
+      },
+      {
+        "name": "Leg Extension",
+        "file": "leg-extension.png",
+        "wger": "Leg Extension",
+        "score": 1,
+        "wgerId": 369
+      },
+      {
+        "name": "Leg Press",
+        "file": "leg-press.webp",
+        "wger": "Leg Press",
+        "score": 1,
+        "wgerId": 371
+      },
+      {
+        "name": "Lying Leg Curl",
+        "file": "lying-leg-curl.png",
+        "wger": "Leg Curl",
+        "score": 0.6666666666666666,
+        "wgerId": 364
+      },
+      {
+        "name": "Machine Chest Press",
+        "file": "machine-chest-press.webp",
+        "wger": "Machine Chest Press Exercise",
+        "score": 0.75,
+        "wgerId": 1655
+      },
+      {
+        "name": "One Arm Dumbbell Row",
+        "file": "one-arm-dumbbell-row.jpg",
+        "wger": "One Arm Bent Row",
+        "score": 0.6,
+        "wgerId": 1186
+      },
+      {
+        "name": "Overhead Press",
+        "file": "overhead-press.png",
+        "wger": "Overhead Barbell Press",
+        "score": 0.6666666666666666,
+        "wgerId": 1893
+      },
+      {
+        "name": "Overhead Triceps Extension",
+        "file": "overhead-triceps-extension.gif",
+        "wger": "Overhead Triceps Extension",
+        "score": 1,
+        "wgerId": 1519
+      },
+      {
+        "name": "Pallof Press",
+        "file": "pallof-press.png",
+        "wger": "PALLOF PRESS",
+        "score": 1,
+        "wgerId": 1194
+      },
+      {
+        "name": "Plank",
+        "file": "plank.png",
+        "wger": "Plank",
+        "score": 1,
+        "wgerId": 458
+      },
+      {
+        "name": "Push-Up",
+        "file": "push-up.png",
+        "wger": "Push-Up",
+        "score": 1,
+        "wgerId": 1551
+      },
+      {
+        "name": "Rear Delt Fly",
+        "file": "rear-delt-fly.png",
+        "wger": "Cable Rear Delt Fly",
+        "score": 0.75,
+        "wgerId": 822
+      },
+      {
+        "name": "Reverse Wrist Curl",
+        "file": "reverse-wrist-curl.webp",
+        "wger": "Barbell Wrist Curl",
+        "score": 0.5,
+        "wgerId": 51
+      },
+      {
+        "name": "Romanian Deadlift",
+        "file": "romanian-deadlift.webp",
+        "wger": "Romanian Deadlift",
+        "score": 1,
+        "wgerId": 1750
+      },
+      {
+        "name": "Russian Twist",
+        "file": "russian-twist.png",
+        "wger": "Russian Twist",
+        "score": 1,
+        "wgerId": 1193
+      },
+      {
+        "name": "Seated Cable Row",
+        "file": "seated-cable-row.png",
+        "wger": "Seated Cable Row",
+        "score": 1,
+        "wgerId": 1117
+      },
+      {
+        "name": "Seated Calf Raise",
+        "file": "seated-calf-raise.jpeg",
+        "wger": "Seated Dumbbell Calf Raise",
+        "score": 0.75,
+        "wgerId": 1620
+      },
+      {
+        "name": "Seated Dumbbell Press",
+        "file": "seated-dumbbell-press.jpg",
+        "wger": "Incline Dumbbell Press",
+        "score": 0.5,
+        "wgerId": 1277
+      },
+      {
+        "name": "Seated Leg Curl",
+        "file": "seated-leg-curl.png",
+        "wger": "Leg Curl",
+        "score": 0.6666666666666666,
+        "wgerId": 364
+      },
+      {
+        "name": "Side Plank",
+        "file": "side-plank.png",
+        "wger": "Plank",
+        "score": 0.5,
+        "wgerId": 458
+      },
+      {
+        "name": "Single Arm Cable Press",
+        "file": "single-arm-cable-press.jpg",
+        "wger": "Cable Lateral Raises (Single Arm)",
+        "score": 0.5,
+        "wgerId": 1378
+      },
+      {
+        "name": "Single Arm Kickback",
+        "file": "single-arm-kickback.png",
+        "wger": "Single arm row",
+        "score": 0.5,
+        "wgerId": 1637
+      },
+      {
+        "name": "Single Leg Calf Raise",
+        "file": "single-leg-calf-raise.png",
+        "wger": "Double Leg Calf Raise",
+        "score": 0.6,
+        "wgerId": 1243
+      },
+      {
+        "name": "Single Leg Romanian Deadlift",
+        "file": "single-leg-romanian-deadlift.webp",
+        "wger": "Romanian Deadlift",
+        "score": 0.5,
+        "wgerId": 1750
+      },
+      {
+        "name": "Smith Machine Incline Press",
+        "file": "smith-machine-incline-press.jpg",
+        "wger": "Incline Dumbbell Press",
+        "score": 0.4,
+        "wgerId": 1277
+      },
+      {
+        "name": "Standing Calf Raise",
+        "file": "standing-calf-raise.jpg",
+        "wger": "Standing Calf Stretch",
+        "score": 0.5,
+        "wgerId": 1239
+      },
+      {
+        "name": "Sumo Deadlift",
+        "file": "sumo-deadlift.webp",
+        "wger": "Sumo Deadlift",
+        "score": 1,
+        "wgerId": 630
+      },
+      {
+        "name": "Triceps Pushdown",
+        "file": "triceps-pushdown.jpg",
+        "wger": "Triceps Pushdown",
+        "score": 1,
+        "wgerId": 1185
+      },
+      {
+        "name": "Upright Row",
+        "file": "upright-row.png",
+        "wger": "Upright Row, SZ-bar",
+        "score": 0.6666666666666666,
+        "wgerId": 693
+      },
+      {
+        "name": "Weighted Push-Up",
+        "file": "weighted-push-up.png",
+        "wger": "Push-Up",
+        "score": 0.5,
+        "wgerId": 1551
+      },
+      {
+        "name": "Wide Grip Pulldown",
+        "file": "wide-grip-pulldown.png",
+        "wger": "Pull-Ups (Wide Grip)",
+        "score": 0.5,
+        "wgerId": 1765
+      },
+      {
+        "name": "Wrist Curl",
+        "file": "wrist-curl.webp",
+        "wger": "Barbell Wrist Curl",
+        "score": 0.6666666666666666,
+        "wgerId": 51
+      }
+    ],
+    "skip": [
+      {
+        "name": "Arnold Press",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Assault Bike",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Back Extension",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Back Squat",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Banded Shoulder Dislocate",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Barbell Shrug",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Bench Dip",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Burpee",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Cable Crunch",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Cable Kickback",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Cable Lateral Raise",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Cat Cow",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Chest Supported Row",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Chin-Up",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Close Grip Push-Up",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Cuban Press",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Curtsy Lunge",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Dead Bug",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Dead Hang",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Decline Sit-Up",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Deep Squat Hold",
+        "reason": "no wger match"
+      },
+      {
+        "name": "EZ Bar Curl",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Elliptical",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Farmer Carry",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Frog Pump",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Front Raise",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Glute Bridge",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Glute Ham Raise",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Good Morning",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Hack Squat",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Hamstring Floss",
+        "reason": "no wger match"
+      },
+      {
+        "name": "High Knees",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Incline Walk",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Jump Rope",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Landmine Press",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Lat Pulldown",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Lateral Raise",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Meadows Row",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Mountain Climber",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Neutral Grip Pulldown",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Nordic Curl",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Parallel Bar Dip",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Pec Deck Fly",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Plate Pinch Hold",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Preacher Curl",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Pull-Up",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Reverse Grip Pushdown",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Reverse Lunge",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Reverse Pec Deck",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Rope Pushdown",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Rowing Machine",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Sissy Squat",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Skull Crusher",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Spider Curl",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Stair Climber",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Step-Up",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Straight Arm Pulldown",
+        "reason": "no wger match"
+      },
+      {
+        "name": "T-Bar Row",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Thoracic Rotation",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Treadmill Run",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Walking Lunge",
+        "reason": "no wger match"
+      },
+      {
+        "name": "World's Greatest Stretch",
+        "reason": "no wger match"
+      },
+      {
+        "name": "Zottman Curl",
+        "reason": "no wger match"
+      }
+    ],
+    "fail": []
+  }
+}

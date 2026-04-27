@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   },
 };
 
-/** Set in Vercel → Settings → Environment Variables (Production). Redeploy after adding. */
-const gymFlowUrl = process.env.NEXT_PUBLIC_GYM_FLOW_URL?.trim() || "";
+/** Same deployment as this site — static app under /gym-flow/ */
+const GYM_FLOW_PATH = "/gym-flow/";
 
 const apps = [
   {
@@ -25,7 +25,7 @@ const apps = [
     description:
       "Plan workouts, browse exercises, and track progress in the browser. Works as a standalone app once installed — handy at the gym without hunting for the tab.",
     tech: ["React", "Vite", "PWA", "TypeScript"],
-    url: gymFlowUrl,
+    url: GYM_FLOW_PATH,
   },
 ];
 
@@ -55,7 +55,10 @@ export default function WebAppsPage() {
         <div className={styles.platform}>
           <h3 className={styles.platformTitle}>iPhone &amp; iPad (Safari)</h3>
           <ol className={styles.steps}>
-            <li>Open the app in <strong>Safari</strong> (install prompts from Chrome or other browsers on iOS are limited).</li>
+            <li>
+              On this site, open <strong>Gym Flow</strong> at <code>/gym-flow/</code> in <strong>Safari</strong> (install
+              prompts from Chrome or other browsers on iOS are limited).
+            </li>
             <li>Tap the <strong>Share</strong> button (square with arrow).</li>
             <li>Scroll and tap <strong>Add to Home Screen</strong>, then confirm.</li>
           </ol>
@@ -115,15 +118,9 @@ export default function WebAppsPage() {
               </div>
               <p className={styles.appDesc}>{app.description}</p>
               <div className={styles.actions}>
-                {app.url ? (
-                  <a className={styles.primaryBtn} href={app.url} target="_blank" rel="noopener noreferrer">
-                    Open {app.title} →
-                  </a>
-                ) : (
-                  <span className={styles.comingSoon} title="Set NEXT_PUBLIC_GYM_FLOW_URL in Vercel and redeploy.">
-                    Live URL not configured
-                  </span>
-                )}
+                <a className={styles.primaryBtn} href={app.url}>
+                  Open {app.title} →
+                </a>
                 <Link href="/web-apps#install-guide" className={styles.back} style={{ marginBottom: 0 }}>
                   Install instructions ↑
                 </Link>
