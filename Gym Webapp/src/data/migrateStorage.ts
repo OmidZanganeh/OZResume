@@ -11,10 +11,27 @@ type ExerciseStat = {
 type WorkoutEntry = { exerciseId: string; sets: number; reps: string; weight: string; notes: string };
 type WorkoutSession = { id: string; date: string; groups: MuscleGroup[]; entries: WorkoutEntry[] };
 
+type SavedPlan = {
+  id: string;
+  name: string;
+  createdAt: string;
+  exerciseIds: string[];
+  muscleGroups: MuscleGroup[];
+  equipment: string[];
+};
+
+type PersistedIn = {
+  customExercises: Exercise[];
+  stats: Record<string, ExerciseStat>;
+  sessions: WorkoutSession[];
+  savedPlans?: SavedPlan[];
+};
+
 type Persisted = {
   customExercises: Exercise[];
   stats: Record<string, ExerciseStat>;
   sessions: WorkoutSession[];
+  savedPlans: SavedPlan[];
 };
 
 function mergeStats(a: ExerciseStat, b: ExerciseStat): ExerciseStat {
@@ -30,7 +47,7 @@ function mergeStats(a: ExerciseStat, b: ExerciseStat): ExerciseStat {
 /**
  * One-time in-browser migration: gym-flow-v1 (old stock ids) → gym-flow-v2 (wrkout ids) by name.
  */
-export function migrateV1ToV2(raw: Persisted): Persisted {
+export function migrateV1ToV2(raw: PersistedIn): Persisted {
   const lib = EXERCISE_LIBRARY;
   const mapId = (id: string) => mapV1ExerciseIdToV2(id, lib);
 
@@ -53,6 +70,7 @@ export function migrateV1ToV2(raw: Persisted): Persisted {
     customExercises: raw.customExercises ?? [],
     stats,
     sessions,
+    savedPlans: raw.savedPlans ?? [],
   };
 }
 

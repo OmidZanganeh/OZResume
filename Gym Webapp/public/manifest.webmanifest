@@ -5,13 +5,20 @@
   "start_url": "/gym-flow/",
   "scope": "/gym-flow/",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#111827",
+  "background_color": "#0c0f14",
+  "theme_color": "#0c0f14",
   "icons": [
     {
-      "src": "/gym-flow/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "/gym-flow/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/gym-flow/app-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
