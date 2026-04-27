@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build:gym": "npm install --prefix \"Gym Webapp\" && npm run build --prefix \"Gym Webapp\"",
+    "build:gym": "npm install --prefix \"Gym Webapp\" --include=dev && npm run build --prefix \"Gym Webapp\"",
     "build": "npm run build:gym && next build",
     "start": "next start",
     "lint": "eslint"
