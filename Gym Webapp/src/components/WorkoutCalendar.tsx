@@ -1,12 +1,32 @@
 import { useMemo, useState } from 'react';
+import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
+import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import { isLegacySampleSessionId } from '../utils/historySeed';
+import {
+  MUSCLE_GROUP_CALENDAR_COLOR,
+  muscleGroupsForSession,
+  sortMuscleGroupsForDisplay,
+} from './calendarMuscleColors';
 
-type Session = { id: string; date: string };
+type Session = {
+  id: string;
+  date: string;
+  groups: MuscleGroup[];
+  entries: { exerciseId: string }[];
+};
 
 type DaySummary = {
   total: number;
   real: number;
   sample: number;
+};
+
+type DayMuscleInfo = {
+  summary: DaySummary;
+  /** Groups trained that day (real ∪ sample), catalog order. */
+  groupsUnion: MuscleGroup[];
+  groupsReal: MuscleGroup[];
+  groupsSample: MuscleGroup[];
 };
 
 function toLocalDateKey(iso: string): string {
@@ -26,19 +46,43 @@ function localTodayKey(): string {
   return `${y}-${m}-${day}`;
 }
 
-function buildDaySummaries(sessions: Session[]): Map<string, DaySummary> {
-  const map = new Map<string, DaySummary>();
+function mergeUniqueSorted(a: MuscleGroup[], b: MuscleGroup[]): MuscleGroup[] {
+  return sortMuscleGroupsForDisplay(new Set([...a, ...b]));
+}
+
+function buildDayMuscleMap(sessions: Session[], exerciseById: Map<string, Exercise>): Map<string, DayMuscleInfo> {
+  const map = new Map<string, DayMuscleInfo>();
+
   for (const s of sessions) {
     const key = toLocalDateKey(s.date);
     if (!key) continue;
+
     const isSample = isLegacySampleSessionId(s.id);
-    const prev = map.get(key) ?? { total: 0, real: 0, sample: 0 };
+    const groups = muscleGroupsForSession(s, exerciseById);
+
+    const prev = map.get(key);
+    const summary: DaySummary = prev
+      ? {
+          total: prev.summary.total + 1,
+          real: prev.summary.real + (isSample ? 0 : 1),
+          sample: prev.summary.sample + (isSample ? 1 : 0),
+        }
+      : { total: 1, real: isSample ? 0 : 1, sample: isSample ? 1 : 0 };
+
+    const groupsReal = prev?.groupsReal ?? [];
+    const groupsSample = prev?.groupsSample ?? [];
+    const nextReal = isSample ? [...groupsReal] : mergeUniqueSorted(groupsReal, groups);
+    const nextSample = isSample ? mergeUniqueSorted(groupsSample, groups) : [...groupsSample];
+    const groupsUnion = mergeUniqueSorted(nextReal, nextSample);
+
     map.set(key, {
-      total: prev.total + 1,
-      real: prev.real + (isSample ? 0 : 1),
-      sample: prev.sample + (isSample ? 1 : 0),
+      summary,
+      groupsUnion,
+      groupsReal: nextReal,
+      groupsSample: nextSample,
     });
   }
+
   return map;
 }
 
@@ -61,15 +105,18 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 type Props = {
   sessions: Session[];
+  allExercises: Exercise[];
 };
 
-export function WorkoutCalendar({ sessions }: Props) {
+export function WorkoutCalendar({ sessions, allExercises }: Props) {
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
     return { year: n.getFullYear(), month: n.getMonth() };
   });
 
-  const summaries = useMemo(() => buildDaySummaries(sessions), [sessions]);
+  const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
+
+  const dayInfo = useMemo(() => buildDayMuscleMap(sessions, exerciseById), [sessions, exerciseById]);
 
   const matrix = useMemo(
     () => monthMatrix(cursor.year, cursor.month),
@@ -139,11 +186,14 @@ export function WorkoutCalendar({ sessions }: Props) {
                 return <div key={`e-${ri}-${ci}`} className="workout-cal-cell workout-cal-cell--empty" />;
               }
               const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const info = summaries.get(key);
+              const cal = dayInfo.get(key);
+              const info = cal?.summary;
               const hasWorkout = info && info.total > 0;
               const onlySample = hasWorkout && info!.real === 0 && info!.sample > 0;
               const mixed = hasWorkout && info!.real > 0 && info!.sample > 0;
               const isToday = key === todayKey;
+
+              const groupsStripe = cal?.groupsUnion ?? [];
 
               const dayLabel = new Intl.DateTimeFormat(undefined, {
                 weekday: 'short',
@@ -151,11 +201,12 @@ export function WorkoutCalendar({ sessions }: Props) {
                 day: 'numeric',
               }).format(new Date(cursor.year, cursor.month, day));
               let title = dayLabel;
-              if (hasWorkout && info) {
+              if (hasWorkout && info && cal) {
                 const parts: string[] = [];
+                if (cal.groupsUnion.length) parts.push(cal.groupsUnion.join(', '));
                 if (info.real) parts.push(`${info.real} logged workout${info.real === 1 ? '' : 's'}`);
-                if (info.sample) parts.push(`${info.sample} sample`);
-                title = `${dayLabel} — ${parts.join(', ')}`;
+                if (info.sample) parts.push(`${info.sample} legacy sample`);
+                title = `${dayLabel} — ${parts.join(' · ')}`;
               }
 
               return (
@@ -174,7 +225,20 @@ export function WorkoutCalendar({ sessions }: Props) {
                   title={title}
                 >
                   <span className="workout-cal-daynum">{day}</span>
-                  {hasWorkout ? <span className="workout-cal-dot" aria-hidden /> : null}
+                  {hasWorkout && groupsStripe.length > 0 ? (
+                    <div className="workout-cal-muscle-strip" aria-hidden>
+                      {groupsStripe.map((g) => (
+                        <span
+                          key={g}
+                          className="workout-cal-muscle-segment"
+                          style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g] }}
+                          title={g}
+                        />
+                      ))}
+                    </div>
+                  ) : hasWorkout ? (
+                    <span className="workout-cal-dot" aria-hidden />
+                  ) : null}
                 </div>
               );
             })}
@@ -182,10 +246,26 @@ export function WorkoutCalendar({ sessions }: Props) {
         ))}
       </div>
 
+      <div className="workout-cal-legend workout-cal-legend--muscles">
+        <p className="workout-cal-legend-heading">Muscle / focus (day stripe)</p>
+        <div className="workout-cal-legend-muscle-grid">
+          {MUSCLE_GROUPS.map((g) => (
+            <span key={g} className="workout-cal-legend-item workout-cal-legend-item--muscle">
+              <i
+                className="workout-cal-legend-swatch workout-cal-legend-swatch--muscle"
+                style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g] }}
+                aria-hidden
+              />
+              {g}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <div className="workout-cal-legend">
         <span className="workout-cal-legend-item">
           <i className="workout-cal-legend-swatch workout-cal-legend-swatch--workout" aria-hidden />
-          Workout day
+          Logged workout day
         </span>
         <span className="workout-cal-legend-item">
           <i className="workout-cal-legend-swatch workout-cal-legend-swatch--sample" aria-hidden />
@@ -194,6 +274,9 @@ export function WorkoutCalendar({ sessions }: Props) {
         <span className="workout-cal-legend-item">
           <i className="workout-cal-legend-ring" aria-hidden />
           Today
+        </span>
+        <span className="workout-cal-legend-item workout-cal-legend-item--hint">
+          Multiple colors = multiple areas that day (from your moves).
         </span>
       </div>
     </div>

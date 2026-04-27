@@ -300,6 +300,24 @@ export default function App() {
     setMessage(`Added "${trimmedName}" to your exercise library.`);
   }
 
+  function clearAllUserData() {
+    const ok = window.confirm(
+      'Remove all data saved in this browser: every workout, move stats, custom exercises, and your current plan (filters + selected moves). The built-in catalog is unchanged. This cannot be undone. Continue?',
+    );
+    if (!ok) return;
+
+    localStorage.removeItem(STORAGE_V1);
+    persist(defaultData);
+    setSelectedGroups([]);
+    setSelectedEquipment([]);
+    setSelectedExerciseIds([]);
+    setExerciseDrafts({});
+    setSearchTerm('');
+    setVisibleExerciseCount(24);
+    setNewExerciseName('');
+    setMessage('All your saved data was cleared.');
+  }
+
   function saveWorkout() {
     const completedEntries = selectedExerciseIds
       .map((exerciseId) => ({ exerciseId, draft: exerciseDrafts[exerciseId] }))
@@ -760,10 +778,11 @@ export default function App() {
       <section className="panel">
         <h2>Workout calendar</h2>
         <p className="empty-text" style={{ marginBottom: '0.65rem' }}>
-          Each day you saved a session shows in your local timezone. Orange = real workouts; slate dashed = legacy sample
-          history only. Hover a date for counts.
+          Each day shows a <strong>color stripe</strong> for muscle areas you trained (from move primary + secondary groups).
+          Several colors means several areas the same day. Orange border = includes a logged workout; slate dashed = legacy
+          sample only. Hover a date for details.
         </p>
-        <WorkoutCalendar sessions={data.sessions} />
+        <WorkoutCalendar sessions={data.sessions} allExercises={allExercises} />
       </section>
 
       <section className="panel">
@@ -790,6 +809,17 @@ export default function App() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="panel panel--data-reset" aria-label="Reset saved data">
+        <h2>Clear saved session data</h2>
+        <p className="empty-text" style={{ marginBottom: '0.65rem' }}>
+          Removes workouts, per-move stats, custom exercises you added, and clears today&apos;s plan (muscle filters, equipment,
+          and selected moves). Nothing is uploaded — data lives only in this browser.
+        </p>
+        <button type="button" className="button button-danger" onClick={clearAllUserData}>
+          Clear all my data
+        </button>
       </section>
     </main>
   );
