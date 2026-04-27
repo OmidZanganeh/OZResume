@@ -9,12 +9,14 @@ import { getExerciseImageMap, type ExerciseImageMeta } from './services/exercise
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
 import { isImportedHistorySessionId, isLegacySampleSessionId } from './utils/historySeed';
 import {
-  migrateV1ToV2,
-  normalizeSavedPlansExerciseIds,
-  resolvePlanExerciseIdsToCatalog,
-  STORAGE_V1,
-  STORAGE_V2,
-} from './data/migrateStorage';
+  defaultGymData,
+  loadPersistedGymData,
+  savePersistedGymData,
+  type PersistedGymData,
+  type SavedPlan,
+  type WorkoutSession,
+} from './data/gymFlowStorage';
+import { resolvePlanExerciseIdsToCatalog, STORAGE_V1 } from './data/migrateStorage';
 import {
   type CatalogSortMode,
   collectSortedUnique,
@@ -36,92 +38,6 @@ type ExerciseLogDraft = {
   /** Subset of this move's primary + secondary groups; drives body map / calendar for that log. */
   trainedMuscleGroups?: MuscleGroup[];
 };
-
-type ExerciseStat = {
-  timesCompleted: number;
-  totalSets: number;
-  lastPerformed: string | null;
-};
-
-type WorkoutEntry = {
-  exerciseId: string;
-  sets: number;
-  reps: string;
-  weight: string;
-  notes: string;
-  trainedMuscleGroups?: MuscleGroup[];
-};
-
-type WorkoutSession = {
-  id: string;
-  date: string;
-  groups: MuscleGroup[];
-  entries: WorkoutEntry[];
-};
-
-/** User-saved template: moves + filters used to build the catalog view. */
-type SavedPlan = {
-  id: string;
-  name: string;
-  createdAt: string;
-  exerciseIds: string[];
-  muscleGroups: MuscleGroup[];
-  equipment: string[];
-};
-
-type PersistedData = {
-  customExercises: Exercise[];
-  stats: Record<string, ExerciseStat>;
-  sessions: WorkoutSession[];
-  savedPlans: SavedPlan[];
-};
-
-const defaultData: PersistedData = { customExercises: [], stats: {}, sessions: [], savedPlans: [] };
-
-function loadData(): PersistedData {
-  const v2 = localStorage.getItem(STORAGE_V2);
-  if (v2) {
-    try {
-      const parsed = JSON.parse(v2) as PersistedData;
-      const customExercises = parsed.customExercises ?? [];
-      const savedPlansRaw = parsed.savedPlans ?? [];
-      const savedPlans = normalizeSavedPlansExerciseIds(savedPlansRaw, customExercises);
-      const merged: PersistedData = {
-        customExercises,
-        stats: parsed.stats ?? {},
-        sessions: parsed.sessions ?? [],
-        savedPlans,
-      };
-      if (JSON.stringify(savedPlans) !== JSON.stringify(savedPlansRaw)) {
-        localStorage.setItem(STORAGE_V2, JSON.stringify(merged));
-      }
-      return merged;
-    } catch {
-      return defaultData;
-    }
-  }
-  const v1 = localStorage.getItem(STORAGE_V1);
-  if (v1) {
-    try {
-      const parsed = JSON.parse(v1) as PersistedData;
-      const migrated = migrateV1ToV2({
-        customExercises: parsed.customExercises ?? [],
-        stats: parsed.stats ?? {},
-        sessions: parsed.sessions ?? [],
-        savedPlans: parsed.savedPlans ?? [],
-      });
-      localStorage.setItem(STORAGE_V2, JSON.stringify(migrated));
-      return migrated;
-    } catch {
-      return defaultData;
-    }
-  }
-  return defaultData;
-}
-
-function saveData(data: PersistedData) {
-  localStorage.setItem(STORAGE_V2, JSON.stringify(data));
-}
 
 function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]) {
   if (selectedGroups.length === 0) return true;
@@ -224,8 +140,18 @@ function getDefaultDraftForExercise(exercise: Exercise | undefined): ExerciseLog
   return { ...getDefaultDraft(), trainedMuscleGroups: muscles };
 }
 
+function buildRoutineRunUrl(planId: string): string {
+  const u = new URL(window.location.href);
+  u.searchParams.set('routine', planId);
+  return u.toString();
+}
+
+function openRoutineWorkoutTab(planId: string) {
+  window.open(buildRoutineRunUrl(planId), '_blank', 'noopener,noreferrer');
+}
+
 export default function App() {
-  const [data, setData] = useState<PersistedData>(() => loadData());
+  const [data, setData] = useState<PersistedGymData>(() => loadPersistedGymData());
   const [selectedGroups, setSelectedGroups] = useState<MuscleGroup[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleExerciseCount, setVisibleExerciseCount] = useState(24);
@@ -244,6 +170,8 @@ export default function App() {
   /** Set when you load a saved routine so you know which program you’re following. */
   const [activeRoutineName, setActiveRoutineName] = useState<string | null>(null);
   const [expandedSavedPlanId, setExpandedSavedPlanId] = useState<string | null>(null);
+  /** When set, step 2 changes can be written back to this saved routine id. */
+  const [editingSavedPlanId, setEditingSavedPlanId] = useState<string | null>(null);
 
   const allExercises = useMemo(
     () => [...EXERCISE_LIBRARY, ...data.customExercises],
@@ -344,9 +272,9 @@ export default function App() {
     };
   }, [exercisesToResolveImages]);
 
-  function persist(nextData: PersistedData) {
+  function persist(nextData: PersistedGymData) {
     setData(nextData);
-    saveData(nextData);
+    savePersistedGymData(nextData);
   }
 
   function toggleGroup(group: MuscleGroup) {
@@ -439,7 +367,7 @@ export default function App() {
     if (!ok) return;
 
     localStorage.removeItem(STORAGE_V1);
-    persist(defaultData);
+    persist(defaultGymData);
     setSelectedGroups([]);
     setSelectedEquipment([]);
     setSelectedExerciseIds([]);
@@ -452,6 +380,7 @@ export default function App() {
     setMainTab('plan');
     setActiveRoutineName(null);
     setExpandedSavedPlanId(null);
+    setEditingSavedPlanId(null);
     setMessage('All your saved data was cleared.');
   }
 
@@ -507,12 +436,71 @@ export default function App() {
     setMainTab('plan');
     setPlanStep(3);
     setActiveRoutineName(plan.name);
+    setEditingSavedPlanId(null);
     setMessage(`Loaded “${plan.name}” — ${validIds.length} moves. Use the workout checklist, then log each move below.`);
+  }
+
+  function beginEditSavedPlan(plan: SavedPlan) {
+    const validIds = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
+    if (validIds.length === 0) {
+      setMessage('That routine has no moves left in your library.');
+      return;
+    }
+    setSelectedGroups([...plan.muscleGroups]);
+    setSelectedEquipment([...plan.equipment]);
+    setSelectedExerciseIds(validIds);
+    const nextDrafts: Record<string, ExerciseLogDraft> = {};
+    for (const id of validIds) {
+      const ex = exerciseById.get(id);
+      const prev = exerciseDrafts[id];
+      const merged: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...prev };
+      if (ex) {
+        const c = candidateMuscleGroupsForExercise(ex);
+        const t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        merged.trainedMuscleGroups = t.length > 0 ? t : [...c];
+      }
+      nextDrafts[id] = merged;
+    }
+    setExerciseDrafts(nextDrafts);
+    setVisibleExerciseCount(24);
+    setMainTab('plan');
+    setPlanStep(2);
+    setEditingSavedPlanId(plan.id);
+    setActiveRoutineName(null);
+    setMessage(`Editing “${plan.name}” — add or remove moves here, then Update routine.`);
+  }
+
+  function updateSavedPlanFromSession() {
+    if (!editingSavedPlanId) return;
+    const exerciseIds = [...selectedExerciseIds];
+    if (exerciseIds.length === 0) {
+      setMessage('Add at least one move before updating the saved routine.');
+      return;
+    }
+    const nextPlans = data.savedPlans.map((p) =>
+      p.id === editingSavedPlanId
+        ? {
+            ...p,
+            exerciseIds,
+            muscleGroups: [...selectedGroups],
+            equipment: [...selectedEquipment],
+          }
+        : p,
+    );
+    persist({ ...data, savedPlans: nextPlans });
+    setEditingSavedPlanId(null);
+    setMessage('Saved routine updated with your current move list and filters.');
+  }
+
+  function cancelEditSavedPlan() {
+    setEditingSavedPlanId(null);
+    setMessage('Stopped editing — routine in the list was not changed.');
   }
 
   function deleteSavedPlanTemplate(id: string) {
     persist({ ...data, savedPlans: data.savedPlans.filter((p) => p.id !== id) });
-    setMessage('Template removed.');
+    if (editingSavedPlanId === id) setEditingSavedPlanId(null);
+    setMessage('Routine removed.');
   }
 
   function saveWorkout() {
@@ -580,6 +568,7 @@ export default function App() {
     setPlanStep(2);
     setMainTab('activity');
     setActiveRoutineName(null);
+    setEditingSavedPlanId(null);
     setMessage(
       `Saved ${completedEntries.length} move${completedEntries.length === 1 ? '' : 's'}. Your plan was cleared for next time — see Activity for this session.`,
     );
@@ -664,13 +653,32 @@ export default function App() {
               ))}
             </div>
 
+            {editingSavedPlanId ? (
+              <div className="editing-routine-banner panel panel--compact" role="status">
+                <p className="editing-routine-banner-text">
+                  Editing saved routine{' '}
+                  <strong>{data.savedPlans.find((p) => p.id === editingSavedPlanId)?.name ?? ''}</strong> — change moves on
+                  step 2, then save.
+                </p>
+                <div className="editing-routine-banner-actions">
+                  <button type="button" className="button button-small" onClick={updateSavedPlanFromSession}>
+                    Update routine
+                  </button>
+                  <button type="button" className="button button-muted button-small" onClick={cancelEditSavedPlan}>
+                    Cancel edit
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <section className="panel panel--compact saved-routines-hub" aria-label="Saved workout routines">
               <div className="saved-routines-hub-header">
                 <h2 className="panel-heading panel-heading--plain">My saved routines</h2>
                 <p className="panel-subtle saved-routines-hub-lead">
-                  Save several programs and open them anytime. <strong>Use today</strong> loads the full move list for this
-                  session; <strong>Review order</strong> shows the exercise sequence without leaving the page—handy between
-                  sets.
+                  <strong>Use today</strong> opens a <strong>new tab</strong> with move images and order (for the floor).{' '}
+                  <strong>Log in planner</strong> loads this list here so you can log sets and save the workout.{' '}
+                  <strong>Edit routine</strong> sends you to Moves to add/remove moves, then <strong>Update routine</strong>.{' '}
+                  <strong>Review order</strong> expands the names on this page.
                 </p>
               </div>
               {activeRoutineName ? (
@@ -701,9 +709,23 @@ export default function App() {
                             <button
                               type="button"
                               className="button button-small"
-                              onClick={() => loadSavedPlanTemplate(plan)}
+                              onClick={() => openRoutineWorkoutTab(plan.id)}
                             >
                               Use today
+                            </button>
+                            <button
+                              type="button"
+                              className="button button-muted button-small"
+                              onClick={() => loadSavedPlanTemplate(plan)}
+                            >
+                              Log in planner
+                            </button>
+                            <button
+                              type="button"
+                              className="button button-muted button-small"
+                              onClick={() => beginEditSavedPlan(plan)}
+                            >
+                              Edit routine
                             </button>
                             <button
                               type="button"
@@ -732,34 +754,52 @@ export default function App() {
             </section>
 
             {(planStep === 2 || planStep === 3) && selectedExerciseIds.length > 0 ? (
-              <section className="panel panel--compact save-routine-inline" aria-label="Save new routine">
-                <h3 className="panel-heading panel-heading--plain">Save new routine</h3>
-                <p className="panel-subtle">
-                  Stores this exact move list and filters so you can reload it from <strong>My saved routines</strong> any
-                  day.
-                </p>
-                <form
-                  className="saved-plan-form save-routine-inline-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    saveCurrentPlanTemplate();
-                  }}
-                >
-                  <div className="saved-plan-save-row">
-                    <input
-                      className="text-input"
-                      type="text"
-                      placeholder="Name (e.g. Pull B, Leg day)"
-                      value={savePlanNameInput}
-                      onChange={(e) => setSavePlanNameInput(e.target.value)}
-                      aria-label="Name for new routine"
-                      autoComplete="off"
-                    />
-                    <button type="submit" className="button">
-                      Save routine
-                    </button>
-                  </div>
-                </form>
+              <section className="panel panel--compact save-routine-inline" aria-label="Save or update routine">
+                {editingSavedPlanId ? (
+                  <>
+                    <h3 className="panel-heading panel-heading--plain">Update this saved routine</h3>
+                    <p className="panel-subtle">
+                      Your move list and Focus / equipment filters will replace what’s stored for{' '}
+                      <strong>{data.savedPlans.find((p) => p.id === editingSavedPlanId)?.name}</strong>. Or cancel from the
+                      banner above.
+                    </p>
+                    <div className="save-routine-inline-actions">
+                      <button type="button" className="button" onClick={updateSavedPlanFromSession}>
+                        Update routine
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="panel-heading panel-heading--plain">Save new routine</h3>
+                    <p className="panel-subtle">
+                      Stores this exact move list and filters so you can reload it from <strong>My saved routines</strong> any
+                      day.
+                    </p>
+                    <form
+                      className="saved-plan-form save-routine-inline-form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        saveCurrentPlanTemplate();
+                      }}
+                    >
+                      <div className="saved-plan-save-row">
+                        <input
+                          className="text-input"
+                          type="text"
+                          placeholder="Name (e.g. Pull B, Leg day)"
+                          value={savePlanNameInput}
+                          onChange={(e) => setSavePlanNameInput(e.target.value)}
+                          aria-label="Name for new routine"
+                          autoComplete="off"
+                        />
+                        <button type="submit" className="button">
+                          Save routine
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                )}
               </section>
             ) : null}
 
@@ -1327,14 +1367,24 @@ export default function App() {
                   </span>
                 </div>
                 <div className="saved-plan-row-actions">
+                  <button
+                    type="button"
+                    className="button button-small"
+                    onClick={() => openRoutineWorkoutTab(plan.id)}
+                  >
+                    Use today
+                  </button>
                   <button type="button" className="button button-muted button-small" onClick={() => loadSavedPlanTemplate(plan)}>
-                    Load
+                    Log in planner
+                  </button>
+                  <button type="button" className="button button-muted button-small" onClick={() => beginEditSavedPlan(plan)}>
+                    Edit
                   </button>
                   <button
                     type="button"
                     className="button button-muted button-small"
                     onClick={() => {
-                      if (window.confirm(`Delete template “${plan.name}”?`)) deleteSavedPlanTemplate(plan.id);
+                      if (window.confirm(`Delete routine “${plan.name}”?`)) deleteSavedPlanTemplate(plan.id);
                     }}
                   >
                     Delete

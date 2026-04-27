@@ -230,6 +230,145 @@ body {
   font-size: 0.75rem;
 }
 
+.editing-routine-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.06);
+}
+
+.editing-routine-banner-text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #fde68a;
+  max-width: 40rem;
+}
+
+.editing-routine-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.save-routine-inline-actions {
+  margin-top: 0.5rem;
+}
+
+.routine-run {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2rem;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.routine-run--error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-top: 2rem;
+}
+
+.routine-run-lead {
+  margin: 0;
+  color: var(--gf-text-muted);
+  font-size: 0.95rem;
+}
+
+.routine-run-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gf-border);
+}
+
+.routine-run-title {
+  margin: 0;
+  font-family: var(--gf-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--gf-text);
+}
+
+.routine-run-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.84rem;
+  color: var(--gf-text-muted);
+  max-width: 36rem;
+}
+
+.routine-run-planner-link {
+  flex-shrink: 0;
+}
+
+.routine-run-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.routine-run-card {
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-lg);
+  background: var(--gf-surface-2);
+  padding: 0.85rem 1rem;
+}
+
+.routine-run-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.routine-run-move-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.routine-run-media {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: #0b1220;
+}
+
+.routine-run-image {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  object-position: center;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.routine-run-image-fallback {
+  display: grid;
+  place-items: center;
+  min-height: 140px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.routine-run-meta {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--gf-warm);
+}
+
 .saved-routines-hub {
   margin-bottom: 1rem;
 }
