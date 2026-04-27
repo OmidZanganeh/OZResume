@@ -19,7 +19,14 @@ type WorkoutSession = {
   id: string;
   date: string;
   groups: MuscleGroup[];
-  entries: { exerciseId: string; sets: number; reps: string; weight: string; notes: string }[];
+  entries: {
+    exerciseId: string;
+    sets: number;
+    reps: string;
+    weight: string;
+    notes: string;
+    trainedMuscleGroups?: MuscleGroup[];
+  }[];
 };
 
 type Props = {

@@ -24,11 +24,12 @@ export function sortMuscleGroupsForDisplay(groups: Iterable<MuscleGroup>): Muscl
 
 type SessionLike = {
   groups: MuscleGroup[];
-  entries: { exerciseId: string }[];
+  entries: { exerciseId: string; trainedMuscleGroups?: MuscleGroup[] }[];
 };
 
 /**
- * Muscle groups trained in a session: union of saved `groups` and each entry's primary + secondary.
+ * Muscle groups trained in a session: union of saved `groups` and each entry's picked muscles
+ * (or primary + secondary when not stored).
  */
 export function muscleGroupsForSession(session: SessionLike, exerciseById: Map<string, Exercise>): MuscleGroup[] {
   const out = new Set<MuscleGroup>();
@@ -36,8 +37,12 @@ export function muscleGroupsForSession(session: SessionLike, exerciseById: Map<s
   for (const e of session.entries ?? []) {
     const ex = exerciseById.get(e.exerciseId);
     if (!ex) continue;
-    out.add(ex.primaryGroup);
-    for (const s of ex.secondaryGroups ?? []) out.add(s);
+    if (e.trainedMuscleGroups && e.trainedMuscleGroups.length > 0) {
+      for (const g of e.trainedMuscleGroups) out.add(g);
+    } else {
+      out.add(ex.primaryGroup);
+      for (const s of ex.secondaryGroups ?? []) out.add(s);
+    }
   }
   return sortMuscleGroupsForDisplay(out);
 }

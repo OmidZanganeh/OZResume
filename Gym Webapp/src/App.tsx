@@ -33,6 +33,8 @@ type ExerciseLogDraft = {
   reps: string;
   weight: string;
   notes: string;
+  /** Subset of this move's primary + secondary groups; drives body map / calendar for that log. */
+  trainedMuscleGroups?: MuscleGroup[];
 };
 
 type ExerciseStat = {
@@ -47,6 +49,7 @@ type WorkoutEntry = {
   reps: string;
   weight: string;
   notes: string;
+  trainedMuscleGroups?: MuscleGroup[];
 };
 
 type WorkoutSession = {
@@ -126,6 +129,29 @@ function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]
   return exercise.secondaryGroups?.some((group) => selectedGroups.includes(group)) ?? false;
 }
 
+function candidateMuscleGroupsForExercise(ex: Exercise): MuscleGroup[] {
+  return [ex.primaryGroup, ...(ex.secondaryGroups ?? [])];
+}
+
+function effectiveTrainedMuscles(draft: ExerciseLogDraft | undefined, ex: Exercise): MuscleGroup[] {
+  const c = candidateMuscleGroupsForExercise(ex);
+  const t = draft?.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+  return t.length > 0 ? t : [...c];
+}
+
+function nextTrainedMusclesAfterToggle(
+  draft: ExerciseLogDraft | undefined,
+  ex: Exercise,
+  group: MuscleGroup,
+): MuscleGroup[] {
+  const candidates = candidateMuscleGroupsForExercise(ex);
+  let cur = draft?.trainedMuscleGroups?.filter((g) => candidates.includes(g));
+  if (!cur || cur.length === 0) cur = [...candidates];
+  const on = cur.includes(group);
+  const next = on ? cur.filter((g) => g !== group) : [...cur, group];
+  return next.length === 0 ? cur : next;
+}
+
 function createExerciseId(name: string) {
   return `custom-${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
 }
@@ -145,11 +171,50 @@ function getDefaultDraft(): ExerciseLogDraft {
   };
 }
 
+function MuscleTargetPick({
+  exercise,
+  draft,
+  onPatch,
+}: {
+  exercise: Exercise;
+  draft: ExerciseLogDraft | undefined;
+  onPatch: (patch: Partial<ExerciseLogDraft>) => void;
+}) {
+  const candidates = candidateMuscleGroupsForExercise(exercise);
+  if (candidates.length <= 1) return null;
+  return (
+    <div className="muscle-target-pick" role="group" aria-label="Muscles this move counts toward on the map">
+      <span className="muscle-target-pick-label">Count for body map (your session)</span>
+      <div className="muscle-target-pick-chips">
+        {candidates.map((g) => {
+          const active = effectiveTrainedMuscles(draft, exercise).includes(g);
+          return (
+            <label key={g} className={`muscle-target-chip ${active ? 'muscle-target-chip--on' : ''}`}>
+              <input
+                type="checkbox"
+                checked={active}
+                onChange={() =>
+                  onPatch({
+                    trainedMuscleGroups: nextTrainedMusclesAfterToggle(draft, exercise, g),
+                  })
+                }
+              />
+              <span>{g}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function getDefaultDraftForExercise(exercise: Exercise | undefined): ExerciseLogDraft {
-  if (exercise && getEffectiveCategory(exercise) === 'cardio') {
-    return { completed: true, sets: 1, reps: '20', weight: '', notes: '' };
+  if (!exercise) return getDefaultDraft();
+  const muscles = [...candidateMuscleGroupsForExercise(exercise)];
+  if (getEffectiveCategory(exercise) === 'cardio') {
+    return { completed: true, sets: 1, reps: '20', weight: '', notes: '', trainedMuscleGroups: muscles };
   }
-  return getDefaultDraft();
+  return { ...getDefaultDraft(), trainedMuscleGroups: muscles };
 }
 
 export default function App() {
@@ -312,14 +377,21 @@ export default function App() {
   }
 
   function updateDraft(exerciseId: string, patch: Partial<ExerciseLogDraft>) {
-    setExerciseDrafts((current) => ({
-      ...current,
-      [exerciseId]: {
+    setExerciseDrafts((current) => {
+      const ex = exerciseById.get(exerciseId);
+      const merged: ExerciseLogDraft = {
         ...getDefaultDraft(),
+        ...getDefaultDraftForExercise(ex),
         ...current[exerciseId],
         ...patch,
-      },
-    }));
+      };
+      if (ex) {
+        const c = candidateMuscleGroupsForExercise(ex);
+        const t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        merged.trainedMuscleGroups = t.length > 0 ? t : [...c];
+      }
+      return { ...current, [exerciseId]: merged };
+    });
   }
 
   function handleAddCustomExercise(event: FormEvent<HTMLFormElement>) {
@@ -404,7 +476,15 @@ export default function App() {
     setSelectedExerciseIds(validIds);
     const nextDrafts: Record<string, ExerciseLogDraft> = {};
     for (const id of validIds) {
-      nextDrafts[id] = exerciseDrafts[id] ?? getDefaultDraftForExercise(exerciseById.get(id));
+      const ex = exerciseById.get(id);
+      const prev = exerciseDrafts[id];
+      const merged: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...prev };
+      if (ex) {
+        const c = candidateMuscleGroupsForExercise(ex);
+        const t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        merged.trainedMuscleGroups = t.length > 0 ? t : [...c];
+      }
+      nextDrafts[id] = merged;
     }
     setExerciseDrafts(nextDrafts);
     setVisibleExerciseCount(24);
@@ -431,6 +511,7 @@ export default function App() {
           reps: draft?.reps.trim() ?? '',
           weight: draft?.weight.trim() ?? '',
           notes: draft?.notes.trim() ?? '',
+          trainedMuscleGroups: ex ? effectiveTrainedMuscles(draft, ex) : undefined,
         };
       });
 
@@ -443,9 +524,11 @@ export default function App() {
     const autoGroups = new Set<MuscleGroup>(selectedGroups);
     completedEntries.forEach((entry) => {
       const exercise = exerciseById.get(entry.exerciseId);
-      if (exercise) {
-        autoGroups.add(exercise.primaryGroup);
-      }
+      if (!exercise) return;
+      const hit = entry.trainedMuscleGroups?.length
+        ? entry.trainedMuscleGroups
+        : candidateMuscleGroupsForExercise(exercise);
+      for (const g of hit) autoGroups.add(g);
     });
 
     const nextStats = { ...data.stats };
@@ -583,7 +666,8 @@ export default function App() {
         <p className="prose-lead">
           The map uses the last <strong>{PRACTICE_WINDOW_DAYS} days</strong> of saved workouts: <strong>red</strong> = not
           trained yet, <strong>orange</strong> = one logged session touching that area, <strong>green</strong> = two or more.
-          Each completed plan entry counts (primary + secondary groups). Tap a region to filter the catalog; tap again to
+          Each completed move counts toward the areas you check on that move’s card (defaults to all listed muscles). Tap a
+          region to filter the catalog; tap again to
           deselect. With nothing selected, all groups show. Cardio and Mobility are the <strong>squares</strong> beside the
           figure. Narrow by equipment on the <strong>Moves</strong> step. Past workouts: use <strong>Activity → Training history</strong>.
         </p>
@@ -763,6 +847,13 @@ export default function App() {
                     {labelForFilterValue(getEffectiveCategory(exercise))} · {labelForFilterValue(getEffectiveEquipment(exercise))}
                   </p>
                   <p className="meta">Completed: {trainedCount} times</p>
+                  {selected ? (
+                    <MuscleTargetPick
+                      exercise={exercise}
+                      draft={exerciseDrafts[exercise.id]}
+                      onPatch={(patch) => updateDraft(exercise.id, patch)}
+                    />
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -838,6 +929,12 @@ export default function App() {
                       Completed
                     </label>
                   </div>
+
+                  <MuscleTargetPick
+                    exercise={exercise}
+                    draft={draft}
+                    onPatch={(patch) => updateDraft(exercise.id, patch)}
+                  />
 
                   <div className="plan-grid">
                     {isCardio ? (
@@ -960,7 +1057,8 @@ export default function App() {
       <section className="panel">
         <h2 className="panel-heading panel-heading--plain">Workout calendar</h2>
         <p className="prose-lead">
-          Each day shows a <strong>color stripe</strong> for muscle areas you trained (from move primary + secondary groups).
+          Each day shows a <strong>color stripe</strong> for muscle areas you trained (per move: the muscles you checked when
+          logging, or all muscles for older entries).
           Several colors means several areas the same day. Orange border = includes a logged workout; slate dashed = legacy
           sample only. Hover a date for details.
         </p>

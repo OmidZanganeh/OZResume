@@ -1,11 +1,11 @@
 import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
 
-type WorkoutEntry = { exerciseId: string };
+type WorkoutEntry = { exerciseId: string; trainedMuscleGroups?: MuscleGroup[] };
 type WorkoutSession = { date: string; entries: WorkoutEntry[] };
 
 /**
  * Counts how many saved workout *entries* in the last `withinDays` days hit each muscle
- * (primary and secondary on the exercise). One session can add multiple counts per group.
+ * (uses `trainedMuscleGroups` on the entry when present, else primary + secondary on the exercise).
  */
 export function getPracticeCountsInWindow(
   sessions: WorkoutSession[],
@@ -19,7 +19,11 @@ export function getPracticeCountsInWindow(
     for (const entry of session.entries) {
       const ex = exerciseById.get(entry.exerciseId);
       if (!ex) continue;
-      for (const g of [ex.primaryGroup, ...(ex.secondaryGroups ?? [])]) {
+      const groups =
+        entry.trainedMuscleGroups && entry.trainedMuscleGroups.length > 0
+          ? entry.trainedMuscleGroups
+          : [ex.primaryGroup, ...(ex.secondaryGroups ?? [])];
+      for (const g of groups) {
         counts.set(g, (counts.get(g) ?? 0) + 1);
       }
     }

@@ -140,7 +140,7 @@ export function BodyMapFigure({
         />
       </div>
       <p className="body-map-legend body-map-legend--heat">
-        <span>Last {practiceWindowDays} days (each completed move counts; primary + secondary groups)</span>
+        <span>Last {practiceWindowDays} days (each completed move counts; muscles you picked on each move)</span>
         <span className="body-map-legend-scales">
           <i className="body-map-legend-swatch" style={{ background: INTENSITY_COLORS[0] }} aria-hidden />
           0×

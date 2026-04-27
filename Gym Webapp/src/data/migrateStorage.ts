@@ -8,7 +8,14 @@ type ExerciseStat = {
   lastPerformed: string | null;
 };
 
-type WorkoutEntry = { exerciseId: string; sets: number; reps: string; weight: string; notes: string };
+type WorkoutEntry = {
+  exerciseId: string;
+  sets: number;
+  reps: string;
+  weight: string;
+  notes: string;
+  trainedMuscleGroups?: MuscleGroup[];
+};
 type WorkoutSession = { id: string; date: string; groups: MuscleGroup[]; entries: WorkoutEntry[] };
 
 type SavedPlan = {

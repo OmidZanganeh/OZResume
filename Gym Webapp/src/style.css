@@ -740,6 +740,53 @@ body {
   margin-top: 0.2rem;
 }
 
+.muscle-target-pick {
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(71, 85, 105, 0.35);
+}
+
+.muscle-target-pick-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-bottom: 0.4rem;
+}
+
+.muscle-target-pick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.muscle-target-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid var(--gf-border);
+  background: rgba(15, 23, 42, 0.5);
+  color: #cbd5e1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.muscle-target-chip--on {
+  border-color: var(--gf-accent);
+  background: rgba(56, 189, 248, 0.12);
+  color: #e0f2fe;
+}
+
+.muscle-target-chip input {
+  margin: 0;
+  accent-color: var(--gf-accent);
+}
+
 .search-input,
 .text-input,
 .select-input,
