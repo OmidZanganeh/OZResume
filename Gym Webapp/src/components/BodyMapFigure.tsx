@@ -7,6 +7,8 @@ import {
   MOTIVATION_GREEN_INTENSITY_SLOT,
 } from '../bodyMap/bodyMusclesMapping';
 
+/** Slot 0 = no hits in window — red “gap” cue (was default gray in the library). */
+(INTENSITY_COLORS as Record<number, string>)[0] = '#b91c1c';
 /** Library slot {@link MOTIVATION_GREEN_INTENSITY_SLOT} is yellow by default; we use it for “2+” motivation green. */
 (INTENSITY_COLORS as Record<number, string>)[MOTIVATION_GREEN_INTENSITY_SLOT] = '#22c55e';
 
@@ -89,13 +91,13 @@ export function BodyMapFigure({
       ...common,
       view: ViewSide.FRONT,
       ariaLabel:
-        'Anterior body — gray = not trained, orange = once, green = twice or more in the window; tap to filter',
+        'Anterior body — red = not trained, orange = once, green = twice or more in the window; tap to filter',
     });
     backChartRef.current = new BodyChart(backEl, {
       ...common,
       view: ViewSide.BACK,
       ariaLabel:
-        'Posterior body — gray = not trained, orange = once, green = twice or more in the window; tap to filter',
+        'Posterior body — red = not trained, orange = once, green = twice or more in the window; tap to filter',
     });
 
     return () => {
@@ -116,7 +118,7 @@ export function BodyMapFigure({
     <div className="body-map" role="img" aria-label="10-day training streak colors and plan filter">
       <p className="body-map-tap-hint">
         <strong>Green</strong> = trained that area <strong>2+</strong> times in the last {practiceWindowDays} days.{' '}
-        <strong>Orange</strong> = once (almost there). <strong>Gray</strong> = not yet. Tap a region to filter the catalog
+        <strong>Orange</strong> = once (almost there). <strong>Red</strong> = not yet. Tap a region to filter the catalog
         (chips below).
       </p>
       <div className="body-map-figures body-map-figures--anatomy body-map-figures--with-orphans">
@@ -160,8 +162,8 @@ export function BodyMapFigure({
         (Apache-2.0)
       </p>
       <p className="body-map-hint">
-        Cardio &amp; Mobility: tap the squares to filter. <strong>Add past workout</strong> uses only muscles you pick, so
-        extras don&apos;t light up on the map.
+        Cardio &amp; Mobility: tap the squares to filter. Equipment filters live on the <strong>Moves</strong> step.{' '}
+        <strong>Add past workout</strong> uses only muscles you pick, so extras don&apos;t light up on the map.
       </p>
     </div>
   );

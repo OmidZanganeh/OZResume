@@ -138,7 +138,7 @@ export function buildBodyMusclesStateFromPractice(
 export const MOTIVATION_GREEN_INTENSITY_SLOT = 2;
 
 /**
- * Last N days: 0 sessions → gray (0), 1 → orange (5), 2+ → green (patched slot {@link MOTIVATION_GREEN_INTENSITY_SLOT}).
+ * Last N days: 0 sessions → red gap cue (0), 1 → orange (5), 2+ → green (patched slot {@link MOTIVATION_GREEN_INTENSITY_SLOT}).
  */
 export function buildBodyMusclesStateForTenDayGaps(
   practiceCounts: Map<MuscleGroup, number>,

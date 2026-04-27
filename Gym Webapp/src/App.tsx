@@ -464,7 +464,11 @@ export default function App() {
 
     setSelectedExerciseIds([]);
     setExerciseDrafts({});
-    setMessage(`Saved workout with ${completedEntries.length} completed moves.`);
+    setPlanStep(2);
+    setMainTab('activity');
+    setMessage(
+      `Saved ${completedEntries.length} move${completedEntries.length === 1 ? '' : 's'}. Your plan was cleared for next time — see Activity for this session.`,
+    );
   }
 
   return (
@@ -550,7 +554,7 @@ export default function App() {
               <>
       <section className="panel panel--accent-top body-map-section" aria-label="Body map and plan filter">
         <div className="panel-title-row">
-          <h2 className="panel-heading panel-heading--plain">Focus — muscles &amp; equipment</h2>
+          <h2 className="panel-heading panel-heading--plain">Focus — muscles</h2>
           <button
             type="button"
             className="text-button"
@@ -564,11 +568,11 @@ export default function App() {
           </button>
         </div>
         <p className="prose-lead">
-          The map uses the last <strong>{PRACTICE_WINDOW_DAYS} days</strong> of saved workouts: <strong>gray</strong> = not
+          The map uses the last <strong>{PRACTICE_WINDOW_DAYS} days</strong> of saved workouts: <strong>red</strong> = not
           trained yet, <strong>orange</strong> = one logged session touching that area, <strong>green</strong> = two or more.
           Each completed plan entry counts (primary + secondary groups). Tap a region to filter the catalog; tap again to
           deselect. With nothing selected, all groups show. Cardio and Mobility are the <strong>squares</strong> beside the
-          figure. After you pick muscles, narrow by equipment below. Past workouts: use <strong>Activity → Training history</strong>.
+          figure. Narrow by equipment on the <strong>Moves</strong> step. Past workouts: use <strong>Activity → Training history</strong>.
         </p>
         <BodyMapFigure
           practiceCounts={practiceCounts}
@@ -597,53 +601,6 @@ export default function App() {
             </div>
           )}
         </div>
-        {selectedGroups.length > 0 && (
-          <div
-            className="equipment-pick"
-            role="group"
-            aria-label="Narrow by equipment, multiple choice"
-          >
-            <div className="equipment-pick-header">
-              <p className="equipment-pick-title">Then narrow by equipment</p>
-              {selectedEquipment.length > 0 && (
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => {
-                    setSelectedEquipment([]);
-                    setVisibleExerciseCount(24);
-                  }}
-                >
-                  Clear equipment
-                </button>
-              )}
-            </div>
-            <p className="equipment-pick-hint">
-              Pick any that apply: the list shows moves that use <strong>any</strong> of the selected types. Leave all off to
-              include every equipment.
-            </p>
-            <div className="chip-grid equipment-chip-grid">
-              {equipmentFilterOptions.map((eq) => {
-                const active = selectedEquipment.includes(eq);
-                const slug = equipmentToSlug(eq);
-                return (
-                  <button
-                    key={eq}
-                    type="button"
-                    className={`chip equipment-visual equipment-visual--${slug} ${
-                      active ? 'chip-active' : ''
-                    }`}
-                    aria-pressed={active}
-                    onClick={() => toggleEquipment(eq)}
-                    title={labelForFilterValue(eq)}
-                  >
-                    <span className="equipment-visual-label">{labelForFilterValue(eq)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </section>
                 <div className="plan-wizard-footer">
                   <span />
@@ -672,6 +629,49 @@ export default function App() {
             }}
             aria-label="Search exercise catalog"
           />
+        </div>
+        <div
+          className="equipment-pick"
+          role="group"
+          aria-label="Narrow by equipment, multiple choice"
+        >
+          <div className="equipment-pick-header">
+            <p className="equipment-pick-title">Narrow by equipment</p>
+            {selectedEquipment.length > 0 && (
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setSelectedEquipment([]);
+                  setVisibleExerciseCount(24);
+                }}
+              >
+                Clear equipment
+              </button>
+            )}
+          </div>
+          <p className="equipment-pick-hint">
+            Pick any that apply: the list shows moves that use <strong>any</strong> of the selected types. Leave all off to
+            include every equipment.
+          </p>
+          <div className="chip-grid equipment-chip-grid">
+            {equipmentFilterOptions.map((eq) => {
+              const active = selectedEquipment.includes(eq);
+              const slug = equipmentToSlug(eq);
+              return (
+                <button
+                  key={eq}
+                  type="button"
+                  className={`chip equipment-visual equipment-visual--${slug} ${active ? 'chip-active' : ''}`}
+                  aria-pressed={active}
+                  onClick={() => toggleEquipment(eq)}
+                  title={labelForFilterValue(eq)}
+                >
+                  <span className="equipment-visual-label">{labelForFilterValue(eq)}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="catalog-filters" role="group" aria-label="Sort and move type">
           <label className="filter-field">
@@ -712,14 +712,6 @@ export default function App() {
             </select>
           </label>
         </div>
-        {selectedGroups.length > 0 && (
-          <p className="catalog-equipment-remember" role="status">
-            Equipment:{' '}
-            {selectedEquipment.length === 0
-              ? 'all types (Focus step), or add chips there to narrow'
-              : `${selectedEquipment.map((e) => labelForFilterValue(e)).join(' · ')} — change on Focus step`}
-          </p>
-        )}
         <div className="exercise-grid">
           {visibleExercises.map((exercise) => {
             const selected = selectedExerciseIds.includes(exercise.id);
@@ -799,7 +791,15 @@ export default function App() {
           Today&apos;s plan <span className="panel-heading-meta">({planExercises.length} moves)</span>
         </h2>
         {planExercises.length === 0 ? (
-          <p className="empty-text">No moves in today&apos;s plan yet. Add some from the catalog.</p>
+          <div className="plan-empty">
+            <p className="empty-text">
+              No moves in this plan yet. After you <strong>save a workout</strong>, the list clears so you can build the next
+              one.
+            </p>
+            <button type="button" className="button button-muted" onClick={() => setPlanStep(2)}>
+              Go to Moves to add exercises
+            </button>
+          </div>
         ) : (
           <div className="plan-list">
             {planExercises.map((exercise) => {
