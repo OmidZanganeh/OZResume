@@ -4,6 +4,7 @@ import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from
 import { BodyMapFigure } from './components/BodyMapFigure';
 import { HistoryBackfillPanel } from './components/HistoryBackfillPanel';
 import { WorkoutCalendar } from './components/WorkoutCalendar';
+import { MuscleTargetPick } from './components/MuscleTargetPick';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
@@ -14,7 +15,6 @@ import {
   savePersistedGymData,
   type PersistedGymData,
   type SavedPlan,
-  type WorkoutSession,
 } from './data/gymFlowStorage';
 import { resolvePlanExerciseIdsToCatalog, STORAGE_V1 } from './data/migrateStorage';
 import {
@@ -26,46 +26,20 @@ import {
   labelForFilterValue,
   equipmentToSlug,
 } from './utils/catalogSort';
+import { commitWorkoutSession } from './utils/commitWorkoutSession';
+import {
+  candidateMuscleGroupsForExercise,
+  getDefaultDraft,
+  getDefaultDraftForExercise,
+  type ExerciseLogDraft,
+} from './utils/workoutLogDraft';
 
 const PRACTICE_WINDOW_DAYS = 10;
-
-type ExerciseLogDraft = {
-  completed: boolean;
-  sets: number;
-  reps: string;
-  weight: string;
-  notes: string;
-  /** Subset of this move's primary + secondary groups; drives body map / calendar for that log. */
-  trainedMuscleGroups?: MuscleGroup[];
-};
 
 function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]) {
   if (selectedGroups.length === 0) return true;
   if (selectedGroups.includes(exercise.primaryGroup)) return true;
   return exercise.secondaryGroups?.some((group) => selectedGroups.includes(group)) ?? false;
-}
-
-function candidateMuscleGroupsForExercise(ex: Exercise): MuscleGroup[] {
-  return [ex.primaryGroup, ...(ex.secondaryGroups ?? [])];
-}
-
-function effectiveTrainedMuscles(draft: ExerciseLogDraft | undefined, ex: Exercise): MuscleGroup[] {
-  const c = candidateMuscleGroupsForExercise(ex);
-  const t = draft?.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
-  return t.length > 0 ? t : [...c];
-}
-
-function nextTrainedMusclesAfterToggle(
-  draft: ExerciseLogDraft | undefined,
-  ex: Exercise,
-  group: MuscleGroup,
-): MuscleGroup[] {
-  const candidates = candidateMuscleGroupsForExercise(ex);
-  let cur = draft?.trainedMuscleGroups?.filter((g) => candidates.includes(g));
-  if (!cur || cur.length === 0) cur = [...candidates];
-  const on = cur.includes(group);
-  const next = on ? cur.filter((g) => g !== group) : [...cur, group];
-  return next.length === 0 ? cur : next;
 }
 
 /** Exercise names in template order (valid catalog ids only). */
@@ -82,62 +56,6 @@ function createExerciseId(name: string) {
 function formatDate(dateValue: string | null) {
   if (!dateValue) return 'Never';
   return new Date(dateValue).toLocaleDateString();
-}
-
-function getDefaultDraft(): ExerciseLogDraft {
-  return {
-    completed: true,
-    sets: 3,
-    reps: '8-12',
-    weight: '',
-    notes: '',
-  };
-}
-
-function MuscleTargetPick({
-  exercise,
-  draft,
-  onPatch,
-}: {
-  exercise: Exercise;
-  draft: ExerciseLogDraft | undefined;
-  onPatch: (patch: Partial<ExerciseLogDraft>) => void;
-}) {
-  const candidates = candidateMuscleGroupsForExercise(exercise);
-  if (candidates.length <= 1) return null;
-  return (
-    <div className="muscle-target-pick" role="group" aria-label="Muscles this move counts toward on the map">
-      <span className="muscle-target-pick-label">Count for body map (your session)</span>
-      <div className="muscle-target-pick-chips">
-        {candidates.map((g) => {
-          const active = effectiveTrainedMuscles(draft, exercise).includes(g);
-          return (
-            <label key={g} className={`muscle-target-chip ${active ? 'muscle-target-chip--on' : ''}`}>
-              <input
-                type="checkbox"
-                checked={active}
-                onChange={() =>
-                  onPatch({
-                    trainedMuscleGroups: nextTrainedMusclesAfterToggle(draft, exercise, g),
-                  })
-                }
-              />
-              <span>{g}</span>
-            </label>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function getDefaultDraftForExercise(exercise: Exercise | undefined): ExerciseLogDraft {
-  if (!exercise) return getDefaultDraft();
-  const muscles = [...candidateMuscleGroupsForExercise(exercise)];
-  if (getEffectiveCategory(exercise) === 'cardio') {
-    return { completed: true, sets: 1, reps: '20', weight: '', notes: '', trainedMuscleGroups: muscles };
-  }
-  return { ...getDefaultDraft(), trainedMuscleGroups: muscles };
 }
 
 function buildRoutineRunUrl(planId: string): string {
@@ -437,7 +355,9 @@ export default function App() {
     setPlanStep(3);
     setActiveRoutineName(plan.name);
     setEditingSavedPlanId(null);
-    setMessage(`Loaded “${plan.name}” — ${validIds.length} moves. Use the workout checklist, then log each move below.`);
+    setMessage(
+      `Loaded “${plan.name}” — ${validIds.length} moves. Open Use today for the image tab, or log each move below.`,
+    );
   }
 
   function beginEditSavedPlan(plan: SavedPlan) {
@@ -504,65 +424,18 @@ export default function App() {
   }
 
   function saveWorkout() {
-    const completedEntries = selectedExerciseIds
-      .map((exerciseId) => ({ exerciseId, draft: exerciseDrafts[exerciseId] }))
-      .filter((item) => item.draft?.completed)
-      .map(({ exerciseId, draft }) => {
-        const ex = exerciseById.get(exerciseId);
-        const cardio = ex && getEffectiveCategory(ex) === 'cardio';
-        return {
-          exerciseId,
-          sets: cardio ? 1 : Math.max(1, Number(draft?.sets ?? 1)),
-          reps: draft?.reps.trim() ?? '',
-          weight: draft?.weight.trim() ?? '',
-          notes: draft?.notes.trim() ?? '',
-          trainedMuscleGroups: ex ? effectiveTrainedMuscles(draft, ex) : undefined,
-        };
-      });
-
-    if (completedEntries.length === 0) {
-      setMessage('Pick and complete at least one planned move before saving.');
+    const result = commitWorkoutSession({
+      data,
+      exerciseOrderIds: selectedExerciseIds,
+      exerciseDrafts,
+      exerciseById,
+      sessionGroupSeed: selectedGroups,
+    });
+    if (!result.ok) {
+      setMessage(result.error);
       return;
     }
-
-    const nowIso = new Date().toISOString();
-    const autoGroups = new Set<MuscleGroup>(selectedGroups);
-    completedEntries.forEach((entry) => {
-      const exercise = exerciseById.get(entry.exerciseId);
-      if (!exercise) return;
-      const hit = entry.trainedMuscleGroups?.length
-        ? entry.trainedMuscleGroups
-        : candidateMuscleGroupsForExercise(exercise);
-      for (const g of hit) autoGroups.add(g);
-    });
-
-    const nextStats = { ...data.stats };
-    completedEntries.forEach((entry) => {
-      const previous = nextStats[entry.exerciseId] ?? {
-        timesCompleted: 0,
-        totalSets: 0,
-        lastPerformed: null,
-      };
-      nextStats[entry.exerciseId] = {
-        timesCompleted: previous.timesCompleted + 1,
-        totalSets: previous.totalSets + entry.sets,
-        lastPerformed: nowIso,
-      };
-    });
-
-    const nextSession: WorkoutSession = {
-      id: `session-${Date.now()}`,
-      date: nowIso,
-      groups: Array.from(autoGroups),
-      entries: completedEntries,
-    };
-
-    persist({
-      ...data,
-      stats: nextStats,
-      sessions: [nextSession, ...data.sessions],
-    });
-
+    persist(result.nextData);
     setSelectedExerciseIds([]);
     setExerciseDrafts({});
     setPlanStep(2);
@@ -570,7 +443,7 @@ export default function App() {
     setActiveRoutineName(null);
     setEditingSavedPlanId(null);
     setMessage(
-      `Saved ${completedEntries.length} move${completedEntries.length === 1 ? '' : 's'}. Your plan was cleared for next time — see Activity for this session.`,
+      `Saved ${result.completedCount} move${result.completedCount === 1 ? '' : 's'}. Your plan was cleared for next time — see Activity for this session.`,
     );
   }
 
@@ -1047,25 +920,6 @@ export default function App() {
 
             {planStep === 3 && (
               <>
-      {planExercises.length > 0 ? (
-        <section className="workout-checklist panel panel--compact" aria-label="Workout order checklist">
-          <h3 className="panel-heading panel-heading--plain">During your workout</h3>
-          <p className="panel-subtle workout-checklist-hint">
-            Work through this list in order. Tap a move to jump to its log card. Uncheck <strong>Completed</strong> on any move
-            you skip before you <strong>Save workout</strong>.
-          </p>
-          <ol className="workout-checklist-links">
-            {planExercises.map((ex, index) => (
-              <li key={ex.id}>
-                <a href={`#plan-move-${ex.id}`} className="workout-checklist-jump">
-                  <span className="workout-checklist-num">{index + 1}</span>
-                  {ex.name}
-                </a>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
       <section className="panel panel--accent-top">
         <h2 className="panel-heading panel-heading--plain">
           Today&apos;s plan <span className="panel-heading-meta">({planExercises.length} moves)</span>
@@ -1086,7 +940,7 @@ export default function App() {
               const draft = exerciseDrafts[exercise.id];
               const isCardio = getEffectiveCategory(exercise) === 'cardio';
               return (
-                <article key={exercise.id} id={`plan-move-${exercise.id}`} className="plan-card">
+                <article key={exercise.id} className="plan-card">
                   <div className="plan-heading">
                     <h3>
                       <ExerciseYoutubeLink

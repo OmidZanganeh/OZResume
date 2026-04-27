@@ -261,7 +261,7 @@ body {
 .routine-run {
   width: min(720px, 100%);
   margin: 0 auto;
-  padding: 1.25rem 1rem 2rem;
+  padding: 1.25rem 1rem 5.5rem;
   min-height: 100vh;
   box-sizing: border-box;
 }
@@ -369,6 +369,154 @@ body {
   color: var(--gf-warm);
 }
 
+.routine-run-banner {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--gf-radius-md);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  background: var(--gf-accent-dim);
+  color: #ccfbf1;
+  font-size: 0.88rem;
+}
+
+.routine-run-stat-line {
+  margin: 0.65rem 0 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.routine-run-history {
+  margin: 0.55rem 0 0;
+  padding: 0.5rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(71, 85, 105, 0.35);
+}
+
+.routine-run-history-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-bottom: 0.35rem;
+}
+
+.routine-run-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.routine-run-history-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  color: #cbd5e1;
+}
+
+.routine-run-history-date {
+  color: #7dd3fc;
+  min-width: 7.5rem;
+}
+
+.routine-run-history-detail {
+  color: #e2e8f0;
+}
+
+.routine-run-history-empty {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.routine-run-count-toggle {
+  margin: 0.75rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  color: #cbd5e1;
+}
+
+.routine-run-log-grid {
+  margin-top: 0.65rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 0.65rem;
+}
+
+.routine-run-log-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.routine-run-log-field--wide {
+  grid-column: span 2;
+}
+
+.routine-run-log-field--full {
+  grid-column: 1 / -1;
+}
+
+.routine-run-log-field input {
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--gf-border-hover);
+  background: #0f172a;
+  color: var(--gf-text);
+  font-size: 0.88rem;
+}
+
+.routine-run-sticky-save {
+  position: fixed;
+  bottom: 0.85rem;
+  left: 0.85rem;
+  right: 0.85rem;
+  margin: 0 auto;
+  width: min(720px, calc(100% - 1.7rem));
+  background: rgba(12, 15, 22, 0.92);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: var(--gf-radius-lg);
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--gf-shadow-lg);
+  z-index: 50;
+}
+
+.routine-run-sticky-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.routine-run-sticky-copy strong {
+  font-family: var(--gf-display);
+  font-size: 0.95rem;
+  color: var(--gf-text);
+}
+
+.routine-run-sticky-copy span {
+  font-size: 0.78rem;
+  color: var(--gf-text-muted);
+}
+
 .saved-routines-hub {
   margin-bottom: 1rem;
 }
@@ -443,64 +591,6 @@ body {
 
 .save-routine-inline-form {
   margin-top: 0.5rem;
-}
-
-.workout-checklist {
-  position: sticky;
-  top: 0.35rem;
-  z-index: 35;
-  margin-bottom: 1rem;
-  border-color: rgba(45, 212, 191, 0.25);
-}
-
-.workout-checklist-hint {
-  margin-top: 0.35rem;
-}
-
-.workout-checklist-links {
-  margin: 0.55rem 0 0;
-  padding-left: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.workout-checklist-links li {
-  margin: 0;
-}
-
-.workout-checklist-jump {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.45rem;
-  border-radius: 6px;
-  color: #e2e8f0;
-  text-decoration: none;
-  font-size: 0.9rem;
-  border: 1px solid transparent;
-}
-
-.workout-checklist-jump:hover {
-  background: rgba(56, 189, 248, 0.1);
-  border-color: rgba(56, 189, 248, 0.25);
-}
-
-.workout-checklist-num {
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.65rem;
-  height: 1.65rem;
-  border-radius: 6px;
-  background: rgba(56, 189, 248, 0.15);
-  color: #7dd3fc;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.plan-card[id^='plan-move-'] {
-  scroll-margin-top: 6.5rem;
 }
 
 .plan-stepper__btn--current .plan-stepper__num {
