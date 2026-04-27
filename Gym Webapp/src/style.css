@@ -230,6 +230,140 @@ body {
   font-size: 0.75rem;
 }
 
+.saved-routines-hub {
+  margin-bottom: 1rem;
+}
+
+.saved-routines-hub-lead {
+  margin: 0.35rem 0 0;
+  max-width: 52rem;
+}
+
+.active-routine-banner {
+  margin: 0.65rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--gf-radius-md);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.08);
+  color: #bae6fd;
+  font-size: 0.88rem;
+}
+
+.saved-routines-empty {
+  margin: 0.5rem 0 0;
+}
+
+.saved-routine-quick-list {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.saved-routine-quick-item {
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-md);
+  padding: 0.65rem 0.75rem;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.saved-routine-quick-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.saved-routine-quick-meta {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--gf-text-muted);
+}
+
+.saved-routine-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.saved-routine-preview-list {
+  margin: 0.55rem 0 0;
+  padding-left: 1.25rem;
+  color: #cbd5e1;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.save-routine-inline {
+  margin-bottom: 1rem;
+}
+
+.save-routine-inline-form {
+  margin-top: 0.5rem;
+}
+
+.workout-checklist {
+  position: sticky;
+  top: 0.35rem;
+  z-index: 35;
+  margin-bottom: 1rem;
+  border-color: rgba(45, 212, 191, 0.25);
+}
+
+.workout-checklist-hint {
+  margin-top: 0.35rem;
+}
+
+.workout-checklist-links {
+  margin: 0.55rem 0 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.workout-checklist-links li {
+  margin: 0;
+}
+
+.workout-checklist-jump {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 6px;
+  color: #e2e8f0;
+  text-decoration: none;
+  font-size: 0.9rem;
+  border: 1px solid transparent;
+}
+
+.workout-checklist-jump:hover {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.workout-checklist-num {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.plan-card[id^='plan-move-'] {
+  scroll-margin-top: 6.5rem;
+}
+
 .plan-stepper__btn--current .plan-stepper__num {
   background: rgba(45, 212, 191, 0.35);
   color: #042f2e;

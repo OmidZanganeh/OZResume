@@ -152,6 +152,13 @@ function nextTrainedMusclesAfterToggle(
   return next.length === 0 ? cur : next;
 }
 
+/** Exercise names in template order (valid catalog ids only). */
+function orderedNamesForSavedPlan(plan: SavedPlan, allExercises: Exercise[]): string[] {
+  const ids = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
+  const map = new Map(allExercises.map((e) => [e.id, e.name]));
+  return ids.map((id) => map.get(id)).filter((n): n is string => typeof n === 'string');
+}
+
 function createExerciseId(name: string) {
   return `custom-${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
 }
@@ -234,6 +241,9 @@ export default function App() {
   const [mainTab, setMainTab] = useState<'plan' | 'activity' | 'library'>('plan');
   const [planStep, setPlanStep] = useState<1 | 2 | 3>(1);
   const [savePlanNameInput, setSavePlanNameInput] = useState('');
+  /** Set when you load a saved routine so you know which program you’re following. */
+  const [activeRoutineName, setActiveRoutineName] = useState<string | null>(null);
+  const [expandedSavedPlanId, setExpandedSavedPlanId] = useState<string | null>(null);
 
   const allExercises = useMemo(
     () => [...EXERCISE_LIBRARY, ...data.customExercises],
@@ -309,6 +319,10 @@ export default function App() {
       setSelectedEquipment([]);
     }
   }, [selectedGroups.length]);
+
+  useEffect(() => {
+    if (selectedExerciseIds.length === 0) setActiveRoutineName(null);
+  }, [selectedExerciseIds.length]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -436,6 +450,8 @@ export default function App() {
     setSavePlanNameInput('');
     setPlanStep(1);
     setMainTab('plan');
+    setActiveRoutineName(null);
+    setExpandedSavedPlanId(null);
     setMessage('All your saved data was cleared.');
   }
 
@@ -462,7 +478,7 @@ export default function App() {
     };
     persist({ ...data, savedPlans: [plan, ...data.savedPlans] });
     setSavePlanNameInput('');
-    setMessage(`Saved template “${name}” (${plan.exerciseIds.length} moves).`);
+    setMessage(`Saved routine “${name}” (${plan.exerciseIds.length} moves). Find it under My saved routines.`);
   }
 
   function loadSavedPlanTemplate(plan: SavedPlan) {
@@ -490,7 +506,8 @@ export default function App() {
     setVisibleExerciseCount(24);
     setMainTab('plan');
     setPlanStep(3);
-    setMessage(`Loaded “${plan.name}” — ${validIds.length} moves. Review or log on step 3.`);
+    setActiveRoutineName(plan.name);
+    setMessage(`Loaded “${plan.name}” — ${validIds.length} moves. Use the workout checklist, then log each move below.`);
   }
 
   function deleteSavedPlanTemplate(id: string) {
@@ -562,6 +579,7 @@ export default function App() {
     setExerciseDrafts({});
     setPlanStep(2);
     setMainTab('activity');
+    setActiveRoutineName(null);
     setMessage(
       `Saved ${completedEntries.length} move${completedEntries.length === 1 ? '' : 's'}. Your plan was cleared for next time — see Activity for this session.`,
     );
@@ -645,6 +663,105 @@ export default function App() {
                 </button>
               ))}
             </div>
+
+            <section className="panel panel--compact saved-routines-hub" aria-label="Saved workout routines">
+              <div className="saved-routines-hub-header">
+                <h2 className="panel-heading panel-heading--plain">My saved routines</h2>
+                <p className="panel-subtle saved-routines-hub-lead">
+                  Save several programs and open them anytime. <strong>Use today</strong> loads the full move list for this
+                  session; <strong>Review order</strong> shows the exercise sequence without leaving the page—handy between
+                  sets.
+                </p>
+              </div>
+              {activeRoutineName ? (
+                <p className="active-routine-banner" role="status">
+                  Following routine: <strong>{activeRoutineName}</strong>
+                </p>
+              ) : null}
+              {data.savedPlans.length === 0 ? (
+                <p className="empty-text saved-routines-empty">
+                  No saved routines yet. After you pick moves on step 2 (or 3), use <strong>Save new routine</strong> below to
+                  store this workout for later.
+                </p>
+              ) : (
+                <ul className="saved-routine-quick-list">
+                  {data.savedPlans.map((plan) => {
+                    const names = orderedNamesForSavedPlan(plan, allExercises);
+                    const expanded = expandedSavedPlanId === plan.id;
+                    return (
+                      <li key={plan.id} className="saved-routine-quick-item">
+                        <div className="saved-routine-quick-top">
+                          <div className="saved-routine-quick-info">
+                            <strong>{plan.name}</strong>
+                            <span className="saved-routine-quick-meta">
+                              {names.length} moves · saved {formatDate(plan.createdAt)}
+                            </span>
+                          </div>
+                          <div className="saved-routine-quick-actions">
+                            <button
+                              type="button"
+                              className="button button-small"
+                              onClick={() => loadSavedPlanTemplate(plan)}
+                            >
+                              Use today
+                            </button>
+                            <button
+                              type="button"
+                              className="button button-muted button-small"
+                              onClick={() =>
+                                setExpandedSavedPlanId(expanded ? null : plan.id)
+                              }
+                              aria-expanded={expanded}
+                            >
+                              {expanded ? 'Hide order' : 'Review order'}
+                            </button>
+                          </div>
+                        </div>
+                        {expanded && names.length > 0 ? (
+                          <ol className="saved-routine-preview-list">
+                            {names.map((n) => (
+                              <li key={n}>{n}</li>
+                            ))}
+                          </ol>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            {(planStep === 2 || planStep === 3) && selectedExerciseIds.length > 0 ? (
+              <section className="panel panel--compact save-routine-inline" aria-label="Save new routine">
+                <h3 className="panel-heading panel-heading--plain">Save new routine</h3>
+                <p className="panel-subtle">
+                  Stores this exact move list and filters so you can reload it from <strong>My saved routines</strong> any
+                  day.
+                </p>
+                <form
+                  className="saved-plan-form save-routine-inline-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    saveCurrentPlanTemplate();
+                  }}
+                >
+                  <div className="saved-plan-save-row">
+                    <input
+                      className="text-input"
+                      type="text"
+                      placeholder="Name (e.g. Pull B, Leg day)"
+                      value={savePlanNameInput}
+                      onChange={(e) => setSavePlanNameInput(e.target.value)}
+                      aria-label="Name for new routine"
+                      autoComplete="off"
+                    />
+                    <button type="submit" className="button">
+                      Save routine
+                    </button>
+                  </div>
+                </form>
+              </section>
+            ) : null}
 
             {planStep === 1 && (
               <>
@@ -890,6 +1007,25 @@ export default function App() {
 
             {planStep === 3 && (
               <>
+      {planExercises.length > 0 ? (
+        <section className="workout-checklist panel panel--compact" aria-label="Workout order checklist">
+          <h3 className="panel-heading panel-heading--plain">During your workout</h3>
+          <p className="panel-subtle workout-checklist-hint">
+            Work through this list in order. Tap a move to jump to its log card. Uncheck <strong>Completed</strong> on any move
+            you skip before you <strong>Save workout</strong>.
+          </p>
+          <ol className="workout-checklist-links">
+            {planExercises.map((ex, index) => (
+              <li key={ex.id}>
+                <a href={`#plan-move-${ex.id}`} className="workout-checklist-jump">
+                  <span className="workout-checklist-num">{index + 1}</span>
+                  {ex.name}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
       <section className="panel panel--accent-top">
         <h2 className="panel-heading panel-heading--plain">
           Today&apos;s plan <span className="panel-heading-meta">({planExercises.length} moves)</span>
@@ -910,7 +1046,7 @@ export default function App() {
               const draft = exerciseDrafts[exercise.id];
               const isCardio = getEffectiveCategory(exercise) === 'cardio';
               return (
-                <article key={exercise.id} className="plan-card">
+                <article key={exercise.id} id={`plan-move-${exercise.id}`} className="plan-card">
                   <div className="plan-heading">
                     <h3>
                       <ExerciseYoutubeLink
@@ -1124,10 +1260,11 @@ export default function App() {
       </section>
 
       <section className="panel" id="custom-plan-section">
-        <h2 className="panel-heading panel-heading--plain">Saved plan templates</h2>
+        <h2 className="panel-heading panel-heading--plain">Saved routines (same as Plan tab)</h2>
         <p className="panel-subtle">
-          Build a list on <strong>Plan → Moves</strong> (tap <strong>Add to today</strong> on each move), then name it and
-          save below.
+          Your routines also appear at the top of the <strong>Plan</strong> tab for quick loading and <strong>Review order</strong>{' '}
+          between sets. Build moves on <strong>Plan → Moves</strong> (tap <strong>Add to today</strong>), then save here or use{' '}
+          <strong>Save new routine</strong> on the Plan tab.
         </p>
         <p className="saved-plan-session-count" role="status">
           Moves in your current plan:{' '}
