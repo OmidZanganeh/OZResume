@@ -245,6 +245,30 @@ body {
   padding-top: 0.25rem;
 }
 
+.saved-plan-session-count {
+  margin: 0 0 0.65rem;
+  font-size: 0.88rem;
+  color: var(--gf-text-muted);
+}
+
+.saved-plan-session-count strong {
+  color: var(--gf-accent);
+  font-size: 1.05rem;
+}
+
+.saved-plan-session-hint {
+  font-weight: 500;
+  color: var(--gf-text-dim);
+}
+
+.saved-plan-create-row {
+  margin-bottom: 0.75rem;
+}
+
+.saved-plan-form {
+  margin: 0;
+}
+
 .saved-plan-save-row {
   display: flex;
   flex-wrap: wrap;

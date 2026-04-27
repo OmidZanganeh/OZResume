@@ -273,16 +273,29 @@ export default function App() {
   }
 
   function toggleExerciseInPlan(exerciseId: string) {
-    setSelectedExerciseIds((current) => {
-      if (current.includes(exerciseId)) return current.filter((id) => id !== exerciseId);
+    const wasInPlan = selectedExerciseIds.includes(exerciseId);
 
+    setSelectedExerciseIds((current) => {
+      if (current.includes(exerciseId)) {
+        return current.filter((id) => id !== exerciseId);
+      }
+      return [...current, exerciseId];
+    });
+
+    if (wasInPlan) {
+      setExerciseDrafts((drafts) => {
+        if (!drafts[exerciseId]) return drafts;
+        const next = { ...drafts };
+        delete next[exerciseId];
+        return next;
+      });
+    } else {
       const ex = exerciseById.get(exerciseId);
       setExerciseDrafts((drafts) => ({
         ...drafts,
         [exerciseId]: drafts[exerciseId] ?? getDefaultDraftForExercise(ex),
       }));
-      return [...current, exerciseId];
-    });
+    }
   }
 
   function updateDraft(exerciseId: string, patch: Partial<ExerciseLogDraft>) {
@@ -347,15 +360,18 @@ export default function App() {
       setMessage('Enter a plan name (at least 2 characters).');
       return;
     }
-    if (selectedExerciseIds.length === 0) {
-      setMessage('Add at least one move to your plan before saving a template.');
+    const exerciseIds = [...selectedExerciseIds];
+    if (exerciseIds.length === 0) {
+      setMessage('Add moves on Plan → Moves (tap “Add to today” on each card), then come back here to save.');
+      setMainTab('plan');
+      setPlanStep(2);
       return;
     }
     const plan: SavedPlan = {
       id: `tpl-${Date.now()}`,
       name,
       createdAt: new Date().toISOString(),
-      exerciseIds: [...selectedExerciseIds],
+      exerciseIds,
       muscleGroups: [...selectedGroups],
       equipment: [...selectedEquipment],
     };
@@ -996,23 +1012,57 @@ export default function App() {
         </form>
       </section>
 
-      <section className="panel">
+      <section className="panel" id="custom-plan-section">
         <h2 className="panel-heading panel-heading--plain">Saved plan templates</h2>
         <p className="panel-subtle">
-          Save your current move list and filters from the <strong>Plan</strong> tab, then load it anytime.
+          Build a list on <strong>Plan → Moves</strong> (tap <strong>Add to today</strong> on each move), then name it and
+          save below.
         </p>
-        <div className="saved-plan-save-row">
-          <input
-            className="text-input"
-            type="text"
-            placeholder="Template name (e.g. Push day A)"
-            value={savePlanNameInput}
-            onChange={(e) => setSavePlanNameInput(e.target.value)}
-            aria-label="Name for saved plan template"
-          />
-          <button type="button" className="button" onClick={saveCurrentPlanTemplate}>
-            Save current plan
+        <p className="saved-plan-session-count" role="status">
+          Moves in your current plan:{' '}
+          <strong>{selectedExerciseIds.length}</strong>
+          {selectedExerciseIds.length === 0 ? (
+            <span className="saved-plan-session-hint"> — go to Plan → Moves first.</span>
+          ) : null}
+        </p>
+        <div className="saved-plan-create-row">
+          <button
+            type="button"
+            className="button"
+            onClick={() => {
+              requestAnimationFrame(() => {
+                document.getElementById('custom-plan-form-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                document.getElementById('custom-plan-name')?.focus();
+              });
+            }}
+          >
+            Create custom plan
           </button>
+        </div>
+        <div id="custom-plan-form-wrap">
+          <form
+            className="saved-plan-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveCurrentPlanTemplate();
+            }}
+          >
+            <div className="saved-plan-save-row">
+              <input
+                id="custom-plan-name"
+                className="text-input"
+                type="text"
+                placeholder="Name this plan (e.g. Push day A)"
+                value={savePlanNameInput}
+                onChange={(e) => setSavePlanNameInput(e.target.value)}
+                aria-label="Name for custom plan"
+                autoComplete="off"
+              />
+              <button type="submit" className="button">
+                Save custom plan
+              </button>
+            </div>
+          </form>
         </div>
         {data.savedPlans.length === 0 ? (
           <p className="empty-text" style={{ marginTop: '0.75rem' }}>
