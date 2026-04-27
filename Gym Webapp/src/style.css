@@ -699,92 +699,195 @@ body {
   line-height: 1.4;
 }
 
-/* —— Sample history backfill (body map) */
-.history-backfill {
-  margin-top: 1.1rem;
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
-  border: 1px solid rgba(71, 85, 105, 0.55);
-  background: rgba(15, 23, 42, 0.55);
+/* —— Body map: cardio / mobility squares beside figure */
+.body-map-figures--with-orphans {
+  align-items: stretch;
+  gap: 1rem;
 }
 
-.history-backfill-title {
-  margin: 0 0 0.4rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-.history-backfill-intro {
-  margin: 0 0 0.75rem;
-  font-size: 0.82rem;
-  color: #94a3b8;
-  line-height: 1.5;
-}
-
-.history-backfill-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  max-height: 280px;
-  overflow-y: auto;
-  padding-right: 0.25rem;
-  margin-bottom: 0.75rem;
-}
-
-.history-backfill-row {
-  display: grid;
-  grid-template-columns: 92px 1fr;
-  gap: 0.5rem;
-  align-items: start;
-}
-
-.history-backfill-muscle {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #cbd5e1;
-  padding-top: 0.2rem;
-}
-
-.history-backfill-tiers {
+.body-map-figures-main {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.75rem;
+  justify-content: center;
+  gap: 1.25rem;
+  flex: 1 1 auto;
 }
 
-.history-backfill-radio {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 0.3rem;
-  font-size: 0.76rem;
+.body-map-orphan-squares {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.55rem;
+  flex: 0 0 auto;
+  min-width: 5.5rem;
+}
+
+.body-map-orphan-square {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 3.25rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 10px;
+  border: 2px solid rgba(71, 85, 105, 0.85);
+  background: rgba(15, 23, 42, 0.75);
   color: #e2e8f0;
   cursor: pointer;
+  font: inherit;
+  transition: border-color 140ms, box-shadow 140ms, transform 140ms;
 }
 
-.history-backfill-radio input {
-  margin-top: 0.15rem;
+.body-map-orphan-square:hover {
+  border-color: #94a3b8;
 }
 
-.history-backfill-radio span {
+.body-map-orphan-square:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.body-map-orphan-square--gray {
+  border-color: #475569;
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.body-map-orphan-square--orange {
+  border-color: #f97316;
+  background: rgba(234, 88, 12, 0.22);
+}
+
+.body-map-orphan-square--green {
+  border-color: #22c55e;
+  background: rgba(22, 163, 74, 0.28);
+}
+
+.body-map-orphan-square--selected {
+  box-shadow: 0 0 0 2px #38bdf8, 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+.body-map-orphan-square-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.body-map-orphan-square-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+/* —— Past workout modal */
+.history-backfill-trigger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
+  margin-top: 1rem;
+}
+
+.history-backfill-trigger-note {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.history-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.history-modal {
+  width: min(100%, 28rem);
+  max-height: min(90vh, 36rem);
+  overflow-y: auto;
+  padding: 1.1rem 1.15rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid rgba(71, 85, 105, 0.65);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.history-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.history-modal-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.history-modal-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 8px;
+  background: rgba(51, 65, 85, 0.6);
+  color: #e2e8f0;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 140ms;
+}
+
+.history-modal-close:hover {
+  background: rgba(71, 85, 105, 0.85);
+}
+
+.history-modal-intro {
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.55;
+}
+
+.history-modal-field {
   display: flex;
   flex-direction: column;
-  gap: 0.05rem;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
 }
 
-.history-backfill-radio small {
-  font-size: 0.68rem;
-  color: #94a3b8;
-  font-weight: 400;
+.history-modal-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.history-backfill-actions {
+.history-modal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.history-modal-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-top: 0.35rem;
 }
 
-.history-backfill-status {
-  margin: 0.55rem 0 0;
+.history-modal-status {
+  margin: 0.65rem 0 0;
 }
 
 /* —— Workout calendar */

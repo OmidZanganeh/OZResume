@@ -17,25 +17,36 @@ type Props = {
   onToggleGroup: (group: MuscleGroup) => void;
 };
 
-function OrphanPills({ practiceCounts, practiceWindowDays }: { practiceCounts: Map<MuscleGroup, number>; practiceWindowDays: number }) {
-  const nonMapped: MuscleGroup[] = ['Cardio', 'Mobility'];
+function OrphanMuscleSquares({
+  practiceCounts,
+  practiceWindowDays,
+  selectedGroups,
+  onToggleGroup,
+}: {
+  practiceCounts: Map<MuscleGroup, number>;
+  practiceWindowDays: number;
+  selectedGroups: MuscleGroup[];
+  onToggleGroup: (group: MuscleGroup) => void;
+}) {
+  const orphans: MuscleGroup[] = ['Cardio', 'Mobility'];
   return (
-    <div className="body-map-orphans" role="list">
-      {nonMapped.map((g) => {
+    <div className="body-map-orphan-squares" role="group" aria-label="Cardio and mobility coverage">
+      {orphans.map((g) => {
         const n = practiceCounts.get(g) ?? 0;
-        const tierClass =
-          n >= 2 ? 'body-map-pill body-map-pill--twice' : n === 1 ? 'body-map-pill body-map-pill--once' : 'body-map-pill body-map-pill--gap';
-        const label =
-          n >= 2
-            ? ` · ${n}× last ${practiceWindowDays}d — keep it up`
-            : n === 1
-              ? ` · 1× last ${practiceWindowDays}d — one more for green`
-              : ` · not hit in last ${practiceWindowDays}d`;
+        const tier =
+          n >= 2 ? 'body-map-orphan-square--green' : n === 1 ? 'body-map-orphan-square--orange' : 'body-map-orphan-square--gray';
+        const selectedClass = selectedGroups.includes(g) ? 'body-map-orphan-square--selected' : '';
         return (
-          <span key={g} className={tierClass} role="listitem">
-            {g}
-            {label}
-          </span>
+          <button
+            key={g}
+            type="button"
+            className={`body-map-orphan-square ${tier} ${selectedClass}`.trim()}
+            onClick={() => onToggleGroup(g)}
+            title={`${g}: ${n} hit(s) last ${practiceWindowDays} days — tap to filter catalog`}
+          >
+            <span className="body-map-orphan-square-label">{g}</span>
+            <span className="body-map-orphan-square-count">{n === 0 ? '—' : `${n}×`}</span>
+          </button>
         );
       })}
     </div>
@@ -108,15 +119,23 @@ export function BodyMapFigure({
         <strong>Orange</strong> = once (almost there). <strong>Gray</strong> = not yet. Tap a region to filter the catalog
         (chips below).
       </p>
-      <div className="body-map-figures body-map-figures--anatomy">
-        <figure className="body-map-figure body-map-figure--chart">
-          <figcaption className="body-map-figure-label">Front</figcaption>
-          <div ref={frontHostRef} className="body-muscles-host" />
-        </figure>
-        <figure className="body-map-figure body-map-figure--chart">
-          <figcaption className="body-map-figure-label">Back</figcaption>
-          <div ref={backHostRef} className="body-muscles-host" />
-        </figure>
+      <div className="body-map-figures body-map-figures--anatomy body-map-figures--with-orphans">
+        <div className="body-map-figures-main">
+          <figure className="body-map-figure body-map-figure--chart">
+            <figcaption className="body-map-figure-label">Front</figcaption>
+            <div ref={frontHostRef} className="body-muscles-host" />
+          </figure>
+          <figure className="body-map-figure body-map-figure--chart">
+            <figcaption className="body-map-figure-label">Back</figcaption>
+            <div ref={backHostRef} className="body-muscles-host" />
+          </figure>
+        </div>
+        <OrphanMuscleSquares
+          practiceCounts={practiceCounts}
+          practiceWindowDays={practiceWindowDays}
+          selectedGroups={selectedGroups}
+          onToggleGroup={onToggleGroup}
+        />
       </div>
       <p className="body-map-legend body-map-legend--heat">
         <span>Last {practiceWindowDays} days (each completed move counts; primary + secondary groups)</span>
@@ -140,9 +159,10 @@ export function BodyMapFigure({
         </a>{' '}
         (Apache-2.0)
       </p>
-      <p className="body-map-orphan-title">Not on the figure — same {practiceWindowDays}-day window</p>
-      <OrphanPills practiceCounts={practiceCounts} practiceWindowDays={practiceWindowDays} />
-      <p className="body-map-hint">Selected focus areas use a stronger outline on the figure.</p>
+      <p className="body-map-hint">
+        Cardio &amp; Mobility: tap the squares to filter. <strong>Add past workout</strong> uses only muscles you pick, so
+        extras don&apos;t light up on the map.
+      </p>
     </div>
   );
 }

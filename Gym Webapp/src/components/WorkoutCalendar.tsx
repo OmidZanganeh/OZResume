@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { SEED_SESSION_ID_PREFIX } from '../utils/historySeed';
+import { isLegacySampleSessionId } from '../utils/historySeed';
 
 type Session = { id: string; date: string };
 
@@ -31,7 +31,7 @@ function buildDaySummaries(sessions: Session[]): Map<string, DaySummary> {
   for (const s of sessions) {
     const key = toLocalDateKey(s.date);
     if (!key) continue;
-    const isSample = s.id.startsWith(SEED_SESSION_ID_PREFIX);
+    const isSample = isLegacySampleSessionId(s.id);
     const prev = map.get(key) ?? { total: 0, real: 0, sample: 0 };
     map.set(key, {
       total: prev.total + 1,
@@ -189,7 +189,7 @@ export function WorkoutCalendar({ sessions }: Props) {
         </span>
         <span className="workout-cal-legend-item">
           <i className="workout-cal-legend-swatch workout-cal-legend-swatch--sample" aria-hidden />
-          Sample history only
+          Legacy sample only
         </span>
         <span className="workout-cal-legend-item">
           <i className="workout-cal-legend-ring" aria-hidden />

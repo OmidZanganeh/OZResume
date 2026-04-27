@@ -7,7 +7,7 @@ import { WorkoutCalendar } from './components/WorkoutCalendar';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
-import { SEED_SESSION_ID_PREFIX } from './utils/historySeed';
+import { isImportedHistorySessionId, isLegacySampleSessionId } from './utils/historySeed';
 import { migrateV1ToV2, STORAGE_V1, STORAGE_V2 } from './data/migrateStorage';
 import {
   type CatalogSortMode,
@@ -383,7 +383,8 @@ export default function App() {
           The map uses the last <strong>{PRACTICE_WINDOW_DAYS} days</strong> of saved workouts: <strong>gray</strong> = not
           trained yet, <strong>orange</strong> = one logged session touching that area, <strong>green</strong> = two or more.
           Each completed plan entry counts (primary + secondary groups). Tap a region to filter the catalog; tap again to
-          deselect. With nothing selected, all groups show. After you pick muscles, narrow by equipment if you like.
+          deselect. With nothing selected, all groups show. Use <strong>Add past workout…</strong> to log a day you already
+          trained (pick the date and muscles — no stray secondaries). After you pick muscles, narrow by equipment if you like.
         </p>
         <BodyMapFigure
           practiceCounts={practiceCounts}
@@ -392,7 +393,6 @@ export default function App() {
           onToggleGroup={toggleGroup}
         />
         <HistoryBackfillPanel
-          practiceWindowDays={PRACTICE_WINDOW_DAYS}
           allExercises={allExercises}
           sessions={data.sessions}
           onPersist={({ sessions: nextSessions, stats: nextStats }) =>
@@ -760,8 +760,8 @@ export default function App() {
       <section className="panel">
         <h2>Workout calendar</h2>
         <p className="empty-text" style={{ marginBottom: '0.65rem' }}>
-          Each day you saved a session shows in your local timezone. Orange = logged workouts; slate dashed = sample history
-          only. Hover a date for counts.
+          Each day you saved a session shows in your local timezone. Orange = real workouts; slate dashed = legacy sample
+          history only. Hover a date for counts.
         </p>
         <WorkoutCalendar sessions={data.sessions} />
       </section>
@@ -777,7 +777,11 @@ export default function App() {
                 <span>
                   {formatDate(session.date)}{' '}
                   <small>
-                    {session.id.startsWith(SEED_SESSION_ID_PREFIX) ? 'sample · ' : ''}
+                    {isLegacySampleSessionId(session.id)
+                      ? 'sample · '
+                      : isImportedHistorySessionId(session.id)
+                        ? 'imported · '
+                        : ''}
                     {session.entries.length} moves completed
                   </small>
                 </span>

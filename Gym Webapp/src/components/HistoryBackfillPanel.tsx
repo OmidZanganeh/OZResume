@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import {
-  type SeedTier,
-  SEED_SESSION_ID_PREFIX,
-  buildSeedSessionsFromTiers,
+  buildHistoricalSessionForDate,
+  isLegacySampleSessionId,
+  isImportedHistorySessionId,
   recomputeStatsFromSessions,
-  stripSeedSessions,
+  stripImportedSessions,
 } from '../utils/historySeed';
 
 type ExerciseStat = {
@@ -23,110 +23,171 @@ type WorkoutSession = {
 };
 
 type Props = {
-  practiceWindowDays: number;
   allExercises: Exercise[];
   sessions: WorkoutSession[];
   onPersist: (patch: { sessions: WorkoutSession[]; stats: Record<string, ExerciseStat> }) => void;
 };
 
-const TIER_OPTIONS: { value: SeedTier; label: string; hint: string }[] = [
-  { value: 0, label: 'None', hint: 'Gray on map' },
-  { value: 1, label: 'Once', hint: 'Orange' },
-  { value: 2, label: 'Twice+', hint: 'Green' },
-];
-
-function tiersRecord(initial: SeedTier): Record<MuscleGroup, SeedTier> {
-  return Object.fromEntries(MUSCLE_GROUPS.map((g) => [g, initial])) as Record<MuscleGroup, SeedTier>;
+function todayYmd(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
-export function HistoryBackfillPanel({ practiceWindowDays, allExercises, sessions, onPersist }: Props) {
-  const [tiers, setTiers] = useState<Record<MuscleGroup, SeedTier>>(() => tiersRecord(0));
+export function HistoryBackfillPanel({ allExercises, sessions, onPersist }: Props) {
+  const [open, setOpen] = useState(false);
+  const [dateYmd, setDateYmd] = useState(todayYmd);
+  const [selected, setSelected] = useState<Set<MuscleGroup>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
 
-  const hasAnyTier = useMemo(() => MUSCLE_GROUPS.some((g) => (tiers[g] ?? 0) > 0), [tiers]);
-  const seedCount = useMemo(() => sessions.filter((s) => s.id.startsWith(SEED_SESSION_ID_PREFIX)).length, [sessions]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setMessage(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
-  function setTier(group: MuscleGroup, value: SeedTier) {
-    setTiers((prev) => ({ ...prev, [group]: value }));
+  const importedCount = useMemo(
+    () => sessions.filter((s) => isLegacySampleSessionId(s.id) || isImportedHistorySessionId(s.id)).length,
+    [sessions],
+  );
+
+  function toggleMuscle(g: MuscleGroup) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(g)) next.delete(g);
+      else next.add(g);
+      return next;
+    });
     setMessage(null);
   }
 
-  function applySeed() {
+  function addSession() {
     setMessage(null);
-    const withoutSeeds = stripSeedSessions(sessions);
-    const { sessions: newSeeds, missingGroups } = buildSeedSessionsFromTiers(tiers, allExercises);
+    const groups = MUSCLE_GROUPS.filter((g) => selected.has(g));
+    const { session, missingGroups } = buildHistoricalSessionForDate(groups, dateYmd, allExercises);
 
-    if (newSeeds.length === 0) {
-      setMessage('Choose at least one muscle with Once or Twice+.');
+    if (!session) {
+      setMessage(groups.length === 0 ? 'Select at least one muscle for that day.' : 'Could not build session — check the date.');
       return;
     }
 
-    const merged = [...withoutSeeds, ...newSeeds];
+    const merged = [session, ...sessions];
     merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const stats = recomputeStatsFromSessions(merged);
-
     onPersist({ sessions: merged, stats });
 
-    const extra =
-      missingGroups.length > 0
-        ? ` Could not find a library move for: ${missingGroups.join(', ')}.`
-        : '';
-    setMessage(`Added ${newSeeds.length} sample day(s) across the last ${practiceWindowDays} days.${extra}`);
+    const warn =
+      missingGroups.length > 0 ? ` No library move found for: ${missingGroups.join(', ')}.` : '';
+    setMessage(`Saved workout for ${dateYmd} (${session.entries.length} moves).${warn}`);
+    setSelected(new Set());
   }
 
-  function clearSeed() {
+  function clearImported() {
     setMessage(null);
-    const withoutSeeds = stripSeedSessions(sessions);
-    withoutSeeds.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const stats = recomputeStatsFromSessions(withoutSeeds);
-    onPersist({ sessions: withoutSeeds, stats });
-    setTiers(tiersRecord(0));
-    setMessage('Removed sample history and recalculated stats from your real sessions.');
+    const kept = stripImportedSessions(sessions);
+    kept.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const stats = recomputeStatsFromSessions(kept);
+    onPersist({ sessions: kept, stats });
+    setMessage('Removed imported / sample history and recalculated stats.');
   }
 
   return (
-    <div className="history-backfill">
-      <h3 className="history-backfill-title">Body map history (last {practiceWindowDays} days)</h3>
-      <p className="history-backfill-intro">
-        New here? Roughly how often did you train each area recently — we&apos;ll add <strong>sample log days</strong> so the
-        map matches (orange / green). Your real workouts stay separate. Replacing this only updates rows marked as sample
-        history.
-      </p>
+    <>
+      <div className="history-backfill-trigger">
+        <button type="button" className="button button-muted" onClick={() => setOpen(true)}>
+          Add past workout…
+        </button>
+        {importedCount > 0 && (
+          <span className="history-backfill-trigger-note">{importedCount} imported / sample session(s)</span>
+        )}
+      </div>
 
-      <div className="history-backfill-grid" role="group" aria-label="Training frequency per muscle">
-        {MUSCLE_GROUPS.map((group) => (
-          <div key={group} className="history-backfill-row">
-            <span className="history-backfill-muscle">{group}</span>
-            <div className="history-backfill-tiers">
-              {TIER_OPTIONS.map((opt) => (
-                <label key={opt.value} className="history-backfill-radio">
-                  <input
-                    type="radio"
-                    name={`tier-${group}`}
-                    checked={(tiers[group] ?? 0) === opt.value}
-                    onChange={() => setTier(group, opt.value)}
-                  />
-                  <span>
-                    {opt.label}
-                    <small>{opt.hint}</small>
-                  </span>
-                </label>
+      {open ? (
+        <div
+          className="history-modal-overlay"
+          role="presentation"
+          onClick={() => {
+            setOpen(false);
+            setMessage(null);
+          }}
+        >
+          <div
+            className="history-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="history-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="history-modal-header">
+              <h3 id="history-modal-title" className="history-modal-title">
+                Add workout history
+              </h3>
+              <button
+                type="button"
+                className="history-modal-close"
+                aria-label="Close"
+                onClick={() => {
+                  setOpen(false);
+                  setMessage(null);
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <p className="history-modal-intro">
+              Pick the <strong>calendar date</strong> and every muscle you trained that day. We add one library move per
+              muscle, chosen so <strong>secondary muscles stay inside your selection</strong> — e.g. Chest alone won&apos;t
+              accidentally turn Core green.
+            </p>
+
+            <label className="history-modal-field">
+              <span className="history-modal-label">Date</span>
+              <input
+                className="text-input"
+                type="date"
+                value={dateYmd}
+                max={todayYmd()}
+                onChange={(e) => setDateYmd(e.target.value)}
+              />
+            </label>
+
+            <p className="history-modal-label" style={{ margin: '0.65rem 0 0.35rem' }}>
+              Muscles trained that day
+            </p>
+            <div className="history-modal-chips" role="group" aria-label="Muscles for this date">
+              {MUSCLE_GROUPS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  className={`chip ${selected.has(g) ? 'chip-active' : ''}`}
+                  onClick={() => toggleMuscle(g)}
+                >
+                  {g}
+                </button>
               ))}
             </div>
+
+            <div className="history-modal-actions">
+              <button type="button" className="button" onClick={addSession}>
+                Save this day
+              </button>
+              <button type="button" className="button button-muted" onClick={clearImported} disabled={importedCount === 0}>
+                Clear imported &amp; sample history
+              </button>
+            </div>
+
+            {message && <p className="status-text history-modal-status">{message}</p>}
           </div>
-        ))}
-      </div>
-
-      <div className="history-backfill-actions">
-        <button type="button" className="button" onClick={applySeed} disabled={!hasAnyTier}>
-          Apply sample history
-        </button>
-        <button type="button" className="button button-muted" onClick={clearSeed} disabled={seedCount === 0}>
-          Clear sample history
-        </button>
-      </div>
-
-      {message && <p className="status-text history-backfill-status">{message}</p>}
-    </div>
+        </div>
+      ) : null}
+    </>
   );
 }

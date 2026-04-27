@@ -2,10 +2,7 @@ import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import { getEffectiveCategory } from './catalogSort';
 
-/** How many times each muscle was hit in the window (for map: 0 gray, 1 orange, 2+ green). */
-export type SeedTier = 0 | 1 | 2;
-
-export type SeedWorkoutEntry = {
+export type HistoryWorkoutEntry = {
   exerciseId: string;
   sets: number;
   reps: string;
@@ -13,11 +10,11 @@ export type SeedWorkoutEntry = {
   notes: string;
 };
 
-export type SeedWorkoutSession = {
+export type HistoryWorkoutSession = {
   id: string;
   date: string;
   groups: MuscleGroup[];
-  entries: SeedWorkoutEntry[];
+  entries: HistoryWorkoutEntry[];
 };
 
 export type ExerciseStat = {
@@ -26,83 +23,88 @@ export type ExerciseStat = {
   lastPerformed: string | null;
 };
 
-export function pickSeedExerciseForGroup(group: MuscleGroup, exercises: Exercise[]): Exercise | null {
+/** Bulk-generated spread (legacy). */
+export const SEED_SESSION_ID_PREFIX = 'gymflow-seed-';
+/** User-added session for a chosen calendar date. */
+export const IMPORTED_HISTORY_PREFIX = 'hist-';
+
+/**
+ * Prefer exercises whose secondary muscles are all in `allowedGroups`, so e.g. Chest-only history
+ * does not credit Core via a bench variation that lists abs as secondary.
+ */
+export function pickSeedExerciseForGroupInSelection(
+  group: MuscleGroup,
+  allowedGroups: ReadonlySet<MuscleGroup>,
+  exercises: Exercise[],
+): Exercise | null {
   const primary = exercises.filter((e) => e.primaryGroup === group);
-  const nonCardio = primary.filter((e) => getEffectiveCategory(e) !== 'cardio');
-  const pool = nonCardio.length > 0 ? nonCardio : primary;
+  const respectSecondaries = (e: Exercise) => (e.secondaryGroups ?? []).every((s) => allowedGroups.has(s));
+  const withRespect = primary.filter(respectSecondaries);
+  const poolPrimary = withRespect.length > 0 ? withRespect : primary;
+  const nonCardio = poolPrimary.filter((e) => getEffectiveCategory(e) !== 'cardio');
+  const pool = nonCardio.length > 0 ? nonCardio : poolPrimary;
   return pool[0] ?? null;
 }
 
 /**
- * Build synthetic sessions spread across the last 10 calendar days (ids `gymflow-seed-*`).
- * Each tier value is how many log *entries* to create for that muscle (matches practice window counting).
+ * One session on the given local calendar day (YYYY-MM-DD), one entry per selected muscle group.
  */
-export function buildSeedSessionsFromTiers(
-  tiers: Record<MuscleGroup, SeedTier>,
+export function buildHistoricalSessionForDate(
+  selectedGroups: MuscleGroup[],
+  dateYmd: string,
   exercises: Exercise[],
-): { sessions: SeedWorkoutSession[]; missingGroups: MuscleGroup[] } {
-  const missing: MuscleGroup[] = [];
-  const queue: { exerciseId: string }[] = [];
+): { session: HistoryWorkoutSession | null; missingGroups: MuscleGroup[] } {
+  const trimmed = dateYmd.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return { session: null, missingGroups: [] };
+  }
 
-  for (const g of MUSCLE_GROUPS) {
-    const t = tiers[g] ?? 0;
-    if (t === 0) continue;
-    const ex = pickSeedExerciseForGroup(g, exercises);
+  const allowed = new Set<MuscleGroup>(selectedGroups);
+  const ordered = MUSCLE_GROUPS.filter((g) => allowed.has(g));
+  if (ordered.length === 0) {
+    return { session: null, missingGroups: [] };
+  }
+
+  const missing: MuscleGroup[] = [];
+  const entries: HistoryWorkoutEntry[] = [];
+
+  for (const g of ordered) {
+    const ex = pickSeedExerciseForGroupInSelection(g, allowed, exercises);
     if (!ex) {
       missing.push(g);
       continue;
     }
-    for (let i = 0; i < t; i++) {
-      queue.push({ exerciseId: ex.id });
-    }
-  }
-
-  if (queue.length === 0) {
-    return { sessions: [], missingGroups: missing };
-  }
-
-  const byDay: SeedWorkoutEntry[][] = Array.from({ length: 10 }, () => []);
-  queue.forEach((item, index) => {
-    const dayIndex = index % 10;
-    byDay[dayIndex].push({
-      exerciseId: item.exerciseId,
+    entries.push({
+      exerciseId: ex.id,
       sets: 1,
       reps: '',
       weight: '',
       notes: '',
     });
-  });
-
-  const anchor = new Date();
-  anchor.setHours(12, 0, 0, 0);
-  const sessions: SeedWorkoutSession[] = [];
-  const stamp = Date.now();
-
-  for (let d = 0; d < 10; d++) {
-    const entries = byDay[d];
-    if (entries.length === 0) continue;
-
-    const sessionDate = new Date(anchor);
-    sessionDate.setDate(sessionDate.getDate() - (9 - d));
-
-    const groupSet = new Set<MuscleGroup>();
-    for (const e of entries) {
-      const exercise = exercises.find((x) => x.id === e.exerciseId);
-      if (exercise) {
-        groupSet.add(exercise.primaryGroup);
-        for (const sg of exercise.secondaryGroups ?? []) groupSet.add(sg);
-      }
-    }
-
-    sessions.push({
-      id: `gymflow-seed-${stamp}-${d}`,
-      date: sessionDate.toISOString(),
-      groups: Array.from(groupSet),
-      entries,
-    });
   }
 
-  return { sessions, missingGroups: missing };
+  if (entries.length === 0) {
+    return { session: null, missingGroups: missing };
+  }
+
+  const sessionDate = new Date(`${trimmed}T12:00:00`);
+  const groupSet = new Set<MuscleGroup>();
+  for (const e of entries) {
+    const ex = exercises.find((x) => x.id === e.exerciseId);
+    if (ex) {
+      groupSet.add(ex.primaryGroup);
+      for (const sg of ex.secondaryGroups ?? []) groupSet.add(sg);
+    }
+  }
+
+  const session: HistoryWorkoutSession = {
+    id: `${IMPORTED_HISTORY_PREFIX}${Date.now()}`,
+    date: sessionDate.toISOString(),
+    groups: Array.from(groupSet),
+    entries,
+  };
+
+  return { session, missingGroups: missing };
 }
 
 /** Derive per-exercise stats from sessions (chronological for lastPerformed). */
@@ -124,8 +126,17 @@ export function recomputeStatsFromSessions(
   return stats;
 }
 
-export const SEED_SESSION_ID_PREFIX = 'gymflow-seed-';
+export function isLegacySampleSessionId(id: string): boolean {
+  return id.startsWith(SEED_SESSION_ID_PREFIX);
+}
 
-export function stripSeedSessions<T extends { id: string }>(sessions: T[]): T[] {
-  return sessions.filter((s) => !s.id.startsWith(SEED_SESSION_ID_PREFIX));
+export function isImportedHistorySessionId(id: string): boolean {
+  return id.startsWith(IMPORTED_HISTORY_PREFIX);
+}
+
+/** Remove auto-generated / imported sessions; keep only normal saves and custom data. */
+export function stripImportedSessions<T extends { id: string }>(sessions: T[]): T[] {
+  return sessions.filter(
+    (s) => !isLegacySampleSessionId(s.id) && !isImportedHistorySessionId(s.id),
+  );
 }
