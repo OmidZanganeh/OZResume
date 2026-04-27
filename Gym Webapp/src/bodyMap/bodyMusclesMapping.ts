@@ -132,8 +132,13 @@ export function buildBodyMusclesStateFromPractice(
 }
 
 /**
- * Highlights muscle groups with **no** logged work (primary or secondary) in the recent window.
- * Intensity 10 = gap (red in body-muscles), 0 = hit at least once (slate).
+ * Heatmap slot patched to green in {@link BodyMapFigure} (library default at this index is yellow).
+ * Intensity 5 stays the package orange for “once”.
+ */
+export const MOTIVATION_GREEN_INTENSITY_SLOT = 2;
+
+/**
+ * Last N days: 0 sessions → gray (0), 1 → orange (5), 2+ → green (patched slot {@link MOTIVATION_GREEN_INTENSITY_SLOT}).
  */
 export function buildBodyMusclesStateForTenDayGaps(
   practiceCounts: Map<MuscleGroup, number>,
@@ -144,7 +149,8 @@ export function buildBodyMusclesStateForTenDayGaps(
     const ids = GROUP_TO_MUSCLE_IDS[g];
     if (!ids) continue;
     const count = practiceCounts.get(g) ?? 0;
-    const intensity = count === 0 ? 10 : 0;
+    const intensity =
+      count >= 2 ? MOTIVATION_GREEN_INTENSITY_SLOT : count === 1 ? 5 : 0;
     const selected = selectedGroups.includes(g);
     for (const id of ids) {
       state[id] = { intensity, selected };

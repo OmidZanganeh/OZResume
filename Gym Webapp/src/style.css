@@ -406,6 +406,10 @@ body {
   margin-bottom: 0.55rem;
 }
 
+.plan-grid-full {
+  grid-column: 1 / -1;
+}
+
 .plan-card label {
   display: block;
   font-size: 0.88rem;
@@ -554,10 +558,16 @@ body {
   justify-content: center;
 }
 
-.body-map-pill--has-count {
-  background: rgba(30, 58, 138, 0.45);
-  border-color: #3b82f6;
-  color: #dbeafe;
+.body-map-pill--once {
+  background: rgba(234, 88, 12, 0.35);
+  border-color: #f97316;
+  color: #ffedd5;
+}
+
+.body-map-pill--twice {
+  background: rgba(22, 163, 74, 0.4);
+  border-color: #22c55e;
+  color: #dcfce7;
 }
 
 .off-map-groups {

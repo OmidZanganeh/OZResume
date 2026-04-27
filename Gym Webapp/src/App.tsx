@@ -116,6 +116,13 @@ function getDefaultDraft(): ExerciseLogDraft {
   };
 }
 
+function getDefaultDraftForExercise(exercise: Exercise | undefined): ExerciseLogDraft {
+  if (exercise && getEffectiveCategory(exercise) === 'cardio') {
+    return { completed: true, sets: 1, reps: '20', weight: '', notes: '' };
+  }
+  return getDefaultDraft();
+}
+
 export default function App() {
   const [data, setData] = useState<PersistedData>(() => loadData());
   const [selectedGroups, setSelectedGroups] = useState<MuscleGroup[]>([]);
@@ -246,9 +253,10 @@ export default function App() {
     setSelectedExerciseIds((current) => {
       if (current.includes(exerciseId)) return current.filter((id) => id !== exerciseId);
 
+      const ex = exerciseById.get(exerciseId);
       setExerciseDrafts((drafts) => ({
         ...drafts,
-        [exerciseId]: drafts[exerciseId] ?? getDefaultDraft(),
+        [exerciseId]: drafts[exerciseId] ?? getDefaultDraftForExercise(ex),
       }));
       return [...current, exerciseId];
     });
@@ -293,13 +301,17 @@ export default function App() {
     const completedEntries = selectedExerciseIds
       .map((exerciseId) => ({ exerciseId, draft: exerciseDrafts[exerciseId] }))
       .filter((item) => item.draft?.completed)
-      .map(({ exerciseId, draft }) => ({
-        exerciseId,
-        sets: Math.max(1, Number(draft?.sets ?? 1)),
-        reps: draft?.reps.trim() ?? '',
-        weight: draft?.weight.trim() ?? '',
-        notes: draft?.notes.trim() ?? '',
-      }));
+      .map(({ exerciseId, draft }) => {
+        const ex = exerciseById.get(exerciseId);
+        const cardio = ex && getEffectiveCategory(ex) === 'cardio';
+        return {
+          exerciseId,
+          sets: cardio ? 1 : Math.max(1, Number(draft?.sets ?? 1)),
+          reps: draft?.reps.trim() ?? '',
+          weight: draft?.weight.trim() ?? '',
+          notes: draft?.notes.trim() ?? '',
+        };
+      });
 
     if (completedEntries.length === 0) {
       setMessage('Pick and complete at least one planned move before saving.');
@@ -365,10 +377,10 @@ export default function App() {
           </button>
         </div>
         <p className="empty-text" style={{ marginBottom: '0.65rem' }}>
-          The map highlights <strong>muscle areas you have not hit in the last {PRACTICE_WINDOW_DAYS} days</strong> (red) vs at
-          least one logged move there (gray). Each completed plan entry counts toward primary and secondary groups. Tap a region
-          to filter the catalog; tap again to deselect. With nothing selected, all groups show in the list. After you pick
-          muscles, a color-coded row lets you add one or more equipment filters (e.g. barbell or dumbbell or both).
+          The map uses the last <strong>{PRACTICE_WINDOW_DAYS} days</strong> of saved workouts: <strong>gray</strong> = not
+          trained yet, <strong>orange</strong> = one logged session touching that area, <strong>green</strong> = two or more.
+          Each completed plan entry counts (primary + secondary groups). Tap a region to filter the catalog; tap again to
+          deselect. With nothing selected, all groups show. After you pick muscles, narrow by equipment if you like.
         </p>
         <BodyMapFigure
           practiceCounts={practiceCounts}
@@ -619,6 +631,7 @@ export default function App() {
           <div className="plan-list">
             {planExercises.map((exercise) => {
               const draft = exerciseDrafts[exercise.id];
+              const isCardio = getEffectiveCategory(exercise) === 'cardio';
               return (
                 <article key={exercise.id} className="plan-card">
                   <div className="plan-heading">
@@ -641,32 +654,47 @@ export default function App() {
                   </div>
 
                   <div className="plan-grid">
-                    <label>
-                      Sets
-                      <input
-                        type="number"
-                        min={1}
-                        value={draft?.sets ?? 3}
-                        onChange={(event) => updateDraft(exercise.id, { sets: Number(event.target.value) || 1 })}
-                      />
-                    </label>
-                    <label>
-                      Reps
-                      <input
-                        type="text"
-                        value={draft?.reps ?? '8-12'}
-                        onChange={(event) => updateDraft(exercise.id, { reps: event.target.value })}
-                      />
-                    </label>
-                    <label>
-                      Weight
-                      <input
-                        type="text"
-                        placeholder="e.g. 35kg"
-                        value={draft?.weight ?? ''}
-                        onChange={(event) => updateDraft(exercise.id, { weight: event.target.value })}
-                      />
-                    </label>
+                    {isCardio ? (
+                      <label className="plan-grid-full">
+                        Minutes
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="e.g. 20 or 25–30"
+                          value={draft?.reps ?? '20'}
+                          onChange={(event) => updateDraft(exercise.id, { reps: event.target.value, sets: 1 })}
+                        />
+                      </label>
+                    ) : (
+                      <>
+                        <label>
+                          Sets
+                          <input
+                            type="number"
+                            min={1}
+                            value={draft?.sets ?? 3}
+                            onChange={(event) => updateDraft(exercise.id, { sets: Number(event.target.value) || 1 })}
+                          />
+                        </label>
+                        <label>
+                          Reps
+                          <input
+                            type="text"
+                            value={draft?.reps ?? '8-12'}
+                            onChange={(event) => updateDraft(exercise.id, { reps: event.target.value })}
+                          />
+                        </label>
+                        <label>
+                          Weight
+                          <input
+                            type="text"
+                            placeholder="e.g. 35kg"
+                            value={draft?.weight ?? ''}
+                            onChange={(event) => updateDraft(exercise.id, { weight: event.target.value })}
+                          />
+                        </label>
+                      </>
+                    )}
                   </div>
 
                   <label>
