@@ -97,7 +97,7 @@ export default function App() {
   /** Set when you load a saved routine so you know which program you’re following. */
   const [activeRoutineName, setActiveRoutineName] = useState<string | null>(null);
   const [expandedSavedPlanId, setExpandedSavedPlanId] = useState<string | null>(null);
-  /** When set, step 2 changes can be written back to this saved routine id. */
+  /** When set, step 1 (Moves) changes can be written back to this saved routine id. */
   const [editingSavedPlanId, setEditingSavedPlanId] = useState<string | null>(null);
 
   const allExercises = useMemo(
@@ -319,9 +319,9 @@ export default function App() {
     }
     const exerciseIds = [...selectedExerciseIds];
     if (exerciseIds.length === 0) {
-      setMessage('Add moves on Plan → Moves (tap “Add to today” on each card), then come back here to save.');
+      setMessage('Add moves on Plan → Moves (tap “Add to plan” on each card), then come back here to save.');
       setMainTab('plan');
-      setPlanStep(2);
+      setPlanStep(1);
       return;
     }
     const plan: SavedPlan = {
@@ -361,11 +361,11 @@ export default function App() {
     setExerciseDrafts(nextDrafts);
     setVisibleExerciseCount(24);
     setMainTab('plan');
-    setPlanStep(3);
+    setPlanStep(2);
     setActiveRoutineName(plan.name);
     setEditingSavedPlanId(null);
     setMessage(
-      `Loaded “${plan.name}” — ${validIds.length} moves. Open Workout sheet for the image tab, or log below.`,
+      `Loaded “${plan.name}” (${validIds.length} moves). Review the body map, then continue to Log & save when you’re ready.`,
     );
   }
 
@@ -393,7 +393,7 @@ export default function App() {
     setExerciseDrafts(nextDrafts);
     setVisibleExerciseCount(24);
     setMainTab('plan');
-    setPlanStep(2);
+    setPlanStep(1);
     setEditingSavedPlanId(plan.id);
     setActiveRoutineName(null);
     setMessage(`Editing “${plan.name}” — add or remove moves here, then Update routine.`);
@@ -450,7 +450,7 @@ export default function App() {
     }
     setExerciseDrafts(nextDrafts);
     setVisibleExerciseCount(24);
-    setPlanStep(2);
+    setPlanStep(1);
     setMessage(`Restored “${plan.name}” to your last saved version (edits discarded).`);
   }
 
@@ -484,7 +484,7 @@ export default function App() {
     persist(result.nextData);
     setSelectedExerciseIds([]);
     setExerciseDrafts({});
-    setPlanStep(2);
+    setPlanStep(1);
     setMainTab('activity');
     setActiveRoutineName(null);
     setEditingSavedPlanId(null);
@@ -511,7 +511,7 @@ export default function App() {
           </div>
           <div className="app-header-titles">
             <h1 className="app-title">Gym Flow</h1>
-            <p className="app-subtitle">Training planner · runs locally in your browser</p>
+            <p className="app-subtitle">Build a plan, check the map, then log · all in your browser</p>
           </div>
         </div>
       </header>
@@ -554,8 +554,8 @@ export default function App() {
           <>
             <div className="plan-stepper" role="tablist" aria-label="Plan steps">
               {([
-                [1 as const, 'Focus'],
-                [2 as const, 'Moves'],
+                [1 as const, 'Moves'],
+                [2 as const, 'Body map'],
                 [3 as const, 'Log & save'],
               ] as const).map(([n, label]) => (
                 <button
@@ -577,7 +577,7 @@ export default function App() {
                 <p className="editing-routine-banner-text">
                   Editing saved routine{' '}
                   <strong>{data.savedPlans.find((p) => p.id === editingSavedPlanId)?.name ?? ''}</strong> — change moves on
-                  step 2, then save.
+                  step 1 (Moves), then save.
                 </p>
                 <div className="editing-routine-banner-actions">
                   <button type="button" className="button button-small" onClick={updateSavedPlanFromSession}>
@@ -595,9 +595,10 @@ export default function App() {
                 <h2 className="panel-heading panel-heading--plain">My saved routines</h2>
                 <p className="panel-subtle saved-routines-hub-lead">
                   <strong>Workout sheet</strong> opens a <strong>new tab</strong> with images, history, and logging (same data as
-                  here). <strong>Log in planner</strong> loads this list into the Plan tab. <strong>Edit routine</strong> goes
-                  to Moves to add/remove moves, then <strong>Update routine</strong>. <strong>Review order</strong> expands the
-                  list on this page.
+                  here). <strong>Log in planner</strong> loads this list here and opens <strong>Body map</strong> (step 2), then
+                  you go to <strong>Log &amp; save</strong>. <strong>Edit routine</strong> goes to <strong>Moves</strong> to
+                  add/remove exercises, then <strong>Update routine</strong>. <strong>Review order</strong> expands the list on
+                  this page.
                 </p>
               </div>
               {activeRoutineName ? (
@@ -607,8 +608,8 @@ export default function App() {
               ) : null}
               {data.savedPlans.length === 0 ? (
                 <p className="empty-text saved-routines-empty">
-                  No saved routines yet. After you pick moves on step 2 (or 3), use <strong>Save new routine</strong> below to
-                  store this workout for later.
+                  No saved routines yet. After you pick moves (step 1) or finish logging (step 3), use{' '}
+                  <strong>Save new routine</strong> below to store this list for later.
                 </p>
               ) : (
                 <ul className="saved-routine-quick-list">
@@ -672,7 +673,7 @@ export default function App() {
               )}
             </section>
 
-            {(planStep === 2 || planStep === 3) && selectedExerciseIds.length > 0 ? (
+            {selectedExerciseIds.length > 0 ? (
               <section className="panel panel--compact save-routine-inline" aria-label="Save or update routine">
                 {editingSavedPlanId ? (
                   <>
@@ -722,7 +723,7 @@ export default function App() {
               </section>
             ) : null}
 
-            {planStep === 1 && (
+            {planStep === 2 && (
               <>
       <section className="panel panel--accent-top body-map-section" aria-label="Body map and plan filter">
         <div className="panel-title-row">
@@ -740,12 +741,12 @@ export default function App() {
           </button>
         </div>
         <p className="prose-lead">
-          The map uses the last <strong>{PRACTICE_WINDOW_DAYS} days</strong> of saved workouts: <strong>red</strong> = not
-          trained yet, <strong>orange</strong> = one logged session touching that area, <strong>green</strong> = two or more.
-          Each completed move counts toward the areas you check on that move’s card (defaults to all listed muscles). Tap a
-          region to filter the catalog; tap again to
-          deselect. With nothing selected, all groups show. Cardio and Mobility are the <strong>squares</strong> beside the
-          figure. Narrow by equipment on the <strong>Moves</strong> step. Past workouts: use <strong>Activity → Training history</strong>.
+          After you pick moves in <strong>step 1</strong>, use this map to see how your <strong>current plan</strong> lines up
+          with the last <strong>{PRACTICE_WINDOW_DAYS} days</strong> of logged work: <strong>red</strong> = not trained
+          recently, <strong>orange</strong> = one session, <strong>green</strong> = two or more. Tap a region to set a muscle
+          filter for the catalog—go <strong>Back to moves</strong> to add or swap exercises. With nothing selected, all groups
+          show. Cardio and Mobility are the <strong>squares</strong> beside the figure. Past workouts:{' '}
+          <strong>Activity → Training history</strong>.
         </p>
         <BodyMapFigure
           practiceCounts={practiceCounts}
@@ -766,7 +767,7 @@ export default function App() {
                   type="button"
                   className="chip chip-active"
                   onClick={() => toggleGroup(group)}
-                  title="Remove from today’s focus"
+                  title="Remove from muscle filter"
                 >
                   {group} ✕
                 </button>
@@ -776,15 +777,17 @@ export default function App() {
         </div>
       </section>
                 <div className="plan-wizard-footer">
-                  <span />
-                  <button type="button" className="button" onClick={() => setPlanStep(2)}>
-                    Next: pick moves
+                  <button type="button" className="button button-muted" onClick={() => setPlanStep(1)}>
+                    Back to moves
+                  </button>
+                  <button type="button" className="button" onClick={() => setPlanStep(3)}>
+                    Next: log &amp; save
                   </button>
                 </div>
               </>
             )}
 
-            {planStep === 2 && (
+            {planStep === 1 && (
               <>
       <section className="panel">
         <div className="panel-title-row">
@@ -803,6 +806,10 @@ export default function App() {
             aria-label="Search exercise catalog"
           />
         </div>
+        <p className="prose-lead" style={{ marginTop: '0.5rem' }}>
+          Start here: add exercises to your plan. On <strong>Body map</strong> you can see muscle balance and refine filters
+          before you log.
+        </p>
         <div
           className="equipment-pick"
           role="group"
@@ -936,7 +943,7 @@ export default function App() {
                   className={`button ${selected ? 'button-muted' : ''}`}
                   onClick={() => toggleExerciseInPlan(exercise.id)}
                 >
-                  {selected ? 'Remove' : 'Add to today'}
+                  {selected ? 'Remove' : 'Add to plan'}
                 </button>
               </article>
             );
@@ -954,11 +961,9 @@ export default function App() {
         )}
       </section>
                 <div className="plan-wizard-footer">
-                  <button type="button" className="button button-muted" onClick={() => setPlanStep(1)}>
-                    Back
-                  </button>
-                  <button type="button" className="button" onClick={() => setPlanStep(3)}>
-                    Next: log &amp; save
+                  <span />
+                  <button type="button" className="button" onClick={() => setPlanStep(2)}>
+                    Next: body map
                   </button>
                 </div>
               </>
@@ -968,11 +973,12 @@ export default function App() {
               <>
       <section className="panel panel--accent-top">
         <h2 className="panel-heading panel-heading--plain">
-          Today&apos;s plan <span className="panel-heading-meta">({planExercises.length} moves)</span>
+          Your plan <span className="panel-heading-meta">({planExercises.length} moves)</span>
         </h2>
         {planExercises.length > 0 ? (
           <p className="panel-subtle plan-log-hint">
-            Check <strong>Include when I save</strong> only for moves you actually do this session, then fill sets / weight.
+            Check <strong>Include when I save</strong> only for moves you actually perform in this session, then fill sets /
+            weight.
             Open <strong>Workout sheet</strong> from My saved routines if you prefer the full-screen log.
           </p>
         ) : null}
@@ -982,7 +988,7 @@ export default function App() {
               No moves in this plan yet. After you <strong>save a workout</strong>, the list clears so you can build the next
               one.
             </p>
-            <button type="button" className="button button-muted" onClick={() => setPlanStep(2)}>
+            <button type="button" className="button button-muted" onClick={() => setPlanStep(1)}>
               Go to Moves to add exercises
             </button>
           </div>
@@ -1085,7 +1091,7 @@ export default function App() {
       </section>
                 <div className="plan-wizard-footer">
                   <button type="button" className="button button-muted" onClick={() => setPlanStep(2)}>
-                    Back to moves
+                    Back to body map
                   </button>
                   <span />
                 </div>
@@ -1212,14 +1218,14 @@ export default function App() {
         <h2 className="panel-heading panel-heading--plain">Saved routines (same as Plan tab)</h2>
         <p className="panel-subtle">
           Your routines also appear at the top of the <strong>Plan</strong> tab for quick loading and <strong>Review order</strong>{' '}
-          between sets. Build moves on <strong>Plan → Moves</strong> (tap <strong>Add to today</strong>), then save here or use{' '}
+          between sets. Build your list on <strong>Plan → Moves</strong> (tap <strong>Add to plan</strong>), then save here or use{' '}
           <strong>Save new routine</strong> on the Plan tab.
         </p>
         <p className="saved-plan-session-count" role="status">
           Moves in your current plan:{' '}
           <strong>{selectedExerciseIds.length}</strong>
           {selectedExerciseIds.length === 0 ? (
-            <span className="saved-plan-session-hint"> — go to Plan → Moves first.</span>
+            <span className="saved-plan-session-hint"> — go to Plan and open step 1 (Moves) first.</span>
           ) : null}
         </p>
         <div className="saved-plan-create-row">
