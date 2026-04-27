@@ -8,7 +8,13 @@ import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
 import { isImportedHistorySessionId, isLegacySampleSessionId } from './utils/historySeed';
-import { migrateV1ToV2, STORAGE_V1, STORAGE_V2 } from './data/migrateStorage';
+import {
+  migrateV1ToV2,
+  normalizeSavedPlansExerciseIds,
+  resolvePlanExerciseIdsToCatalog,
+  STORAGE_V1,
+  STORAGE_V2,
+} from './data/migrateStorage';
 import {
   type CatalogSortMode,
   collectSortedUnique,
@@ -74,12 +80,19 @@ function loadData(): PersistedData {
   if (v2) {
     try {
       const parsed = JSON.parse(v2) as PersistedData;
-      return {
-        customExercises: parsed.customExercises ?? [],
+      const customExercises = parsed.customExercises ?? [];
+      const savedPlansRaw = parsed.savedPlans ?? [];
+      const savedPlans = normalizeSavedPlansExerciseIds(savedPlansRaw, customExercises);
+      const merged: PersistedData = {
+        customExercises,
         stats: parsed.stats ?? {},
         sessions: parsed.sessions ?? [],
-        savedPlans: parsed.savedPlans ?? [],
+        savedPlans,
       };
+      if (JSON.stringify(savedPlans) !== JSON.stringify(savedPlansRaw)) {
+        localStorage.setItem(STORAGE_V2, JSON.stringify(merged));
+      }
+      return merged;
     } catch {
       return defaultData;
     }
@@ -381,7 +394,7 @@ export default function App() {
   }
 
   function loadSavedPlanTemplate(plan: SavedPlan) {
-    const validIds = plan.exerciseIds.filter((id) => exerciseById.has(id));
+    const validIds = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
     if (validIds.length === 0) {
       setMessage('That template has no moves left in your library (IDs may have changed).');
       return;

@@ -44,6 +44,38 @@ function mergeStats(a: ExerciseStat, b: ExerciseStat): ExerciseStat {
   };
 }
 
+function dedupePreserveOrder(ids: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
+/**
+ * Map template exercise ids to the current catalog (wrkout ids + custom). Legacy v1 stock ids are
+ * resolved by name; ids not in the catalog are dropped.
+ */
+export function resolvePlanExerciseIdsToCatalog(exerciseIds: string[], catalog: Exercise[]): string[] {
+  const allowed = new Set(catalog.map((e) => e.id));
+  return dedupePreserveOrder(
+    exerciseIds
+      .map((id) => (allowed.has(id) ? id : mapV1ExerciseIdToV2(id, catalog)))
+      .filter((id) => allowed.has(id)),
+  );
+}
+
+export function normalizeSavedPlansExerciseIds(plans: SavedPlan[], customExercises: Exercise[]): SavedPlan[] {
+  const catalog = [...EXERCISE_LIBRARY, ...customExercises];
+  return plans.map((plan) => ({
+    ...plan,
+    exerciseIds: resolvePlanExerciseIdsToCatalog(plan.exerciseIds, catalog),
+  }));
+}
+
 /**
  * One-time in-browser migration: gym-flow-v1 (old stock ids) → gym-flow-v2 (wrkout ids) by name.
  */
@@ -70,7 +102,7 @@ export function migrateV1ToV2(raw: PersistedIn): Persisted {
     customExercises: raw.customExercises ?? [],
     stats,
     sessions,
-    savedPlans: raw.savedPlans ?? [],
+    savedPlans: normalizeSavedPlansExerciseIds(raw.savedPlans ?? [], raw.customExercises ?? []),
   };
 }
 
