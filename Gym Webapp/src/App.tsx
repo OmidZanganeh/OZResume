@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { BodyMapFigure } from './components/BodyMapFigure';
 import { HistoryBackfillPanel } from './components/HistoryBackfillPanel';
+import { WorkoutCalendar } from './components/WorkoutCalendar';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
@@ -754,6 +755,15 @@ export default function App() {
             <p>Total sets logged</p>
           </article>
         </div>
+      </section>
+
+      <section className="panel">
+        <h2>Workout calendar</h2>
+        <p className="empty-text" style={{ marginBottom: '0.65rem' }}>
+          Each day you saved a session shows in your local timezone. Orange = logged workouts; slate dashed = sample history
+          only. Hover a date for counts.
+        </p>
+        <WorkoutCalendar sessions={data.sessions} />
       </section>
 
       <section className="panel">
