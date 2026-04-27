@@ -381,10 +381,29 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell" aria-label="Gym Flow workout planner">
-      <section className="panel body-map-section" aria-label="Body map and plan filter">
+    <div className="app-layout">
+      <a className="skip-link" href="#app-main">
+        Skip to main content
+      </a>
+      <header className="app-header">
+        <div className="app-header-inner">
+          <div className="app-brand">
+            <span className="app-brand-mark" aria-hidden="true" />
+          </div>
+          <div className="app-header-titles">
+            <h1 className="app-title">Gym Flow</h1>
+            <p className="app-subtitle">Training planner · runs locally in your browser</p>
+          </div>
+        </div>
+      </header>
+
+      <main id="app-main" className="app-shell" aria-label="Gym Flow workout planner">
+      <section className="panel panel--accent-top body-map-section" aria-label="Body map and plan filter">
         <div className="panel-title-row">
-          <h2>1) Choose muscles for today</h2>
+          <h2 className="panel-heading">
+            <span className="panel-step">1</span>
+            Choose muscles for today
+          </h2>
           <button
             type="button"
             className="text-button"
@@ -397,7 +416,7 @@ export default function App() {
             Clear selection
           </button>
         </div>
-        <p className="empty-text" style={{ marginBottom: '0.65rem' }}>
+        <p className="prose-lead">
           The map uses the last <strong>{PRACTICE_WINDOW_DAYS} days</strong> of saved workouts: <strong>gray</strong> = not
           trained yet, <strong>orange</strong> = one logged session touching that area, <strong>green</strong> = two or more.
           Each completed plan entry counts (primary + secondary groups). Tap a region to filter the catalog; tap again to
@@ -502,7 +521,10 @@ export default function App() {
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>2) Pick moves ({catalogMatches.length} matches)</h2>
+          <h2 className="panel-heading">
+            <span className="panel-step">2</span>
+            Pick moves <span className="panel-heading-meta">({catalogMatches.length} matches)</span>
+          </h2>
           <input
             className="search-input"
             type="search"
@@ -624,8 +646,9 @@ export default function App() {
         )}
       </section>
 
-      <section className="panel">
-        <h2>Custom move (unlimited)</h2>
+      <section className="panel panel--compact">
+        <h2 className="panel-heading panel-heading--plain">Custom move</h2>
+        <p className="panel-subtle">Add unlimited personal exercises to your local library.</p>
         <form className="custom-form" onSubmit={handleAddCustomExercise}>
           <input
             className="text-input"
@@ -652,8 +675,11 @@ export default function App() {
         {message && <p className="status-text">{message}</p>}
       </section>
 
-      <section className="panel">
-        <h2>3) Today's plan ({planExercises.length} moves)</h2>
+      <section className="panel panel--accent-top">
+        <h2 className="panel-heading">
+          <span className="panel-step">3</span>
+          Today&apos;s plan <span className="panel-heading-meta">({planExercises.length} moves)</span>
+        </h2>
         {planExercises.length === 0 ? (
           <p className="empty-text">No moves in today&apos;s plan yet. Add some from the catalog.</p>
         ) : (
@@ -746,10 +772,10 @@ export default function App() {
       </section>
 
       {planExercises.length > 0 && (
-        <section className="sticky-save">
-          <div>
+        <section className="sticky-save" aria-label="Save workout">
+          <div className="sticky-save-copy">
             <strong>{planExercises.length} moves ready</strong>
-            <span>Tap save after your session</span>
+            <span>Save when you finish your session</span>
           </div>
           <button type="button" className="button" onClick={saveWorkout}>
             Save workout
@@ -758,7 +784,8 @@ export default function App() {
       )}
 
       <section className="panel">
-        <h2>Progress from day 1</h2>
+        <h2 className="panel-heading panel-heading--plain">Progress</h2>
+        <p className="panel-subtle">Totals since you started logging on this device.</p>
         <div className="stats-grid">
           <article className="stat-card">
             <h3>{totalWorkoutCount}</h3>
@@ -776,8 +803,8 @@ export default function App() {
       </section>
 
       <section className="panel">
-        <h2>Workout calendar</h2>
-        <p className="empty-text" style={{ marginBottom: '0.65rem' }}>
+        <h2 className="panel-heading panel-heading--plain">Workout calendar</h2>
+        <p className="prose-lead">
           Each day shows a <strong>color stripe</strong> for muscle areas you trained (from move primary + secondary groups).
           Several colors means several areas the same day. Orange border = includes a logged workout; slate dashed = legacy
           sample only. Hover a date for details.
@@ -785,8 +812,8 @@ export default function App() {
         <WorkoutCalendar sessions={data.sessions} allExercises={allExercises} />
       </section>
 
-      <section className="panel">
-        <h2>Recent sessions</h2>
+      <section className="panel panel--compact">
+        <h2 className="panel-heading panel-heading--plain">Recent sessions</h2>
         {recentSessions.length === 0 ? (
           <p className="empty-text">No sessions logged yet.</p>
         ) : (
@@ -812,8 +839,8 @@ export default function App() {
       </section>
 
       <section className="panel panel--data-reset" aria-label="Reset saved data">
-        <h2>Clear saved session data</h2>
-        <p className="empty-text" style={{ marginBottom: '0.65rem' }}>
+        <h2 className="panel-heading panel-heading--plain">Data</h2>
+        <p className="prose-lead">
           Removes workouts, per-move stats, custom exercises you added, and clears today&apos;s plan (muscle filters, equipment,
           and selected moves). Nothing is uploaded — data lives only in this browser.
         </p>
@@ -822,5 +849,6 @@ export default function App() {
         </button>
       </section>
     </main>
+    </div>
   );
 }
