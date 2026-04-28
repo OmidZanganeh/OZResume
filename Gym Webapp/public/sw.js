@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-flow-v3-safari-no-redirect-cache';
+const CACHE_NAME = 'gym-flow-v4-update';
 /** Must match Vite `base` in vite.config.ts */
 const BASE = '/gym-flow';
 
