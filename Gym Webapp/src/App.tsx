@@ -20,7 +20,7 @@ import {
   getMuscleImbalanceWarnings,
   getWeeklyWorkoutCounts,
 } from './utils/analysisHelpers';
-import { isImportedHistorySessionId, isLegacySampleSessionId } from './utils/historySeed';
+
 import {
   defaultGymData,
   loadPersistedGymData,
