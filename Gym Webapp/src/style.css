@@ -2990,7 +2990,14 @@ body {
     margin: 0.35in;
   }
   
-  #app, .bottom-nav, .view-header, .sticky-save, .sticky-nav { 
+  #app .app-header, 
+  #app .bottom-nav, 
+  #app .app-tabs, 
+  #app .view-header, 
+  #app .sticky-save, 
+  #app .view-back, 
+  #app .app-status-banner,
+  #app main.app-shell > *:not(#print-report) { 
     display: none !important; 
   }
 
