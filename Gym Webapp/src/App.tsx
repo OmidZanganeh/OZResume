@@ -240,7 +240,7 @@ export default function App() {
   const [showReportPreview, setShowReportPreview] = useState(false);
 
   const handleDownloadImage = async () => {
-    const el = document.getElementById('print-report');
+    const el = document.getElementById('report-to-capture');
     if (!el) return;
     
     try {
@@ -1178,33 +1178,34 @@ export default function App() {
     {showReportPreview && (
       <div className="prl-preview-modal">
         <div className="prl-preview-content">
-          <PrintReport 
-            data={{
-              profile: { 
-                name: reportProfile.name || '', 
-                weight: reportProfile.weight || '', 
-                weightUnit: reportProfile.weightUnit || 'kg', 
-                height: reportProfile.height || '', 
-                heightUnit: reportProfile.heightUnit || 'cm', 
-                age: reportProfile.age || '' 
-              },
-              totalWorkouts: totalWorkoutCount,
-              totalSets: totalTrackedSets,
-              totalCompletions: totalExerciseCompletions,
-              streak,
-              consistency,
-              analysisDays,
-              analysisCounts,
-              ppl: pplBalance,
-              topExercises,
-              neglectedMuscles,
-              recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
-              weeklyData,
-              warnings: imbalanceWarnings,
-            }}
-            selectedGroups={selectedGroups}
-            className="prl-visible"
-          />
+          <div className="prl-visible" id="report-to-capture">
+            <PrintReport 
+              data={{
+                profile: { 
+                  name: reportProfile.name || '', 
+                  weight: reportProfile.weight || '', 
+                  weightUnit: reportProfile.weightUnit || 'kg', 
+                  height: reportProfile.height || '', 
+                  heightUnit: reportProfile.heightUnit || 'cm', 
+                  age: reportProfile.age || '' 
+                },
+                totalWorkouts: totalWorkoutCount,
+                totalSets: totalTrackedSets,
+                totalCompletions: totalExerciseCompletions,
+                streak,
+                consistency,
+                analysisDays,
+                analysisCounts,
+                ppl: pplBalance,
+                topExercises,
+                neglectedMuscles,
+                recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
+                weeklyData,
+                warnings: imbalanceWarnings,
+              }}
+              selectedGroups={selectedGroups}
+            />
+          </div>
         </div>
         <div className="prl-preview-actions">
           <button className="button" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--gf-border)' }}
