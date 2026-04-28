@@ -158,7 +158,8 @@ export default function App() {
   const groupedSessions = useMemo(() => {
     const map = new Map<string, { date: string; groups: MuscleGroup[]; entries: number; id: string }>();
     for (const s of data.sessions) {
-      const day = s.date.split('T')[0];
+      const d = new Date(s.date);
+      const day = isNaN(d.getTime()) ? s.date.split('T')[0] : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (!map.has(day)) {
         map.set(day, { date: s.date, groups: [...s.groups], entries: s.entries.length, id: s.id });
       } else {
