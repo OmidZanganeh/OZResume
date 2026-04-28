@@ -154,7 +154,24 @@ export default function App() {
   const totalWorkoutCount = data.sessions.length;
   const totalExerciseCompletions = Object.values(data.stats).reduce((t, s) => t + s.timesCompleted, 0);
   const totalTrackedSets = Object.values(data.stats).reduce((t, s) => t + s.totalSets, 0);
-  const recentSessions = data.sessions.slice(0, 5);
+  
+  const groupedSessions = useMemo(() => {
+    const map = new Map<string, { date: string; groups: MuscleGroup[]; entries: number; id: string }>();
+    for (const s of data.sessions) {
+      const day = s.date.split('T')[0];
+      if (!map.has(day)) {
+        map.set(day, { date: s.date, groups: [...s.groups], entries: s.entries.length, id: s.id });
+      } else {
+        const existing = map.get(day)!;
+        existing.entries += s.entries.length;
+        const combinedGroups = new Set([...existing.groups, ...s.groups]);
+        existing.groups = Array.from(combinedGroups);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
+  }, [data.sessions]);
+
+  const recentSessions = groupedSessions.slice(0, 5);
 
   const practiceCounts = useMemo(
     () => getPracticeCountsInWindow(data.sessions, exerciseById, PRACTICE_WINDOW_DAYS),
@@ -949,12 +966,11 @@ export default function App() {
               ) : (
                 <div className="small-list">
                   {recentSessions.map((session) => (
-                    <div key={session.id} className="small-list-row">
+                    <div key={session.date} className="small-list-row">
                       <span>
                         {formatDate(session.date)}{' '}
                         <small>
-                          {isLegacySampleSessionId(session.id) ? 'sample · ' : isImportedHistorySessionId(session.id) ? 'imported · ' : ''}
-                          {session.entries.length} moves
+                          {session.entries} moves
                         </small>
                       </span>
                       <small>{session.groups.join(', ')}</small>
@@ -1121,7 +1137,7 @@ export default function App() {
       ppl: pplBalance,
       topExercises,
       neglectedMuscles,
-      recentSessions: data.sessions.slice(0, 10).map(s => ({ date: s.date, groups: s.groups, entries: s.entries.length })),
+      recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
       weeklyData,
       warnings: imbalanceWarnings,
     }} />
