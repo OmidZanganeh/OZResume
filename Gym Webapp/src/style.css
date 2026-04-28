@@ -3107,9 +3107,18 @@ body {
   }
 
   .prl-body-map-wrap {
-    transform: scale(0.8);
+    transform: scale(0.68);
     transform-origin: center center;
-    margin: -1rem 0;
+    margin: -4rem 0;
+  }
+
+  .prl-body-map-wrap .body-map-row {
+    flex-wrap: nowrap !important;
+    gap: 0.4rem !important;
+  }
+
+  .prl-body-map-wrap .body-map-figure {
+    flex: 0 0 140px !important;
   }
 
   .prl-table {
