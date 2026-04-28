@@ -140,22 +140,9 @@ export function WorkoutCalendar({ sessions, allExercises, onDayClick }: Props) {
     [cursor.year, cursor.month],
   );
 
-  const lastSession = useMemo(() => {
-    if (!sessions.length) return null;
-    // sessions are usually sorted descending by date
-    return sessions[0];
+  const lastThreeSessions = useMemo(() => {
+    return sessions.slice(0, 3);
   }, [sessions]);
-
-  const hitInLastSession = useMemo(() => {
-    if (!lastSession) return new Set<MuscleGroup>();
-    const groups = muscleGroupsForSession(lastSession, exerciseById);
-    return new Set(groups);
-  }, [lastSession, exerciseById]);
-
-  const lastSessionLabel = useMemo(() => {
-    if (!lastSession) return null;
-    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(lastSession.date));
-  }, [lastSession]);
 
   const todayKey = localTodayKey();
 
@@ -282,32 +269,29 @@ export function WorkoutCalendar({ sessions, allExercises, onDayClick }: Props) {
       </div>
 
       <div className="workout-cal-legend workout-cal-legend--muscles">
-        {lastSessionLabel ? (
+        {lastThreeSessions.length > 0 ? (
           <>
-            {/* Compact muscle chip grid acting as visual legend */}
-            <p className="workout-cal-legend-heading">Trained in last session ({lastSessionLabel})</p>
-            <div className="cal-muscle-legend-grid">
-              {MUSCLE_GROUPS.filter(g => g !== 'Cardio' && g !== 'Mobility').map((g) => {
-                const hit = hitInLastSession.has(g);
+            <p className="workout-cal-legend-heading">Recent Workouts</p>
+            <div className="cal-recent-sessions">
+              {lastThreeSessions.map((s, idx) => {
+                const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(s.date));
+                const groups = muscleGroupsForSession(s, exerciseById);
+                const isLegacy = isLegacySampleSessionId(s.id);
                 return (
-                  <span key={g} className={`cal-legend-chip ${hit ? 'cal-legend-chip--hit' : 'cal-legend-chip--miss'}`}>
-                    <span className="cal-legend-chip-dot" style={{ background: hit ? MUSCLE_GROUP_CALENDAR_COLOR[g] : 'var(--gf-surface-2)', border: `2px solid ${hit ? MUSCLE_GROUP_CALENDAR_COLOR[g] : '#ef4444'}` }} />
-                    {g}
-                  </span>
+                  <div key={idx} className="cal-recent-session-card">
+                    <div className="cal-recent-session-date">{dateLabel}</div>
+                    <div className="cal-recent-session-body">
+                      <div className="cal-recent-session-title">
+                        {groups.length > 0 ? groups.join(' & ') : 'Mixed Focus'}
+                      </div>
+                      <div className="cal-recent-session-meta">
+                        {isLegacy ? 'Legacy Sample' : `${s.entries.length} exercises`}
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
-            {/* Cardio / Mobility chips */}
-            {(['Cardio', 'Mobility'] as MuscleGroup[]).some(g => hitInLastSession.has(g)) && (
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                {(['Cardio', 'Mobility'] as MuscleGroup[]).filter(g => hitInLastSession.has(g)).map(g => (
-                  <span key={g} className="cal-legend-chip cal-legend-chip--hit">
-                    <span className="cal-legend-chip-dot" style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g], border: `2px solid ${MUSCLE_GROUP_CALENDAR_COLOR[g]}` }} />
-                    {g}
-                  </span>
-                ))}
-              </div>
-            )}
           </>
         ) : (
           <>
