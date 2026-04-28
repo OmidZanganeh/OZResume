@@ -9,7 +9,17 @@ import { MuscleTargetPick } from './components/MuscleTargetPick';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
-import { MUSCLE_GROUP_CALENDAR_COLOR } from './components/calendarMuscleColors';
+import { MUSCLE_GROUP_CALENDAR_COLOR, PUSH_MUSCLES, PULL_MUSCLES, LEGS_MUSCLES, CORE_MUSCLES } from './components/calendarMuscleColors';
+import { PrintReport } from './components/PrintReport';
+import {
+  computeStreak,
+  computeConsistency,
+  getPushPullLegsBalance,
+  getTopExercises,
+  getNeglectedMuscles,
+  getMuscleImbalanceWarnings,
+  getWeeklyWorkoutCounts,
+} from './utils/analysisHelpers';
 import { isImportedHistorySessionId, isLegacySampleSessionId } from './utils/historySeed';
 import {
   defaultGymData,
@@ -100,6 +110,10 @@ export default function App() {
   const [newExerciseGroup, setNewExerciseGroup] = useState<MuscleGroup>('Chest');
   const [message, setMessage] = useState('');
   const [analysisDays, setAnalysisDays] = useState(10);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportProfile, setReportProfile] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('gf-profile') || '{}'); } catch { return {}; }
+  });
   const [exerciseImages, setExerciseImages] = useState<Record<string, ExerciseImageMeta>>({});
   const [catalogSort, setCatalogSort] = useState<CatalogSortMode>('gym');
   const [filterWrkoutCategory, setFilterWrkoutCategory] = useState('all');
@@ -151,6 +165,17 @@ export default function App() {
     () => getPracticeCountsInWindow(data.sessions, exerciseById, analysisDays),
     [data.sessions, exerciseById, analysisDays],
   );
+
+  // ── Advanced analytics ──────────────────────────────────────────────
+  const streak = useMemo(() => computeStreak(data.sessions), [data.sessions]);
+  const consistency = useMemo(() => computeConsistency(data.sessions, analysisDays), [data.sessions, analysisDays]);
+  const pplBalance = useMemo(() => getPushPullLegsBalance(analysisCounts), [analysisCounts]);
+  const topExercises = useMemo(() => getTopExercises(data.stats, exerciseById, 8), [data.stats, exerciseById]);
+  const neglectedMuscles = useMemo(() => getNeglectedMuscles(analysisCounts, MUSCLE_GROUPS), [analysisCounts]);
+  const imbalanceWarnings = useMemo(() => getMuscleImbalanceWarnings(pplBalance), [pplBalance]);
+  const weeklyData = useMemo(() => getWeeklyWorkoutCounts(data.sessions, 12), [data.sessions]);
+  const pplMax = useMemo(() => Math.max(pplBalance.push, pplBalance.pull, pplBalance.legs, pplBalance.core, 1), [pplBalance]);
+
   const trainedGroupsCount = useMemo(
     () => MUSCLE_GROUPS.filter((g) => (practiceCounts instanceof Map ? (practiceCounts.get(g) ?? 0) : ((practiceCounts as Record<string, number>)[g] ?? 0)) > 0).length,
     [practiceCounts],
@@ -797,11 +822,14 @@ export default function App() {
             </section>
 
             <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">Progress</h2>
+              <h2 className="panel-heading panel-heading--plain">Overview</h2>
               <div className="stats-grid">
                 <article className="stat-card"><h3>{totalWorkoutCount}</h3><p>Workouts</p></article>
-                <article className="stat-card"><h3>{totalExerciseCompletions}</h3><p>Completions</p></article>
-                <article className="stat-card"><h3>{totalTrackedSets}</h3><p>Sets</p></article>
+                <article className="stat-card"><h3>{totalTrackedSets}</h3><p>Total Sets</p></article>
+                <article className="stat-card stat-card--accent"><h3>{streak.current}</h3><p>🔥 Streak</p></article>
+                <article className="stat-card"><h3>{streak.longest}</h3><p>Best Streak</p></article>
+                <article className="stat-card"><h3>{consistency}%</h3><p>Consistency ({analysisDays}d)</p></article>
+                <article className="stat-card"><h3>{trainedGroupsCount}</h3><p>Muscles Hit (10d)</p></article>
               </div>
             </section>
 
@@ -821,10 +849,62 @@ export default function App() {
             </section>
 
             <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Weekly Frequency</h2>
+              <p className="panel-subtle">Workouts per week — last 12 weeks</p>
+              <div className="weekly-chart">
+                {weeklyData.map((w, i) => {
+                  const maxC = Math.max(...weeklyData.map(x => x.count), 1);
+                  const pct = (w.count / maxC) * 100;
+                  return (
+                    <div key={i} className="weekly-bar-col">
+                      <span className="weekly-bar-count">{w.count > 0 ? w.count : ''}</span>
+                      <div className="weekly-bar-track">
+                        <div className="weekly-bar-fill" style={{ height: `${Math.max(pct, w.count > 0 ? 4 : 0)}%`, background: w.count === 0 ? 'var(--gf-surface-2)' : 'var(--gf-accent)' }} />
+                      </div>
+                      <span className="weekly-bar-label">{w.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Push / Pull / Legs / Core</h2>
+              <p className="panel-subtle">Movement pattern balance for this period</p>
+              <div className="ppl-grid">
+                {[ 
+                  { label: 'Push', val: pplBalance.push, color: '#ea580c', muscles: 'Chest, Shoulders, Triceps' },
+                  { label: 'Pull', val: pplBalance.pull, color: '#2563eb', muscles: 'Back, Biceps, Forearms' },
+                  { label: 'Legs', val: pplBalance.legs, color: '#16a34a', muscles: 'Quads, Hamstrings, Glutes, Calves' },
+                  { label: 'Core', val: pplBalance.core, color: '#65a30d', muscles: 'Core' },
+                ].map(({ label, val, color, muscles }) => (
+                  <div key={label} className="ppl-card">
+                    <div className="ppl-card-header">
+                      <span className="ppl-label" style={{ color }}>{label}</span>
+                      <span className="ppl-val">{val}d</span>
+                    </div>
+                    <div className="ppl-bar-track">
+                      <div className="ppl-bar-fill" style={{ width: `${(val / pplMax) * 100}%`, background: color }} />
+                    </div>
+                    <span className="ppl-muscles">{muscles}</span>
+                  </div>
+                ))}
+              </div>
+              {imbalanceWarnings.length > 0 && (
+                <div className="imbalance-warnings">
+                  {imbalanceWarnings.map((w, i) => (
+                    <div key={i} className="imbalance-warning-item">⚠️ {w}</div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
               <p className="panel-subtle">Visual balance of your training for this period.</p>
               <MuscleSpider counts={analysisCounts} />
             </section>
+
 
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Workout Calendar</h2>
@@ -889,12 +969,78 @@ export default function App() {
                 </div>
               )}
             </section>
+
+            {topExercises.length > 0 && (
+              <section className="panel panel--compact">
+                <h2 className="panel-heading panel-heading--plain">Top Exercises (All Time)</h2>
+                <div className="top-exercises-list">
+                  {topExercises.map((ex, i) => (
+                    <div key={i} className="top-exercise-row">
+                      <span className="top-exercise-rank">#{i + 1}</span>
+                      <span className="top-exercise-name">{ex.name}</span>
+                      <span className="top-exercise-stats">{ex.count} sessions · {ex.sets} sets</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </>
         )}
 
         {/* ── SETTINGS ──────────────────────────────────────────────── */}
         {view === 'library' && (
           <>
+            <section className="panel panel--compact">
+              <h2 className="panel-heading panel-heading--plain">Your Profile</h2>
+              <p className="panel-subtle">Used for your PDF training report (stored locally).</p>
+              <div className="profile-form">
+                <label className="profile-field">
+                  <span>Name</span>
+                  <input className="text-input" type="text" placeholder="e.g. Alex Smith" value={reportProfile.name || ''}
+                    onChange={e => { const p = { ...reportProfile, name: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <label className="profile-field">
+                    <span>Weight</span>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <input className="text-input" type="text" placeholder="75" style={{ flex: 1 }} value={reportProfile.weight || ''}
+                        onChange={e => { const p = { ...reportProfile, weight: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
+                      <select className="select-input" style={{ width: 56 }} value={reportProfile.weightUnit || 'kg'}
+                        onChange={e => { const p = { ...reportProfile, weightUnit: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }}>
+                        <option>kg</option><option>lbs</option>
+                      </select>
+                    </div>
+                  </label>
+                  <label className="profile-field">
+                    <span>Height</span>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <input className="text-input" type="text" placeholder="175" style={{ flex: 1 }} value={reportProfile.height || ''}
+                        onChange={e => { const p = { ...reportProfile, height: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
+                      <select className="select-input" style={{ width: 56 }} value={reportProfile.heightUnit || 'cm'}
+                        onChange={e => { const p = { ...reportProfile, heightUnit: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }}>
+                        <option>cm</option><option>ft</option>
+                      </select>
+                    </div>
+                  </label>
+                </div>
+                <label className="profile-field">
+                  <span>Age</span>
+                  <input className="text-input" type="text" placeholder="28" value={reportProfile.age || ''}
+                    onChange={e => { const p = { ...reportProfile, age: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
+                </label>
+              </div>
+            </section>
+
+            <section className="panel panel--compact">
+              <h2 className="panel-heading panel-heading--plain">Export PDF Report</h2>
+              <p className="panel-subtle">Generate a beautiful training performance report. A print dialog will open — choose "Save as PDF".</p>
+              <button type="button" className="button button-block" style={{ marginTop: '0.75rem', background: 'linear-gradient(135deg, var(--gf-accent), #7c3aed)', border: 'none', fontWeight: 700, letterSpacing: '0.04em' }}
+                onClick={() => window.print()}>
+                📄 Export Report as PDF
+              </button>
+            </section>
+
+
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Custom moves</h2>
               <p className="panel-subtle">Add personal exercises to your library.</p>
@@ -967,5 +1113,23 @@ export default function App() {
         </nav>
       )}
     </div>
+
+    {/* Hidden print report — shown only via @media print */}
+    <PrintReport data={{
+      profile: { name: reportProfile.name || '', weight: reportProfile.weight || '', weightUnit: reportProfile.weightUnit || 'kg', height: reportProfile.height || '', heightUnit: reportProfile.heightUnit || 'cm', age: reportProfile.age || '' },
+      totalWorkouts: totalWorkoutCount,
+      totalSets: totalTrackedSets,
+      totalCompletions: totalExerciseCompletions,
+      streak,
+      consistency,
+      analysisDays,
+      analysisCounts,
+      ppl: pplBalance,
+      topExercises,
+      neglectedMuscles,
+      recentSessions: data.sessions.slice(0, 10).map(s => ({ date: s.date, groups: s.groups, entries: s.entries.length })),
+      weeklyData,
+      warnings: imbalanceWarnings,
+    }} />
   );
 }

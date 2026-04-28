@@ -17,6 +17,11 @@ export const MUSCLE_GROUP_CALENDAR_COLOR: Record<MuscleGroup, string> = {
   Mobility: '#6366f1',
 };
 
+export const PUSH_MUSCLES: MuscleGroup[] = ['Chest', 'Shoulders', 'Triceps'];
+export const PULL_MUSCLES: MuscleGroup[] = ['Back', 'Biceps', 'Forearms'];
+export const LEGS_MUSCLES: MuscleGroup[] = ['Quads', 'Hamstrings', 'Glutes', 'Calves'];
+export const CORE_MUSCLES: MuscleGroup[] = ['Core'];
+
 export function sortMuscleGroupsForDisplay(groups: Iterable<MuscleGroup>): MuscleGroup[] {
   const set = new Set(groups);
   return MUSCLE_GROUPS.filter((g) => set.has(g));
