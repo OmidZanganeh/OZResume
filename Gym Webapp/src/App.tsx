@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 import type { FormEvent } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { BodyMapFigure } from './components/BodyMapFigure';
@@ -148,6 +150,49 @@ export default function App() {
   }, [allExercises, catalogSort, data.stats, filterWrkoutCategory, selectedEquipment, searchTerm, selectedGroups]);
 
   const visibleExercises = useMemo(() => catalogMatches.slice(0, visibleExerciseCount), [catalogMatches, visibleExerciseCount]);
+
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('print-report');
+    if (!element) return;
+
+    // Temporarily make it visible for the tool, but keep it off-screen
+    const originalStyle = element.style.display;
+    element.style.display = 'flex';
+    element.style.position = 'fixed';
+    element.style.left = '-9999px';
+    element.style.top = '0';
+    element.style.width = '1120px'; // Approx width for landscape
+    element.style.height = '790px'; // Approx height for landscape
+    element.style.visibility = 'visible';
+
+    const opt = {
+      margin: 0,
+      filename: `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, 
+        logging: false,
+        backgroundColor: '#07080c' 
+      },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
+    };
+
+    try {
+      await html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error('PDF Generation Error:', err);
+      alert('Could not generate PDF. Please try the standard Print option instead.');
+    } finally {
+      element.style.display = originalStyle;
+      element.style.position = '';
+      element.style.left = '';
+      element.style.top = '';
+      element.style.width = '';
+      element.style.height = '';
+      element.style.visibility = '';
+    }
+  };
   const planExercises = useMemo(
     () => selectedExerciseIds.map((id) => exerciseById.get(id)).filter((e): e is Exercise => !!e),
     [exerciseById, selectedExerciseIds],
@@ -1046,10 +1091,10 @@ export default function App() {
 
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Export PDF Report</h2>
-              <p className="panel-subtle">Generate a beautiful training performance report. A print dialog will open — choose "Save as PDF".</p>
+              <p className="panel-subtle">Generate a beautiful training performance report as a direct download.</p>
               <button type="button" className="button button-block" style={{ marginTop: '0.75rem', background: 'linear-gradient(135deg, var(--gf-accent), #7c3aed)', border: 'none', fontWeight: 700, letterSpacing: '0.04em' }}
-                onClick={() => window.print()}>
-                📄 Export Report as PDF
+                onClick={handleDownloadPDF}>
+                📄 Download Report as PDF
               </button>
             </section>
 

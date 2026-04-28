@@ -17,6 +17,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "body-muscles": "^1.0.0",
+    "html2pdf.js": "^0.14.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "resume-site": "file:.."
