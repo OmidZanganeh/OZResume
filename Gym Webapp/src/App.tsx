@@ -40,7 +40,7 @@ import {
 import { buildPresetPlans } from './data/presetPlans';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
-import { getRecentLogsForExercise } from './utils/sessionExerciseHistory';
+
 import {
   candidateMuscleGroupsForExercise,
   getDefaultDraft,
