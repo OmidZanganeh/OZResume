@@ -3096,6 +3096,47 @@ body {
   .pr-section-full .body-map-credit { display: none; }
 }
 
+/* -- Day Activity Modal ----------------------------- */
+.workout-cal-cell--clickable {
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s, border-color 0.2s;
+}
+.workout-cal-cell--clickable:hover,
+.workout-cal-cell--clickable:focus {
+  transform: translateY(-2px);
+  border-color: var(--gf-accent);
+  background-color: var(--gf-surface-2);
+  outline: none;
+}
+
+.day-modal-content {
+  max-width: 500px;
+}
+.day-modal-session-card {
+  background: var(--gf-surface-2);
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.day-modal-session-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.day-modal-session-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.day-modal-session-meta {
+  font-size: 0.85rem;
+  color: var(--gf-text-muted);
+}
+
 /* -- Mobile Input Zoom Fix ----------------------------- */
 /* iOS Safari zooms in if font-size < 16px. Setting to 16px prevents this. */
 @media screen and (max-width: 768px) {

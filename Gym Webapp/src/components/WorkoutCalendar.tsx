@@ -114,9 +114,10 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 type Props = {
   sessions: Session[];
   allExercises: Exercise[];
+  onDayClick?: (dateKey: string) => void;
 };
 
-export function WorkoutCalendar({ sessions, allExercises }: Props) {
+export function WorkoutCalendar({ sessions, allExercises, onDayClick }: Props) {
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
     return { year: n.getFullYear(), month: n.getMonth() };
@@ -243,11 +244,20 @@ export function WorkoutCalendar({ sessions, allExercises }: Props) {
                     onlySample ? 'workout-cal-cell--sample' : '',
                     mixed ? 'workout-cal-cell--mixed' : '',
                     isToday ? 'workout-cal-cell--today' : '',
+                    onDayClick ? 'workout-cal-cell--clickable' : '',
                   ]
                     .filter(Boolean)
                     .join(' ')}
-                  role="gridcell"
+                  role={onDayClick ? 'button' : 'gridcell'}
+                  tabIndex={onDayClick ? 0 : undefined}
                   title={title}
+                  onClick={() => onDayClick?.(key)}
+                  onKeyDown={(e) => {
+                    if (onDayClick && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      onDayClick(key);
+                    }
+                  }}
                 >
                   <span className="workout-cal-daynum">{day}</span>
                   {hasWorkout && groupsStripe.length > 0 ? (

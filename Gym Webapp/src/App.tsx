@@ -11,6 +11,7 @@ import { getExerciseImageMap, type ExerciseImageMeta } from './services/exercise
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './components/calendarMuscleColors';
 import { PrintReport } from './components/PrintReport';
+import { DayActivityModal } from './components/DayActivityModal';
 import {
   computeStreak,
   computeConsistency,
@@ -126,6 +127,7 @@ export default function App() {
     'Targeted Growth': true,
     'Targeted Isolation (Single Muscle)': true
   });
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -901,7 +903,7 @@ export default function App() {
 
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Workout Calendar</h2>
-              <WorkoutCalendar sessions={data.sessions} allExercises={allExercises} />
+              <WorkoutCalendar sessions={data.sessions} allExercises={allExercises} onDayClick={setSelectedCalendarDay} />
             </section>
 
             <section className="panel">
@@ -1142,6 +1144,17 @@ export default function App() {
       weeklyData,
       warnings: imbalanceWarnings,
     }} selectedGroups={selectedGroups} />
+
+    {selectedCalendarDay && (
+      <DayActivityModal
+        dateKey={selectedCalendarDay}
+        sessions={data.sessions}
+        allExercises={allExercises}
+        savedPlans={data.savedPlans}
+        onClose={() => setSelectedCalendarDay(null)}
+        onPersist={({ sessions: s, stats: st }) => persist({ ...data, sessions: s, stats: st })}
+      />
+    )}
     </>
   );
 }
