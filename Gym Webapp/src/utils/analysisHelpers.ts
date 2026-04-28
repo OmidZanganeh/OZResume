@@ -77,12 +77,33 @@ export function computeStreak(sessions: WorkoutSession[]): { current: number; lo
   return { current, longest };
 }
 
-/** Consistency score: % of days with workout in the period */
+/** Consistency score: % of days in the period that are part of an active streak (3-day rule) */
 export function computeConsistency(sessions: WorkoutSession[], days: number): number {
-  const cutoff = Date.now() - days * 86400000;
-  const sessionsInPeriod = sessions.filter(s => new Date(s.date).getTime() >= cutoff);
-  const uniqueDays = new Set(sessionsInPeriod.map(s => toDayKey(new Date(s.date))));
-  return Math.round((uniqueDays.size / days) * 100);
+  const daySet = new Set(sessions.map(s => toDayKey(new Date(s.date))));
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  
+  let coveredCount = 0;
+  for (let i = 0; i < days; i++) {
+    const d = new Date(now.getTime() - i * 86400000);
+    const dKey = toDayKey(d);
+    
+    // Day is covered if it has a workout OR if a workout exists in the 2 days PRIOR to it
+    // Wait, let's check the window properly.
+    // If user works out on Day T, then T+1 and T+2 are "covered".
+    // So for any day D, we check D, D-1, D-2.
+    let covered = false;
+    for (let j = 0; j < 3; j++) {
+      const checkDate = new Date(d.getTime() - j * 86400000);
+      if (daySet.has(toDayKey(checkDate))) {
+        covered = true;
+        break;
+      }
+    }
+    if (covered) coveredCount++;
+  }
+  
+  return Math.round((coveredCount / days) * 100);
 }
 
 /** Push/Pull/Legs/Core/Other breakdown */
