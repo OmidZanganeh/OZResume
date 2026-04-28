@@ -1119,6 +1119,10 @@ export default function App() {
             <span className="bnav-icon">📊</span>
             <span className="bnav-label">Activity</span>
           </button>
+          <button className={`bnav-btn ${view === 'report' ? 'bnav-btn--active' : ''}`} onClick={() => setView('report')}>
+            <span className="bnav-icon">📜</span>
+            <span className="bnav-label">Report</span>
+          </button>
           <button className={`bnav-btn ${view === 'library' ? 'bnav-btn--active' : ''}`} onClick={() => setView('library')}>
             <span className="bnav-icon">⚙️</span>
             <span className="bnav-label">Settings</span>
@@ -1126,6 +1130,31 @@ export default function App() {
         </nav>
       )}
     </div>
+
+    {view === 'report' && (
+      <div className="in-app-report-wrapper">
+        <PrintReport 
+          className="in-app-view"
+          data={{
+            profile: { name: reportProfile.name || '', weight: reportProfile.weight || '', weightUnit: reportProfile.weightUnit || 'kg', height: reportProfile.height || '', heightUnit: reportProfile.heightUnit || 'cm', age: reportProfile.age || '' },
+            totalWorkouts: totalWorkoutCount,
+            totalSets: totalTrackedSets,
+            totalCompletions: totalExerciseCompletions,
+            streak,
+            consistency,
+            analysisDays,
+            analysisCounts,
+            ppl: pplBalance,
+            topExercises,
+            neglectedMuscles,
+            recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
+            weeklyData,
+            warnings: imbalanceWarnings,
+          }} 
+          selectedGroups={selectedGroups} 
+        />
+      </div>
+    )}
 
     {/* Hidden print report — shown only via @media print */}
     <PrintReport data={{

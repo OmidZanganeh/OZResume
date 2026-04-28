@@ -131,7 +131,7 @@ function PPLDonut({ ppl }: { ppl: { push: number; pull: number; legs: number; co
   );
 }
 
-export function PrintReport({ data, selectedGroups }: { data: ReportData, selectedGroups: MuscleGroup[] }) {
+export function PrintReport({ data, selectedGroups, className }: { data: ReportData, selectedGroups: MuscleGroup[], className?: string }) {
   const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const hasBMI = data.profile.weight && data.profile.height;
   let bmi: number | null = null;
@@ -153,7 +153,7 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
   const balanceInsight = data.neglectedMuscles.length < 2 ? 'Excellent Balance' : 'Focus Needed';
 
   return (
-    <div id="print-report">
+    <div id="print-report" className={className}>
 
       {/* ── HEADER STRIP ──────────────────────────────────────────── */}
       <div className="prl-header">
