@@ -3172,3 +3172,22 @@ body {
   border-top: 1px solid rgba(255,255,255,0.05);
   padding-top: 0.75rem;
 }
+
+/* -- Mobile Input Zoom Fix ----------------------------- */
+/* iOS Safari zooms in if font-size < 16px. Setting to 16px prevents this. */
+@media screen and (max-width: 768px) {
+  .text-input,
+  .select-input,
+  .search-input,
+  .profile-form input,
+  .custom-form input,
+  .plan-grid input,
+  .plan-card input,
+  input[type="text"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
