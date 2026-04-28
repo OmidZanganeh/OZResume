@@ -161,9 +161,15 @@ export function PrintReport({ data }: { data: ReportData }) {
   let bmi: number | null = null;
   if (hasBMI) {
     const weightKg = data.profile.weightUnit === 'lbs' ? parseFloat(data.profile.weight) * 0.453592 : parseFloat(data.profile.weight);
-    const heightCm = data.profile.heightUnit === 'ft'
-      ? parseFloat(data.profile.height.replace(/['"]/g, '').replace("'", '.')) * 30.48
-      : parseFloat(data.profile.height);
+    let heightCm = 0;
+    if (data.profile.heightUnit === 'ft') {
+      const parts = data.profile.height.split("'");
+      const ft = parseFloat(parts[0] || '0');
+      const inch = parseFloat(parts[1] || '0');
+      heightCm = (ft * 12 + inch) * 2.54;
+    } else {
+      heightCm = parseFloat(data.profile.height);
+    }
     bmi = weightKg / Math.pow(heightCm / 100, 2);
   }
 

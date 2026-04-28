@@ -996,8 +996,27 @@ export default function App() {
                   <label className="profile-field">
                     <span>Height</span>
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <input className="text-input" type="text" placeholder="175" style={{ flex: 1 }} value={reportProfile.height || ''}
-                        onChange={e => { const p = { ...reportProfile, height: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
+                      {reportProfile.heightUnit === 'ft' ? (
+                        <>
+                          <input className="text-input" type="number" placeholder="5" style={{ flex: 1 }} 
+                            value={(reportProfile.height || '').split("'")[0] || ''}
+                            onChange={e => {
+                              const i = (reportProfile.height || '').split("'")[1] || '';
+                              const p = { ...reportProfile, height: `${e.target.value}'${i}` };
+                              setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p));
+                            }} />
+                          <input className="text-input" type="number" placeholder="11" style={{ flex: 1 }} 
+                            value={(reportProfile.height || '').split("'")[1] || ''}
+                            onChange={e => {
+                              const f = (reportProfile.height || '').split("'")[0] || '';
+                              const p = { ...reportProfile, height: `${f}'${e.target.value}` };
+                              setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p));
+                            }} />
+                        </>
+                      ) : (
+                        <input className="text-input" type="text" placeholder="175" style={{ flex: 1 }} value={reportProfile.height || ''}
+                          onChange={e => { const p = { ...reportProfile, height: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
+                      )}
                       <select className="select-input" style={{ width: 56 }} value={reportProfile.heightUnit || 'cm'}
                         onChange={e => { const p = { ...reportProfile, heightUnit: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }}>
                         <option>cm</option><option>ft</option>
