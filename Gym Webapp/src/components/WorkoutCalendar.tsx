@@ -7,7 +7,7 @@ import {
   muscleGroupsForSession,
   sortMuscleGroupsForDisplay,
 } from './calendarMuscleColors';
-import { BodyMapFigure } from './BodyMapFigure';
+
 
 type Session = {
   id: string;
@@ -281,45 +281,32 @@ export function WorkoutCalendar({ sessions, allExercises }: Props) {
       </div>
 
       <div className="workout-cal-legend workout-cal-legend--muscles">
-        {lastSessionLabel && (
-          <div className="calendar-body-visual" style={{ marginBottom: '2rem' }}>
-             <BodyMapFigure 
-               mode="rainbow"
-               practiceCounts={hitInLastSessionMap}
-               practiceWindowDays={0}
-               selectedGroups={[]}
-               onToggleGroup={() => {}}
-             />
-          </div>
-        )}
         {lastSessionLabel ? (
           <>
+            {/* Compact muscle chip grid acting as visual legend */}
             <p className="workout-cal-legend-heading">Trained in last session ({lastSessionLabel})</p>
-            <div className="workout-cal-legend-muscle-grid" style={{ marginBottom: '1rem' }}>
-              {musclePartition.hit.length > 0 ? musclePartition.hit.map((g) => (
-                <span key={g} className="workout-cal-legend-item workout-cal-legend-item--muscle">
-                  <i
-                    className="workout-cal-legend-swatch workout-cal-legend-swatch--muscle"
-                    style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g] }}
-                    aria-hidden
-                  />
-                  {g}
-                </span>
-              )) : <span className="workout-cal-legend-item" style={{ fontStyle: 'italic', opacity: 0.6 }}>No data recorded</span>}
+            <div className="cal-muscle-legend-grid">
+              {MUSCLE_GROUPS.filter(g => g !== 'Cardio' && g !== 'Mobility').map((g) => {
+                const hit = hitInLastSession.has(g);
+                return (
+                  <span key={g} className={`cal-legend-chip ${hit ? 'cal-legend-chip--hit' : 'cal-legend-chip--miss'}`}>
+                    <span className="cal-legend-chip-dot" style={{ background: hit ? MUSCLE_GROUP_CALENDAR_COLOR[g] : 'var(--gf-surface-2)', border: `2px solid ${hit ? MUSCLE_GROUP_CALENDAR_COLOR[g] : '#ef4444'}` }} />
+                    {g}
+                  </span>
+                );
+              })}
             </div>
-            <p className="workout-cal-legend-heading">Remaining groups</p>
-            <div className="workout-cal-legend-muscle-grid">
-              {musclePartition.missed.map((g) => (
-                <span key={g} className="workout-cal-legend-item workout-cal-legend-item--muscle">
-                  <i
-                    className="workout-cal-legend-swatch workout-cal-legend-swatch--muscle"
-                    style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g] }}
-                    aria-hidden
-                  />
-                  {g}
-                </span>
-              ))}
-            </div>
+            {/* Cardio / Mobility chips */}
+            {(['Cardio', 'Mobility'] as MuscleGroup[]).some(g => hitInLastSession.has(g)) && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {(['Cardio', 'Mobility'] as MuscleGroup[]).filter(g => hitInLastSession.has(g)).map(g => (
+                  <span key={g} className="cal-legend-chip cal-legend-chip--hit">
+                    <span className="cal-legend-chip-dot" style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g], border: `2px solid ${MUSCLE_GROUP_CALENDAR_COLOR[g]}` }} />
+                    {g}
+                  </span>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <>

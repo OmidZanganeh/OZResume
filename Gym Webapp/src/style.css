@@ -2609,6 +2609,41 @@ body {
 }
 .chip-list::-webkit-scrollbar { display: none; }
 
+/* ── Calendar Compact Muscle Legend ─────────────────── */
+
+.cal-muscle-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.cal-legend-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.35rem;
+  border-radius: 6px;
+  background: var(--gf-surface-2);
+}
+
+.cal-legend-chip--hit {
+  opacity: 1;
+}
+
+.cal-legend-chip--miss {
+  opacity: 0.55;
+}
+
+.cal-legend-chip-dot {
+  flex-shrink: 0;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+}
+
 
 
 /* ── Toast ───────────────────────────────────────────── */

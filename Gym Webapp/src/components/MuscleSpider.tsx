@@ -3,7 +3,7 @@ import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
-const CX = 200, CY = 200, R = 135;
+const CX = 250, CY = 220, R = 120;
 const LEVELS = [0.25, 0.5, 0.75, 1];
 
 function toRad(deg: number) { return (deg * Math.PI) / 180; }
@@ -61,7 +61,7 @@ export function MuscleSpider({ counts }: Props) {
 
   return (
     <div ref={ref} className="muscle-spider">
-      <svg viewBox="0 0 400 400" style={{ width: '100%', height: 'auto', display: 'block' }}>
+      <svg viewBox="0 0 500 460" style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
         {/* Background grid rings */}
         {LEVELS.map((lvl, i) => (
           <polygon
