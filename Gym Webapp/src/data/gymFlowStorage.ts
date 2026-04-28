@@ -53,7 +53,9 @@ export function loadPersistedGymData(): PersistedGymData {
       const parsed = JSON.parse(v2) as PersistedGymData;
       const customExercises = parsed.customExercises ?? [];
       const savedPlansRaw = parsed.savedPlans ?? [];
-      const savedPlans = normalizeSavedPlansExerciseIds(savedPlansRaw, customExercises);
+      const savedPlans = normalizeSavedPlansExerciseIds(savedPlansRaw, customExercises)
+        .filter((plan) => !plan.id.startsWith('def-')); // Strip old injected defaults
+      
       const merged: PersistedGymData = {
         customExercises,
         stats: parsed.stats ?? {},

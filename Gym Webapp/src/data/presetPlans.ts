@@ -125,6 +125,29 @@ export function buildPresetPlans(library: Exercise[]): PlanCategory[] {
           'woodchopper'
         ])
       ]
+    },
+    {
+      title: 'Targeted Isolation (Single Muscle)',
+      plans: [
+        makePlan('iso-chest', 'Chest Day', ['Chest'], [
+          'bench press', 'incline dumbbell press', 'pec deck', 'cable crossover'
+        ]),
+        makePlan('iso-back', 'Back Day', ['Back'], [
+          'pull up', 'barbell row', 'lat pulldown', 'seated cable row', 'straight arm pulldown'
+        ]),
+        makePlan('iso-shoulders', 'Shoulders Day', ['Shoulders'], [
+          'military press', 'lateral raise', 'front raise', 'reverse fly', 'arnold press'
+        ]),
+        makePlan('iso-legs', 'Legs Day', ['Quads', 'Hamstrings', 'Glutes', 'Calves'], [
+          'barbell squat', 'leg press', 'leg extension', 'seated leg curl', 'calf raise'
+        ]),
+        makePlan('iso-arms', 'Arms Day', ['Biceps', 'Triceps'], [
+          'barbell curl', 'skullcrusher', 'hammer curl', 'triceps pushdown'
+        ]),
+        makePlan('iso-core', 'Core Day', ['Core'], [
+          'crunch', 'leg raise', 'ab wheel', 'plank'
+        ]),
+      ]
     }
   ];
 }
