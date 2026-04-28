@@ -1,0 +1,80 @@
+{
+  "customExercises": [],
+  "stats": {},
+  "sessions": [],
+  "savedPlans": [
+    {
+      "id": "tpl-1777350398505",
+      "name": "Triceps and Shoulder",
+      "createdAt": "2026-04-28T04:26:38.505Z",
+      "exerciseIds": [
+        "wrkout-Smith_Machine_Overhead_Shoulder_Press",
+        "wrkout-Dumbbell_Incline_Shoulder_Raise",
+        "wrkout-Reverse_Machine_Flyes",
+        "wrkout-Dip_Machine",
+        "wrkout-Cable_One_Arm_Tricep_Extension",
+        "wrkout-Triceps_Overhead_Extension_with_Rope",
+        "wrkout-Triceps_Pushdown_-_V-Bar_Attachment",
+        "wrkout-Walking,_Treadmill",
+        "wrkout-Bicycling,_Stationary"
+      ],
+      "muscleGroups": [
+        "Triceps",
+        "Shoulders",
+        "Cardio"
+      ],
+      "equipment": [
+        "machine"
+      ]
+    },
+    {
+      "id": "tpl-1777350157440",
+      "name": "Chest and Back",
+      "createdAt": "2026-04-28T04:22:37.440Z",
+      "exerciseIds": [
+        "wrkout-Barbell_Bench_Press_-_Medium_Grip",
+        "wrkout-Incline_Dumbbell_Press",
+        "wrkout-Butterfly",
+        "wrkout-Wide-Grip_Lat_Pulldown",
+        "wrkout-Leverage_Iso_Row",
+        "wrkout-Walking,_Treadmill",
+        "wrkout-Bicycling,_Stationary",
+        "wrkout-Glute_Ham_Raise",
+        "wrkout-Bosu_Ball_Cable_Crunch_With_Side_Bends"
+      ],
+      "muscleGroups": [
+        "Chest",
+        "Back",
+        "Cardio",
+        "Glutes",
+        "Core"
+      ],
+      "equipment": []
+    },
+    {
+      "id": "tpl-1777339828591",
+      "name": "Legs and Biceps",
+      "createdAt": "2026-04-28T01:30:28.591Z",
+      "exerciseIds": [
+        "wrkout-Barbell_Curls_Lying_Against_An_Incline",
+        "wrkout-Alternate_Hammer_Curl",
+        "wrkout-Calf_Press",
+        "wrkout-Leg_Extensions",
+        "wrkout-Leg_Press",
+        "wrkout-Machine_Preacher_Curls",
+        "wrkout-Lying_Leg_Curls",
+        "wrkout-Bicycling,_Stationary",
+        "wrkout-Walking,_Treadmill"
+      ],
+      "muscleGroups": [
+        "Calves",
+        "Hamstrings",
+        "Quads",
+        "Biceps",
+        "Forearms",
+        "Cardio"
+      ],
+      "equipment": []
+    }
+  ]
+}

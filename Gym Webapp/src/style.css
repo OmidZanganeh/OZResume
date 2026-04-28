@@ -3077,6 +3077,23 @@ body {
   .pr-footer-tag { text-align: right; }
   .pr-tag-line { font-size: 0.65rem; font-weight: 800; color: #2dd4bf; }
   .pr-tag-sub { font-size: 0.6rem; color: #475569; font-style: italic; margin-top: 0.2rem; }
+
+  /* FULL WIDTH SECTIONS (Body Map) */
+  .pr-section-full { margin-bottom: 1rem; width: 100%; }
+  .pr-section-full .pr-card-body { 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    padding: 0.5rem 0;
+  }
+  .pr-section-full .body-map { 
+    transform: scale(0.85); 
+    transform-origin: center top;
+    margin: -1.5rem 0;
+  }
+  .pr-section-full .body-map-row { gap: 4rem; } 
+  .pr-section-full .report-footer-meta { display: none; } /* Hide interactive legend in PDF footer */
+  .pr-section-full .body-map-credit { display: none; }
 }
 
 /* -- Mobile Input Zoom Fix ----------------------------- */

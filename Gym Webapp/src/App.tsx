@@ -827,6 +827,20 @@ export default function App() {
             </section>
 
             <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Muscle Focus Heatmap</h2>
+              <p className="panel-subtle">Body-wide training intensity for this period.</p>
+              <BodyMapFigure
+                practiceCounts={analysisCounts}
+                practiceWindowDays={analysisDays}
+                selectedGroups={selectedGroups}
+                onToggleGroup={(g) => {
+                  setSelectedGroups(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
+                  setView('home'); 
+                }}
+              />
+            </section>
+
+            <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Weekly Frequency</h2>
               <p className="panel-subtle">Workouts per week — last 12 weeks</p>
               <div className="weekly-chart">
@@ -1131,7 +1145,7 @@ export default function App() {
       recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
       weeklyData,
       warnings: imbalanceWarnings,
-    }} />
+    }} selectedGroups={selectedGroups} />
     </>
   );
 }

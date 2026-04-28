@@ -1,3 +1,4 @@
+import { BodyMapFigure } from './BodyMapFigure';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
@@ -155,7 +156,7 @@ function PPLDonut({ ppl }: { ppl: { push: number; pull: number; legs: number; co
   );
 }
 
-export function PrintReport({ data }: { data: ReportData }) {
+export function PrintReport({ data, selectedGroups }: { data: ReportData, selectedGroups: MuscleGroup[] }) {
   const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const hasBMI = data.profile.weight && data.profile.height;
   let bmi: number | null = null;
@@ -226,6 +227,24 @@ export function PrintReport({ data }: { data: ReportData }) {
         <div className="pr-kpi-card">
           <div className="pr-kpi-val">{data.consistency}%</div>
           <div className="pr-kpi-label">Consistency</div>
+        </div>
+      </div>
+
+      {/* ── BODY HEATMAP SECTION ─────────────────────────────────── */}
+      <div className="pr-section-full">
+        <div className="pr-card">
+          <div className="pr-card-header">
+            <h3 className="pr-card-title">Training Focus Heatmap</h3>
+            <p className="pr-card-sub">Body-wide intensity for the last {data.analysisDays} days</p>
+          </div>
+          <div className="pr-card-body">
+             <BodyMapFigure 
+               practiceCounts={data.analysisCounts} 
+               practiceWindowDays={data.analysisDays}
+               selectedGroups={selectedGroups}
+               onToggleGroup={() => {}}
+             />
+          </div>
         </div>
       </div>
 
