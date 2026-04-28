@@ -16,8 +16,7 @@ export function candidateMuscleGroupsForExercise(ex: Exercise): MuscleGroup[] {
 
 export function effectiveTrainedMuscles(draft: ExerciseLogDraft | undefined, ex: Exercise): MuscleGroup[] {
   const c = candidateMuscleGroupsForExercise(ex);
-  const t = draft?.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
-  return t.length > 0 ? t : [...c];
+  return draft?.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
 }
 
 export function nextTrainedMusclesAfterToggle(
@@ -26,11 +25,9 @@ export function nextTrainedMusclesAfterToggle(
   group: MuscleGroup,
 ): MuscleGroup[] {
   const candidates = candidateMuscleGroupsForExercise(ex);
-  let cur = draft?.trainedMuscleGroups?.filter((g) => candidates.includes(g));
-  if (!cur || cur.length === 0) cur = [...candidates];
+  const cur = draft?.trainedMuscleGroups?.filter((g) => candidates.includes(g)) ?? [];
   const on = cur.includes(group);
-  const next = on ? cur.filter((g) => g !== group) : [...cur, group];
-  return next.length === 0 ? cur : next;
+  return on ? cur.filter((g) => g !== group) : [...cur, group];
 }
 
 export function getDefaultDraft(): ExerciseLogDraft {
@@ -45,9 +42,8 @@ export function getDefaultDraft(): ExerciseLogDraft {
 
 export function getDefaultDraftForExercise(exercise: Exercise | undefined): ExerciseLogDraft {
   if (!exercise) return getDefaultDraft();
-  const muscles = [...candidateMuscleGroupsForExercise(exercise)];
   if (getEffectiveCategory(exercise) === 'cardio') {
-    return { completed: false, sets: 1, reps: '20', weight: '', notes: '', trainedMuscleGroups: muscles };
+    return { completed: false, sets: 1, reps: '20', weight: '', notes: '', trainedMuscleGroups: [] };
   }
-  return { ...getDefaultDraft(), trainedMuscleGroups: muscles };
+  return { ...getDefaultDraft(), trainedMuscleGroups: [] };
 }
