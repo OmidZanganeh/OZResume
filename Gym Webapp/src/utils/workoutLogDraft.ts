@@ -3,7 +3,7 @@ import { getEffectiveCategory } from './catalogSort';
 
 export type ExerciseLogDraft = {
   completed: boolean;
-  sets: number;
+  sets: number | string;
   reps: string;
   weight: string;
   notes: string;

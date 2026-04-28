@@ -333,7 +333,7 @@ export function RoutineRunView({ planId }: Props) {
                         type="number"
                         min={1}
                         value={draft?.sets ?? 3}
-                        onChange={(e) => updateDraft(ex.id, { sets: Number(e.target.value) || 1 })}
+                        onChange={(e) => updateDraft(ex.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })}
                       />
                     </label>
                     <label className="routine-run-log-field">

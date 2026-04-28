@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import {
@@ -29,9 +30,13 @@ type WorkoutSession = {
   }[];
 };
 
+import type { SavedPlan } from '../data/gymFlowStorage';
+import { candidateMuscleGroupsForExercise } from '../utils/workoutLogDraft';
+
 type Props = {
   allExercises: Exercise[];
   sessions: WorkoutSession[];
+  savedPlans: SavedPlan[];
   onPersist: (patch: { sessions: WorkoutSession[]; stats: Record<string, ExerciseStat> }) => void;
 };
 
@@ -43,9 +48,10 @@ function todayYmd(): string {
   return `${y}-${m}-${day}`;
 }
 
-export function HistoryBackfillPanel({ allExercises, sessions, onPersist }: Props) {
+export function HistoryBackfillPanel({ allExercises, sessions, savedPlans, onPersist }: Props) {
   const [open, setOpen] = useState(false);
   const [dateYmd, setDateYmd] = useState(todayYmd);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
   const [selected, setSelected] = useState<Set<MuscleGroup>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
 
@@ -67,6 +73,7 @@ export function HistoryBackfillPanel({ allExercises, sessions, onPersist }: Prop
   );
 
   function toggleMuscle(g: MuscleGroup) {
+    setSelectedPlanId('');
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(g)) next.delete(g);
@@ -78,12 +85,42 @@ export function HistoryBackfillPanel({ allExercises, sessions, onPersist }: Prop
 
   function addSession() {
     setMessage(null);
-    const groups = MUSCLE_GROUPS.filter((g) => selected.has(g));
-    const { session, missingGroups } = buildHistoricalSessionForDate(groups, dateYmd, allExercises);
+    let session;
+    let warn = '';
 
-    if (!session) {
-      setMessage(groups.length === 0 ? 'Select at least one muscle for that day.' : 'Could not build session — check the date.');
-      return;
+    if (selectedPlanId) {
+      const plan = savedPlans.find((p) => p.id === selectedPlanId);
+      if (!plan) return;
+      session = {
+        id: `h-plan-${Date.now()}`,
+        date: dateYmd,
+        groups: [...plan.muscleGroups],
+        entries: plan.exerciseIds.map((id) => {
+          const ex = allExercises.find((e) => e.id === id);
+          const c = ex ? candidateMuscleGroupsForExercise(ex) : [];
+          return {
+            exerciseId: id,
+            sets: 3,
+            reps: '8-12',
+            weight: '',
+            notes: '',
+            trainedMuscleGroups: c.length === 1 ? [c[0]] : [],
+          };
+        }),
+      };
+    } else {
+      const groups = MUSCLE_GROUPS.filter((g) => selected.has(g));
+      if (groups.length === 0) {
+        setMessage('Select a plan or at least one muscle.');
+        return;
+      }
+      const res = buildHistoricalSessionForDate(groups, dateYmd, allExercises);
+      session = res.session;
+      if (!session) {
+        setMessage('Could not build session — check the date.');
+        return;
+      }
+      if (res.missingGroups.length > 0) warn = ` No library move found for: ${res.missingGroups.join(', ')}.`;
     }
 
     const merged = [session, ...sessions];
@@ -91,10 +128,9 @@ export function HistoryBackfillPanel({ allExercises, sessions, onPersist }: Prop
     const stats = recomputeStatsFromSessions(merged);
     onPersist({ sessions: merged, stats });
 
-    const warn =
-      missingGroups.length > 0 ? ` No library move found for: ${missingGroups.join(', ')}.` : '';
     setMessage(`Saved workout for ${dateYmd} (${session.entries.length} moves).${warn}`);
     setSelected(new Set());
+    setSelectedPlanId('');
   }
 
   function clearImported() {
@@ -117,7 +153,7 @@ export function HistoryBackfillPanel({ allExercises, sessions, onPersist }: Prop
         )}
       </div>
 
-      {open ? (
+      {open ? createPortal(
         <div
           className="history-modal-overlay"
           role="presentation"
@@ -167,14 +203,34 @@ export function HistoryBackfillPanel({ allExercises, sessions, onPersist }: Prop
             </label>
 
             <p className="history-modal-label" style={{ margin: '0.65rem 0 0.35rem' }}>
-              Muscles trained that day
+              Choose a saved plan
+            </p>
+            <select
+              className="select-input"
+              value={selectedPlanId}
+              onChange={(e) => {
+                setSelectedPlanId(e.target.value);
+                if (e.target.value) setSelected(new Set());
+              }}
+              style={{ width: '100%', marginBottom: '0.85rem' }}
+            >
+              <option value="">-- Or select a plan --</option>
+              {savedPlans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+
+            <p className="history-modal-label" style={{ margin: '0.65rem 0 0.35rem' }}>
+              Or quick-pick muscles trained
             </p>
             <div className="history-modal-chips" role="group" aria-label="Muscles for this date">
               {MUSCLE_GROUPS.map((g) => (
                 <button
                   key={g}
                   type="button"
-                  className={`chip ${selected.has(g) ? 'chip-active' : ''}`}
+                  className={`chip ${selected.has(g) && !selectedPlanId ? 'chip-active' : ''}`}
                   onClick={() => toggleMuscle(g)}
                 >
                   {g}
@@ -193,7 +249,8 @@ export function HistoryBackfillPanel({ allExercises, sessions, onPersist }: Prop
 
             {message && <p className="status-text history-modal-status">{message}</p>}
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </>
   );
