@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-// @ts-ignore
-import html2pdf from 'html2pdf.js';
 import type { FormEvent } from 'react';
+import { toPng } from 'html-to-image';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { BodyMapFigure } from './components/BodyMapFigure';
 import { MuscleSpider } from './components/MuscleSpider';
@@ -150,59 +149,6 @@ export default function App() {
   }, [allExercises, catalogSort, data.stats, filterWrkoutCategory, selectedEquipment, searchTerm, selectedGroups]);
 
   const visibleExercises = useMemo(() => catalogMatches.slice(0, visibleExerciseCount), [catalogMatches, visibleExerciseCount]);
-
-  const handleDownloadPDF = async () => {
-    const element = document.getElementById('print-report');
-    if (!element) return;
-
-    // Ensure it's rendered and visible for capture
-    const originalDisplay = element.style.display;
-    const originalPosition = element.style.position;
-    const originalZ = element.style.zIndex;
-    
-    element.style.display = 'flex';
-    element.style.position = 'fixed';
-    element.style.top = '0';
-    element.style.left = '0';
-    element.style.width = '1120px'; 
-    element.style.height = '790px';
-    element.style.zIndex = '9999';
-    element.style.backgroundColor = '#07080c';
-
-    // Small delay to ensure the browser paints the flex layout
-    await new Promise(r => setTimeout(r, 150));
-
-    const opt = {
-      margin: 0,
-      filename: `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        letterRendering: true,
-        backgroundColor: '#07080c',
-        windowWidth: 1120,
-        windowHeight: 790
-      },
-      jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'landscape' as const }
-    };
-
-    try {
-      await html2pdf().set(opt).from(element).save();
-    } catch (err) {
-      console.error('PDF Generation Error:', err);
-      alert('Could not generate PDF. Please try again.');
-    } finally {
-      // Restore original state
-      element.style.display = originalDisplay;
-      element.style.position = originalPosition;
-      element.style.zIndex = originalZ;
-      element.style.top = '';
-      element.style.left = '';
-      element.style.width = '';
-      element.style.height = '';
-    }
-  };
   const planExercises = useMemo(
     () => selectedExerciseIds.map((id) => exerciseById.get(id)).filter((e): e is Exercise => !!e),
     [exerciseById, selectedExerciseIds],
@@ -289,6 +235,56 @@ export default function App() {
     setData(next);
     savePersistedGymData(next);
   }
+
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDownloadImage = async () => {
+    const el = document.getElementById('print-report');
+    if (!el) return;
+    
+    try {
+      setIsExporting(true);
+      
+      // Temporary style to make it visible for capture but off-screen
+      const originalStyle = el.style.cssText;
+      el.style.cssText = `
+        display: flex !important;
+        position: fixed;
+        left: -9999px;
+        top: 0;
+        width: 1100px;
+        height: 750px;
+        z-index: -1;
+        visibility: visible;
+      `;
+      
+      // Wait a frame for layout
+      await new Promise(r => requestAnimationFrame(r));
+      
+      const dataUrl = await toPng(el, {
+        quality: 1.0,
+        pixelRatio: 2, // High resolution
+        backgroundColor: '#07080c',
+        style: {
+          display: 'flex',
+          visibility: 'visible',
+        }
+      });
+      
+      // Restore
+      el.style.cssText = originalStyle;
+      
+      const link = document.createElement('a');
+      link.download = `GymFlow-Report-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to export image:', err);
+      alert('Failed to generate image. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   function toggleGroup(group: MuscleGroup) {
     setSelectedGroups((c) => c.includes(group) ? c.filter((g) => g !== group) : [...c, group]);
@@ -1100,12 +1096,22 @@ export default function App() {
             </section>
 
             <section className="panel panel--compact">
-              <h2 className="panel-heading panel-heading--plain">Export PDF Report</h2>
-              <p className="panel-subtle">Generate a beautiful training performance report as a direct download.</p>
-              <button type="button" className="button button-block" style={{ marginTop: '0.75rem', background: 'linear-gradient(135deg, var(--gf-accent), #7c3aed)', border: 'none', fontWeight: 700, letterSpacing: '0.04em' }}
-                onClick={handleDownloadPDF}>
-                📄 Download Report as PDF
-              </button>
+              <h2 className="panel-heading panel-heading--plain">Report Export</h2>
+              <p className="panel-subtle">Generate your performance dashboard. On mobile, "Download Image" is recommended for a perfect one-page layout.</p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+                <button type="button" className="button button-block" 
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--gf-border)', fontWeight: 700 }}
+                  onClick={() => window.print()}>
+                  🖨️ Print PDF
+                </button>
+                <button type="button" className="button button-block" 
+                  style={{ background: 'linear-gradient(135deg, var(--gf-accent), #7c3aed)', border: 'none', fontWeight: 700 }}
+                  onClick={handleDownloadImage}
+                  disabled={isExporting}>
+                  {isExporting ? '⌛ Rendering...' : '🖼️ Save Image'}
+                </button>
+              </div>
             </section>
 
 

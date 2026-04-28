@@ -1,0 +1,178 @@
+  @page {
+    size: letter landscape;
+    margin: 0in;
+  }
+  
+  #app .app-header, 
+  #app .bottom-nav, 
+  #app .app-tabs, 
+  #app .view-header, 
+  #app .sticky-save, 
+  #app .view-back, 
+  #app .app-status-banner,
+  #app main.app-shell > *:not(#print-report) { 
+    display: none !important; 
+  }
+
+  body {
+    background: #07080c !important;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  #print-report {
+    display: flex !important;
+    visibility: visible !important;
+    position: fixed;
+    left: 0; top: 0; width: 100%; height: 100%;
+    z-index: 9999;
+  }
+}
+
+/* ── LANDSCAPE DASHBOARD (PRL) ────────────────────────── */
+/* Scoped to #print-report so it doesn't leak into the app */
+/* Used for both window.print() and html-to-image export   */
+
+#print-report {
+  display: flex;
+  flex-direction: column;
+  background: #07080c !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color: #f1f5f9;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  padding: 0.15in;
+  box-sizing: border-box;
+  gap: 0.75rem;
+  /* Fixed width for consistent export aspect ratio */
+  width: 1100px;
+  height: 750px;
+  overflow: hidden;
+}
+
+#print-report .prl-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #2dd4bf;
+  padding-bottom: 0.6rem;
+}
+
+#print-report .prl-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+#print-report .prl-logo { font-size: 1.5rem; }
+#print-report .prl-app-name { font-size: 0.65rem; font-weight: 800; color: #2dd4bf; letter-spacing: 0.2em; }
+#print-report .prl-report-title { font-size: 1.25rem; font-weight: 800; margin: 0; }
+
+#print-report .prl-kpi-strip {
+  display: flex;
+  gap: 1.25rem;
+}
+#print-report .prl-kpi { text-align: center; }
+#print-report .prl-kpi-val { font-size: 1.4rem; font-weight: 800; color: #2dd4bf; line-height: 1; }
+#print-report .prl-kpi-label { font-size: 0.6rem; color: #94a3b8; text-transform: uppercase; margin-top: 0.2rem; }
+
+#print-report .prl-athlete { text-align: right; }
+#print-report .prl-athlete-name { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+#print-report .prl-athlete-meta { font-size: 0.65rem; color: #94a3b8; margin: 0.1rem 0 0.25rem; }
+#print-report .prl-athlete-meta span { margin-left: 0.75rem; }
+#print-report .prl-tags { display: flex; gap: 0.4rem; justify-content: flex-end; }
+#print-report .prl-tag { background: #2dd4bf; color: #07080c; font-size: 0.6rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: uppercase; }
+
+#print-report .prl-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr 1fr;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+
+#print-report .prl-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#print-report .prl-card {
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+}
+#print-report .prl-card--full { flex: 1; }
+#print-report .prl-card--alerts { background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.15); }
+
+#print-report .prl-card-head { margin-bottom: 0.4rem; }
+#print-report .prl-card-title { font-size: 0.75rem; font-weight: 800; color: #2dd4bf; text-transform: uppercase; display: block; }
+#print-report .prl-card-sub { font-size: 0.6rem; color: #64748b; }
+
+#print-report .prl-card-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+#print-report .prl-body-map-wrap {
+  transform: scale(0.95);
+  transform-origin: center top;
+  margin: 0.5rem 0;
+}
+
+#print-report .prl-body-map-wrap .body-map-row {
+  flex-wrap: nowrap !important;
+  gap: 0.75rem !important;
+}
+
+#print-report .prl-body-map-wrap .body-map-figure {
+  flex: 0 0 160px !important;
+}
+
+#print-report .prl-body-map-wrap .body-muscles-host {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  height: auto !important;
+}
+
+#print-report .prl-body-map-wrap .body-map-figure-label,
+#print-report .prl-body-map-wrap .body-map-credit {
+  display: none !important;
+}
+
+#print-report .prl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7rem;
+}
+#print-report .prl-table th { text-align: left; color: #64748b; font-weight: 600; padding: 0.35rem 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+#print-report .prl-table td { padding: 0.35rem 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+
+#print-report .prl-alert {
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  margin-bottom: 0.35rem;
+  line-height: 1.3;
+}
+#print-report .prl-alert--red { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-left: 3px solid #ef4444; }
+#print-report .prl-alert--orange { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-left: 3px solid #f59e0b; }
+
+#print-report .prl-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+#print-report .prl-footer-brand { font-size: 0.65rem; font-weight: 800; color: #2dd4bf; }
+#print-report .prl-footer-quote { font-size: 0.65rem; color: #475569; font-style: italic; }
+#print-report .prl-footer-date { font-size: 0.65rem; color: #64748b; }
+
+#print-report .prl-flex-center { display: flex; align-items: center; justify-content: center; }
