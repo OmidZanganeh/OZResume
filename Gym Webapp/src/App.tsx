@@ -461,7 +461,8 @@ export default function App() {
   const isMainView = view === 'home' || view === 'activity' || view === 'library';
 
   return (
-    <div className="app-layout">
+    <>
+    <div className="gf-app-layout">
       <a className="skip-link" href="#app-main">Skip to content</a>
 
       {/* Toast notification */}
@@ -1131,5 +1132,6 @@ export default function App() {
       weeklyData,
       warnings: imbalanceWarnings,
     }} />
+    </>
   );
 }
