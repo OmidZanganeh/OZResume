@@ -86,7 +86,6 @@ export function computeConsistency(sessions: WorkoutSession[], days: number): nu
   let coveredCount = 0;
   for (let i = 0; i < days; i++) {
     const d = new Date(now.getTime() - i * 86400000);
-    const dKey = toDayKey(d);
     
     // Day is covered if it has a workout OR if a workout exists in the 2 days PRIOR to it
     // Wait, let's check the window properly.
