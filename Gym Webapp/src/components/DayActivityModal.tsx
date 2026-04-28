@@ -143,11 +143,11 @@ export function DayActivityModal({ dateKey, sessions, allExercises, savedPlans, 
   }).format(new Date(dateKey + 'T12:00:00'));
 
   const content = (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-content day-modal-content">
-        <header className="modal-header">
-          <h2 className="modal-title">{dateLabel}</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close modal">×</button>
+    <div className="history-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="history-modal day-modal-content">
+        <header className="history-modal-header">
+          <h2 className="history-modal-title">{dateLabel}</h2>
+          <button type="button" className="history-modal-close" onClick={onClose} aria-label="Close modal">×</button>
         </header>
 
         <div className="modal-body">
