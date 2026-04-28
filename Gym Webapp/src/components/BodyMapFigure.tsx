@@ -179,25 +179,25 @@ export function BodyMapFigure({
         </figure>
       </div>
 
-      {orphansPlacement === 'bottom' && (
-        <div className="report-footer-meta">
-          <div className="footer-meta-left">
-            <div className="report-legend">
-              <span className="legend-item"><span className="legend-dot legend-dot--red"></span> Needs work</span>
-              <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
-              <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
-            </div>
-            <p className="report-hint">Tap a region to plan that muscle group</p>
+      <div className="report-footer-meta">
+        <div className="footer-meta-left">
+          <div className="report-legend">
+            <span className="legend-item"><span className="legend-dot legend-dot--red"></span> Needs work</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
           </div>
+          {orphansPlacement === 'bottom' && <p className="report-hint">Tap a region to plan that muscle group</p>}
+        </div>
 
+        {orphansPlacement === 'bottom' && (
           <OrphanPills
             practiceCounts={practiceCounts}
             practiceWindowDays={practiceWindowDays}
             selectedGroups={selectedGroups}
             onToggleGroup={onToggleGroup}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       <p className="body-map-credit">
         Anatomy: <a href="https://github.com/vulovix/body-muscles" target="_blank" rel="noreferrer">body-muscles</a>
