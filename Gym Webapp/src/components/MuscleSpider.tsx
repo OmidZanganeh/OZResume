@@ -133,8 +133,8 @@ export function MuscleSpider({ counts }: Props) {
               textAnchor={anchor} 
               fontSize="11" 
               fontWeight="600"
-              fill={m.originalValue === 0 ? "var(--gf-text-dim)" : "var(--gf-text)"}
-              style={{ opacity: m.originalValue === 0 ? 0.6 : 1 }}
+              fill={m.val === 0 ? "var(--gf-text-dim)" : "var(--gf-text)"}
+              style={{ opacity: m.val === 0 ? 0.6 : 1 }}
             >
               {m.label}
             </text>
