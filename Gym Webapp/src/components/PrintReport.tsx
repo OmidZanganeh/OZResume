@@ -3,6 +3,8 @@ import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
+import { MuscleStats } from '../utils/practiceWindow';
+
 export type ReportData = {
   profile: { name: string; weight: string; weightUnit: 'kg' | 'lbs'; height: string; heightUnit: 'cm' | 'ft'; age: string };
   totalWorkouts: number;
@@ -11,7 +13,7 @@ export type ReportData = {
   streak: { current: number; longest: number };
   consistency: number;
   analysisDays: number;
-  analysisCounts: Map<MuscleGroup, number>;
+  analysisCounts: Map<MuscleGroup, MuscleStats>;
   ppl: { push: number; pull: number; legs: number; core: number };
   topExercises: { name: string; count: number; sets: number }[];
   neglectedMuscles: MuscleGroup[];
@@ -25,12 +27,12 @@ function pt(cx: number, cy: number, angle: number, r: number) {
   return { x: cx + r * Math.cos(toRad(angle)), y: cy + r * Math.sin(toRad(angle)) };
 }
 
-function SpiderSVG({ counts }: { counts: Map<MuscleGroup, number> }) {
+function SpiderSVG({ counts }: { counts: Map<MuscleGroup, MuscleStats> }) {
   const CX = 250, CY = 220, R = 115;
   const muscles = MUSCLE_GROUPS.filter(g => g !== 'Cardio' && g !== 'Mobility');
-  const maxVal = Math.max(...muscles.map(g => counts.get(g) ?? 0), 1);
+  const maxVal = Math.max(...muscles.map(g => counts.get(g)?.totalSets ?? 0), 1);
   const items = muscles.map((g, i) => {
-    const val = counts.get(g) ?? 0;
+    const val = counts.get(g)?.totalSets ?? 0;
     const score = val / maxVal;
     const angle = -90 + (360 / muscles.length) * i;
     return { g, val, score, angle, color: MUSCLE_GROUP_CALENDAR_COLOR[g] };
@@ -57,16 +59,16 @@ function SpiderSVG({ counts }: { counts: Map<MuscleGroup, number> }) {
   );
 }
 
-function BarChartSVG({ counts }: { counts: Map<MuscleGroup, number> }) {
+function BarChartSVG({ counts }: { counts: Map<MuscleGroup, MuscleStats> }) {
   const muscles = MUSCLE_GROUPS.filter(g => g !== 'Cardio' && g !== 'Mobility');
-  const maxVal = Math.max(...muscles.map(g => counts.get(g) ?? 0), 1);
+  const maxVal = Math.max(...muscles.map(g => counts.get(g)?.sessions ?? 0), 1);
   const BAR_H = 14, GAP = 6, LEFT = 90, RIGHT = 20, W = 420;
   const totalH = muscles.length * (BAR_H + GAP) + 10;
 
   return (
     <svg viewBox={`0 0 ${W} ${totalH}`} style={{ width: '100%', height: 'auto' }}>
       {muscles.map((g, i) => {
-        const val = counts.get(g) ?? 0;
+        const val = counts.get(g)?.sessions ?? 0;
         const barW = Math.max(val === 0 ? 0 : 4, (val / maxVal) * (W - LEFT - RIGHT));
         const y = i * (BAR_H + GAP) + 3;
         const color = val > 0 ? MUSCLE_GROUP_CALENDAR_COLOR[g] : '#1e293b';

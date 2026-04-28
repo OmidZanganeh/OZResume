@@ -194,7 +194,7 @@ export default function App() {
   const pplMax = useMemo(() => Math.max(pplBalance.push, pplBalance.pull, pplBalance.legs, pplBalance.core, 1), [pplBalance]);
 
   const trainedGroupsCount = useMemo(
-    () => MUSCLE_GROUPS.filter((g) => (practiceCounts instanceof Map ? (practiceCounts.get(g) ?? 0) : ((practiceCounts as Record<string, number>)[g] ?? 0)) > 0).length,
+    () => MUSCLE_GROUPS.filter((g) => (practiceCounts.get(g)?.sessions ?? 0) > 0).length,
     [practiceCounts],
   );
 
@@ -895,7 +895,7 @@ export default function App() {
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
               <p className="panel-subtle">Visual balance of your training for this period.</p>
-              <MuscleSpider counts={analysisCounts} />
+              <MuscleSpider stats={analysisCounts} days={analysisDays} />
               <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
                 <button type="button" className="button" style={{ background: 'rgba(45, 212, 191, 0.15)', borderColor: 'var(--gf-accent)' }} onClick={() => window.print()}>
                   📄 Export Intelligence Report (PDF)

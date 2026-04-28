@@ -15,11 +15,14 @@ function pt(angle: number, r: number) {
   };
 }
 
+import { MuscleStats } from '../utils/practiceWindow';
+
 type Props = {
-  counts: Map<MuscleGroup, number>;
+  stats: Map<MuscleGroup, MuscleStats>;
+  days: number;
 };
 
-export function MuscleSpider({ counts }: Props) {
+export function MuscleSpider({ stats, days }: Props) {
   const [progress, setProgress] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -34,19 +37,22 @@ export function MuscleSpider({ counts }: Props) {
       if (p < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
-  }, [counts]); // Re-animate if data changes
+  }, [stats]); // Re-animate if data changes
 
   const muscles = MUSCLE_GROUPS.map((g, i) => {
-    const val = counts.get(g) ?? 0;
-    // Map hits to 0-100 scale for the chart
-    // If we assume 10 sessions is "maxed out" for a period
-    const maxVal = Math.max(...counts.values(), 1);
+    const s = stats.get(g);
+    const val = s ? s.totalSets : 0;
+    const sessionCount = s ? s.sessions : 0;
+
+    // We normalize by the muscle with highest total volume in the period
+    const volumes = Array.from(stats.values()).map(v => v.totalSets);
+    const maxVal = Math.max(...volumes, 1);
     const score = Math.min(100, (val / maxVal) * 100);
     
     return {
       label: g,
       score,
-      originalValue: val,
+      originalValue: sessionCount,
       angle: -90 + (360 / MUSCLE_GROUPS.length) * i,
       color: MUSCLE_GROUP_CALENDAR_COLOR[g] || '#94a3b8'
     };
