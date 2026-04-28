@@ -1407,7 +1407,7 @@ body {
 
 .body-muscles-host {
   min-height: 0;
-  height: 240px;
+  height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1424,9 +1424,10 @@ body {
 }
 
 .body-muscles-host svg {
+  width: auto;
+  height: 100%;
   max-width: 100%;
-  max-height: 232px;
-  height: auto;
+  max-height: 100%;
   display: block;
   margin: 0 auto;
 }
