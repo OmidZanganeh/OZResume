@@ -3070,11 +3070,10 @@ body {
   .prl-tag { background: #2dd4bf; color: #07080c; font-size: 0.6rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: uppercase; }
 
   .prl-grid {
-    display: grid;
-    grid-template-columns: 1fr 1.1fr 1fr;
+    grid-template-columns: 1.4fr 1.1fr 1fr;
     gap: 0.75rem;
     flex: 1;
-    min-height: 0; /* Important for flex-child grid to scroll/overflow correctly if needed */
+    min-height: 0;
   }
 
   .prl-col {
@@ -3107,18 +3106,18 @@ body {
   }
 
   .prl-body-map-wrap {
-    transform: scale(0.68);
+    transform: scale(1.35);
     transform-origin: center center;
-    margin: -4rem 0;
+    margin: 1.5rem 0;
   }
 
   .prl-body-map-wrap .body-map-row {
     flex-wrap: nowrap !important;
-    gap: 0.4rem !important;
+    gap: 1.5rem !important;
   }
 
   .prl-body-map-wrap .body-map-figure {
-    flex: 0 0 140px !important;
+    flex: 0 0 160px !important;
   }
 
   .prl-table {
