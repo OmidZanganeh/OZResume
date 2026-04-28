@@ -24,7 +24,7 @@ import {
   getEffectiveCategory,
   getEffectiveEquipment,
   labelForFilterValue,
-  equipmentToSlug,
+
 } from './utils/catalogSort';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
@@ -37,24 +37,18 @@ import {
 
 const PRACTICE_WINDOW_DAYS = 10;
 
+type AppView = 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'library';
+
 function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]) {
   if (selectedGroups.length === 0) return true;
   if (selectedGroups.includes(exercise.primaryGroup)) return true;
-  return exercise.secondaryGroups?.some((group) => selectedGroups.includes(group)) ?? false;
+  return exercise.secondaryGroups?.some((g) => selectedGroups.includes(g)) ?? false;
 }
 
-/** Moves in template order (valid catalog ids only). */
-function orderedPlanEntriesForSavedPlan(
-  plan: SavedPlan,
-  allExercises: Exercise[],
-): { id: string; name: string }[] {
+function orderedPlanEntries(plan: SavedPlan, allExercises: Exercise[]): { id: string; name: string }[] {
   const ids = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
   const map = new Map(allExercises.map((e) => [e.id, e]));
-  return ids
-    .map((id) => {
-      const ex = map.get(id);
-      return ex ? { id, name: ex.name } : null;
-    })
+  return ids.map((id) => { const ex = map.get(id); return ex ? { id, name: ex.name } : null; })
     .filter((x): x is { id: string; name: string } => x !== null);
 }
 
@@ -62,9 +56,23 @@ function createExerciseId(name: string) {
   return `custom-${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
 }
 
-function formatDate(dateValue: string | null) {
-  if (!dateValue) return 'Never';
-  return new Date(dateValue).toLocaleDateString();
+function formatDate(d: string | null) {
+  if (!d) return 'Never';
+  return new Date(d).toLocaleDateString();
+}
+
+function daysAgo(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return `${diff}d ago`;
+}
+
+function getLastUsedForPlan(plan: SavedPlan, stats: PersistedGymData['stats']): string | null {
+  const dates = plan.exerciseIds.map((id) => stats[id]?.lastPerformed).filter((d): d is string => !!d);
+  if (!dates.length) return null;
+  return [...dates].sort().at(-1) ?? null;
 }
 
 function buildRoutineRunUrl(planId: string): string {
@@ -79,6 +87,7 @@ function openRoutineWorkoutTab(planId: string) {
 
 export default function App() {
   const [data, setData] = useState<PersistedGymData>(() => loadPersistedGymData());
+  const [view, setView] = useState<AppView>('home');
   const [selectedGroups, setSelectedGroups] = useState<MuscleGroup[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleExerciseCount, setVisibleExerciseCount] = useState(24);
@@ -91,169 +100,109 @@ export default function App() {
   const [catalogSort, setCatalogSort] = useState<CatalogSortMode>('gym');
   const [filterWrkoutCategory, setFilterWrkoutCategory] = useState('all');
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
-  const [mainTab, setMainTab] = useState<'plan' | 'activity' | 'library'>('plan');
-  /** 0 = home/routines, 1 = focus muscles, 2 = pick moves, 3 = log & save */
-  const [planStep, setPlanStep] = useState<0 | 1 | 2 | 3>(0);
   const [savePlanNameInput, setSavePlanNameInput] = useState('');
-  /** Set when you load a saved routine so you know which program you're following. */
   const [activeRoutineName, setActiveRoutineName] = useState<string | null>(null);
-  /** When set, step 2 changes can be written back to this saved routine id. */
   const [editingSavedPlanId, setEditingSavedPlanId] = useState<string | null>(null);
 
-  const allExercises = useMemo(
-    () => [...EXERCISE_LIBRARY, ...data.customExercises],
-    [data.customExercises],
-  );
-
-  const exerciseById = useMemo(() => new Map(allExercises.map((item) => [item.id, item])), [allExercises]);
-
-  const categoryFilterOptions = useMemo(
-    () => collectSortedUnique(allExercises.map((e) => getEffectiveCategory(e))),
-    [allExercises],
-  );
-  const equipmentFilterOptions = useMemo(
-    () => collectSortedUnique(allExercises.map((e) => getEffectiveEquipment(e))),
-    [allExercises],
-  );
+  const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
+  const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
+  const categoryFilterOptions = useMemo(() => collectSortedUnique(allExercises.map((e) => getEffectiveCategory(e))), [allExercises]);
+  const equipmentFilterOptions = useMemo(() => collectSortedUnique(allExercises.map((e) => getEffectiveEquipment(e))), [allExercises]);
 
   const catalogMatches = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     const timesById: Record<string, number | undefined> = {};
-    for (const [id, st] of Object.entries(data.stats)) {
-      timesById[id] = st.timesCompleted;
-    }
-
-    const list = allExercises
-      .filter((exercise) => exerciseMatchesGroups(exercise, selectedGroups))
-      .filter((exercise) => (filterWrkoutCategory === 'all' ? true : getEffectiveCategory(exercise) === filterWrkoutCategory))
-      .filter((exercise) => {
-        if (selectedEquipment.length === 0) return true;
-        return selectedEquipment.includes(getEffectiveEquipment(exercise));
-      })
-      .filter((exercise) => {
-        if (term.length === 0) return true;
-        return (
-          exercise.name.toLowerCase().includes(term) ||
-          exercise.primaryGroup.toLowerCase().includes(term) ||
-          getEffectiveCategory(exercise).includes(term) ||
-          getEffectiveEquipment(exercise).includes(term)
-        );
-      });
-
-    return list.sort((a, b) => compareCatalog(a, b, catalogSort, timesById));
+    for (const [id, st] of Object.entries(data.stats)) timesById[id] = st.timesCompleted;
+    return allExercises
+      .filter((e) => exerciseMatchesGroups(e, selectedGroups))
+      .filter((e) => filterWrkoutCategory === 'all' || getEffectiveCategory(e) === filterWrkoutCategory)
+      .filter((e) => selectedEquipment.length === 0 || selectedEquipment.includes(getEffectiveEquipment(e)))
+      .filter((e) => !term || e.name.toLowerCase().includes(term) || e.primaryGroup.toLowerCase().includes(term))
+      .sort((a, b) => compareCatalog(a, b, catalogSort, timesById));
   }, [allExercises, catalogSort, data.stats, filterWrkoutCategory, selectedEquipment, searchTerm, selectedGroups]);
 
-  const visibleExercises = useMemo(
-    () => catalogMatches.slice(0, visibleExerciseCount),
-    [catalogMatches, visibleExerciseCount],
-  );
-
+  const visibleExercises = useMemo(() => catalogMatches.slice(0, visibleExerciseCount), [catalogMatches, visibleExerciseCount]);
   const planExercises = useMemo(
-    () => selectedExerciseIds.map((id) => exerciseById.get(id)).filter((item): item is Exercise => !!item),
+    () => selectedExerciseIds.map((id) => exerciseById.get(id)).filter((e): e is Exercise => !!e),
     [exerciseById, selectedExerciseIds],
   );
 
   const totalWorkoutCount = data.sessions.length;
-  const totalExerciseCompletions = Object.values(data.stats).reduce(
-    (total, stat) => total + stat.timesCompleted,
-    0,
-  );
-  const totalTrackedSets = Object.values(data.stats).reduce((total, stat) => total + stat.totalSets, 0);
+  const totalExerciseCompletions = Object.values(data.stats).reduce((t, s) => t + s.timesCompleted, 0);
+  const totalTrackedSets = Object.values(data.stats).reduce((t, s) => t + s.totalSets, 0);
   const recentSessions = data.sessions.slice(0, 5);
+
   const practiceCounts = useMemo(
     () => getPracticeCountsInWindow(data.sessions, exerciseById, PRACTICE_WINDOW_DAYS),
     [data.sessions, exerciseById],
   );
+  const trainedGroupsCount = useMemo(
+    () => MUSCLE_GROUPS.filter((g) => (practiceCounts instanceof Map ? (practiceCounts.get(g) ?? 0) : ((practiceCounts as Record<string, number>)[g] ?? 0)) > 0).length,
+    [practiceCounts],
+  );
+
   const exercisesToResolveImages = useMemo(() => {
-    const names = new Set([...visibleExercises.map((item) => item.name), ...planExercises.map((item) => item.name)]);
+    const names = new Set([...visibleExercises.map((e) => e.name), ...planExercises.map((e) => e.name)]);
     return allExercises.filter((e) => names.has(e.name));
   }, [allExercises, planExercises, visibleExercises]);
 
+  // Auto-dismiss toast after 4s
   useEffect(() => {
-    if (selectedGroups.length === 0) {
-      setSelectedEquipment([]);
-    }
+    if (!message) return;
+    const t = setTimeout(() => setMessage(''), 4000);
+    return () => clearTimeout(t);
+  }, [message]);
+
+  useEffect(() => {
+    if (selectedGroups.length === 0) setSelectedEquipment([]);
   }, [selectedGroups.length]);
 
   useEffect(() => {
-    if (selectedExerciseIds.length === 0) setActiveRoutineName(null);
-  }, [selectedExerciseIds.length]);
-
-  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [mainTab, planStep]);
+  }, [view]);
 
   useEffect(() => {
     let cancelled = false;
     getExerciseImageMap(exercisesToResolveImages)
-      .then((result) => {
-        if (cancelled) return;
-        setExerciseImages((current) => ({ ...current, ...result }));
-      })
-      .catch(() => {
-        if (cancelled) return;
-      });
-
-    return () => {
-      cancelled = true;
-    };
+      .then((r) => { if (!cancelled) setExerciseImages((c) => ({ ...c, ...r })); })
+      .catch(() => { /* silent */ });
+    return () => { cancelled = true; };
   }, [exercisesToResolveImages]);
 
-  function persist(nextData: PersistedGymData) {
-    setData(nextData);
-    savePersistedGymData(nextData);
+  function persist(next: PersistedGymData) {
+    setData(next);
+    savePersistedGymData(next);
   }
 
   function toggleGroup(group: MuscleGroup) {
-    setSelectedGroups((current) =>
-      current.includes(group) ? current.filter((item) => item !== group) : [...current, group],
-    );
+    setSelectedGroups((c) => c.includes(group) ? c.filter((g) => g !== group) : [...c, group]);
     setVisibleExerciseCount(24);
   }
 
   function toggleEquipment(equip: string) {
-    setSelectedEquipment((prev) => {
-      if (prev.includes(equip)) return prev.filter((e) => e !== equip);
-      return [...prev, equip].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-    });
+    setSelectedEquipment((prev) =>
+      prev.includes(equip)
+        ? prev.filter((e) => e !== equip)
+        : [...prev, equip].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })),
+    );
     setVisibleExerciseCount(24);
   }
 
   function toggleExerciseInPlan(exerciseId: string) {
-    const wasInPlan = selectedExerciseIds.includes(exerciseId);
-
-    setSelectedExerciseIds((current) => {
-      if (current.includes(exerciseId)) {
-        return current.filter((id) => id !== exerciseId);
-      }
-      return [...current, exerciseId];
-    });
-
-    if (wasInPlan) {
-      setExerciseDrafts((drafts) => {
-        if (!drafts[exerciseId]) return drafts;
-        const next = { ...drafts };
-        delete next[exerciseId];
-        return next;
-      });
+    const wasIn = selectedExerciseIds.includes(exerciseId);
+    setSelectedExerciseIds((c) => wasIn ? c.filter((id) => id !== exerciseId) : [...c, exerciseId]);
+    if (wasIn) {
+      setExerciseDrafts((d) => { const n = { ...d }; delete n[exerciseId]; return n; });
     } else {
       const ex = exerciseById.get(exerciseId);
-      setExerciseDrafts((drafts) => ({
-        ...drafts,
-        [exerciseId]: drafts[exerciseId] ?? getDefaultDraftForExercise(ex),
-      }));
+      setExerciseDrafts((d) => ({ ...d, [exerciseId]: d[exerciseId] ?? getDefaultDraftForExercise(ex) }));
     }
   }
 
   function updateDraft(exerciseId: string, patch: Partial<ExerciseLogDraft>) {
     setExerciseDrafts((current) => {
       const ex = exerciseById.get(exerciseId);
-      const merged: ExerciseLogDraft = {
-        ...getDefaultDraft(),
-        ...getDefaultDraftForExercise(ex),
-        ...current[exerciseId],
-        ...patch,
-      };
+      const merged: ExerciseLogDraft = { ...getDefaultDraft(), ...getDefaultDraftForExercise(ex), ...current[exerciseId], ...patch };
       if (ex) {
         const c = candidateMuscleGroupsForExercise(ex);
         const t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
@@ -263,895 +212,449 @@ export default function App() {
     });
   }
 
-  function handleAddCustomExercise(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedName = newExerciseName.trim();
-    if (trimmedName.length < 2) {
-      setMessage('Use at least 2 letters for a custom exercise name.');
-      return;
-    }
-
-    const exists = allExercises.some((exercise) => exercise.name.toLowerCase() === trimmedName.toLowerCase());
-    if (exists) {
-      setMessage('That exercise already exists in your library.');
-      return;
-    }
-
-    const nextExercise: Exercise = {
-      id: createExerciseId(trimmedName),
-      name: trimmedName,
-      primaryGroup: newExerciseGroup,
-    };
-    persist({ ...data, customExercises: [...data.customExercises, nextExercise] });
-    setNewExerciseName('');
-    setMessage(`Added "${trimmedName}" to your exercise library.`);
-  }
-
-  function clearAllUserData() {
-    const ok = window.confirm(
-      'Remove all data saved in this browser: workouts, stats, custom exercises, saved plan templates, and your current session. The built-in catalog is unchanged. This cannot be undone. Continue?',
-    );
-    if (!ok) return;
-
-    localStorage.removeItem(STORAGE_V1);
-    persist(defaultGymData);
-    setSelectedGroups([]);
+  function startCreatePlan(initialGroups: MuscleGroup[] = []) {
+    setSelectedGroups(initialGroups);
     setSelectedEquipment([]);
     setSelectedExerciseIds([]);
     setExerciseDrafts({});
+    setEditingSavedPlanId(null);
+    setSavePlanNameInput('');
     setSearchTerm('');
     setVisibleExerciseCount(24);
+    setView('create-focus');
+  }
+
+  function handleAddCustomExercise(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const name = newExerciseName.trim();
+    if (name.length < 2) { setMessage('Name needs at least 2 characters.'); return; }
+    if (allExercises.some((ex) => ex.name.toLowerCase() === name.toLowerCase())) { setMessage('Already in your library.'); return; }
+    persist({ ...data, customExercises: [...data.customExercises, { id: createExerciseId(name), name, primaryGroup: newExerciseGroup }] });
     setNewExerciseName('');
-    setSavePlanNameInput('');
-    setPlanStep(0);
-    setMainTab('plan');
-    setActiveRoutineName(null);
-    setEditingSavedPlanId(null);
-    setMessage('All your saved data was cleared.');
+    setMessage(`"${name}" added.`);
+  }
+
+  function clearAllUserData() {
+    if (!window.confirm('Remove all workouts, stats, custom exercises, and saved plans? This cannot be undone.')) return;
+    localStorage.removeItem(STORAGE_V1);
+    persist(defaultGymData);
+    setSelectedGroups([]); setSelectedEquipment([]); setSelectedExerciseIds([]); setExerciseDrafts({});
+    setSearchTerm(''); setVisibleExerciseCount(24); setNewExerciseName(''); setSavePlanNameInput('');
+    setView('home'); setActiveRoutineName(null); setEditingSavedPlanId(null);
+    setMessage('All data cleared.');
   }
 
   function saveCurrentPlanTemplate() {
     const name = savePlanNameInput.trim();
-    if (name.length < 2) {
-      setMessage('Enter a plan name (at least 2 characters).');
-      return;
+    if (name.length < 2) { setMessage('Enter a plan name.'); return; }
+    if (selectedExerciseIds.length === 0) { setMessage('Add at least one exercise.'); return; }
+
+    if (editingSavedPlanId) {
+      persist({
+        ...data,
+        savedPlans: data.savedPlans.map((p) =>
+          p.id === editingSavedPlanId
+            ? { ...p, exerciseIds: [...selectedExerciseIds], muscleGroups: [...selectedGroups], equipment: [...selectedEquipment] }
+            : p,
+        ),
+      });
+      setMessage(`"${name}" updated.`);
+    } else {
+      const plan: SavedPlan = {
+        id: `tpl-${Date.now()}`, name, createdAt: new Date().toISOString(),
+        exerciseIds: [...selectedExerciseIds], muscleGroups: [...selectedGroups], equipment: [...selectedEquipment],
+      };
+      persist({ ...data, savedPlans: [plan, ...data.savedPlans] });
+      setMessage(`"${name}" saved.`);
     }
-    const exerciseIds = [...selectedExerciseIds];
-    if (exerciseIds.length === 0) {
-      setMessage('Add moves on the Moves step first, then save.');
-      setMainTab('plan');
-      setPlanStep(2);
-      return;
-    }
-    const plan: SavedPlan = {
-      id: `tpl-${Date.now()}`,
-      name,
-      createdAt: new Date().toISOString(),
-      exerciseIds,
-      muscleGroups: [...selectedGroups],
-      equipment: [...selectedEquipment],
-    };
-    persist({ ...data, savedPlans: [plan, ...data.savedPlans] });
-    setSavePlanNameInput('');
-    setMessage(`Saved routine "${name}" (${plan.exerciseIds.length} moves). Find it under My Routines.`);
+    setSavePlanNameInput(''); setSelectedExerciseIds([]); setExerciseDrafts({});
+    setEditingSavedPlanId(null);
+    setView('home');
   }
 
-  function loadSavedPlanTemplate(plan: SavedPlan) {
+  function loadPlanForLog(plan: SavedPlan) {
     const validIds = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
-    if (validIds.length === 0) {
-      setMessage('That template has no moves left in your library (IDs may have changed).');
-      return;
-    }
+    if (!validIds.length) { setMessage('No valid moves in this plan.'); return; }
     setSelectedGroups([...plan.muscleGroups]);
     setSelectedEquipment([...plan.equipment]);
     setSelectedExerciseIds(validIds);
-    const nextDrafts: Record<string, ExerciseLogDraft> = {};
+    const drafts: Record<string, ExerciseLogDraft> = {};
     for (const id of validIds) {
       const ex = exerciseById.get(id);
-      const prev = exerciseDrafts[id];
-      const merged: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...prev };
-      if (ex) {
-        const c = candidateMuscleGroupsForExercise(ex);
-        const t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
-        merged.trainedMuscleGroups = t.length > 0 ? t : [...c];
-      }
-      nextDrafts[id] = merged;
+      const m: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...exerciseDrafts[id] };
+      if (ex) { const c = candidateMuscleGroupsForExercise(ex); const t = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []; m.trainedMuscleGroups = t.length ? t : [...c]; }
+      drafts[id] = m;
     }
-    setExerciseDrafts(nextDrafts);
-    setVisibleExerciseCount(24);
-    setMainTab('plan');
-    setPlanStep(3);
+    setExerciseDrafts(drafts);
     setActiveRoutineName(plan.name);
     setEditingSavedPlanId(null);
-    setMessage(`Loaded "${plan.name}" — ${validIds.length} moves ready to log.`);
+    setView('log');
   }
 
   function beginEditSavedPlan(plan: SavedPlan) {
     const validIds = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
-    if (validIds.length === 0) {
-      setMessage('That routine has no moves left in your library.');
-      return;
-    }
+    if (!validIds.length) { setMessage('No valid moves in this plan.'); return; }
     setSelectedGroups([...plan.muscleGroups]);
     setSelectedEquipment([...plan.equipment]);
     setSelectedExerciseIds(validIds);
-    const nextDrafts: Record<string, ExerciseLogDraft> = {};
+    const drafts: Record<string, ExerciseLogDraft> = {};
     for (const id of validIds) {
       const ex = exerciseById.get(id);
-      const prev = exerciseDrafts[id];
-      const merged: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...prev };
-      if (ex) {
-        const c = candidateMuscleGroupsForExercise(ex);
-        const t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
-        merged.trainedMuscleGroups = t.length > 0 ? t : [...c];
-      }
-      nextDrafts[id] = merged;
+      const m: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...exerciseDrafts[id] };
+      if (ex) { const c = candidateMuscleGroupsForExercise(ex); const t = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []; m.trainedMuscleGroups = t.length ? t : [...c]; }
+      drafts[id] = m;
     }
-    setExerciseDrafts(nextDrafts);
-    setVisibleExerciseCount(24);
-    setMainTab('plan');
-    setPlanStep(2);
+    setExerciseDrafts(drafts);
     setEditingSavedPlanId(plan.id);
-    setActiveRoutineName(null);
-    setMessage(`Editing "${plan.name}" — add or remove moves, then Update routine.`);
-  }
-
-  function updateSavedPlanFromSession() {
-    if (!editingSavedPlanId) return;
-    const exerciseIds = [...selectedExerciseIds];
-    if (exerciseIds.length === 0) {
-      setMessage('Add at least one move before updating the saved routine.');
-      return;
-    }
-    const nextPlans = data.savedPlans.map((p) =>
-      p.id === editingSavedPlanId
-        ? {
-            ...p,
-            exerciseIds,
-            muscleGroups: [...selectedGroups],
-            equipment: [...selectedEquipment],
-          }
-        : p,
-    );
-    persist({ ...data, savedPlans: nextPlans });
-    setEditingSavedPlanId(null);
-    setMessage('Saved routine updated.');
-  }
-
-  function cancelEditSavedPlan() {
-    const id = editingSavedPlanId;
-    if (!id) return;
-    const plan = data.savedPlans.find((p) => p.id === id);
-    setEditingSavedPlanId(null);
-    if (!plan) {
-      setMessage('Edit cancelled.');
-      return;
-    }
-    const validIds = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
-    if (validIds.length === 0) {
-      setMessage('Could not restore that routine from storage.');
-      return;
-    }
-    setSelectedGroups([...plan.muscleGroups]);
-    setSelectedEquipment([...plan.equipment]);
-    setSelectedExerciseIds(validIds);
-    const nextDrafts: Record<string, ExerciseLogDraft> = {};
-    for (const vid of validIds) {
-      const ex = exerciseById.get(vid);
-      nextDrafts[vid] = getDefaultDraftForExercise(ex);
-      if (ex) {
-        const c = candidateMuscleGroupsForExercise(ex);
-        const t = nextDrafts[vid].trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
-        nextDrafts[vid].trainedMuscleGroups = t.length > 0 ? t : [...c];
-      }
-    }
-    setExerciseDrafts(nextDrafts);
+    setSavePlanNameInput(plan.name);
+    setSearchTerm('');
     setVisibleExerciseCount(24);
-    setPlanStep(2);
-    setMessage(`Restored "${plan.name}" to last saved version (edits discarded).`);
+    setActiveRoutineName(null);
+    setView('create-moves');
   }
 
   function deleteSavedPlanTemplate(id: string) {
     persist({ ...data, savedPlans: data.savedPlans.filter((p) => p.id !== id) });
     if (editingSavedPlanId === id) setEditingSavedPlanId(null);
-    setMessage('Routine removed.');
+    setMessage('Plan deleted.');
   }
 
   function saveWorkout() {
     const includedIds = selectedExerciseIds.filter((id) => exerciseDrafts[id]?.completed);
-    if (
-      includedIds.length > 0 &&
-      isLikelyDuplicateWorkoutSave(data.sessions, includedIds) &&
-      !window.confirm(
-        'This matches a workout you saved a few minutes ago (same moves). Save again anyway?',
-      )
-    ) {
-      return;
-    }
-    const result = commitWorkoutSession({
-      data,
-      exerciseOrderIds: selectedExerciseIds,
-      exerciseDrafts,
-      exerciseById,
-    });
-    if (!result.ok) {
-      setMessage(result.error);
-      return;
-    }
+    if (includedIds.length > 0 && isLikelyDuplicateWorkoutSave(data.sessions, includedIds) && !window.confirm('Looks like a duplicate — save anyway?')) return;
+    const result = commitWorkoutSession({ data, exerciseOrderIds: selectedExerciseIds, exerciseDrafts, exerciseById });
+    if (!result.ok) { setMessage(result.error); return; }
     persist(result.nextData);
-    setSelectedExerciseIds([]);
-    setExerciseDrafts({});
-    setPlanStep(0);
-    setMainTab('activity');
-    setActiveRoutineName(null);
-    setEditingSavedPlanId(null);
-    setMessage(
-      `Saved ${result.completedCount} move${result.completedCount === 1 ? '' : 's'}. See Activity for this session.`,
-    );
+    setSelectedExerciseIds([]); setExerciseDrafts({});
+    setView('activity');
+    setActiveRoutineName(null); setEditingSavedPlanId(null);
+    setMessage(`${result.completedCount} move${result.completedCount === 1 ? '' : 's'} saved.`);
   }
+
+  const isMainView = view === 'home' || view === 'activity' || view === 'library';
 
   return (
     <div className="app-layout">
-      <a className="skip-link" href="#app-main">
-        Skip to main content
-      </a>
-      <header className="app-header">
-        <div className="app-header-inner">
-          <div className="app-brand">
-            <img
-              className="app-brand-mark"
-              src={`${import.meta.env.BASE_URL}app-icon.png`}
-              width={40}
-              height={40}
-              alt=""
-            />
-          </div>
-          <div className="app-header-titles">
-            <h1 className="app-title">Gym Flow</h1>
-            <p className="app-subtitle">Training planner · runs locally in your browser</p>
-          </div>
+      <a className="skip-link" href="#app-main">Skip to content</a>
+
+      {/* Toast notification */}
+      {message && (
+        <div className="toast" role="status" onClick={() => setMessage('')}>
+          {message}
         </div>
-      </header>
+      )}
 
-      <main id="app-main" className="app-shell" aria-label="Gym Flow workout planner">
-        {message ? (
-          <div className="app-status-banner" role="status">
-            {message}
-          </div>
-        ) : null}
+      <main id="app-main" className="app-shell">
 
-        <nav className="app-tabs" aria-label="Main sections">
-          <button
-            type="button"
-            className={`app-tab ${mainTab === 'plan' ? 'app-tab--active' : ''}`}
-            onClick={() => setMainTab('plan')}
-            aria-current={mainTab === 'plan' ? 'page' : undefined}
-          >
-            Plan
-          </button>
-          <button
-            type="button"
-            className={`app-tab ${mainTab === 'activity' ? 'app-tab--active' : ''}`}
-            onClick={() => setMainTab('activity')}
-            aria-current={mainTab === 'activity' ? 'page' : undefined}
-          >
-            Activity
-          </button>
-          <button
-            type="button"
-            className={`app-tab ${mainTab === 'library' ? 'app-tab--active' : ''}`}
-            onClick={() => setMainTab('library')}
-            aria-current={mainTab === 'library' ? 'page' : undefined}
-          >
-            Library
-          </button>
-        </nav>
+        {/* ── HOME ──────────────────────────────────────────────────── */}
+        {view === 'home' && (
+          <div className="home-view">
+            <div className="home-wordmark">Gym Flow</div>
 
-        {/* ── PLAN TAB ────────────────────────────────────────────── */}
-        {mainTab === 'plan' && (
-          <>
-            {/* Sub-step stepper — hidden on step 0 (home) */}
-            {planStep > 0 && (
-              <div className="plan-stepper" role="tablist" aria-label="Plan steps">
-                {([
-                  [1 as const, 'Focus'],
-                  [2 as const, 'Moves'],
-                  [3 as const, 'Log'],
-                ] as const).map(([n, label]) => (
-                  <button
-                    key={n}
-                    type="button"
-                    role="tab"
-                    aria-selected={planStep === n}
-                    className={`plan-stepper__btn ${planStep === n ? 'plan-stepper__btn--current' : ''}`}
-                    onClick={() => setPlanStep(n)}
-                  >
-                    <span className="plan-stepper__num">{n}</span>
-                    <span className="plan-stepper__label">{label}</span>
-                  </button>
-                ))}
+            {/* MY PLANS */}
+            <section className="home-section" aria-label="My Plans">
+              <div className="home-section-header">
+                <span className="home-section-label">MY PLANS</span>
+                <button className="icon-add-btn" onClick={() => startCreatePlan()} aria-label="New plan">+</button>
               </div>
-            )}
 
-            {/* Editing routine banner */}
-            {editingSavedPlanId ? (
-              <div className="editing-routine-banner panel panel--compact" role="status">
-                <p className="editing-routine-banner-text">
-                  Editing <strong>{data.savedPlans.find((p) => p.id === editingSavedPlanId)?.name ?? ''}</strong> — add
-                  or remove moves on step 2, then save.
-                </p>
-                <div className="editing-routine-banner-actions">
-                  <button type="button" className="button button-small" onClick={updateSavedPlanFromSession}>
-                    Update routine
-                  </button>
-                  <button type="button" className="button button-muted button-small" onClick={cancelEditSavedPlan}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            {/* STEP 0 — Home: My Routines */}
-            {planStep === 0 && (
-              <section className="panel plan-start" aria-label="Your routines">
-                <div className="plan-start-header">
-                  <div>
-                    <h2 className="panel-heading panel-heading--plain">My Routines</h2>
-                    {activeRoutineName ? (
-                      <p className="active-routine-banner" role="status">
-                        Following: <strong>{activeRoutineName}</strong>
-                      </p>
-                    ) : null}
-                  </div>
-                  <button type="button" className="button" onClick={() => setPlanStep(1)}>
-                    Start fresh
-                  </button>
-                </div>
-
-                {data.savedPlans.length === 0 ? (
-                  <div className="plan-start-empty">
-                    <p className="empty-text">No saved routines yet.</p>
-                    <p className="empty-text" style={{ marginTop: '0.25rem' }}>
-                      Pick muscles → add moves → log → save to build your first routine.
-                    </p>
-                    <button
-                      type="button"
-                      className="button"
-                      style={{ marginTop: '0.85rem' }}
-                      onClick={() => setPlanStep(1)}
-                    >
-                      Build a routine
-                    </button>
-                  </div>
-                ) : (
-                  <ul className="saved-routine-quick-list">
-                    {data.savedPlans.map((plan) => {
-                      const planEntries = orderedPlanEntriesForSavedPlan(plan, allExercises);
-                      return (
-                        <li key={plan.id} className="saved-routine-quick-item">
-                          <div className="saved-routine-quick-top">
-                            <div className="saved-routine-quick-info">
-                              <strong>{plan.name}</strong>
-                              <span className="saved-routine-quick-meta">
-                                {planEntries.length} moves · {formatDate(plan.createdAt)}
-                              </span>
-                            </div>
-                            <div className="saved-routine-quick-actions">
-                              <button
-                                type="button"
-                                className="button button-small"
-                                onClick={() => openRoutineWorkoutTab(plan.id)}
-                              >
-                                Workout sheet
-                              </button>
-                              <button
-                                type="button"
-                                className="button button-muted button-small"
-                                onClick={() => loadSavedPlanTemplate(plan)}
-                              >
-                                Load
-                              </button>
-                              <button
-                                type="button"
-                                className="button button-muted button-small"
-                                onClick={() => beginEditSavedPlan(plan)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                className="button button-muted button-small button-danger-muted"
-                                onClick={() => {
-                                  if (window.confirm(`Delete routine "${plan.name}"?`)) deleteSavedPlanTemplate(plan.id);
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </div>
+              {data.savedPlans.length === 0 ? (
+                <button className="create-plan-empty" onClick={() => startCreatePlan()}>
+                  <span className="create-plan-empty-icon">+</span>
+                  <span>Create your first plan</span>
+                </button>
+              ) : (
+                <ul className="plan-card-list">
+                  {data.savedPlans.map((plan) => {
+                    const entries = orderedPlanEntries(plan, allExercises);
+                    const lastUsed = getLastUsedForPlan(plan, data.stats);
+                    return (
+                      <li key={plan.id} className="plan-card-home">
+                        <div className="plan-card-home-row">
+                          <div className="plan-card-home-info">
+                            <span className="plan-card-home-name">{plan.name}</span>
+                            <span className="plan-card-home-sub">
+                              {entries.length} moves{lastUsed ? ` · ${daysAgo(lastUsed)}` : ''}
+                            </span>
+                            {plan.muscleGroups.length > 0 && (
+                              <div className="plan-card-home-muscles">
+                                {plan.muscleGroups.slice(0, 4).map((g) => (
+                                  <span key={g} className="muscle-chip-sm">{g}</span>
+                                ))}
+                                {plan.muscleGroups.length > 4 && (
+                                  <span className="muscle-chip-sm muscle-chip-sm--more">+{plan.muscleGroups.length - 4}</span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </section>
-            )}
+                          <button className="btn-start" onClick={() => openRoutineWorkoutTab(plan.id)}>
+                            Start
+                          </button>
+                        </div>
+                        <div className="plan-card-home-actions">
+                          <button className="plan-action-btn" onClick={() => loadPlanForLog(plan)}>Quick log</button>
+                          <button className="plan-action-btn" onClick={() => beginEditSavedPlan(plan)}>Edit</button>
+                          <button
+                            className="plan-action-btn plan-action-btn--danger"
+                            onClick={() => { if (window.confirm(`Delete "${plan.name}"?`)) deleteSavedPlanTemplate(plan.id); }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
 
-            {/* STEP 1 — Focus: muscles */}
-            {planStep === 1 && (
-              <section className="panel panel--accent-top body-map-section" aria-label="Body map and plan filter">
-                <div className="panel-title-row">
-                  <h2 className="panel-heading panel-heading--plain">Focus — muscles</h2>
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={() => {
-                      setSelectedGroups([]);
-                      setSelectedEquipment([]);
-                    }}
-                    disabled={selectedGroups.length === 0}
-                  >
-                    Clear
-                  </button>
-                </div>
-                <p className="prose-lead">
-                  Tap a region to filter the catalog.{' '}
-                  <strong>Red</strong> = not trained in {PRACTICE_WINDOW_DAYS} days,{' '}
-                  <strong>orange</strong> = once, <strong>green</strong> = two+ sessions.
-                  Squares beside the figure = Cardio &amp; Mobility. Leave all unselected to see every group.
-                </p>
+            {/* 10-DAY REPORT */}
+            <section className="home-section" aria-label="10-day training report">
+              <div className="home-section-header">
+                <span className="home-section-label">10-DAY REPORT</span>
+                <span className="home-section-sub">{trainedGroupsCount}/{MUSCLE_GROUPS.length} groups trained</span>
+              </div>
+              <div className="report-card">
                 <BodyMapFigure
                   practiceCounts={practiceCounts}
                   practiceWindowDays={PRACTICE_WINDOW_DAYS}
-                  selectedGroups={selectedGroups}
-                  onToggleGroup={toggleGroup}
+                  selectedGroups={[]}
+                  onToggleGroup={(group) => startCreatePlan([group])}
                 />
-                <div className="selected-muscles" aria-label="Muscles selected for filter">
-                  {selectedGroups.length === 0 ? (
-                    <p className="empty-text" style={{ margin: '0.75rem 0 0' }}>
-                      No filter — all groups will show. Tap the map to narrow.
-                    </p>
-                  ) : (
-                    <div className="chip-grid chip-grid--selected" style={{ marginTop: '0.75rem' }}>
-                      {selectedGroups.map((group) => (
-                        <button
-                          key={group}
-                          type="button"
-                          className="chip chip-active"
-                          onClick={() => toggleGroup(group)}
-                          title="Remove from today's focus"
-                        >
-                          {group} ✕
-                        </button>
-                      ))}
+                <div className="report-footer">
+                  <div className="report-legend-row">
+                    <span className="legend-item"><span className="legend-dot legend-dot--red" />Needs work</span>
+                    <span className="legend-item"><span className="legend-dot legend-dot--orange" />Once</span>
+                    <span className="legend-item"><span className="legend-dot legend-dot--green" />2+ sessions</span>
+                  </div>
+                  <p className="report-hint">Tap a region to plan that muscle group</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ── CREATE: FOCUS ─────────────────────────────────────────── */}
+        {view === 'create-focus' && (
+          <div className="subview">
+            <div className="view-header">
+              <button className="view-back" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); setView('home'); }}>← Back</button>
+              <h1 className="view-title">{editingSavedPlanId ? 'Edit Plan' : 'New Plan'}</h1>
+              <button className="view-next" onClick={() => setView('create-moves')}>Next →</button>
+            </div>
+            <p className="view-hint">Tap a muscle to focus the exercise list, or skip.</p>
+            <BodyMapFigure
+              practiceCounts={practiceCounts}
+              practiceWindowDays={PRACTICE_WINDOW_DAYS}
+              selectedGroups={selectedGroups}
+              onToggleGroup={toggleGroup}
+            />
+            {selectedGroups.length > 0 && (
+              <div className="selected-chips-row">
+                {selectedGroups.map((g) => (
+                  <button key={g} type="button" className="chip chip-active" onClick={() => toggleGroup(g)}>
+                    {g} ✕
+                  </button>
+                ))}
+                <button type="button" className="text-button" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); }}>
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── CREATE: MOVES ─────────────────────────────────────────── */}
+        {view === 'create-moves' && (
+          <div className="subview">
+            <div className="view-header">
+              <button className="view-back" onClick={() => setView('create-focus')}>← Back</button>
+              <h1 className="view-title">Pick Moves</h1>
+              <span className="view-badge">{selectedExerciseIds.length} added</span>
+            </div>
+
+            <div className="moves-toolbar">
+              <input
+                className="search-input"
+                type="search"
+                placeholder="Search exercises…"
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setVisibleExerciseCount(24); }}
+                aria-label="Search exercise catalog"
+              />
+              <div className="equipment-scroll" role="group" aria-label="Filter by equipment">
+                {equipmentFilterOptions.map((eq) => {
+                  const active = selectedEquipment.includes(eq);
+                  return (
+                    <button
+                      key={eq}
+                      type="button"
+                      className={`chip ${active ? 'chip-active' : ''}`}
+                      aria-pressed={active}
+                      onClick={() => toggleEquipment(eq)}
+                    >
+                      {labelForFilterValue(eq)}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="catalog-filters-row">
+                <select className="select-input" value={catalogSort} onChange={(e) => { setCatalogSort(e.target.value as CatalogSortMode); setVisibleExerciseCount(24); }}>
+                  <option value="gym">Common first</option>
+                  <option value="mostUsed">Most used</option>
+                  <option value="leastUsed">Least used</option>
+                  <option value="a-z">A–Z</option>
+                  <option value="z-a">Z–A</option>
+                </select>
+                <select className="select-input" value={filterWrkoutCategory} onChange={(e) => { setFilterWrkoutCategory(e.target.value); setVisibleExerciseCount(24); }}>
+                  <option value="all">All types</option>
+                  {categoryFilterOptions.map((c) => <option key={c} value={c}>{labelForFilterValue(c)}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="exercise-grid">
+              {visibleExercises.map((exercise) => {
+                const selected = selectedExerciseIds.includes(exercise.id);
+                const trainedCount = data.stats[exercise.id]?.timesCompleted ?? 0;
+                return (
+                  <article key={exercise.id} className="exercise-card">
+                    <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--image">
+                      {exerciseImages[exercise.name] ? (
+                        <img src={exerciseImages[exercise.name].url} alt={`${exercise.name} demo`} className="exercise-image" loading="lazy" />
+                      ) : (
+                        <div className="exercise-image-fallback">{exercise.primaryGroup}</div>
+                      )}
+                    </ExerciseYoutubeLink>
+                    <div>
+                      <h3>
+                        <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
+                          {exercise.name}
+                        </ExerciseYoutubeLink>
+                      </h3>
+                      <p className="meta">{exercise.primaryGroup}{exercise.secondaryGroups?.length ? ` + ${exercise.secondaryGroups.join(', ')}` : ''}</p>
+                      <p className="meta meta--dataset">{labelForFilterValue(getEffectiveCategory(exercise))} · {labelForFilterValue(getEffectiveEquipment(exercise))}</p>
+                      <p className="meta">Done: {trainedCount}×</p>
+                      {selected && <MuscleTargetPick exercise={exercise} draft={exerciseDrafts[exercise.id]} onPatch={(p) => updateDraft(exercise.id, p)} />}
                     </div>
-                  )}
-                </div>
-                <div className="actions-row">
-                  <button type="button" className="button button-muted" onClick={() => setPlanStep(0)}>
-                    Back
-                  </button>
-                  <button type="button" className="button" onClick={() => setPlanStep(2)}>
-                    Next: pick moves
-                  </button>
-                </div>
-              </section>
+                    <button type="button" className={`button ${selected ? 'button-muted' : ''}`} onClick={() => toggleExerciseInPlan(exercise.id)}>
+                      {selected ? 'Remove' : 'Add'}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+
+            {visibleExerciseCount < catalogMatches.length && (
+              <button type="button" className="button button-block" style={{ margin: '0 1rem 1rem' }} onClick={() => setVisibleExerciseCount((v) => v + 24)}>
+                Show more
+              </button>
             )}
 
-            {/* STEP 2 — Moves: exercise picker */}
-            {planStep === 2 && (
-              <>
-                <section className="panel">
-                  <div className="panel-title-row">
-                    <h2 className="panel-heading panel-heading--plain">
-                      Pick moves <span className="panel-heading-meta">({catalogMatches.length} matches)</span>
-                    </h2>
-                    <input
-                      className="search-input"
-                      type="search"
-                      placeholder="Search move..."
-                      value={searchTerm}
-                      onChange={(event) => {
-                        setSearchTerm(event.target.value);
-                        setVisibleExerciseCount(24);
-                      }}
-                      aria-label="Search exercise catalog"
-                    />
-                  </div>
-                  <div
-                    className="equipment-pick"
-                    role="group"
-                    aria-label="Narrow by equipment, multiple choice"
-                  >
-                    <div className="equipment-pick-header">
-                      <p className="equipment-pick-title">Equipment</p>
-                      {selectedEquipment.length > 0 && (
-                        <button
-                          type="button"
-                          className="text-button"
-                          onClick={() => {
-                            setSelectedEquipment([]);
-                            setVisibleExerciseCount(24);
-                          }}
-                        >
-                          Clear
-                        </button>
+            {/* Save plan bar — sticky bottom */}
+            {selectedExerciseIds.length > 0 && (
+              <div className="save-plan-bar">
+                <input
+                  className="text-input plan-name-input"
+                  type="text"
+                  placeholder="Plan name…"
+                  value={savePlanNameInput}
+                  onChange={(e) => setSavePlanNameInput(e.target.value)}
+                  aria-label="Plan name"
+                  autoComplete="off"
+                />
+                <button type="button" className="button" onClick={saveCurrentPlanTemplate}>
+                  {editingSavedPlanId ? 'Update' : 'Save plan'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── LOG ───────────────────────────────────────────────────── */}
+        {view === 'log' && (
+          <div className="subview">
+            <div className="view-header">
+              <button className="view-back" onClick={() => { setSelectedExerciseIds([]); setExerciseDrafts({}); setActiveRoutineName(null); setView('home'); }}>← Back</button>
+              <h1 className="view-title">{activeRoutineName ?? 'Quick Log'}</h1>
+            </div>
+            <p className="view-hint">Check the moves you complete, then save.</p>
+            <div className="plan-list">
+              {planExercises.map((exercise) => {
+                const draft = exerciseDrafts[exercise.id];
+                const isCardio = getEffectiveCategory(exercise) === 'cardio';
+                return (
+                  <article key={exercise.id} className="plan-card">
+                    <div className="plan-heading">
+                      <h3>
+                        <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
+                          {exercise.name}
+                        </ExerciseYoutubeLink>
+                      </h3>
+                      <label className="checkbox">
+                        <input type="checkbox" checked={draft?.completed ?? false} onChange={(e) => updateDraft(exercise.id, { completed: e.target.checked })} />
+                        Done
+                      </label>
+                    </div>
+                    <MuscleTargetPick exercise={exercise} draft={draft} onPatch={(p) => updateDraft(exercise.id, p)} />
+                    <div className="plan-grid">
+                      {isCardio ? (
+                        <label className="plan-grid-full">
+                          Minutes
+                          <input type="text" inputMode="numeric" placeholder="e.g. 20" value={draft?.reps ?? '20'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value, sets: 1 })} />
+                        </label>
+                      ) : (
+                        <>
+                          <label>Sets<input type="number" min={1} value={draft?.sets ?? 3} onChange={(e) => updateDraft(exercise.id, { sets: Number(e.target.value) || 1 })} /></label>
+                          <label>Reps<input type="text" value={draft?.reps ?? '8-12'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value })} /></label>
+                          <label>Weight<input type="text" placeholder="35kg" value={draft?.weight ?? ''} onChange={(e) => updateDraft(exercise.id, { weight: e.target.value })} /></label>
+                        </>
                       )}
                     </div>
-                    <p className="equipment-pick-hint">
-                      Leave all off to include every equipment type.
-                    </p>
-                    <div className="chip-grid equipment-chip-grid">
-                      {equipmentFilterOptions.map((eq) => {
-                        const active = selectedEquipment.includes(eq);
-                        const slug = equipmentToSlug(eq);
-                        return (
-                          <button
-                            key={eq}
-                            type="button"
-                            className={`chip equipment-visual equipment-visual--${slug} ${active ? 'chip-active' : ''}`}
-                            aria-pressed={active}
-                            onClick={() => toggleEquipment(eq)}
-                            title={labelForFilterValue(eq)}
-                          >
-                            <span className="equipment-visual-label">{labelForFilterValue(eq)}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div className="catalog-filters" role="group" aria-label="Sort and move type">
-                    <label className="filter-field">
-                      <span className="filter-field-label">Sort</span>
-                      <select
-                        className="select-input"
-                        value={catalogSort}
-                        onChange={(event) => {
-                          setCatalogSort(event.target.value as CatalogSortMode);
-                          setVisibleExerciseCount(24);
-                        }}
-                        aria-label="Sort catalog"
-                      >
-                        <option value="gym">Common gym first</option>
-                        <option value="mostUsed">Your most used</option>
-                        <option value="leastUsed">Your least used</option>
-                        <option value="a-z">Name A–Z</option>
-                        <option value="z-a">Name Z–A</option>
-                      </select>
-                    </label>
-                    <label className="filter-field">
-                      <span className="filter-field-label">Type</span>
-                      <select
-                        className="select-input"
-                        value={filterWrkoutCategory}
-                        onChange={(event) => {
-                          setFilterWrkoutCategory(event.target.value);
-                          setVisibleExerciseCount(24);
-                        }}
-                        aria-label="Filter by move type"
-                      >
-                        <option value="all">All types</option>
-                        {categoryFilterOptions.map((c) => (
-                          <option key={c} value={c}>
-                            {labelForFilterValue(c)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  <div className="exercise-grid">
-                    {visibleExercises.map((exercise) => {
-                      const selected = selectedExerciseIds.includes(exercise.id);
-                      const trainedCount = data.stats[exercise.id]?.timesCompleted ?? 0;
-                      return (
-                        <article key={exercise.id} className="exercise-card">
-                          <ExerciseYoutubeLink
-                            exerciseName={exercise.name}
-                            className="exercise-youtube exercise-youtube--image"
-                          >
-                            {exerciseImages[exercise.name] ? (
-                              <img
-                                src={exerciseImages[exercise.name].url}
-                                alt={`${exercise.name} demo`}
-                                className="exercise-image"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="exercise-image-fallback">{exercise.primaryGroup}</div>
-                            )}
-                          </ExerciseYoutubeLink>
-                          <div>
-                            <h3>
-                              <ExerciseYoutubeLink
-                                exerciseName={exercise.name}
-                                className="exercise-youtube exercise-youtube--title"
-                              >
-                                {exercise.name}
-                              </ExerciseYoutubeLink>
-                            </h3>
-                            <p className="meta">
-                              {exercise.primaryGroup}
-                              {exercise.secondaryGroups?.length ? ` + ${exercise.secondaryGroups.join(', ')}` : ''}
-                            </p>
-                            <p className="meta meta--dataset">
-                              {labelForFilterValue(getEffectiveCategory(exercise))} ·{' '}
-                              {labelForFilterValue(getEffectiveEquipment(exercise))}
-                            </p>
-                            <p className="meta">Done: {trainedCount}×</p>
-                            {selected ? (
-                              <MuscleTargetPick
-                                exercise={exercise}
-                                draft={exerciseDrafts[exercise.id]}
-                                onPatch={(patch) => updateDraft(exercise.id, patch)}
-                              />
-                            ) : null}
-                          </div>
-                          <button
-                            type="button"
-                            className={`button ${selected ? 'button-muted' : ''}`}
-                            onClick={() => toggleExerciseInPlan(exercise.id)}
-                          >
-                            {selected ? 'Remove' : 'Add to today'}
-                          </button>
-                        </article>
-                      );
-                    })}
-                  </div>
-
-                  {visibleExerciseCount < catalogMatches.length && (
-                    <button
-                      type="button"
-                      className="button button-block"
-                      onClick={() => setVisibleExerciseCount((value) => value + 24)}
-                    >
-                      Show more moves
-                    </button>
-                  )}
-                </section>
-
-                {/* Save / update routine inline */}
-                {selectedExerciseIds.length > 0 && (
-                  <section className="panel panel--compact save-routine-inline" aria-label="Save or update routine">
-                    {editingSavedPlanId ? (
-                      <>
-                        <h3 className="panel-heading panel-heading--plain">Update this routine</h3>
-                        <p className="panel-subtle">
-                          Replaces the stored move list for{' '}
-                          <strong>{data.savedPlans.find((p) => p.id === editingSavedPlanId)?.name}</strong>.
-                        </p>
-                        <div className="save-routine-inline-actions">
-                          <button type="button" className="button" onClick={updateSavedPlanFromSession}>
-                            Update routine
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="panel-heading panel-heading--plain">Save as routine</h3>
-                        <form
-                          className="saved-plan-form save-routine-inline-form"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            saveCurrentPlanTemplate();
-                          }}
-                        >
-                          <div className="saved-plan-save-row">
-                            <input
-                              className="text-input"
-                              type="text"
-                              placeholder="Routine name (e.g. Pull B, Leg day)"
-                              value={savePlanNameInput}
-                              onChange={(e) => setSavePlanNameInput(e.target.value)}
-                              aria-label="Name for new routine"
-                              autoComplete="off"
-                            />
-                            <button type="submit" className="button">
-                              Save routine
-                            </button>
-                          </div>
-                        </form>
-                      </>
-                    )}
-                  </section>
-                )}
-
-                <div className="actions-row">
-                  <button type="button" className="button button-muted" onClick={() => setPlanStep(1)}>
-                    Back
-                  </button>
-                  <button type="button" className="button" onClick={() => setPlanStep(3)}>
-                    Next: log &amp; save
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* STEP 3 — Log & Save */}
-            {planStep === 3 && (
-              <>
-                <section className="panel panel--accent-top">
-                  <h2 className="panel-heading panel-heading--plain">
-                    Today's plan <span className="panel-heading-meta">({planExercises.length} moves)</span>
-                  </h2>
-                  {planExercises.length > 0 ? (
-                    <p className="panel-subtle plan-log-hint">
-                      Check <strong>Include when I save</strong> for moves you actually do this session, fill sets / weight, then hit Save.
-                    </p>
-                  ) : null}
-                  {planExercises.length === 0 ? (
-                    <div className="plan-empty">
-                      <p className="empty-text">No moves in this plan yet.</p>
-                      <button type="button" className="button button-muted" onClick={() => setPlanStep(2)}>
-                        Go to Moves
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="plan-list">
-                      {planExercises.map((exercise) => {
-                        const draft = exerciseDrafts[exercise.id];
-                        const isCardio = getEffectiveCategory(exercise) === 'cardio';
-                        return (
-                          <article key={exercise.id} className="plan-card">
-                            <div className="plan-heading">
-                              <h3>
-                                <ExerciseYoutubeLink
-                                  exerciseName={exercise.name}
-                                  className="exercise-youtube exercise-youtube--title"
-                                >
-                                  {exercise.name}
-                                </ExerciseYoutubeLink>
-                              </h3>
-                              <label
-                                className="checkbox"
-                                title="Only checked moves are written when you tap Save workout"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={draft?.completed ?? false}
-                                  onChange={(event) => updateDraft(exercise.id, { completed: event.target.checked })}
-                                />
-                                Include when I save
-                              </label>
-                            </div>
-
-                            <MuscleTargetPick
-                              exercise={exercise}
-                              draft={draft}
-                              onPatch={(patch) => updateDraft(exercise.id, patch)}
-                            />
-
-                            <div className="plan-grid">
-                              {isCardio ? (
-                                <label className="plan-grid-full">
-                                  Minutes
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    placeholder="e.g. 20 or 25–30"
-                                    value={draft?.reps ?? '20'}
-                                    onChange={(event) => updateDraft(exercise.id, { reps: event.target.value, sets: 1 })}
-                                  />
-                                </label>
-                              ) : (
-                                <>
-                                  <label>
-                                    Sets
-                                    <input
-                                      type="number"
-                                      min={1}
-                                      value={draft?.sets ?? 3}
-                                      onChange={(event) => updateDraft(exercise.id, { sets: Number(event.target.value) || 1 })}
-                                    />
-                                  </label>
-                                  <label>
-                                    Reps
-                                    <input
-                                      type="text"
-                                      value={draft?.reps ?? '8-12'}
-                                      onChange={(event) => updateDraft(exercise.id, { reps: event.target.value })}
-                                    />
-                                  </label>
-                                  <label>
-                                    Weight
-                                    <input
-                                      type="text"
-                                      placeholder="e.g. 35kg"
-                                      value={draft?.weight ?? ''}
-                                      onChange={(event) => updateDraft(exercise.id, { weight: event.target.value })}
-                                    />
-                                  </label>
-                                </>
-                              )}
-                            </div>
-
-                            <label>
-                              Notes
-                              <input
-                                type="text"
-                                placeholder="tempo, rest, machine setup..."
-                                value={draft?.notes ?? ''}
-                                onChange={(event) => updateDraft(exercise.id, { notes: event.target.value })}
-                              />
-                            </label>
-                            {exerciseImages[exercise.name] && (
-                              <p className="image-credit">{exerciseImages[exercise.name].credit}</p>
-                            )}
-                          </article>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-                <div className="actions-row">
-                  <button type="button" className="button button-muted" onClick={() => setPlanStep(2)}>
-                    Back to moves
-                  </button>
-                  <span />
-                </div>
-              </>
-            )}
-          </>
-        )}
-
-        {/* Sticky save bar — only on step 3 with exercises */}
-        {mainTab === 'plan' && planStep === 3 && planExercises.length > 0 && (
-          <section className="sticky-save" aria-label="Save workout">
-            <div className="sticky-save-copy">
-              <strong>{planExercises.length} moves ready</strong>
-              <span>Save when you finish your session</span>
+                    <label>Notes<input type="text" placeholder="tempo, rest…" value={draft?.notes ?? ''} onChange={(e) => updateDraft(exercise.id, { notes: e.target.value })} /></label>
+                    {exerciseImages[exercise.name] && <p className="image-credit">{exerciseImages[exercise.name].credit}</p>}
+                  </article>
+                );
+              })}
             </div>
-            <button type="button" className="button" onClick={saveWorkout}>
-              Save workout
-            </button>
-          </section>
+            {planExercises.length > 0 && (
+              <section className="sticky-save" aria-label="Save workout">
+                <div className="sticky-save-copy">
+                  <strong>{planExercises.length} moves</strong>
+                  <span>Save when done</span>
+                </div>
+                <button type="button" className="button" onClick={saveWorkout}>Save workout</button>
+              </section>
+            )}
+          </div>
         )}
 
-        {/* ── ACTIVITY TAB ──────────────────────────────────────────── */}
-        {mainTab === 'activity' && (
+        {/* ── ACTIVITY ──────────────────────────────────────────────── */}
+        {view === 'activity' && (
           <>
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Training history</h2>
-              <p className="panel-subtle">Add past days or clear imported / sample data.</p>
-              <HistoryBackfillPanel
-                allExercises={allExercises}
-                sessions={data.sessions}
-                onPersist={({ sessions: nextSessions, stats: nextStats }) =>
-                  persist({ ...data, sessions: nextSessions, stats: nextStats })
-                }
-              />
+              <HistoryBackfillPanel allExercises={allExercises} sessions={data.sessions} onPersist={({ sessions: s, stats: st }) => persist({ ...data, sessions: s, stats: st })} />
             </section>
 
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Progress</h2>
-              <p className="panel-subtle">Totals since you started logging on this device.</p>
               <div className="stats-grid">
-                <article className="stat-card">
-                  <h3>{totalWorkoutCount}</h3>
-                  <p>Workouts</p>
-                </article>
-                <article className="stat-card">
-                  <h3>{totalExerciseCompletions}</h3>
-                  <p>Move completions</p>
-                </article>
-                <article className="stat-card">
-                  <h3>{totalTrackedSets}</h3>
-                  <p>Sets logged</p>
-                </article>
+                <article className="stat-card"><h3>{totalWorkoutCount}</h3><p>Workouts</p></article>
+                <article className="stat-card"><h3>{totalExerciseCompletions}</h3><p>Completions</p></article>
+                <article className="stat-card"><h3>{totalTrackedSets}</h3><p>Sets</p></article>
               </div>
             </section>
 
             <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">Workout calendar</h2>
-              <p className="prose-lead">
-                Each day shows color stripes for muscle areas you trained. Orange border = logged workout; slate dashed = legacy sample only.
-              </p>
+              <h2 className="panel-heading panel-heading--plain">Calendar</h2>
               <WorkoutCalendar sessions={data.sessions} allExercises={allExercises} />
             </section>
 
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Recent sessions</h2>
               {recentSessions.length === 0 ? (
-                <p className="empty-text">No sessions logged yet.</p>
+                <p className="empty-text">No sessions yet.</p>
               ) : (
                 <div className="small-list">
                   {recentSessions.map((session) => (
@@ -1159,11 +662,7 @@ export default function App() {
                       <span>
                         {formatDate(session.date)}{' '}
                         <small>
-                          {isLegacySampleSessionId(session.id)
-                            ? 'sample · '
-                            : isImportedHistorySessionId(session.id)
-                              ? 'imported · '
-                              : ''}
+                          {isLegacySampleSessionId(session.id) ? 'sample · ' : isImportedHistorySessionId(session.id) ? 'imported · ' : ''}
                           {session.entries.length} moves
                         </small>
                       </span>
@@ -1176,34 +675,18 @@ export default function App() {
           </>
         )}
 
-        {/* ── LIBRARY TAB ───────────────────────────────────────────── */}
-        {mainTab === 'library' && (
+        {/* ── LIBRARY ───────────────────────────────────────────────── */}
+        {view === 'library' && (
           <>
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Custom moves</h2>
-              <p className="panel-subtle">Add personal exercises to your local library.</p>
+              <p className="panel-subtle">Add personal exercises to your library.</p>
               <form className="custom-form" onSubmit={handleAddCustomExercise}>
-                <input
-                  className="text-input"
-                  type="text"
-                  placeholder="e.g. Incline Smith Press"
-                  value={newExerciseName}
-                  onChange={(event) => setNewExerciseName(event.target.value)}
-                />
-                <select
-                  className="select-input"
-                  value={newExerciseGroup}
-                  onChange={(event) => setNewExerciseGroup(event.target.value as MuscleGroup)}
-                >
-                  {MUSCLE_GROUPS.map((group) => (
-                    <option key={group} value={group}>
-                      {group}
-                    </option>
-                  ))}
+                <input className="text-input" type="text" placeholder="e.g. Incline Smith Press" value={newExerciseName} onChange={(e) => setNewExerciseName(e.target.value)} />
+                <select className="select-input" value={newExerciseGroup} onChange={(e) => setNewExerciseGroup(e.target.value as MuscleGroup)}>
+                  {MUSCLE_GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
-                <button type="submit" className="button">
-                  Add custom move
-                </button>
+                <button type="submit" className="button">Add</button>
               </form>
               {data.customExercises.length > 0 && (
                 <ul className="custom-exercise-list">
@@ -1217,19 +700,33 @@ export default function App() {
               )}
             </section>
 
-            <section className="panel panel--data-reset" aria-label="Reset saved data">
+            <section className="panel panel--data-reset" aria-label="Reset data">
               <h2 className="panel-heading panel-heading--plain">Data</h2>
-              <p className="prose-lead">
-                Removes all workouts, stats, custom exercises, saved routines, and your current session.
-                Data lives only in this browser — nothing is uploaded.
-              </p>
-              <button type="button" className="button button-danger" onClick={clearAllUserData}>
-                Clear all my data
-              </button>
+              <p className="prose-lead">Removes all workouts, stats, custom exercises, and saved plans. Lives only in this browser.</p>
+              <button type="button" className="button button-danger" onClick={clearAllUserData}>Clear all my data</button>
             </section>
           </>
         )}
+
       </main>
+
+      {/* ── BOTTOM NAV (main views only) ─────────────────────────── */}
+      {isMainView && (
+        <nav className="bottom-nav" aria-label="Main navigation">
+          <button className={`bnav-btn ${view === 'home' ? 'bnav-btn--active' : ''}`} onClick={() => setView('home')}>
+            <span className="bnav-icon">🏋️</span>
+            <span className="bnav-label">Plans</span>
+          </button>
+          <button className={`bnav-btn ${view === 'activity' ? 'bnav-btn--active' : ''}`} onClick={() => setView('activity')}>
+            <span className="bnav-icon">📊</span>
+            <span className="bnav-label">Activity</span>
+          </button>
+          <button className={`bnav-btn ${view === 'library' ? 'bnav-btn--active' : ''}`} onClick={() => setView('library')}>
+            <span className="bnav-icon">⚙️</span>
+            <span className="bnav-label">Library</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

@@ -2169,3 +2169,460 @@ body {
   font-size: 0.88rem;
   color: var(--gf-text);
 }
+
+/* ═══════════════════════════════════════════════════════
+   REDESIGN — Minimal home-first layout
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Bottom Navigation ───────────────────────────────── */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: rgba(7, 8, 12, 0.92);
+  border-top: 1px solid var(--gf-border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bnav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.6rem 0.5rem 0.7rem;
+  border: none;
+  background: transparent;
+  color: rgba(148, 163, 184, 0.5);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.bnav-btn:hover { color: var(--gf-text-muted); }
+.bnav-btn--active { color: var(--gf-accent); }
+.bnav-icon { font-size: 1.25rem; line-height: 1; }
+.bnav-label { font-size: 0.63rem; font-weight: 700; letter-spacing: 0.05em; }
+
+.app-shell { padding-bottom: 5.5rem; }
+
+/* ── Home View ───────────────────────────────────────── */
+
+.home-view { padding: 1.4rem 1rem 1rem; }
+
+.home-wordmark {
+  font-family: var(--gf-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--gf-accent);
+  letter-spacing: -0.04em;
+  margin-bottom: 1.75rem;
+}
+
+.home-section { margin-bottom: 2.25rem; }
+
+.home-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+}
+
+.home-section-label {
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--gf-text-dim);
+  text-transform: uppercase;
+}
+
+.home-section-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--gf-accent);
+  opacity: 0.8;
+}
+
+.icon-add-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 1.5px solid rgba(45, 212, 191, 0.5);
+  background: rgba(45, 212, 191, 0.08);
+  color: var(--gf-accent);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.icon-add-btn:hover {
+  background: rgba(45, 212, 191, 0.2);
+  border-color: var(--gf-accent);
+}
+
+.create-plan-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 1.1rem 1.2rem;
+  border: 1.5px dashed rgba(45, 212, 191, 0.25);
+  border-radius: var(--gf-radius-lg);
+  background: rgba(45, 212, 191, 0.03);
+  color: var(--gf-text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.18s, background 0.18s, color 0.18s;
+}
+
+.create-plan-empty:hover {
+  border-color: var(--gf-accent);
+  background: rgba(45, 212, 191, 0.07);
+  color: var(--gf-accent);
+}
+
+.create-plan-empty-icon {
+  font-size: 1.5rem;
+  color: var(--gf-accent);
+  opacity: 0.6;
+  line-height: 1;
+}
+
+.plan-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.plan-card-home {
+  background: var(--gf-surface);
+  border: 1px solid var(--gf-border);
+  border-left: 3px solid var(--gf-accent);
+  border-radius: var(--gf-radius-md);
+  padding: 0.9rem 0.95rem 0.75rem;
+  box-shadow: var(--gf-shadow);
+}
+
+.plan-card-home-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.plan-card-home-info {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.plan-card-home-name {
+  font-weight: 700;
+  font-size: 0.97rem;
+  color: var(--gf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plan-card-home-sub {
+  font-size: 0.74rem;
+  color: var(--gf-text-dim);
+}
+
+.plan-card-home-muscles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.45rem;
+}
+
+.muscle-chip-sm {
+  display: inline-block;
+  padding: 0.13rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid rgba(45, 212, 191, 0.22);
+  background: rgba(45, 212, 191, 0.06);
+  color: var(--gf-text-muted);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.muscle-chip-sm--more {
+  border-color: var(--gf-border);
+  background: transparent;
+  color: var(--gf-text-dim);
+}
+
+.btn-start {
+  flex-shrink: 0;
+  padding: 0.5rem 1.05rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--gf-accent);
+  color: #0d1117;
+  font-family: var(--gf-font);
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn-start:hover { background: hsl(175, 70%, 52%); }
+.btn-start:active { transform: scale(0.95); }
+
+.plan-card-home-actions {
+  display: flex;
+  gap: 1.1rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  padding-top: 0.6rem;
+}
+
+.plan-action-btn {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--gf-text-dim);
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.plan-action-btn:hover { color: var(--gf-text-muted); }
+.plan-action-btn--danger:hover { color: #fca5a5; }
+
+/* ── 10-Day Report ───────────────────────────────────── */
+
+.report-card {
+  background: var(--gf-surface);
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-lg);
+  padding: 0.85rem;
+  box-shadow: var(--gf-shadow);
+}
+
+.report-footer {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.report-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--gf-text-muted);
+  font-weight: 600;
+}
+
+.legend-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-dot--red    { background: #ef4444; }
+.legend-dot--orange { background: #f97316; }
+.legend-dot--green  { background: #22c55e; }
+
+.report-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--gf-text-dim);
+  font-style: italic;
+}
+
+/* ── Toast ───────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;
+  background: rgba(18, 24, 38, 0.96);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  color: #ccfbf1;
+  font-size: 0.83rem;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: calc(100% - 2rem);
+  text-align: center;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  cursor: pointer;
+  animation: toastIn 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-0.6rem); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Subview (create / log) ──────────────────────────── */
+
+.subview { min-height: 100svh; padding-bottom: 6rem; }
+
+.view-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  background: rgba(7, 8, 12, 0.9);
+  border-bottom: 1px solid var(--gf-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.view-back {
+  flex-shrink: 0;
+  padding: 0.38rem 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--gf-radius-sm);
+  background: transparent;
+  color: var(--gf-text-muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.view-back:hover { color: var(--gf-text); border-color: rgba(148, 163, 184, 0.4); }
+
+.view-title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--gf-display);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gf-text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.view-next {
+  flex-shrink: 0;
+  padding: 0.38rem 0.75rem;
+  border: 1.5px solid rgba(45, 212, 191, 0.5);
+  border-radius: var(--gf-radius-sm);
+  background: rgba(45, 212, 191, 0.08);
+  color: var(--gf-accent);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.view-next:hover {
+  background: rgba(45, 212, 191, 0.18);
+  border-color: var(--gf-accent);
+}
+
+.view-badge {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--gf-accent);
+}
+
+.view-hint {
+  display: block;
+  padding: 0.7rem 1rem 0;
+  font-size: 0.78rem;
+  color: var(--gf-text-dim);
+  font-style: italic;
+}
+
+.selected-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem 0;
+  align-items: center;
+}
+
+/* ── Moves toolbar ───────────────────────────────────── */
+
+.moves-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem 0.25rem;
+}
+
+.equipment-scroll {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+}
+
+.equipment-scroll::-webkit-scrollbar { display: none; }
+
+.catalog-filters-row { display: flex; gap: 0.5rem; }
+.catalog-filters-row .select-input { flex: 1; }
+
+/* ── Save plan sticky bar ────────────────────────────── */
+
+.save-plan-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.7rem 1rem;
+  padding-bottom: max(0.7rem, env(safe-area-inset-bottom, 0px));
+  background: rgba(8, 10, 16, 0.96);
+  border-top: 1px solid rgba(45, 212, 191, 0.28);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 50;
+}
+
+.plan-name-input { flex: 1; min-width: 0; }
