@@ -1,6 +1,6 @@
 import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
 
-type WorkoutEntry = { exerciseId: string; trainedMuscleGroups?: MuscleGroup[] };
+type WorkoutEntry = { exerciseId: string; sets: number; trainedMuscleGroups?: MuscleGroup[] };
 type WorkoutSession = { date: string; entries: WorkoutEntry[] };
 
 /**

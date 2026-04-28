@@ -8,7 +8,7 @@ import { WorkoutCalendar } from './components/WorkoutCalendar';
 import { MuscleTargetPick } from './components/MuscleTargetPick';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
-import { getPracticeCountsInWindow } from './utils/practiceWindow';
+import { getPracticeCountsInWindow, type MuscleStats } from './utils/practiceWindow';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './components/calendarMuscleColors';
 import { PrintReport } from './components/PrintReport';
 import {
@@ -895,7 +895,7 @@ export default function App() {
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
               <p className="panel-subtle">Visual balance of your training for this period.</p>
-              <MuscleSpider stats={analysisCounts} days={analysisDays} />
+              <MuscleSpider stats={analysisCounts} />
               <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
                 <button type="button" className="button" style={{ background: 'rgba(45, 212, 191, 0.15)', borderColor: 'var(--gf-accent)' }} onClick={() => window.print()}>
                   📄 Export Intelligence Report (PDF)
@@ -913,18 +913,22 @@ export default function App() {
               <h2 className="panel-heading panel-heading--plain">Volume Analysis</h2>
               <div className="analysis-chart">
                 {MUSCLE_GROUPS
-                  .map(group => ({
-                    group,
-                    count: analysisCounts.get(group) ?? 0
-                  }))
+                   .map(group => {
+                    const s = analysisCounts.get(group);
+                    return {
+                      group,
+                      count: s ? s.totalSets : 0,
+                      sessionCount: s ? s.sessions : 0
+                    };
+                  })
                   .sort((a, b) => {
                     if (a.count === b.count) return 0;
                     if (a.count === 0) return 1;
                     if (b.count === 0) return -1;
                     return b.count - a.count;
                   })
-                  .map(({group, count}) => {
-                    const max = Math.max(...analysisCounts.values(), 1);
+                  .map(({group, count, sessionCount}) => {
+                    const max = Math.max(...Array.from(analysisCounts.values()).map(v => v.totalSets), 1);
                     const pct = (count / max) * 100;
                     return (
                       <div key={group} className="analysis-bar-row">
@@ -939,7 +943,7 @@ export default function App() {
                           />
                           {count === 0 && <div className="bar-missed-indicator" />}
                         </div>
-                        <span className="analysis-bar-value" style={{ opacity: count === 0 ? 0.4 : 1 }}>{count}d</span>
+                        <span className="analysis-bar-value" style={{ opacity: count === 0 ? 0.4 : 1 }}>{count}s</span>
                       </div>
                     );
                   })}

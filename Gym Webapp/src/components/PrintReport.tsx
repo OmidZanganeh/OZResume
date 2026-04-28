@@ -3,7 +3,7 @@ import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
-import { MuscleStats } from '../utils/practiceWindow';
+import type { MuscleStats } from '../utils/practiceWindow';
 
 export type ReportData = {
   profile: { name: string; weight: string; weightUnit: 'kg' | 'lbs'; height: string; heightUnit: 'cm' | 'ft'; age: string };

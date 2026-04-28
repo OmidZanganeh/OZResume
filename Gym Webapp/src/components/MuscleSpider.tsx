@@ -15,14 +15,13 @@ function pt(angle: number, r: number) {
   };
 }
 
-import { MuscleStats } from '../utils/practiceWindow';
+import type { MuscleStats } from '../utils/practiceWindow';
 
 type Props = {
   stats: Map<MuscleGroup, MuscleStats>;
-  days: number;
 };
 
-export function MuscleSpider({ stats, days }: Props) {
+export function MuscleSpider({ stats }: Props) {
   const [progress, setProgress] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
