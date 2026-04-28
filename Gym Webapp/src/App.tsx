@@ -51,7 +51,7 @@ import {
 
 const PRACTICE_WINDOW_DAYS = 10;
 
-type AppView = 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'library';
+type AppView = 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'library' | 'report';
 
 function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]) {
   if (selectedGroups.length === 0) return true;
