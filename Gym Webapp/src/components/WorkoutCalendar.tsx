@@ -7,6 +7,7 @@ import {
   muscleGroupsForSession,
   sortMuscleGroupsForDisplay,
 } from './calendarMuscleColors';
+import { BodyMapFigure } from './BodyMapFigure';
 
 type Session = {
   id: string;
@@ -158,6 +159,12 @@ export function WorkoutCalendar({ sessions, allExercises }: Props) {
     return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(lastSession.date));
   }, [lastSession]);
 
+  const hitInLastSessionMap = useMemo(() => {
+    const m = new Map<MuscleGroup, number>();
+    hitInLastSession.forEach((g) => m.set(g, 1));
+    return m;
+  }, [hitInLastSession]);
+
   const todayKey = localTodayKey();
 
   function goPrev() {
@@ -274,6 +281,17 @@ export function WorkoutCalendar({ sessions, allExercises }: Props) {
       </div>
 
       <div className="workout-cal-legend workout-cal-legend--muscles">
+        {lastSessionLabel && (
+          <div className="calendar-body-visual" style={{ marginBottom: '2rem' }}>
+             <BodyMapFigure 
+               mode="rainbow"
+               practiceCounts={hitInLastSessionMap}
+               practiceWindowDays={0}
+               selectedGroups={[]}
+               onToggleGroup={() => {}}
+             />
+          </div>
+        )}
         {lastSessionLabel ? (
           <>
             <p className="workout-cal-legend-heading">Trained in last session ({lastSessionLabel})</p>

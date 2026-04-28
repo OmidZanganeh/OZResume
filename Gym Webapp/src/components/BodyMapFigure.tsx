@@ -5,12 +5,27 @@ import {
   buildBodyMusclesStateForTenDayGaps,
   getGroupForBodyMuscleId,
   MOTIVATION_GREEN_INTENSITY_SLOT,
+  GROUP_TO_MUSCLE_IDS,
 } from '../bodyMap/bodyMusclesMapping';
+import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
 /** Slot 0 = no hits in window — red "gap" cue. */
 (INTENSITY_COLORS as Record<number, string>)[0] = '#b91c1c';
 /** Slot for "2+" motivation green. */
 (INTENSITY_COLORS as Record<number, string>)[MOTIVATION_GREEN_INTENSITY_SLOT] = '#22c55e';
+
+// Initialize Rainbow Slots (100+) to avoid library defaults
+const RAINBOW_START_SLOT = 100;
+const GROUP_TO_RAINBOW_SLOT: Record<string, number> = {};
+Object.keys(MUSCLE_GROUP_CALENDAR_COLOR).forEach((g, i) => {
+  const slot = RAINBOW_START_SLOT + i;
+  GROUP_TO_RAINBOW_SLOT[g] = slot;
+  (INTENSITY_COLORS as Record<number, string>)[slot] = MUSCLE_GROUP_CALENDAR_COLOR[g as MuscleGroup];
+});
+
+/** Slot for non-selected/inactive muscles in legend. */
+const LEGEND_INACTIVE_SLOT = 99;
+(INTENSITY_COLORS as Record<number, string>)[LEGEND_INACTIVE_SLOT] = '#1e293b'; // Slate-800
 
 type Props = {
   practiceCounts: Map<MuscleGroup, number>;
@@ -67,7 +82,8 @@ export function BodyMapFigure({
   practiceWindowDays,
   selectedGroups,
   onToggleGroup,
-}: Props) {
+  mode = 'heatmap',
+}: Props & { mode?: 'heatmap' | 'rainbow' }) {
   const frontHostRef = useRef<HTMLDivElement>(null);
   const backHostRef = useRef<HTMLDivElement>(null);
   const frontChartRef = useRef<BodyChart | null>(null);
@@ -119,10 +135,24 @@ export function BodyMapFigure({
 
   // Update state only — no chart recreation, no lag
   useEffect(() => {
-    const state = buildBodyMusclesStateForTenDayGaps(practiceCounts, selectedGroups);
+    let state: any = {};
+    if (mode === 'rainbow') {
+      // Legend/Summary mode: only show rainbow color if it was hit (count > 0)
+      for (const group of Object.keys(GROUP_TO_MUSCLE_IDS)) {
+        const ids = GROUP_TO_MUSCLE_IDS[group as MuscleGroup];
+        if (!ids) continue;
+        const wasHit = (practiceCounts.get(group as MuscleGroup) ?? 0) > 0;
+        const intensity = wasHit ? (GROUP_TO_RAINBOW_SLOT[group] ?? LEGEND_INACTIVE_SLOT) : LEGEND_INACTIVE_SLOT;
+        for (const id of ids) {
+          state[id] = { intensity, selected: false };
+        }
+      }
+    } else {
+      state = buildBodyMusclesStateForTenDayGaps(practiceCounts, selectedGroups);
+    }
     frontChartRef.current?.update({ bodyState: state });
     backChartRef.current?.update({ bodyState: state });
-  }, [practiceCounts, selectedGroups]);
+  }, [practiceCounts, selectedGroups, mode]);
 
   return (
     <div className="body-map">
