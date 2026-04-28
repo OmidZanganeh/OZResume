@@ -1406,22 +1406,26 @@ body {
 }
 
 .body-muscles-host {
-  min-height: 280px;
+  min-height: 0;
+  height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(7, 8, 12, 0.5);
   border: 1px solid var(--gf-border);
   border-radius: var(--gf-radius-md);
-  padding: 0.4rem;
+  padding: 0.35rem;
+  overflow: hidden;
 }
 
 .body-muscles-host .body-muscles-inner {
   width: 100%;
+  height: 100%;
 }
 
 .body-muscles-host svg {
   max-width: 100%;
+  max-height: 192px;
   height: auto;
   display: block;
   margin: 0 auto;
@@ -1498,13 +1502,16 @@ body {
   text-decoration: underline;
 }
 
-/* —— Body map (training coverage) */
-.body-map-figures {
+/* —— Body map row layout */
+.body-map-row {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.25rem;
-  margin: 0.5rem 0 0.75rem;
+  gap: 0.6rem;
+  margin: 0.4rem 0 0.75rem;
+}
+
+.body-map-row .body-map-figure {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .body-map-figure {
@@ -1609,72 +1616,81 @@ body {
   flex: 1 1 auto;
 }
 
-.body-map-orphan-squares {
+/* —— Orphan pills: Cardio & Mobility ───────── */
+
+.orphan-pills {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   gap: 0.55rem;
-  flex: 0 0 auto;
-  min-width: 5.5rem;
+  justify-content: center;
+  margin: 0.5rem 0 0.35rem;
 }
 
-.body-map-orphan-square {
+.orphan-pill {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.15rem;
-  min-height: 3.25rem;
-  padding: 0.45rem 0.5rem;
-  border-radius: 10px;
-  border: 2px solid rgba(71, 85, 105, 0.85);
-  background: rgba(15, 23, 42, 0.75);
-  color: #e2e8f0;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem 0.45rem 0.65rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(71, 85, 105, 0.6);
+  background: rgba(15, 23, 42, 0.65);
+  color: var(--gf-text-muted);
   cursor: pointer;
   font: inherit;
-  transition: border-color 140ms, box-shadow 140ms, transform 140ms;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  will-change: border-color;
 }
 
-.body-map-orphan-square:hover {
-  border-color: #94a3b8;
+.orphan-pill:hover {
+  border-color: rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.85);
 }
 
-.body-map-orphan-square:focus-visible {
-  outline: 2px solid #38bdf8;
+.orphan-pill:focus-visible {
+  outline: 2px solid var(--gf-accent);
   outline-offset: 2px;
 }
 
-.body-map-orphan-square--gray {
-  border-color: #b91c1c;
-  background: rgba(127, 29, 29, 0.4);
-  color: #fecaca;
+.orphan-pill--red {
+  border-color: rgba(185, 28, 28, 0.7);
+  background: rgba(127, 29, 29, 0.3);
+  color: #fca5a5;
 }
 
-.body-map-orphan-square--orange {
-  border-color: #f97316;
-  background: rgba(234, 88, 12, 0.22);
+.orphan-pill--orange {
+  border-color: rgba(249, 115, 22, 0.6);
+  background: rgba(234, 88, 12, 0.2);
+  color: #fed7aa;
 }
 
-.body-map-orphan-square--green {
-  border-color: #22c55e;
-  background: rgba(22, 163, 74, 0.28);
+.orphan-pill--green {
+  border-color: rgba(34, 197, 94, 0.55);
+  background: rgba(22, 163, 74, 0.2);
+  color: #bbf7d0;
 }
 
-.body-map-orphan-square--selected {
-  box-shadow: 0 0 0 2px #38bdf8, 0 0 12px rgba(56, 189, 248, 0.35);
+.orphan-pill--selected {
+  border-color: var(--gf-accent) !important;
+  box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.3);
 }
 
-.body-map-orphan-square-label {
-  font-size: 0.72rem;
+.orphan-pill-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.orphan-pill-name {
+  font-size: 0.78rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
 }
 
-.body-map-orphan-square-count {
-  font-size: 0.85rem;
+.orphan-pill-count {
+  font-size: 0.72rem;
   font-weight: 600;
-  opacity: 0.95;
+  opacity: 0.75;
+  min-width: 1.5ch;
+  text-align: right;
 }
 
 /* —— Past workout modal */

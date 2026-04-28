@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { BodyChart, ViewSide, INTENSITY_COLORS } from 'body-muscles';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import {
@@ -7,9 +7,9 @@ import {
   MOTIVATION_GREEN_INTENSITY_SLOT,
 } from '../bodyMap/bodyMusclesMapping';
 
-/** Slot 0 = no hits in window — red “gap” cue (was default gray in the library). */
+/** Slot 0 = no hits in window — red "gap" cue. */
 (INTENSITY_COLORS as Record<number, string>)[0] = '#b91c1c';
-/** Library slot {@link MOTIVATION_GREEN_INTENSITY_SLOT} is yellow by default; we use it for “2+” motivation green. */
+/** Slot for "2+" motivation green. */
 (INTENSITY_COLORS as Record<number, string>)[MOTIVATION_GREEN_INTENSITY_SLOT] = '#22c55e';
 
 type Props = {
@@ -19,7 +19,12 @@ type Props = {
   onToggleGroup: (group: MuscleGroup) => void;
 };
 
-function OrphanMuscleSquares({
+const ORPHAN_ICONS: Record<string, string> = {
+  Cardio: '🏃',
+  Mobility: '🧘',
+};
+
+function OrphanPills({
   practiceCounts,
   practiceWindowDays,
   selectedGroups,
@@ -32,22 +37,24 @@ function OrphanMuscleSquares({
 }) {
   const orphans: MuscleGroup[] = ['Cardio', 'Mobility'];
   return (
-    <div className="body-map-orphan-squares" role="group" aria-label="Cardio and mobility coverage">
+    <div className="orphan-pills" role="group" aria-label="Cardio and mobility">
       {orphans.map((g) => {
         const n = practiceCounts.get(g) ?? 0;
-        const tier =
-          n >= 2 ? 'body-map-orphan-square--green' : n === 1 ? 'body-map-orphan-square--orange' : 'body-map-orphan-square--gray';
-        const selectedClass = selectedGroups.includes(g) ? 'body-map-orphan-square--selected' : '';
+        const colorClass =
+          n >= 2 ? 'orphan-pill--green' : n === 1 ? 'orphan-pill--orange' : 'orphan-pill--red';
+        const selected = selectedGroups.includes(g);
         return (
           <button
             key={g}
             type="button"
-            className={`body-map-orphan-square ${tier} ${selectedClass}`.trim()}
+            className={`orphan-pill ${colorClass} ${selected ? 'orphan-pill--selected' : ''}`.trim()}
             onClick={() => onToggleGroup(g)}
-            title={`${g}: ${n} hit(s) last ${practiceWindowDays} days — tap to filter catalog`}
+            title={`${g}: ${n} session(s) last ${practiceWindowDays} days`}
+            aria-pressed={selected}
           >
-            <span className="body-map-orphan-square-label">{g}</span>
-            <span className="body-map-orphan-square-count">{n === 0 ? '—' : `${n}×`}</span>
+            <span className="orphan-pill-icon">{ORPHAN_ICONS[g] ?? '⚡'}</span>
+            <span className="orphan-pill-name">{g}</span>
+            <span className="orphan-pill-count">{n === 0 ? '0×' : `${n}×`}</span>
           </button>
         );
       })}
@@ -65,18 +72,21 @@ export function BodyMapFigure({
   const backHostRef = useRef<HTMLDivElement>(null);
   const frontChartRef = useRef<BodyChart | null>(null);
   const backChartRef = useRef<BodyChart | null>(null);
+
+  // Keep onToggleGroup stable in the click handler so we never recreate charts
   const toggleRef = useRef(onToggleGroup);
   toggleRef.current = onToggleGroup;
 
+  const onMuscleClick = useCallback((muscleId: string) => {
+    const g = getGroupForBodyMuscleId(muscleId);
+    if (g) toggleRef.current(g);
+  }, []);
+
+  // Mount charts once — stable click handler, no deps that change
   useEffect(() => {
     const frontEl = frontHostRef.current;
     const backEl = backHostRef.current;
     if (!frontEl || !backEl) return;
-
-    const onMuscleClick = (muscleId: string) => {
-      const g = getGroupForBodyMuscleId(muscleId);
-      if (g) toggleRef.current(g);
-    };
 
     const state = buildBodyMusclesStateForTenDayGaps(practiceCounts, selectedGroups);
     const common = {
@@ -90,14 +100,12 @@ export function BodyMapFigure({
     frontChartRef.current = new BodyChart(frontEl, {
       ...common,
       view: ViewSide.FRONT,
-      ariaLabel:
-        'Anterior body — red = not trained, orange = once, green = twice or more in the window; tap to filter',
+      ariaLabel: 'Front body map — tap a region to filter exercises',
     });
     backChartRef.current = new BodyChart(backEl, {
       ...common,
       view: ViewSide.BACK,
-      ariaLabel:
-        'Posterior body — red = not trained, orange = once, green = twice or more in the window; tap to filter',
+      ariaLabel: 'Back body map — tap a region to filter exercises',
     });
 
     return () => {
@@ -106,8 +114,10 @@ export function BodyMapFigure({
       frontChartRef.current = null;
       backChartRef.current = null;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onMuscleClick]);
 
+  // Update state only — no chart recreation, no lag
   useEffect(() => {
     const state = buildBodyMusclesStateForTenDayGaps(practiceCounts, selectedGroups);
     frontChartRef.current?.update({ bodyState: state });
@@ -115,55 +125,29 @@ export function BodyMapFigure({
   }, [practiceCounts, selectedGroups]);
 
   return (
-    <div className="body-map" role="img" aria-label="10-day training streak colors and plan filter">
-      <p className="body-map-tap-hint">
-        <strong>Green</strong> = trained that area <strong>2+</strong> times in the last {practiceWindowDays} days.{' '}
-        <strong>Orange</strong> = once (almost there). <strong>Red</strong> = not yet. Tap a region to filter the catalog
-        (chips below).
-      </p>
-      <div className="body-map-figures body-map-figures--anatomy body-map-figures--with-orphans">
-        <div className="body-map-figures-main">
-          <figure className="body-map-figure body-map-figure--chart">
-            <figcaption className="body-map-figure-label">Front</figcaption>
-            <div ref={frontHostRef} className="body-muscles-host" />
-          </figure>
-          <figure className="body-map-figure body-map-figure--chart">
-            <figcaption className="body-map-figure-label">Back</figcaption>
-            <div ref={backHostRef} className="body-muscles-host" />
-          </figure>
-        </div>
-        <OrphanMuscleSquares
-          practiceCounts={practiceCounts}
-          practiceWindowDays={practiceWindowDays}
-          selectedGroups={selectedGroups}
-          onToggleGroup={onToggleGroup}
-        />
+    <div className="body-map" role="img" aria-label="10-day training coverage map">
+      <div className="body-map-row">
+        <figure className="body-map-figure body-map-figure--chart">
+          <figcaption className="body-map-figure-label">Front</figcaption>
+          <div ref={frontHostRef} className="body-muscles-host" />
+        </figure>
+        <figure className="body-map-figure body-map-figure--chart">
+          <figcaption className="body-map-figure-label">Back</figcaption>
+          <div ref={backHostRef} className="body-muscles-host" />
+        </figure>
       </div>
-      <p className="body-map-legend body-map-legend--heat">
-        <span>Last {practiceWindowDays} days (each completed move counts; muscles you picked on each move)</span>
-        <span className="body-map-legend-scales">
-          <i className="body-map-legend-swatch" style={{ background: INTENSITY_COLORS[0] }} aria-hidden />
-          0×
-          <i className="body-map-legend-swatch" style={{ background: INTENSITY_COLORS[5] }} aria-hidden />
-          1×
-          <i
-            className="body-map-legend-swatch"
-            style={{ background: INTENSITY_COLORS[MOTIVATION_GREEN_INTENSITY_SLOT] }}
-            aria-hidden
-          />
-          2+
-        </span>
-      </p>
+      <OrphanPills
+        practiceCounts={practiceCounts}
+        practiceWindowDays={practiceWindowDays}
+        selectedGroups={selectedGroups}
+        onToggleGroup={onToggleGroup}
+      />
       <p className="body-map-credit">
         Anatomy:{' '}
         <a href="https://github.com/vulovix/body-muscles" target="_blank" rel="noreferrer">
           body-muscles
         </a>{' '}
         (Apache-2.0)
-      </p>
-      <p className="body-map-hint">
-        Cardio &amp; Mobility: tap the squares to filter. Equipment filters live on the <strong>Moves</strong> step.{' '}
-        <strong>Add past workout</strong> uses only muscles you pick, so extras don&apos;t light up on the map.
       </p>
     </div>
   );
