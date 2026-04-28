@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
-const CX = 250, CY = 220, R = 165;
+const CX = 250, CY = 220, R = 150;
 const LEVELS = [0.25, 0.5, 0.75, 1];
 
 function toRad(deg: number) { return (deg * Math.PI) / 180; }
@@ -21,7 +21,6 @@ type Props = {
 
 export function MuscleSpider({ counts }: Props) {
   const [progress, setProgress] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let start: number | null = null;
@@ -34,43 +33,46 @@ export function MuscleSpider({ counts }: Props) {
       if (p < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
-  }, [counts]); // Re-animate if data changes
+  }, [counts]);
 
-  const maxVal = Math.max(...Array.from(counts.values()), 1);
-  const muscles = MUSCLE_GROUPS
+  // Filter out non-bodyweight groups to match report
+  const targetGroups = MUSCLE_GROUPS.filter(g => g !== 'Cardio' && g !== 'Mobility');
+  const maxVal = Math.max(...targetGroups.map(g => counts.get(g) ?? 0), 1);
+  
+  const muscles = targetGroups
     .map(g => ({ g, val: counts.get(g) ?? 0 }))
     .sort((a, b) => b.val - a.val)
     .map((m, i) => {
-      const score = Math.min(100, (m.val / maxVal) * 100);
+      const score = m.val / maxVal;
+      const angle = -90 + (360 / targetGroups.length) * i;
       return {
         label: m.g,
         score,
-        originalValue: m.val,
-        angle: -90 + (360 / MUSCLE_GROUPS.length) * i,
+        val: m.val,
+        angle,
         color: MUSCLE_GROUP_CALENDAR_COLOR[m.g] || '#94a3b8'
       };
     });
 
   const polygonPoints = muscles
     .map(m => {
-      const p = pt(m.angle, (m.score / 100) * R * progress);
-      return `${p.x},${p.y}`;
+      const p = pt(m.angle, m.score * R * progress);
+      return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
     })
     .join(' ');
 
   return (
-    <div ref={ref} className="muscle-spider">
+    <div className="muscle-spider">
       <svg viewBox="0 0 500 460" style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
         {/* Background grid rings */}
         {LEVELS.map((lvl, i) => (
           <polygon
             key={i}
-            points={muscles.map(m => { const p = pt(m.angle, R * lvl); return `${p.x},${p.y}`; }).join(' ')}
+            points={muscles.map(m => { const p = pt(m.angle, R * lvl); return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; }).join(' ')}
             fill="none"
-            stroke="var(--gf-border)"
+            stroke="#334155"
             strokeWidth="1"
             strokeDasharray={i === 3 ? "0" : "4 4"}
-            opacity={0.5}
           />
         ))}
 
@@ -81,44 +83,43 @@ export function MuscleSpider({ counts }: Props) {
             <line
               key={i}
               x1={CX} y1={CY}
-              x2={end.x} y2={end.y}
-              stroke="var(--gf-border)"
+              x2={end.x.toFixed(1)} y2={end.y.toFixed(1)}
+              stroke="#334155"
               strokeWidth="1"
-              opacity={0.3}
+              opacity={0.4}
             />
           );
         })}
 
-        {/* Skill polygon */}
+        {/* Main polygon */}
         <polygon
           points={polygonPoints}
-          fill="var(--gf-accent)"
-          fillOpacity={0.25}
-          stroke="var(--gf-accent)"
+          fill="#00b4d820"
+          stroke="#00b4d8"
           strokeWidth="2"
           strokeLinejoin="round"
         />
 
-        {/* Data dots */}
-        {muscles.map((m, i) => {
-          const p = pt(m.angle, (m.score / 100) * R * progress);
-          if (m.score === 0 && progress < 1) return null;
+        {/* Point dots */}
+        {progress > 0.8 && muscles.map((m, i) => {
+          const p = pt(m.angle, m.score * R * progress);
           return (
-            <circle 
-              key={i} 
-              cx={p.x} 
-              cy={p.y} 
-              r={3} 
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={5}
               fill={m.color}
               stroke="#fff"
-              strokeWidth="1"
+              strokeWidth="1.5"
+              style={{ opacity: (progress - 0.8) * 5 }}
             />
           );
         })}
 
         {/* Labels */}
         {muscles.map((m, i) => {
-          const pad = 24;
+          const pad = 25;
           const p = pt(m.angle, R + pad);
           let anchor: 'start' | 'middle' | 'end' = 'middle';
           if (p.x < CX - 20) anchor = 'end';
