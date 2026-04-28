@@ -33,39 +33,46 @@ export function getWeeklyWorkoutCounts(sessions: WorkoutSession[], weeks: number
   return result;
 }
 
-/** Computes the current consecutive training streak (days) */
+/** Computes training streaks with a 3-day grace period (streak lost ONLY if 3 days missed in a row) */
 export function computeStreak(sessions: WorkoutSession[]): { current: number; longest: number } {
   if (!sessions.length) return { current: 0, longest: 0 };
 
   const daySet = new Set(sessions.map(s => toDayKey(new Date(s.date))));
-
-
-  let current = 0;
-  const d = new Date();
-  // If today has a session, or yesterday did (grace period), count
-  while (daySet.has(toDayKey(d)) || (current === 0 && daySet.has(toDayKey(new Date(d.getTime() - 86400000))))) {
-    if (!daySet.has(toDayKey(d))) {
-      d.setDate(d.getDate() - 1); // skip today if not trained
-    }
-    if (!daySet.has(toDayKey(d))) break;
-    current++;
-    d.setDate(d.getDate() - 1);
-  }
-
-  // Longest streak - iterate sorted unique days
   const sortedDays = [...daySet].sort();
-  let longest = 0, streak = 0;
+  
+  let longest = 0;
+  let streaks: number[] = [];
+  let currentChain = 0;
+
   for (let i = 0; i < sortedDays.length; i++) {
-    streak = 1;
-    while (i + 1 < sortedDays.length) {
+    if (i === 0) {
+      currentChain = 1;
+    } else {
+      const prev = new Date(sortedDays[i - 1]);
       const curr = new Date(sortedDays[i]);
-      const next = new Date(sortedDays[i + 1]);
-      const diff = (next.getTime() - curr.getTime()) / 86400000;
-      if (diff === 1) { streak++; i++; }
-      else break;
+      const diff = Math.round((curr.getTime() - prev.getTime()) / 86400000);
+      
+      if (diff <= 3) {
+        currentChain++;
+      } else {
+        streaks.push(currentChain);
+        currentChain = 1;
+      }
     }
-    if (streak > longest) longest = streak;
   }
+  streaks.push(currentChain);
+  longest = Math.max(...streaks, 0);
+
+  // Current streak
+  const lastWorkoutDate = new Date(sortedDays[sortedDays.length - 1]);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  lastWorkoutDate.setHours(0, 0, 0, 0);
+  
+  const daysSinceLast = Math.round((today.getTime() - lastWorkoutDate.getTime()) / 86400000);
+  
+  // If we haven't missed 3 days in a row from the last workout
+  const current = daysSinceLast < 3 ? currentChain : 0;
 
   return { current, longest };
 }
