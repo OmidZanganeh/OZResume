@@ -42,8 +42,10 @@ export function getDefaultDraft(): ExerciseLogDraft {
 
 export function getDefaultDraftForExercise(exercise: Exercise | undefined): ExerciseLogDraft {
   if (!exercise) return getDefaultDraft();
+  const c = candidateMuscleGroupsForExercise(exercise);
+  const initial = c.length === 1 ? [...c] : [];
   if (getEffectiveCategory(exercise) === 'cardio') {
-    return { completed: false, sets: 1, reps: '20', weight: '', notes: '', trainedMuscleGroups: [] };
+    return { completed: false, sets: 1, reps: '20', weight: '', notes: '', trainedMuscleGroups: initial };
   }
-  return { ...getDefaultDraft(), trainedMuscleGroups: [] };
+  return { ...getDefaultDraft(), trainedMuscleGroups: initial };
 }

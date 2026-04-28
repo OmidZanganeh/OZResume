@@ -205,7 +205,9 @@ export default function App() {
       const merged: ExerciseLogDraft = { ...getDefaultDraft(), ...getDefaultDraftForExercise(ex), ...current[exerciseId], ...patch };
       if (ex) {
         const c = candidateMuscleGroupsForExercise(ex);
-        merged.trainedMuscleGroups = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        let t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        if (c.length === 1 && t.length === 0) t = [...c];
+        merged.trainedMuscleGroups = t;
       }
       return { ...current, [exerciseId]: merged };
     });
@@ -288,7 +290,12 @@ export default function App() {
     for (const id of validIds) {
       const ex = exerciseById.get(id);
       const m: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...exerciseDrafts[id] };
-      if (ex) { const c = candidateMuscleGroupsForExercise(ex); m.trainedMuscleGroups = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []; }
+      if (ex) {
+        const c = candidateMuscleGroupsForExercise(ex);
+        let t = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        if (c.length === 1 && t.length === 0) t = [...c];
+        m.trainedMuscleGroups = t;
+      }
       drafts[id] = m;
     }
     setExerciseDrafts(drafts);
@@ -307,7 +314,12 @@ export default function App() {
     for (const id of validIds) {
       const ex = exerciseById.get(id);
       const m: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...exerciseDrafts[id] };
-      if (ex) { const c = candidateMuscleGroupsForExercise(ex); m.trainedMuscleGroups = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []; }
+      if (ex) {
+        const c = candidateMuscleGroupsForExercise(ex);
+        let t = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        if (c.length === 1 && t.length === 0) t = [...c];
+        m.trainedMuscleGroups = t;
+      }
       drafts[id] = m;
     }
     setExerciseDrafts(drafts);
