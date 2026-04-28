@@ -2584,6 +2584,32 @@ body {
   text-align: right;
 }
 
+.bar-missed-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.muscle-spider {
+  max-width: 320px;
+  margin: 1.5rem auto;
+  filter: drop-shadow(0 0 15px rgba(0, 242, 254, 0.1));
+}
+
+.chip-list {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+}
+.chip-list::-webkit-scrollbar { display: none; }
+
+
 
 /* ── Toast ───────────────────────────────────────────── */
 

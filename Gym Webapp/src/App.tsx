@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { BodyMapFigure } from './components/BodyMapFigure';
+import { MuscleSpider } from './components/MuscleSpider';
 import { HistoryBackfillPanel } from './components/HistoryBackfillPanel';
 import { WorkoutCalendar } from './components/WorkoutCalendar';
 import { MuscleTargetPick } from './components/MuscleTargetPick';
@@ -98,6 +99,7 @@ export default function App() {
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseGroup, setNewExerciseGroup] = useState<MuscleGroup>('Chest');
   const [message, setMessage] = useState('');
+  const [analysisDays, setAnalysisDays] = useState(10);
   const [exerciseImages, setExerciseImages] = useState<Record<string, ExerciseImageMeta>>({});
   const [catalogSort, setCatalogSort] = useState<CatalogSortMode>('gym');
   const [filterWrkoutCategory, setFilterWrkoutCategory] = useState('all');
@@ -144,6 +146,10 @@ export default function App() {
   const practiceCounts = useMemo(
     () => getPracticeCountsInWindow(data.sessions, exerciseById, PRACTICE_WINDOW_DAYS),
     [data.sessions, exerciseById],
+  );
+  const analysisCounts = useMemo(
+    () => getPracticeCountsInWindow(data.sessions, exerciseById, analysisDays),
+    [data.sessions, exerciseById, analysisDays],
   );
   const trainedGroupsCount = useMemo(
     () => MUSCLE_GROUPS.filter((g) => (practiceCounts instanceof Map ? (practiceCounts.get(g) ?? 0) : ((practiceCounts as Record<string, number>)[g] ?? 0)) > 0).length,
@@ -800,36 +806,65 @@ export default function App() {
             </section>
 
             <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">Calendar</h2>
+              <h2 className="panel-heading panel-heading--plain">Analysis Period</h2>
+              <div className="chip-list" style={{ marginTop: '0.4rem' }}>
+                {[7, 10, 30, 90, 365].map(d => (
+                  <button 
+                    key={d} 
+                    className={`chip ${analysisDays === d ? 'chip-active' : ''}`}
+                    onClick={() => setAnalysisDays(d)}
+                  >
+                    Last {d}d
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
+              <p className="panel-subtle">Visual balance of your training for this period.</p>
+              <MuscleSpider counts={analysisCounts} />
+            </section>
+
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Workout Calendar</h2>
               <WorkoutCalendar sessions={data.sessions} allExercises={allExercises} />
             </section>
 
             <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">10-Day Volume Analysis</h2>
+              <h2 className="panel-heading panel-heading--plain">Volume Analysis</h2>
               <div className="analysis-chart">
-                {[...practiceCounts.entries()]
-                  .filter(([_, count]) => count > 0)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([group, count]) => {
-                    const max = Math.max(...practiceCounts.values(), 1);
+                {MUSCLE_GROUPS
+                  .map(group => ({
+                    group,
+                    count: analysisCounts.get(group) ?? 0
+                  }))
+                  .sort((a, b) => {
+                    if (a.count === b.count) return 0;
+                    if (a.count === 0) return 1;
+                    if (b.count === 0) return -1;
+                    return b.count - a.count;
+                  })
+                  .map(({group, count}) => {
+                    const max = Math.max(...analysisCounts.values(), 1);
                     const pct = (count / max) * 100;
                     return (
                       <div key={group} className="analysis-bar-row">
-                        <span className="analysis-bar-label">{group}</span>
+                        <span className="analysis-bar-label" style={{ opacity: count === 0 ? 0.5 : 1 }}>{group}</span>
                         <div className="analysis-bar-track">
                           <div 
                             className="analysis-bar-fill" 
                             style={{ 
                               width: `${pct}%`, 
-                              background: MUSCLE_GROUP_CALENDAR_COLOR[group] || 'var(--gf-accent)' 
+                              background: count > 0 ? (MUSCLE_GROUP_CALENDAR_COLOR[group] || 'var(--gf-accent)') : 'transparent' 
                             }} 
                           />
+                          {count === 0 && <div className="bar-missed-indicator" />}
                         </div>
-                        <span className="analysis-bar-value">{count}d</span>
+                        <span className="analysis-bar-value" style={{ opacity: count === 0 ? 0.4 : 1 }}>{count}d</span>
                       </div>
                     );
                   })}
-                {practiceCounts.size === 0 && <p className="empty-text">No activity in the last 10 days.</p>}
               </div>
             </section>
 
