@@ -75,6 +75,7 @@ export function RoutineRunView({ planId }: Props) {
           if (hist.weight.trim()) d.weight = hist.weight;
           if (hist.reps.trim()) d.reps = hist.reps;
           d.sets = hist.sets >= 1 ? hist.sets : d.sets;
+          if (hist.trainedMuscleGroups?.length) d.trainedMuscleGroups = [...hist.trainedMuscleGroups];
         }
         next[ex.id] = d;
       }
@@ -127,8 +128,9 @@ export function RoutineRunView({ planId }: Props) {
       };
       if (ex) {
         const c = candidateMuscleGroupsForExercise(ex);
-        const t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
-        merged.trainedMuscleGroups = t.length > 0 ? t : [...c];
+        let t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        if (c.length === 1 && t.length === 0) t = [...c];
+        merged.trainedMuscleGroups = t;
       }
       return { ...current, [exerciseId]: merged };
     });
@@ -138,6 +140,17 @@ export function RoutineRunView({ planId }: Props) {
     if (!plan) return;
     const orderIds = exercises.map((e) => e.id);
     const includedIds = orderIds.filter((id) => exerciseDrafts[id]?.completed);
+    if (includedIds.length === 0) {
+      setSaveMessage('Check "Done" for at least one move.');
+      return;
+    }
+    
+    for (const id of includedIds) {
+      if (!exerciseDrafts[id]?.trainedMuscleGroups?.length) {
+        setSaveMessage(`Select muscles for "${exerciseById.get(id)?.name}".`);
+        return;
+      }
+    }
     if (
       includedIds.length > 0 &&
       isLikelyDuplicateWorkoutSave(data.sessions, includedIds) &&
@@ -171,6 +184,7 @@ export function RoutineRunView({ planId }: Props) {
           if (hist.weight.trim()) d.weight = hist.weight;
           if (hist.reps.trim()) d.reps = hist.reps;
           d.sets = hist.sets >= 1 ? hist.sets : d.sets;
+          if (hist.trainedMuscleGroups?.length) d.trainedMuscleGroups = [...hist.trainedMuscleGroups];
         }
         next[ex.id] = d;
       }

@@ -28,6 +28,7 @@ import {
 } from './utils/catalogSort';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
+import { getRecentLogsForExercise } from './utils/sessionExerciseHistory';
 import {
   candidateMuscleGroupsForExercise,
   getDefaultDraft,
@@ -290,7 +291,16 @@ export default function App() {
     for (const id of validIds) {
       const ex = exerciseById.get(id);
       const m: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...exerciseDrafts[id] };
-      if (ex) {
+      const hist = getRecentLogsForExercise(data.sessions, id, 1)[0];
+      if (hist) {
+        if (hist.weight.trim()) m.weight = hist.weight;
+        if (hist.reps.trim()) m.reps = hist.reps;
+        m.sets = hist.sets >= 1 ? hist.sets : m.sets;
+        if (hist.trainedMuscleGroups?.length) {
+          m.trainedMuscleGroups = [...hist.trainedMuscleGroups];
+        }
+      }
+      if (ex && (!hist || !hist.trainedMuscleGroups?.length)) {
         const c = candidateMuscleGroupsForExercise(ex);
         let t = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
         if (c.length === 1 && t.length === 0) t = [...c];

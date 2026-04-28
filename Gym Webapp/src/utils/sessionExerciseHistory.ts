@@ -1,3 +1,4 @@
+import type { MuscleGroup } from '../data/exerciseLibrary';
 import type { WorkoutSession } from '../data/gymFlowStorage';
 
 export type ExerciseLogHistoryRow = {
@@ -6,6 +7,7 @@ export type ExerciseLogHistoryRow = {
   sets: number;
   reps: string;
   weight: string;
+  trainedMuscleGroups?: MuscleGroup[];
 };
 
 /** Most recent logs first (sessions are stored newest-first). */
@@ -28,6 +30,7 @@ export function getRecentLogsForExercise(
       sets: e.sets,
       reps: e.reps,
       weight: e.weight,
+      trainedMuscleGroups: e.trainedMuscleGroups,
     });
     if (rows.length >= limit) break;
   }
