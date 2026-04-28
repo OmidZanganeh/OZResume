@@ -4,6 +4,7 @@ import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import {
   buildHistoricalSessionForDate,
+  createHistorySessionDate,
   isLegacySampleSessionId,
   isImportedHistorySessionId,
   recomputeStatsFromSessions,
@@ -93,7 +94,7 @@ export function HistoryBackfillPanel({ allExercises, sessions, savedPlans, onPer
       if (!plan) return;
       session = {
         id: `h-plan-${Date.now()}`,
-        date: dateYmd,
+        date: createHistorySessionDate(dateYmd),
         groups: [...plan.muscleGroups],
         entries: plan.exerciseIds.map((id) => {
           const ex = allExercises.find((e) => e.id === id);

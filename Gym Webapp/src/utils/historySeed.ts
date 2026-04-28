@@ -47,6 +47,17 @@ export function pickSeedExerciseForGroupInSelection(
 }
 
 /**
+ * Ensures a YYYY-MM-DD input string is converted to an ISO string representing
+ * noon on that day in local time. This prevents "one day shifts" when 
+ * later parsed as UTC midnights in negative-offset timezones.
+ */
+export function createHistorySessionDate(dateYmd: string): string {
+  const trimmed = dateYmd.trim();
+  const sessionDate = new Date(`${trimmed}T12:00:00`);
+  return sessionDate.toISOString();
+}
+
+/**
  * One session on the given local calendar day (YYYY-MM-DD), one entry per selected muscle group.
  */
 export function buildHistoricalSessionForDate(
@@ -87,7 +98,7 @@ export function buildHistoricalSessionForDate(
     return { session: null, missingGroups: missing };
   }
 
-  const sessionDate = new Date(`${trimmed}T12:00:00`);
+  const sessionDateIso = createHistorySessionDate(trimmed);
   const groupSet = new Set<MuscleGroup>();
   for (const e of entries) {
     const ex = exercises.find((x) => x.id === e.exerciseId);
@@ -99,7 +110,7 @@ export function buildHistoricalSessionForDate(
 
   const session: HistoryWorkoutSession = {
     id: `${IMPORTED_HISTORY_PREFIX}${Date.now()}`,
-    date: sessionDate.toISOString(),
+    date: sessionDateIso,
     groups: Array.from(groupSet),
     entries,
   };

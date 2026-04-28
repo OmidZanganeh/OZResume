@@ -31,8 +31,15 @@ type DayMuscleInfo = {
 };
 
 function toLocalDateKey(iso: string): string {
+  // If it's already just a date string, don't re-parse it with Date() 
+  // because new Date('YYYY-MM-DD') defaults to UTC midnight, 
+  // which shifts back a day in Western timezones.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
+  
+  // Use local time components to match the user's wall clock
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');

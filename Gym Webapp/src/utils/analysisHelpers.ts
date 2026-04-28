@@ -2,9 +2,12 @@ import type { WorkoutSession } from '../data/gymFlowStorage';
 import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
 import { PUSH_MUSCLES, PULL_MUSCLES, LEGS_MUSCLES, CORE_MUSCLES } from '../components/calendarMuscleColors';
 
-/** Returns YYYY-MM-DD string from a date */
+/** Returns YYYY-MM-DD string from a date (using local time components) */
 function toDayKey(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 /** Builds an array of weekly workout counts for the last N weeks */
