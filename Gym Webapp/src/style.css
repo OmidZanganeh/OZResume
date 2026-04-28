@@ -1712,9 +1712,9 @@ body {
   inset: 0;
   z-index: 300;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1rem 1rem calc(1rem + 4.5rem);
+  padding: 2.5rem 1rem calc(1rem + 5.5rem);
   background: rgba(2, 6, 23, 0.78);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
