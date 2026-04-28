@@ -27,10 +27,8 @@ Object.keys(MUSCLE_GROUP_CALENDAR_COLOR).forEach((g, i) => {
 const LEGEND_INACTIVE_SLOT = 99;
 (INTENSITY_COLORS as Record<number, string>)[LEGEND_INACTIVE_SLOT] = '#1e293b'; // Slate-800
 
-import type { MuscleStats } from '../utils/practiceWindow';
-
 type Props = {
-  practiceCounts: Map<MuscleGroup, MuscleStats>;
+  practiceCounts: Map<MuscleGroup, number>;
   practiceWindowDays: number;
   selectedGroups: MuscleGroup[];
   onToggleGroup: (group: MuscleGroup) => void;
@@ -47,7 +45,7 @@ function OrphanPills({
   selectedGroups,
   onToggleGroup,
 }: {
-  practiceCounts: Map<MuscleGroup, MuscleStats>;
+  practiceCounts: Map<MuscleGroup, number>;
   practiceWindowDays: number;
   selectedGroups: MuscleGroup[];
   onToggleGroup: (group: MuscleGroup) => void;
@@ -56,7 +54,7 @@ function OrphanPills({
   return (
     <div className="orphan-pills" role="group" aria-label="Cardio and mobility">
       {orphans.map((g) => {
-        const n = practiceCounts.get(g)?.sessions ?? 0;
+        const n = practiceCounts.get(g) ?? 0;
         const colorClass =
           n >= 2 ? 'orphan-pill--green' : n === 1 ? 'orphan-pill--orange' : 'orphan-pill--red';
         const selected = selectedGroups.includes(g);
@@ -143,7 +141,7 @@ export function BodyMapFigure({
       for (const group of Object.keys(GROUP_TO_MUSCLE_IDS)) {
         const ids = GROUP_TO_MUSCLE_IDS[group as MuscleGroup];
         if (!ids) continue;
-        const wasHit = (practiceCounts.get(group as MuscleGroup)?.sessions ?? 0) > 0;
+        const wasHit = (practiceCounts.get(group as MuscleGroup) ?? 0) > 0;
         const intensity = wasHit ? (GROUP_TO_RAINBOW_SLOT[group] ?? LEGEND_INACTIVE_SLOT) : LEGEND_INACTIVE_SLOT;
         for (const id of ids) {
           state[id] = { intensity, selected: false };

@@ -1,7 +1,6 @@
 import type { WorkoutSession } from '../data/gymFlowStorage';
 import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
 import { PUSH_MUSCLES, PULL_MUSCLES, LEGS_MUSCLES, CORE_MUSCLES } from '../components/calendarMuscleColors';
-import type { MuscleStats } from './practiceWindow';
 
 /** Returns YYYY-MM-DD string from a date (using local time components) */
 function toDayKey(date: Date): string {
@@ -111,10 +110,10 @@ export function computeConsistency(sessions: WorkoutSession[], days: number): nu
 
 /** Push/Pull/Legs/Core/Other breakdown */
 export function getPushPullLegsBalance(
-  counts: Map<MuscleGroup, MuscleStats>
+  counts: Map<MuscleGroup, number>
 ): { push: number; pull: number; legs: number; core: number } {
   const sum = (groups: MuscleGroup[]) =>
-    groups.reduce((acc, g) => acc + (counts.get(g)?.sessions ?? 0), 0);
+    groups.reduce((acc, g) => acc + (counts.get(g) ?? 0), 0);
   return {
     push: sum(PUSH_MUSCLES),
     pull: sum(PULL_MUSCLES),
@@ -142,10 +141,10 @@ export function getTopExercises(
 
 /** Muscles not trained in the last N days */
 export function getNeglectedMuscles(
-  counts: Map<MuscleGroup, MuscleStats>,
+  counts: Map<MuscleGroup, number>,
   allGroups: readonly MuscleGroup[]
 ): MuscleGroup[] {
-  return allGroups.filter(g => g !== 'Cardio' && g !== 'Mobility' && (counts.get(g)?.sessions ?? 0) === 0);
+  return allGroups.filter(g => g !== 'Cardio' && g !== 'Mobility' && (counts.get(g) ?? 0) === 0);
 }
 
 /** Group muscle imbalances: push vs pull ratio */
