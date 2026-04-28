@@ -144,26 +144,10 @@ export function WorkoutCalendar({ sessions, allExercises }: Props) {
     return new Set(groups);
   }, [lastSession, exerciseById]);
 
-  const musclePartition = useMemo(() => {
-    const hit: MuscleGroup[] = [];
-    const missed: MuscleGroup[] = [];
-    for (const g of MUSCLE_GROUPS) {
-      if (hitInLastSession.has(g)) hit.push(g);
-      else missed.push(g);
-    }
-    return { hit, missed };
-  }, [hitInLastSession]);
-
   const lastSessionLabel = useMemo(() => {
     if (!lastSession) return null;
     return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(lastSession.date));
   }, [lastSession]);
-
-  const hitInLastSessionMap = useMemo(() => {
-    const m = new Map<MuscleGroup, number>();
-    hitInLastSession.forEach((g) => m.set(g, 1));
-    return m;
-  }, [hitInLastSession]);
 
   const todayKey = localTodayKey();
 
