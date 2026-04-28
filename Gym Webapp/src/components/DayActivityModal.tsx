@@ -9,7 +9,6 @@ import {
   recomputeStatsFromSessions,
 } from '../utils/historySeed';
 import { candidateMuscleGroupsForExercise } from '../utils/workoutLogDraft';
-import { MuscleSpider } from './MuscleSpider'; // Just in case we need it, though probably not
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
 type ExerciseStat = {
