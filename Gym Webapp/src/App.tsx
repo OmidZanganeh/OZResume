@@ -8,6 +8,7 @@ import { MuscleTargetPick } from './components/MuscleTargetPick';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
+import { MUSCLE_GROUP_CALENDAR_COLOR } from './components/calendarMuscleColors';
 import { isImportedHistorySessionId, isLegacySampleSessionId } from './utils/historySeed';
 import {
   defaultGymData,
@@ -801,6 +802,35 @@ export default function App() {
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Calendar</h2>
               <WorkoutCalendar sessions={data.sessions} allExercises={allExercises} />
+            </section>
+
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">10-Day Volume Analysis</h2>
+              <div className="analysis-chart">
+                {[...practiceCounts.entries()]
+                  .filter(([_, count]) => count > 0)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([group, count]) => {
+                    const max = Math.max(...practiceCounts.values(), 1);
+                    const pct = (count / max) * 100;
+                    return (
+                      <div key={group} className="analysis-bar-row">
+                        <span className="analysis-bar-label">{group}</span>
+                        <div className="analysis-bar-track">
+                          <div 
+                            className="analysis-bar-fill" 
+                            style={{ 
+                              width: `${pct}%`, 
+                              background: MUSCLE_GROUP_CALENDAR_COLOR[group] || 'var(--gf-accent)' 
+                            }} 
+                          />
+                        </div>
+                        <span className="analysis-bar-value">{count}d</span>
+                      </div>
+                    );
+                  })}
+                {practiceCounts.size === 0 && <p className="empty-text">No activity in the last 10 days.</p>}
+              </div>
             </section>
 
             <section className="panel panel--compact">

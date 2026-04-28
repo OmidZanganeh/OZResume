@@ -2538,6 +2538,53 @@ body {
 
 .body-map-credit a { color: inherit; text-decoration: underline; }
 
+/* ── Analysis Bar Chart ──────────────────────────────── */
+
+.analysis-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.6rem;
+}
+
+.analysis-bar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 34px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.analysis-bar-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.analysis-bar-track {
+  height: 8px;
+  background: var(--gf-surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+
+.analysis-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.analysis-bar-value {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--gf-text-dim);
+  text-align: right;
+}
+
+
 /* ── Toast ───────────────────────────────────────────── */
 
 .toast {
