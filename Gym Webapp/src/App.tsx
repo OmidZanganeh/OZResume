@@ -559,14 +559,6 @@ export default function App() {
                   selectedGroups={[]}
                   onToggleGroup={(group) => startCreatePlan([group])}
                 />
-                <div className="report-footer">
-                  <div className="report-legend-row">
-                    <span className="legend-item"><span className="legend-dot legend-dot--red" />Needs work</span>
-                    <span className="legend-item"><span className="legend-dot legend-dot--orange" />Once</span>
-                    <span className="legend-item"><span className="legend-dot legend-dot--green" />2+ sessions</span>
-                  </div>
-                  <p className="report-hint">Tap a region to plan that muscle group</p>
-                </div>
               </div>
             </section>
           </div>

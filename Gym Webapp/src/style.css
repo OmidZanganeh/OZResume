@@ -2464,23 +2464,17 @@ body {
 
 .report-footer-meta {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.footer-meta-left {
-  flex: 1;
-  display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  align-items: center;
+  text-align: center;
+  gap: 1.25rem;
+  padding-top: 0.5rem;
 }
 
 .orphan-pills {
   display: flex;
-  gap: 0.4rem;
-  justify-content: flex-end;
+  gap: 0.8rem;
+  justify-content: center;
 }
 
 .orphan-pill {
