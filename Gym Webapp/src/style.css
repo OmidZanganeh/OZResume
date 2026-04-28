@@ -3021,36 +3021,19 @@ body {
   
   #print-report {
     display: flex !important;
+    flex-direction: column;
     visibility: visible !important;
     position: fixed;
     left: 0; top: 0; width: 100%; height: 100%;
+    background: #07080c !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color: #f1f5f9;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     padding: 0.1in;
+    box-sizing: border-box;
+    gap: 0.75rem;
   }
-}
-
-/* ── LANDSCAPE DASHBOARD (PRL) - SHARED STYLES ────────────────── */
-
-#print-report {
-  display: none;
-  flex-direction: column;
-  background: #07080c !important;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  color: #f1f5f9;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  box-sizing: border-box;
-  gap: 0.75rem;
-  z-index: 9999;
-}
-
-#print-report.in-app-view {
-  display: flex;
-  position: relative;
-  width: 1100px;
-  min-height: 800px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
 
   /* ── LANDSCAPE DASHBOARD (PRL) ────────────────────────── */
   
@@ -3087,10 +3070,11 @@ body {
   .prl-tag { background: #2dd4bf; color: #07080c; font-size: 0.6rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: uppercase; }
 
   .prl-grid {
-    grid-template-columns: 1.4fr 1.1fr 1fr;
+    display: grid;
+    grid-template-columns: 1fr 1.1fr 1fr;
     gap: 0.75rem;
     flex: 1;
-    min-height: 0;
+    min-height: 0; /* Important for flex-child grid to scroll/overflow correctly if needed */
   }
 
   .prl-col {
@@ -3123,18 +3107,24 @@ body {
   }
 
   .prl-body-map-wrap {
-    transform: scale(1.35);
+    transform: scale(1.15); /* 1.15 is significantly larger than the previous 0.68 */
     transform-origin: center center;
-    margin: 1.5rem 0;
+    margin: 0;
   }
 
   .prl-body-map-wrap .body-map-row {
     flex-wrap: nowrap !important;
-    gap: 1.5rem !important;
+    gap: 0.75rem !important;
   }
 
   .prl-body-map-wrap .body-map-figure {
     flex: 0 0 160px !important;
+  }
+
+  .prl-body-map-wrap .body-map-figure-label,
+  .prl-body-map-wrap .report-footer-meta,
+  .prl-body-map-wrap .body-map-credit {
+    display: none !important;
   }
 
   .prl-table {
@@ -3166,13 +3156,8 @@ body {
   .prl-footer-quote { font-size: 0.65rem; color: #475569; font-style: italic; }
   .prl-footer-date { font-size: 0.65rem; color: #64748b; }
 
+  /* Utilities */
   .prl-flex-center { display: flex; align-items: center; justify-content: center; }
-
-.in-app-report-wrapper {
-  overflow: auto;
-  background: #020617;
-  height: calc(100vh - 5.5rem);
-  padding: 1.5rem;
 }
 
 /* -- Day Activity Modal ----------------------------- */

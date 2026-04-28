@@ -131,7 +131,7 @@ function PPLDonut({ ppl }: { ppl: { push: number; pull: number; legs: number; co
   );
 }
 
-export function PrintReport({ data, selectedGroups, className }: { data: ReportData, selectedGroups: MuscleGroup[], className?: string }) {
+export function PrintReport({ data, selectedGroups }: { data: ReportData, selectedGroups: MuscleGroup[] }) {
   const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const hasBMI = data.profile.weight && data.profile.height;
   let bmi: number | null = null;
@@ -153,7 +153,7 @@ export function PrintReport({ data, selectedGroups, className }: { data: ReportD
   const balanceInsight = data.neglectedMuscles.length < 2 ? 'Excellent Balance' : 'Focus Needed';
 
   return (
-    <div id="print-report" className={className}>
+    <div id="print-report">
 
       {/* ── HEADER STRIP ──────────────────────────────────────────── */}
       <div className="prl-header">
@@ -199,20 +199,14 @@ export function PrintReport({ data, selectedGroups, className }: { data: ReportD
       <div className="prl-grid">
 
         {/* COL 1: Body Heatmap */}
-        <div className="prl-col">
-          <div className="prl-card prl-card--full">
-            <div className="prl-card-head">
-              <span className="prl-card-title">Focus Heatmap</span>
-              <span className="prl-card-sub">Last {data.analysisDays} days · anatomy view</span>
-            </div>
-            <div className="prl-card-body prl-body-map-wrap">
-              <BodyMapFigure
-                practiceCounts={data.analysisCounts}
-                practiceWindowDays={data.analysisDays}
-                selectedGroups={selectedGroups}
-                onToggleGroup={() => {}}
-              />
-            </div>
+        <div className="prl-col prl-flex-center">
+          <div className="prl-body-map-wrap">
+            <BodyMapFigure
+              practiceCounts={data.analysisCounts}
+              practiceWindowDays={data.analysisDays}
+              selectedGroups={selectedGroups}
+              onToggleGroup={() => {}}
+            />
           </div>
         </div>
 
