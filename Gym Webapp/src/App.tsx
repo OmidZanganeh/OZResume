@@ -418,7 +418,7 @@ export default function App() {
       if (ex) {
         const c = candidateMuscleGroupsForExercise(ex);
         let t = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
-        if (c.length === 1 && t.length === 0) t = [...c];
+        if (t.length === 0) t = [...c];
         m.trainedMuscleGroups = t;
       }
       drafts[id] = m;
@@ -441,12 +441,6 @@ export default function App() {
   function saveWorkout() {
     const includedIds = selectedExerciseIds.filter((id) => exerciseDrafts[id]?.completed);
     if (includedIds.length === 0) { setMessage('Check "Done" for at least one move.'); return; }
-    for (const id of includedIds) {
-      if (!exerciseDrafts[id]?.trainedMuscleGroups?.length) {
-        setMessage(`Select muscles for "${exerciseById.get(id)?.name}".`);
-        return;
-      }
-    }
     if (isLikelyDuplicateWorkoutSave(data.sessions, includedIds) && !window.confirm('Looks like a duplicate — save anyway?')) return;
     const result = commitWorkoutSession({ data, exerciseOrderIds: selectedExerciseIds, exerciseDrafts, exerciseById });
     if (!result.ok) { setMessage(result.error); return; }

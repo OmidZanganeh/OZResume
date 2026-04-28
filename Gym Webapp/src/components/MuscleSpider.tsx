@@ -3,7 +3,7 @@ import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
-const CX = 250, CY = 220, R = 120;
+const CX = 250, CY = 220, R = 138;
 const LEVELS = [0.25, 0.5, 0.75, 1];
 
 function toRad(deg: number) { return (deg * Math.PI) / 180; }
