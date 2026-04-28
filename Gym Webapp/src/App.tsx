@@ -1175,9 +1175,60 @@ export default function App() {
       )}
     </div>
 
+    {showReportPreview && (
+      <div className="prl-preview-modal">
+        <div className="prl-preview-content">
+          <PrintReport 
+            data={{
+              profile: { 
+                name: reportProfile.name || '', 
+                weight: reportProfile.weight || '', 
+                weightUnit: reportProfile.weightUnit || 'kg', 
+                height: reportProfile.height || '', 
+                heightUnit: reportProfile.heightUnit || 'cm', 
+                age: reportProfile.age || '' 
+              },
+              totalWorkouts: totalWorkoutCount,
+              totalSets: totalTrackedSets,
+              totalCompletions: totalExerciseCompletions,
+              streak,
+              consistency,
+              analysisDays,
+              analysisCounts,
+              ppl: pplBalance,
+              topExercises,
+              neglectedMuscles,
+              recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
+              weeklyData,
+              warnings: imbalanceWarnings,
+            }}
+            selectedGroups={selectedGroups}
+            className="prl-visible"
+          />
+        </div>
+        <div className="prl-preview-actions">
+          <button className="button" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--gf-border)' }}
+            onClick={() => setShowReportPreview(false)}>
+            Close
+          </button>
+          <button className="button" style={{ background: 'var(--gf-accent)', color: '#000', fontWeight: 800 }}
+            onClick={handleDownloadImage} disabled={isExporting}>
+            {isExporting ? 'Saving...' : 'Download Image'}
+          </button>
+        </div>
+      </div>
+    )}
+
     {/* Hidden print report — shown only via @media print */}
     <PrintReport data={{
-      profile: { name: reportProfile.name || '', weight: reportProfile.weight || '', weightUnit: reportProfile.weightUnit || 'kg', height: reportProfile.height || '', heightUnit: reportProfile.heightUnit || 'cm', age: reportProfile.age || '' },
+      profile: { 
+        name: reportProfile.name || '', 
+        weight: reportProfile.weight || '', 
+        weightUnit: reportProfile.weightUnit || 'kg', 
+        height: reportProfile.height || '', 
+        heightUnit: reportProfile.heightUnit || 'cm', 
+        age: reportProfile.age || '' 
+      },
       totalWorkouts: totalWorkoutCount,
       totalSets: totalTrackedSets,
       totalCompletions: totalExerciseCompletions,
@@ -1203,50 +1254,6 @@ export default function App() {
         onPersist={({ sessions: s, stats: st }) => persist({ ...data, sessions: s, stats: st })}
       />
     )}
-
-    {showReportPreview && (
-      <div className="prl-preview-modal">
-        <div className="prl-preview-content">
-          <PrintReport 
-            data={{
-              athleteName: userProfile.name,
-              athleteLevel: `Level ${Math.floor(computeConsistency(sessions) / 10) + 1}`,
-              analysisDays: 30,
-              analysisCounts: getPracticeCountsInWindow(sessions, 30),
-              sessions,
-              topExercises: getTopExercises(sessions, 10),
-              ppl: getPushPullLegsBalance(sessions)
-            }}
-            selectedGroups={selectedGroups}
-            className="prl-visible"
-          />
-        </div>
-        <div className="prl-preview-actions">
-          <button className="button" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--gf-border)' }}
-            onClick={() => setShowReportPreview(false)}>
-            Close
-          </button>
-          <button className="button" style={{ background: 'var(--gf-accent)', color: '#000', fontWeight: 800 }}
-            onClick={handleDownloadImage} disabled={isExporting}>
-            {isExporting ? 'Saving...' : 'Download Image'}
-          </button>
-        </div>
-      </div>
-    )}
-
-    {/* Hidden Print Anchor */}
-    <PrintReport 
-      data={{
-        athleteName: userProfile.name,
-        athleteLevel: `Level ${Math.floor(computeConsistency(sessions) / 10) + 1}`,
-        analysisDays: 30,
-        analysisCounts: getPracticeCountsInWindow(sessions, 30),
-        sessions,
-        topExercises: getTopExercises(sessions, 10),
-        ppl: getPushPullLegsBalance(sessions)
-      }}
-      selectedGroups={selectedGroups}
-    />
     </>
   );
 }
