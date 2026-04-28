@@ -36,21 +36,20 @@ export function MuscleSpider({ counts }: Props) {
     requestAnimationFrame(step);
   }, [counts]); // Re-animate if data changes
 
-  const muscles = MUSCLE_GROUPS.map((g, i) => {
-    const val = counts.get(g) ?? 0;
-    // Map hits to 0-100 scale for the chart
-    // If we assume 10 sessions is "maxed out" for a period
-    const maxVal = Math.max(...counts.values(), 1);
-    const score = Math.min(100, (val / maxVal) * 100);
-    
-    return {
-      label: g,
-      score,
-      originalValue: val,
-      angle: -90 + (360 / MUSCLE_GROUPS.length) * i,
-      color: MUSCLE_GROUP_CALENDAR_COLOR[g] || '#94a3b8'
-    };
-  });
+  const maxVal = Math.max(...Array.from(counts.values()), 1);
+  const muscles = MUSCLE_GROUPS
+    .map(g => ({ g, val: counts.get(g) ?? 0 }))
+    .sort((a, b) => b.val - a.val)
+    .map((m, i) => {
+      const score = Math.min(100, (m.val / maxVal) * 100);
+      return {
+        label: m.g,
+        score,
+        originalValue: m.val,
+        angle: -90 + (360 / MUSCLE_GROUPS.length) * i,
+        color: MUSCLE_GROUP_CALENDAR_COLOR[m.g] || '#94a3b8'
+      };
+    });
 
   const polygonPoints = muscles
     .map(m => {

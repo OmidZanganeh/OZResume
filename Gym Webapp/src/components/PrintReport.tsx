@@ -29,12 +29,14 @@ function SpiderSVG({ counts }: { counts: Map<MuscleGroup, number> }) {
   const CX = 250, CY = 220, R = 115;
   const muscles = MUSCLE_GROUPS.filter(g => g !== 'Cardio' && g !== 'Mobility');
   const maxVal = Math.max(...muscles.map(g => counts.get(g) ?? 0), 1);
-  const items = muscles.map((g, i) => {
-    const val = counts.get(g) ?? 0;
-    const score = val / maxVal;
-    const angle = -90 + (360 / muscles.length) * i;
-    return { g, val, score, angle, color: MUSCLE_GROUP_CALENDAR_COLOR[g] };
-  });
+  const items = muscles
+    .map(g => ({ g, val: counts.get(g) ?? 0 }))
+    .sort((a, b) => b.val - a.val)
+    .map((m, i) => {
+      const score = m.val / maxVal;
+      const angle = -90 + (360 / muscles.length) * i;
+      return { g: m.g, val: m.val, score, angle, color: MUSCLE_GROUP_CALENDAR_COLOR[m.g] };
+    });
   const polyPoints = items.map(m => { const p = pt(CX, CY, m.angle, m.score * R); return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; }).join(' ');
   const LEVELS = [0.25, 0.5, 0.75, 1];
 
