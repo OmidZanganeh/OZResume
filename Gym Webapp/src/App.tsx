@@ -155,15 +155,22 @@ export default function App() {
     const element = document.getElementById('print-report');
     if (!element) return;
 
-    // Temporarily make it visible for the tool, but keep it off-screen
-    const originalStyle = element.style.display;
+    // Ensure it's rendered and visible for capture
+    const originalDisplay = element.style.display;
+    const originalPosition = element.style.position;
+    const originalZ = element.style.zIndex;
+    
     element.style.display = 'flex';
     element.style.position = 'fixed';
-    element.style.left = '-9999px';
     element.style.top = '0';
-    element.style.width = '1120px'; // Approx width for landscape
-    element.style.height = '790px'; // Approx height for landscape
-    element.style.visibility = 'visible';
+    element.style.left = '0';
+    element.style.width = '1120px'; 
+    element.style.height = '790px';
+    element.style.zIndex = '9999';
+    element.style.backgroundColor = '#07080c';
+
+    // Small delay to ensure the browser paints the flex layout
+    await new Promise(r => setTimeout(r, 150));
 
     const opt = {
       margin: 0,
@@ -172,8 +179,10 @@ export default function App() {
       html2canvas: { 
         scale: 2, 
         useCORS: true, 
-        logging: false,
-        backgroundColor: '#07080c' 
+        letterRendering: true,
+        backgroundColor: '#07080c',
+        windowWidth: 1120,
+        windowHeight: 790
       },
       jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'landscape' as const }
     };
@@ -182,15 +191,16 @@ export default function App() {
       await html2pdf().set(opt).from(element).save();
     } catch (err) {
       console.error('PDF Generation Error:', err);
-      alert('Could not generate PDF. Please try the standard Print option instead.');
+      alert('Could not generate PDF. Please try again.');
     } finally {
-      element.style.display = originalStyle;
-      element.style.position = '';
-      element.style.left = '';
+      // Restore original state
+      element.style.display = originalDisplay;
+      element.style.position = originalPosition;
+      element.style.zIndex = originalZ;
       element.style.top = '';
+      element.style.left = '';
       element.style.width = '';
       element.style.height = '';
-      element.style.visibility = '';
     }
   };
   const planExercises = useMemo(
