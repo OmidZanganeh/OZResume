@@ -131,6 +131,33 @@ export function WorkoutCalendar({ sessions, allExercises }: Props) {
     [cursor.year, cursor.month],
   );
 
+  const lastSession = useMemo(() => {
+    if (!sessions.length) return null;
+    // sessions are usually sorted descending by date
+    return sessions[0];
+  }, [sessions]);
+
+  const hitInLastSession = useMemo(() => {
+    if (!lastSession) return new Set<MuscleGroup>();
+    const groups = muscleGroupsForSession(lastSession, exerciseById);
+    return new Set(groups);
+  }, [lastSession, exerciseById]);
+
+  const musclePartition = useMemo(() => {
+    const hit: MuscleGroup[] = [];
+    const missed: MuscleGroup[] = [];
+    for (const g of MUSCLE_GROUPS) {
+      if (hitInLastSession.has(g)) hit.push(g);
+      else missed.push(g);
+    }
+    return { hit, missed };
+  }, [hitInLastSession]);
+
+  const lastSessionLabel = useMemo(() => {
+    if (!lastSession) return null;
+    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(lastSession.date));
+  }, [lastSession]);
+
   const todayKey = localTodayKey();
 
   function goPrev() {
@@ -247,19 +274,52 @@ export function WorkoutCalendar({ sessions, allExercises }: Props) {
       </div>
 
       <div className="workout-cal-legend workout-cal-legend--muscles">
-        <p className="workout-cal-legend-heading">Muscle / focus (day stripe)</p>
-        <div className="workout-cal-legend-muscle-grid">
-          {MUSCLE_GROUPS.map((g) => (
-            <span key={g} className="workout-cal-legend-item workout-cal-legend-item--muscle">
-              <i
-                className="workout-cal-legend-swatch workout-cal-legend-swatch--muscle"
-                style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g] }}
-                aria-hidden
-              />
-              {g}
-            </span>
-          ))}
-        </div>
+        {lastSessionLabel ? (
+          <>
+            <p className="workout-cal-legend-heading">Trained in last session ({lastSessionLabel})</p>
+            <div className="workout-cal-legend-muscle-grid" style={{ marginBottom: '1rem' }}>
+              {musclePartition.hit.length > 0 ? musclePartition.hit.map((g) => (
+                <span key={g} className="workout-cal-legend-item workout-cal-legend-item--muscle">
+                  <i
+                    className="workout-cal-legend-swatch workout-cal-legend-swatch--muscle"
+                    style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g] }}
+                    aria-hidden
+                  />
+                  {g}
+                </span>
+              )) : <span className="workout-cal-legend-item" style={{ fontStyle: 'italic', opacity: 0.6 }}>No data recorded</span>}
+            </div>
+            <p className="workout-cal-legend-heading">Remaining groups</p>
+            <div className="workout-cal-legend-muscle-grid">
+              {musclePartition.missed.map((g) => (
+                <span key={g} className="workout-cal-legend-item workout-cal-legend-item--muscle">
+                  <i
+                    className="workout-cal-legend-swatch workout-cal-legend-swatch--muscle"
+                    style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g] }}
+                    aria-hidden
+                  />
+                  {g}
+                </span>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="workout-cal-legend-heading">Muscle / focus (day stripe)</p>
+            <div className="workout-cal-legend-muscle-grid">
+              {MUSCLE_GROUPS.map((g) => (
+                <span key={g} className="workout-cal-legend-item workout-cal-legend-item--muscle">
+                  <i
+                    className="workout-cal-legend-swatch workout-cal-legend-swatch--muscle"
+                    style={{ background: MUSCLE_GROUP_CALENDAR_COLOR[g] }}
+                    aria-hidden
+                  />
+                  {g}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="workout-cal-legend">
