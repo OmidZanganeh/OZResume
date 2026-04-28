@@ -8,7 +8,7 @@ import { WorkoutCalendar } from './components/WorkoutCalendar';
 import { MuscleTargetPick } from './components/MuscleTargetPick';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
-import { getPracticeCountsInWindow, type MuscleStats } from './utils/practiceWindow';
+import { getPracticeCountsInWindow } from './utils/practiceWindow';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './components/calendarMuscleColors';
 import { PrintReport } from './components/PrintReport';
 import {
@@ -927,7 +927,7 @@ export default function App() {
                     if (b.count === 0) return -1;
                     return b.count - a.count;
                   })
-                  .map(({group, count, sessionCount}) => {
+                  .map(({group, count}) => {
                     const max = Math.max(...Array.from(analysisCounts.values()).map(v => v.totalSets), 1);
                     const pct = (count / max) * 100;
                     return (
