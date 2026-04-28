@@ -168,14 +168,14 @@ export default function App() {
     const opt = {
       margin: 0,
       filename: `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { 
         scale: 2, 
         useCORS: true, 
         logging: false,
         backgroundColor: '#07080c' 
       },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
+      jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'landscape' as const }
     };
 
     try {
