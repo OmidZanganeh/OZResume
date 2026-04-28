@@ -205,8 +205,7 @@ export default function App() {
       const merged: ExerciseLogDraft = { ...getDefaultDraft(), ...getDefaultDraftForExercise(ex), ...current[exerciseId], ...patch };
       if (ex) {
         const c = candidateMuscleGroupsForExercise(ex);
-        const t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
-        merged.trainedMuscleGroups = t.length > 0 ? t : [...c];
+        merged.trainedMuscleGroups = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
       }
       return { ...current, [exerciseId]: merged };
     });
@@ -249,6 +248,13 @@ export default function App() {
     if (name.length < 2) { setMessage('Enter a plan name.'); return; }
     if (selectedExerciseIds.length === 0) { setMessage('Add at least one exercise.'); return; }
 
+    for (const id of selectedExerciseIds) {
+      if (!exerciseDrafts[id]?.trainedMuscleGroups?.length) {
+        setMessage(`Select muscles for "${exerciseById.get(id)?.name}".`);
+        return;
+      }
+    }
+
     if (editingSavedPlanId) {
       persist({
         ...data,
@@ -282,7 +288,7 @@ export default function App() {
     for (const id of validIds) {
       const ex = exerciseById.get(id);
       const m: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...exerciseDrafts[id] };
-      if (ex) { const c = candidateMuscleGroupsForExercise(ex); const t = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []; m.trainedMuscleGroups = t.length ? t : [...c]; }
+      if (ex) { const c = candidateMuscleGroupsForExercise(ex); m.trainedMuscleGroups = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []; }
       drafts[id] = m;
     }
     setExerciseDrafts(drafts);
@@ -301,7 +307,7 @@ export default function App() {
     for (const id of validIds) {
       const ex = exerciseById.get(id);
       const m: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...exerciseDrafts[id] };
-      if (ex) { const c = candidateMuscleGroupsForExercise(ex); const t = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []; m.trainedMuscleGroups = t.length ? t : [...c]; }
+      if (ex) { const c = candidateMuscleGroupsForExercise(ex); m.trainedMuscleGroups = m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []; }
       drafts[id] = m;
     }
     setExerciseDrafts(drafts);
@@ -321,7 +327,14 @@ export default function App() {
 
   function saveWorkout() {
     const includedIds = selectedExerciseIds.filter((id) => exerciseDrafts[id]?.completed);
-    if (includedIds.length > 0 && isLikelyDuplicateWorkoutSave(data.sessions, includedIds) && !window.confirm('Looks like a duplicate — save anyway?')) return;
+    if (includedIds.length === 0) { setMessage('Check "Done" for at least one move.'); return; }
+    for (const id of includedIds) {
+      if (!exerciseDrafts[id]?.trainedMuscleGroups?.length) {
+        setMessage(`Select muscles for "${exerciseById.get(id)?.name}".`);
+        return;
+      }
+    }
+    if (isLikelyDuplicateWorkoutSave(data.sessions, includedIds) && !window.confirm('Looks like a duplicate — save anyway?')) return;
     const result = commitWorkoutSession({ data, exerciseOrderIds: selectedExerciseIds, exerciseDrafts, exerciseById });
     if (!result.ok) { setMessage(result.error); return; }
     persist(result.nextData);
