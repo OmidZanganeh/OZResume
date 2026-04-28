@@ -896,11 +896,6 @@ export default function App() {
               <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
               <p className="panel-subtle">Visual balance of your training for this period.</p>
               <MuscleSpider counts={analysisCounts} />
-              <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-                <button type="button" className="button" style={{ background: 'rgba(45, 212, 191, 0.15)', borderColor: 'var(--gf-accent)' }} onClick={() => window.print()}>
-                  📄 Export Intelligence Report (PDF)
-                </button>
-              </div>
             </section>
 
 
