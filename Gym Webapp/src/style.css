@@ -2321,14 +2321,25 @@ body {
 
 .plan-card-list {
   list-style: none;
-  margin: 0;
-  padding: 0;
+  margin: 0 -1rem;
+  padding: 0.2rem 1rem 0.5rem 1rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.8rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.plan-card-list::-webkit-scrollbar {
+  display: none;
 }
 
 .plan-card-home {
+  flex: 0 0 calc(85% - 0.8rem);
+  max-width: 340px;
+  scroll-snap-align: center;
   background: var(--gf-surface);
   border: 1px solid var(--gf-border);
   border-left: 3px solid var(--gf-accent);

@@ -24,8 +24,8 @@ import {
   getEffectiveCategory,
   getEffectiveEquipment,
   labelForFilterValue,
-
 } from './utils/catalogSort';
+import { buildPresetPlans } from './data/presetPlans';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
 import { getRecentLogsForExercise } from './utils/sessionExerciseHistory';
@@ -109,6 +109,7 @@ export default function App() {
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
   const categoryFilterOptions = useMemo(() => collectSortedUnique(allExercises.map((e) => getEffectiveCategory(e))), [allExercises]);
   const equipmentFilterOptions = useMemo(() => collectSortedUnique(allExercises.map((e) => getEffectiveEquipment(e))), [allExercises]);
+  const presetCategories = useMemo(() => buildPresetPlans(allExercises), [allExercises]);
 
   const catalogMatches = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -154,18 +155,7 @@ export default function App() {
     return () => clearTimeout(t);
   }, [message]);
 
-  useEffect(() => {
-    if (data.savedPlans.length === 0 && allExercises.length > 0) {
-      const getId = (kw: string) => allExercises.find(e => e.name.toLowerCase().includes(kw))?.id;
-      const t = new Date().toISOString();
-      const p1: SavedPlan = { id: `def-fb-${Date.now()}`, name: 'Full Body Essentials', createdAt: t, muscleGroups: ['Chest', 'Back', 'Quads', 'Core'], equipment: [], exerciseIds: [getId('squat'), getId('bench press'), getId('row'), getId('plank')].filter(Boolean) as string[] };
-      const p2: SavedPlan = { id: `def-pu-${Date.now()}`, name: 'Push Day', createdAt: t, muscleGroups: ['Chest', 'Shoulders', 'Triceps'], equipment: [], exerciseIds: [getId('dumbbell bench press')||getId('bench press'), getId('overhead press')||getId('shoulder'), getId('tricep')].filter(Boolean) as string[] };
-      const p3: SavedPlan = { id: `def-pl-${Date.now()}`, name: 'Pull Day', createdAt: t, muscleGroups: ['Back', 'Biceps'], equipment: [], exerciseIds: [getId('pull up')||getId('row'), getId('lat pulldown'), getId('curl')].filter(Boolean) as string[] };
-      if (p1.exerciseIds.length > 0) {
-        persist({ ...data, savedPlans: [p1, p2, p3] });
-      }
-    }
-  }, [data.savedPlans.length, allExercises, persist]);
+
 
   useEffect(() => {
     if (selectedGroups.length === 0) setSelectedEquipment([]);
@@ -269,6 +259,41 @@ export default function App() {
     setSearchTerm(''); setVisibleExerciseCount(24); setNewExerciseName(''); setSavePlanNameInput('');
     setView('home'); setActiveRoutineName(null); setEditingSavedPlanId(null);
     setMessage('All data cleared.');
+  }
+
+  function handleExportData() {
+    const dataStr = JSON.stringify(data);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gymflow-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setMessage('Download started');
+  }
+
+  function handleImportData(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const d = JSON.parse(event.target?.result as string);
+        if (d.savedPlans && d.sessions) {
+          if (window.confirm('Restore this backup? Current data will be overwritten.')) {
+            persist(d);
+            setMessage('Data restored successfully!');
+          }
+        } else {
+          setMessage('Invalid backup file format.');
+        }
+      } catch (err) {
+        setMessage('Error parsing backup file.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   }
 
   function saveCurrentPlanTemplate() {
@@ -467,6 +492,43 @@ export default function App() {
                 </ul>
               )}
             </section>
+
+            {presetCategories.map((category) => (
+              <section key={category.title} className="home-section" aria-label={category.title}>
+                <div className="home-section-header">
+                  <span className="home-section-label">{category.title.toUpperCase()}</span>
+                </div>
+                <ul className="plan-card-list">
+                  {category.plans.map((plan) => {
+                    const entries = orderedPlanEntries(plan, allExercises);
+                    return (
+                      <li key={plan.id} className="plan-card-home">
+                        <div className="plan-card-home-row">
+                          <div className="plan-card-home-info">
+                            <span className="plan-card-home-name">{plan.name}</span>
+                            <span className="plan-card-home-sub">{entries.length} moves</span>
+                            {plan.muscleGroups.length > 0 && (
+                              <div className="plan-card-home-muscles">
+                                {plan.muscleGroups.slice(0, 4).map((g) => (
+                                  <span key={g} className="muscle-chip-sm">{g}</span>
+                                ))}
+                                {plan.muscleGroups.length > 4 && (
+                                  <span className="muscle-chip-sm muscle-chip-sm--more">+{plan.muscleGroups.length - 4}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <button className="btn-start" onClick={() => openRoutineWorkoutTab(plan.id)}>Start</button>
+                        </div>
+                        <div className="plan-card-home-actions">
+                           <button className="plan-action-btn" onClick={() => loadPlanForLog(plan)}>Quick log</button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
 
             {/* 10-DAY REPORT */}
             <section className="home-section" aria-label="10-day training report">
@@ -757,32 +819,14 @@ export default function App() {
 
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Data Backup</h2>
-              <div style={{ display: 'grid', gap: '0.5rem' }}>
-                <textarea 
-                  className="text-input" 
-                  style={{ width: '100%', height: '70px', fontFamily: 'monospace', fontSize: '0.75rem', resize: 'none' }} 
-                  value={JSON.stringify(data)} 
-                  readOnly 
-                  onClick={(e) => (e.target as HTMLTextAreaElement).select()} 
-                />
-                <p className="meta" style={{ marginTop: '-0.2rem' }}>Copy text to save your data.</p>
-                <textarea 
-                  className="text-input" 
-                  style={{ width: '100%', height: '70px', fontFamily: 'monospace', fontSize: '0.75rem', resize: 'none' }} 
-                  placeholder="Paste backup data here to restore..."
-                  onChange={(e) => {
-                    try {
-                      const d = JSON.parse(e.target.value);
-                      if (d.savedPlans && d.sessions) {
-                         if (window.confirm("Restore this data? Current data will be overwritten.")) {
-                           persist(d);
-                           setMessage("Data restored!");
-                           e.target.value = '';
-                         }
-                      }
-                    } catch (err) {}
-                  }}
-                />
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
+                <button type="button" className="button" style={{ flex: 1 }} onClick={handleExportData}>
+                  Export File
+                </button>
+                <label className="button button-muted" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
+                  Import File
+                  <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportData} />
+                </label>
               </div>
             </section>
           </>
