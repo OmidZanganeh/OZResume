@@ -1407,30 +1407,30 @@ body {
 }
 
 .body-muscles-host {
-  min-height: 0;
-  height: 550px; /* Increased to ensure full body is shown on mobile */
+  height: 520px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(7, 8, 12, 0.5);
+  background: rgba(15, 23, 42, 0.6);
   border: 1px solid var(--gf-border);
-  border-radius: var(--gf-radius-md);
-  padding: 0.35rem;
-  overflow: hidden;
+  border-radius: var(--gf-radius-lg);
+  padding: 0.5rem;
+  overflow: hidden; /* Keep internal but we will fix SVG scaling */
 }
 
 .body-muscles-host .body-muscles-inner {
   width: 100%;
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .body-muscles-host svg {
-  width: 100%;
   height: 100%;
-  max-width: none;
-  max-height: none;
+  width: auto; /* Crucial: let width adjust to height to prevent vertical clipping */
+  max-width: 100%;
   display: block;
-  margin: 0 auto;
 }
 
 .body-map-legend--heat {
@@ -1507,12 +1507,12 @@ body {
 /* —— Body map row layout */
 .body-map-row {
   display: flex;
-  gap: 0.6rem;
-  margin: 0.4rem 0 0.75rem;
+  gap: 0.8rem;
+  margin: 0.5rem 0 1rem;
 }
 
 .body-map-row .body-map-figure {
-  flex: 1 1 0;
+  flex: 1;
   min-width: 0;
 }
 
@@ -2451,18 +2451,53 @@ body {
   background: var(--gf-surface);
   border: 1px solid var(--gf-border);
   border-radius: var(--gf-radius-lg);
-  padding: 0.85rem;
+  padding: 1rem;
   box-shadow: var(--gf-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.report-footer {
-  margin-top: 0.8rem;
+.report-footer-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.footer-meta-left {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 
-.report-legend-row {
+.orphan-pills {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.orphan-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: var(--gf-surface-2);
+  border: 1px solid var(--gf-border);
+  color: var(--gf-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.orphan-pill--green { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+.orphan-pill--orange { border-color: #f97316; background: rgba(249, 115, 22, 0.1); }
+.orphan-pill--red { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+.report-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
@@ -2494,6 +2529,16 @@ body {
   color: var(--gf-text-dim);
   font-style: italic;
 }
+
+.body-map-credit {
+  margin-top: 0.25rem;
+  font-size: 0.68rem;
+  color: var(--gf-text-dim);
+  text-align: right;
+  opacity: 0.7;
+}
+
+.body-map-credit a { color: inherit; text-decoration: underline; }
 
 /* ── Toast ───────────────────────────────────────────── */
 

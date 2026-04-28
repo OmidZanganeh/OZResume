@@ -125,29 +125,38 @@ export function BodyMapFigure({
   }, [practiceCounts, selectedGroups]);
 
   return (
-    <div className="body-map" role="img" aria-label="10-day training coverage map">
+    <div className="body-map">
       <div className="body-map-row">
-        <figure className="body-map-figure body-map-figure--chart">
+        <figure className="body-map-figure">
           <figcaption className="body-map-figure-label">Front</figcaption>
           <div ref={frontHostRef} className="body-muscles-host" />
         </figure>
-        <figure className="body-map-figure body-map-figure--chart">
+        <figure className="body-map-figure">
           <figcaption className="body-map-figure-label">Back</figcaption>
           <div ref={backHostRef} className="body-muscles-host" />
         </figure>
       </div>
-      <OrphanPills
-        practiceCounts={practiceCounts}
-        practiceWindowDays={practiceWindowDays}
-        selectedGroups={selectedGroups}
-        onToggleGroup={onToggleGroup}
-      />
+
+      <div className="report-footer-meta">
+        <div className="footer-meta-left">
+          <div className="report-legend">
+            <span className="legend-item"><span className="legend-dot legend-dot--red"></span> Needs work</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
+          </div>
+          <p className="report-hint">Tap a region to plan that muscle group</p>
+        </div>
+
+        <OrphanPills
+          practiceCounts={practiceCounts}
+          practiceWindowDays={practiceWindowDays}
+          selectedGroups={selectedGroups}
+          onToggleGroup={onToggleGroup}
+        />
+      </div>
+
       <p className="body-map-credit">
-        Anatomy:{' '}
-        <a href="https://github.com/vulovix/body-muscles" target="_blank" rel="noreferrer">
-          body-muscles
-        </a>{' '}
-        (Apache-2.0)
+        Anatomy: <a href="https://github.com/vulovix/body-muscles" target="_blank" rel="noreferrer">body-muscles</a>
       </p>
     </div>
   );
