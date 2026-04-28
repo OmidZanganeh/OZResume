@@ -7,6 +7,15 @@ export type ExerciseStat = {
   lastPerformed: string | null;
 };
 
+export type UserProfile = {
+  name?: string;
+  weight?: string;
+  weightUnit?: 'kg' | 'lbs';
+  height?: string;
+  heightUnit?: 'cm' | 'ft';
+  age?: string;
+};
+
 export type WorkoutEntry = {
   exerciseId: string;
   sets: number;

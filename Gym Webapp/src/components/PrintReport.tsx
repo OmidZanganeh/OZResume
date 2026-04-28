@@ -1,8 +1,6 @@
-import type { WorkoutSession, ExerciseStat } from '../data/gymFlowStorage';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
-import { MUSCLE_GROUP_CALENDAR_COLOR, PUSH_MUSCLES, PULL_MUSCLES, LEGS_MUSCLES, CORE_MUSCLES } from './calendarMuscleColors';
-import type { UserProfile } from '../data/gymFlowStorage';
+import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
 export type ReportData = {
   profile: { name: string; weight: string; weightUnit: 'kg' | 'lbs'; height: string; heightUnit: 'cm' | 'ft'; age: string };
@@ -26,7 +24,7 @@ function pt(cx: number, cy: number, angle: number, r: number) {
   return { x: cx + r * Math.cos(toRad(angle)), y: cy + r * Math.sin(toRad(angle)) };
 }
 
-function SpiderSVG({ counts, days }: { counts: Map<MuscleGroup, number>; days: number }) {
+function SpiderSVG({ counts }: { counts: Map<MuscleGroup, number> }) {
   const CX = 250, CY = 220, R = 115;
   const muscles = MUSCLE_GROUPS.filter(g => g !== 'Cardio' && g !== 'Mobility');
   const maxVal = Math.max(...muscles.map(g => counts.get(g) ?? 0), 1);
@@ -233,7 +231,7 @@ export function PrintReport({ data }: { data: ReportData }) {
       <div className="pr-page">
         <h2 className="pr-section-title">Muscle Group Efficiency Radar</h2>
         <p className="pr-subtitle">Training frequency per muscle group for the selected period. Larger shape = more balanced training.</p>
-        <SpiderSVG counts={data.analysisCounts} days={data.analysisDays} />
+        <SpiderSVG counts={data.analysisCounts} />
       </div>
 
       {/* ── PAGE 4: VOLUME BARS ────────────────────────────────────── */}

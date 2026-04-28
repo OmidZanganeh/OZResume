@@ -38,7 +38,7 @@ export function computeStreak(sessions: WorkoutSession[]): { current: number; lo
   if (!sessions.length) return { current: 0, longest: 0 };
 
   const daySet = new Set(sessions.map(s => toDayKey(new Date(s.date))));
-  const todayKey = toDayKey(new Date());
+
 
   let current = 0;
   const d = new Date();
@@ -112,7 +112,7 @@ export function getTopExercises(
 /** Muscles not trained in the last N days */
 export function getNeglectedMuscles(
   counts: Map<MuscleGroup, number>,
-  allGroups: MuscleGroup[]
+  allGroups: readonly MuscleGroup[]
 ): MuscleGroup[] {
   return allGroups.filter(g => g !== 'Cardio' && g !== 'Mobility' && (counts.get(g) ?? 0) === 0);
 }

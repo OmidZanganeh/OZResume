@@ -9,7 +9,7 @@ import { MuscleTargetPick } from './components/MuscleTargetPick';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
 import { getPracticeCountsInWindow } from './utils/practiceWindow';
-import { MUSCLE_GROUP_CALENDAR_COLOR, PUSH_MUSCLES, PULL_MUSCLES, LEGS_MUSCLES, CORE_MUSCLES } from './components/calendarMuscleColors';
+import { MUSCLE_GROUP_CALENDAR_COLOR } from './components/calendarMuscleColors';
 import { PrintReport } from './components/PrintReport';
 import {
   computeStreak,
@@ -110,7 +110,6 @@ export default function App() {
   const [newExerciseGroup, setNewExerciseGroup] = useState<MuscleGroup>('Chest');
   const [message, setMessage] = useState('');
   const [analysisDays, setAnalysisDays] = useState(10);
-  const [showReportModal, setShowReportModal] = useState(false);
   const [reportProfile, setReportProfile] = useState(() => {
     try { return JSON.parse(localStorage.getItem('gf-profile') || '{}'); } catch { return {}; }
   });
