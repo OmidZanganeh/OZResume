@@ -824,23 +824,10 @@ export default function App() {
                 </div>
               )}
             </section>
-
-            <section className="panel panel--compact">
-              <h2 className="panel-heading panel-heading--plain">Data Backup</h2>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
-                <button type="button" className="button" style={{ flex: 1 }} onClick={handleExportData}>
-                  Export File
-                </button>
-                <label className="button button-muted" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
-                  Import File
-                  <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportData} />
-                </label>
-              </div>
-            </section>
           </>
         )}
 
-        {/* ── LIBRARY ───────────────────────────────────────────────── */}
+        {/* ── SETTINGS ──────────────────────────────────────────────── */}
         {view === 'library' && (
           <>
             <section className="panel panel--compact">
@@ -865,9 +852,31 @@ export default function App() {
               )}
             </section>
 
+            <section className="panel panel--compact">
+              <h2 className="panel-heading panel-heading--plain">Data Backup</h2>
+              <p className="panel-subtle">Export or import your workouts and plans.</p>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
+                <button type="button" className="button" style={{ flex: 1 }} onClick={handleExportData}>
+                  Export File
+                </button>
+                <label className="button button-muted" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
+                  Import File
+                  <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportData} />
+                </label>
+              </div>
+            </section>
+
+            <section className="panel panel--compact">
+              <h2 className="panel-heading panel-heading--plain">App</h2>
+              <p className="panel-subtle">Update to the latest version of Gym Flow.</p>
+              <button type="button" className="button button-block" style={{ marginTop: '0.6rem' }} onClick={() => window.location.reload()}>
+                Check for updates
+              </button>
+            </section>
+
             <section className="panel panel--data-reset" aria-label="Reset data">
-              <h2 className="panel-heading panel-heading--plain">Data</h2>
-              <p className="prose-lead">Removes all workouts, stats, custom exercises, and saved plans. Lives only in this browser.</p>
+              <h2 className="panel-heading panel-heading--plain">Danger Zone</h2>
+              <p className="prose-lead">Removes all workouts, stats, custom exercises, and saved plans. This cannot be undone.</p>
               <button type="button" className="button button-danger" onClick={clearAllUserData}>Clear all my data</button>
             </section>
           </>
@@ -888,7 +897,7 @@ export default function App() {
           </button>
           <button className={`bnav-btn ${view === 'library' ? 'bnav-btn--active' : ''}`} onClick={() => setView('library')}>
             <span className="bnav-icon">⚙️</span>
-            <span className="bnav-label">Library</span>
+            <span className="bnav-label">Settings</span>
           </button>
         </nav>
       )}
