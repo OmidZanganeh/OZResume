@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { toPng } from 'html-to-image';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
+import { toPng } from 'html-to-image';
 import { BodyMapFigure } from './components/BodyMapFigure';
 import { MuscleSpider } from './components/MuscleSpider';
 import { HistoryBackfillPanel } from './components/HistoryBackfillPanel';
@@ -236,44 +236,6 @@ export default function App() {
     savePersistedGymData(next);
   }
 
-  const [isExporting, setIsExporting] = useState(false);
-  const [showReportPreview, setShowReportPreview] = useState(false);
-
-  const handleDownloadImage = async () => {
-    const el = document.getElementById('report-to-capture');
-    if (!el) return;
-    
-    try {
-      setIsExporting(true);
-      
-      // Ensure the report is visible for capture
-      el.classList.add('prl-visible');
-      
-      // Wait a frame for layout and SVG rendering
-      await new Promise(r => setTimeout(r, 300));
-      
-      const dataUrl = await toPng(el, {
-        quality: 1.0,
-        pixelRatio: 2,
-        backgroundColor: '#07080c',
-      });
-      
-      el.classList.remove('prl-visible');
-      
-      const link = document.createElement('a');
-      link.download = `GymFlow-Report-${new Date().toISOString().split('T')[0]}.png`;
-      link.href = dataUrl;
-      link.click();
-      
-      setShowReportPreview(false);
-    } catch (err) {
-      console.error('Failed to export image:', err);
-      alert('Failed to generate image. Please try again.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   function toggleGroup(group: MuscleGroup) {
     setSelectedGroups((c) => c.includes(group) ? c.filter((g) => g !== group) : [...c, group]);
     setVisibleExerciseCount(24);
@@ -345,6 +307,39 @@ export default function App() {
     persist({ ...data, customExercises: [...data.customExercises, { id: createExerciseId(name), name, primaryGroup: newExerciseGroup }] });
     setNewExerciseName('');
     setMessage(`"${name}" added.`);
+  }
+
+  async function handleDownloadImage() {
+    const reportEl = document.getElementById('print-report');
+    if (!reportEl) return;
+
+    try {
+      document.body.classList.add('screenshot-mode');
+      await new Promise(r => setTimeout(r, 150)); // Wait for styles to settle
+
+      const dataUrl = await toPng(reportEl, {
+        cacheBust: true,
+        width: 1280,
+        height: 800,
+        pixelRatio: 2, // Double resolution for sharpness
+        style: {
+          display: 'flex',
+          visibility: 'visible',
+          position: 'static', // Prevent fixed positioning from cutting it off
+          transform: 'none',
+        }
+      });
+
+      const link = document.createElement('a');
+      link.download = `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to generate image:', err);
+      alert('Could not generate image. Please use the Print option instead.');
+    } finally {
+      document.body.classList.remove('screenshot-mode');
+    }
   }
 
   function clearAllUserData() {
@@ -1084,19 +1079,17 @@ export default function App() {
             </section>
 
             <section className="panel panel--compact">
-              <h2 className="panel-heading panel-heading--plain">Report Export</h2>
-              <p className="panel-subtle">Generate your performance dashboard. On mobile, "Download Image" is recommended for a perfect one-page layout.</p>
+              <h2 className="panel-heading panel-heading--plain">Export Report</h2>
+              <p className="panel-subtle">Choose your preferred format. The Image option is best for mobile/iPhone sharing.</p>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
-                <button type="button" className="button button-block" 
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--gf-border)', fontWeight: 700 }}
-                  onClick={() => window.print()}>
-                  🖨️ Print PDF
+                <button type="button" className="button" style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
+                  onClick={handleDownloadImage}>
+                  🖼️ Save as Image
                 </button>
-                <button type="button" className="button button-block" 
-                  style={{ background: 'linear-gradient(135deg, var(--gf-accent), #7c3aed)', border: 'none', fontWeight: 700 }}
-                  onClick={() => setShowReportPreview(true)}>
-                  🖼️ Preview & Save
+                <button type="button" className="button" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', fontWeight: 700 }}
+                  onClick={() => window.print()}>
+                  📄 Print PDF
                 </button>
               </div>
             </section>
@@ -1175,61 +1168,9 @@ export default function App() {
       )}
     </div>
 
-    {showReportPreview && (
-      <div className="prl-preview-modal">
-        <div className="prl-preview-content">
-          <div className="prl-visible" id="report-to-capture">
-            <PrintReport 
-              data={{
-                profile: { 
-                  name: reportProfile.name || '', 
-                  weight: reportProfile.weight || '', 
-                  weightUnit: reportProfile.weightUnit || 'kg', 
-                  height: reportProfile.height || '', 
-                  heightUnit: reportProfile.heightUnit || 'cm', 
-                  age: reportProfile.age || '' 
-                },
-                totalWorkouts: totalWorkoutCount,
-                totalSets: totalTrackedSets,
-                totalCompletions: totalExerciseCompletions,
-                streak,
-                consistency,
-                analysisDays,
-                analysisCounts,
-                ppl: pplBalance,
-                topExercises,
-                neglectedMuscles,
-                recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
-                weeklyData,
-                warnings: imbalanceWarnings,
-              }}
-              selectedGroups={selectedGroups}
-            />
-          </div>
-        </div>
-        <div className="prl-preview-actions">
-          <button className="button" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--gf-border)' }}
-            onClick={() => setShowReportPreview(false)}>
-            Close
-          </button>
-          <button className="button" style={{ background: 'var(--gf-accent)', color: '#000', fontWeight: 800 }}
-            onClick={handleDownloadImage} disabled={isExporting}>
-            {isExporting ? 'Saving...' : 'Download Image'}
-          </button>
-        </div>
-      </div>
-    )}
-
     {/* Hidden print report — shown only via @media print */}
     <PrintReport data={{
-      profile: { 
-        name: reportProfile.name || '', 
-        weight: reportProfile.weight || '', 
-        weightUnit: reportProfile.weightUnit || 'kg', 
-        height: reportProfile.height || '', 
-        heightUnit: reportProfile.heightUnit || 'cm', 
-        age: reportProfile.age || '' 
-      },
+      profile: { name: reportProfile.name || '', weight: reportProfile.weight || '', weightUnit: reportProfile.weightUnit || 'kg', height: reportProfile.height || '', heightUnit: reportProfile.heightUnit || 'cm', age: reportProfile.age || '' },
       totalWorkouts: totalWorkoutCount,
       totalSets: totalTrackedSets,
       totalCompletions: totalExerciseCompletions,
