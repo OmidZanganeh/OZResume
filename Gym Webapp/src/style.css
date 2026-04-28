@@ -1407,7 +1407,7 @@ body {
 
 .body-muscles-host {
   min-height: 0;
-  height: 460px;
+  height: 550px; /* Increased to ensure full body is shown on mobile */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2330,6 +2330,7 @@ body {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
 }
 
 .plan-card-list::-webkit-scrollbar {

@@ -104,6 +104,12 @@ export default function App() {
   const [savePlanNameInput, setSavePlanNameInput] = useState('');
   const [activeRoutineName, setActiveRoutineName] = useState<string | null>(null);
   const [editingSavedPlanId, setEditingSavedPlanId] = useState<string | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    'Core Foundations': true,
+    'Classic Splits': true,
+    'Targeted Growth': true,
+    'Targeted Isolation (Single Muscle)': true
+  });
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -259,6 +265,10 @@ export default function App() {
     setSearchTerm(''); setVisibleExerciseCount(24); setNewExerciseName(''); setSavePlanNameInput('');
     setView('home'); setActiveRoutineName(null); setEditingSavedPlanId(null);
     setMessage('All data cleared.');
+  }
+
+  function toggleSection(sectionKey: string) {
+    setCollapsedSections((prev) => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
   }
 
   function handleExportData() {
@@ -438,95 +448,101 @@ export default function App() {
 
             {/* MY PLANS */}
             <section className="home-section" aria-label="My Plans">
-              <div className="home-section-header">
-                <span className="home-section-label">MY PLANS</span>
-                <button className="icon-add-btn" onClick={() => startCreatePlan()} aria-label="New plan">+</button>
+              <div className="home-section-header" onClick={() => toggleSection('my-plans')} style={{ cursor: 'pointer' }}>
+                <span className="home-section-label">MY PLANS {collapsedSections['my-plans'] ? '▼' : '▲'}</span>
+                <button className="icon-add-btn" onClick={(e) => { e.stopPropagation(); startCreatePlan(); }} aria-label="New plan">+</button>
               </div>
 
-              {data.savedPlans.length === 0 ? (
-                <button className="create-plan-empty" onClick={() => startCreatePlan()}>
-                  <span className="create-plan-empty-icon">+</span>
-                  <span>Create your first plan</span>
-                </button>
-              ) : (
-                <ul className="plan-card-list">
-                  {data.savedPlans.map((plan) => {
-                    const entries = orderedPlanEntries(plan, allExercises);
-                    const lastUsed = getLastUsedForPlan(plan, data.stats);
-                    return (
-                      <li key={plan.id} className="plan-card-home">
-                        <div className="plan-card-home-row">
-                          <div className="plan-card-home-info">
-                            <span className="plan-card-home-name">{plan.name}</span>
-                            <span className="plan-card-home-sub">
-                              {entries.length} moves{lastUsed ? ` · ${daysAgo(lastUsed)}` : ''}
-                            </span>
-                            {plan.muscleGroups.length > 0 && (
-                              <div className="plan-card-home-muscles">
-                                {plan.muscleGroups.slice(0, 4).map((g) => (
-                                  <span key={g} className="muscle-chip-sm">{g}</span>
-                                ))}
-                                {plan.muscleGroups.length > 4 && (
-                                  <span className="muscle-chip-sm muscle-chip-sm--more">+{plan.muscleGroups.length - 4}</span>
+              {!collapsedSections['my-plans'] && (
+                <>
+                  {data.savedPlans.length === 0 ? (
+                    <button className="create-plan-empty" onClick={() => startCreatePlan()}>
+                      <span className="create-plan-empty-icon">+</span>
+                      <span>Create your first plan</span>
+                    </button>
+                  ) : (
+                    <ul className="plan-card-list">
+                      {data.savedPlans.map((plan) => {
+                        const entries = orderedPlanEntries(plan, allExercises);
+                        const lastUsed = getLastUsedForPlan(plan, data.stats);
+                        return (
+                          <li key={plan.id} className="plan-card-home">
+                            <div className="plan-card-home-row">
+                              <div className="plan-card-home-info">
+                                <span className="plan-card-home-name">{plan.name}</span>
+                                <span className="plan-card-home-sub">
+                                  {entries.length} moves{lastUsed ? ` · ${daysAgo(lastUsed)}` : ''}
+                                </span>
+                                {plan.muscleGroups.length > 0 && (
+                                  <div className="plan-card-home-muscles">
+                                    {plan.muscleGroups.slice(0, 4).map((g) => (
+                                      <span key={g} className="muscle-chip-sm">{g}</span>
+                                    ))}
+                                    {plan.muscleGroups.length > 4 && (
+                                      <span className="muscle-chip-sm muscle-chip-sm--more">+{plan.muscleGroups.length - 4}</span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                          <button className="btn-start" onClick={() => openRoutineWorkoutTab(plan.id)}>
-                            Start
-                          </button>
-                        </div>
-                        <div className="plan-card-home-actions">
-                          <button className="plan-action-btn" onClick={() => loadPlanForLog(plan)}>Quick log</button>
-                          <button className="plan-action-btn" onClick={() => beginEditSavedPlan(plan)}>Edit</button>
-                          <button
-                            className="plan-action-btn plan-action-btn--danger"
-                            onClick={() => { if (window.confirm(`Delete "${plan.name}"?`)) deleteSavedPlanTemplate(plan.id); }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                              <button className="btn-start" onClick={() => openRoutineWorkoutTab(plan.id)}>
+                                Start
+                              </button>
+                            </div>
+                            <div className="plan-card-home-actions">
+                              <button className="plan-action-btn" onClick={() => loadPlanForLog(plan)}>Quick log</button>
+                              <button className="plan-action-btn" onClick={() => beginEditSavedPlan(plan)}>Edit</button>
+                              <button
+                                className="plan-action-btn plan-action-btn--danger"
+                                onClick={() => { if (window.confirm(`Delete "${plan.name}"?`)) deleteSavedPlanTemplate(plan.id); }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </>
               )}
             </section>
 
             {presetCategories.map((category) => (
               <section key={category.title} className="home-section" aria-label={category.title}>
-                <div className="home-section-header">
-                  <span className="home-section-label">{category.title.toUpperCase()}</span>
+                <div className="home-section-header" onClick={() => toggleSection(category.title)} style={{ cursor: 'pointer' }}>
+                  <span className="home-section-label">{category.title.toUpperCase()} {collapsedSections[category.title] ? '▼' : '▲'}</span>
                 </div>
-                <ul className="plan-card-list">
-                  {category.plans.map((plan) => {
-                    const entries = orderedPlanEntries(plan, allExercises);
-                    return (
-                      <li key={plan.id} className="plan-card-home">
-                        <div className="plan-card-home-row">
-                          <div className="plan-card-home-info">
-                            <span className="plan-card-home-name">{plan.name}</span>
-                            <span className="plan-card-home-sub">{entries.length} moves</span>
-                            {plan.muscleGroups.length > 0 && (
-                              <div className="plan-card-home-muscles">
-                                {plan.muscleGroups.slice(0, 4).map((g) => (
-                                  <span key={g} className="muscle-chip-sm">{g}</span>
-                                ))}
-                                {plan.muscleGroups.length > 4 && (
-                                  <span className="muscle-chip-sm muscle-chip-sm--more">+{plan.muscleGroups.length - 4}</span>
-                                )}
-                              </div>
-                            )}
+                {!collapsedSections[category.title] && (
+                  <ul className="plan-card-list">
+                    {category.plans.map((plan) => {
+                      const entries = orderedPlanEntries(plan, allExercises);
+                      return (
+                        <li key={plan.id} className="plan-card-home">
+                          <div className="plan-card-home-row">
+                            <div className="plan-card-home-info">
+                              <span className="plan-card-home-name">{plan.name}</span>
+                              <span className="plan-card-home-sub">{entries.length} moves</span>
+                              {plan.muscleGroups.length > 0 && (
+                                <div className="plan-card-home-muscles">
+                                  {plan.muscleGroups.slice(0, 4).map((g) => (
+                                    <span key={g} className="muscle-chip-sm">{g}</span>
+                                  ))}
+                                  {plan.muscleGroups.length > 4 && (
+                                    <span className="muscle-chip-sm muscle-chip-sm--more">+{plan.muscleGroups.length - 4}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <button className="btn-start" onClick={() => openRoutineWorkoutTab(plan.id)}>Start</button>
                           </div>
-                          <button className="btn-start" onClick={() => openRoutineWorkoutTab(plan.id)}>Start</button>
-                        </div>
-                        <div className="plan-card-home-actions">
-                           <button className="plan-action-btn" onClick={() => loadPlanForLog(plan)}>Quick log</button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                          <div className="plan-card-home-actions">
+                             <button className="plan-action-btn" onClick={() => loadPlanForLog(plan)}>Quick log</button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </section>
             ))}
 
