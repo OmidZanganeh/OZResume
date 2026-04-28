@@ -1,6 +1,7 @@
 import type { BodyState } from 'body-muscles';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
+import type { MuscleStats } from '../utils/practiceWindow';
 
 /**
  * Maps Gym Flow muscle groups to `body-muscles` (npm) muscle region IDs.
@@ -113,7 +114,7 @@ export function getGroupForBodyMuscleId(muscleId: string): MuscleGroup | null {
  * @param maxIntensityCap — library uses 0–10; we cap by count, e.g. `Math.min(10, count)`.
  */
 export function buildBodyMusclesStateFromPractice(
-  practiceCounts: Map<MuscleGroup, number>,
+  practiceCounts: Map<MuscleGroup, MuscleStats>,
   selectedGroups: MuscleGroup[],
   maxIntensityCap = 10,
 ): BodyState {
@@ -121,7 +122,7 @@ export function buildBodyMusclesStateFromPractice(
   for (const g of MUSCLE_GROUPS) {
     const ids = GROUP_TO_MUSCLE_IDS[g];
     if (!ids) continue;
-    const count = practiceCounts.get(g) ?? 0;
+    const count = practiceCounts.get(g)?.sessions ?? 0;
     const intensity = Math.min(maxIntensityCap, count);
     const selected = selectedGroups.includes(g);
     for (const id of ids) {
@@ -141,14 +142,14 @@ export const MOTIVATION_GREEN_INTENSITY_SLOT = 2;
  * Last N days: 0 sessions → red gap cue (0), 1 → orange (5), 2+ → green (patched slot {@link MOTIVATION_GREEN_INTENSITY_SLOT}).
  */
 export function buildBodyMusclesStateForTenDayGaps(
-  practiceCounts: Map<MuscleGroup, number>,
+  practiceCounts: Map<MuscleGroup, MuscleStats>,
   selectedGroups: MuscleGroup[],
 ): BodyState {
   const state: BodyState = {};
   for (const g of MUSCLE_GROUPS) {
     const ids = GROUP_TO_MUSCLE_IDS[g];
     if (!ids) continue;
-    const count = practiceCounts.get(g) ?? 0;
+    const count = practiceCounts.get(g)?.sessions ?? 0;
     const intensity =
       count >= 2 ? MOTIVATION_GREEN_INTENSITY_SLOT : count === 1 ? 5 : 0;
     const selected = selectedGroups.includes(g);
