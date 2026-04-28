@@ -20,9 +20,9 @@ export function buildPresetPlans(library: Exercise[]): PlanCategory[] {
       .filter((id) => id !== undefined) as string[];
 
     return {
-      id: `preset-${prefix}-${Date.now()}`,
+      id: `preset-${prefix}`,
       name,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(0).toISOString(),
       muscleGroups,
       equipment: [],
       exerciseIds,

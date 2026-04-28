@@ -20,6 +20,7 @@ import {
   getDefaultDraftForExercise,
   type ExerciseLogDraft,
 } from './utils/workoutLogDraft';
+import { buildPresetPlans } from './data/presetPlans';
 
 type Props = { planId: string };
 
@@ -40,8 +41,9 @@ export function RoutineRunView({ planId }: Props) {
   );
 
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
+  const allPresets = useMemo(() => buildPresetPlans(allExercises).flatMap(g => g.plans), [allExercises]);
 
-  const plan = data.savedPlans.find((p) => p.id === planId);
+  const plan = data.savedPlans.find((p) => p.id === planId) || allPresets.find((p) => p.id === planId);
 
   const exercises = useMemo((): Exercise[] => {
     if (!plan) return [];
