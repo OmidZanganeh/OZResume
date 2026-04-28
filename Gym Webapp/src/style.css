@@ -2929,6 +2929,12 @@ body {
 
 /* ── Imbalance Warnings ────────────────────────────────── */
 .imbalance-warnings {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
 .imbalance-warning-item {
   font-size: 0.78rem;
   color: #fbbf24;
