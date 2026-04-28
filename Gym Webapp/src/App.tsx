@@ -237,6 +237,7 @@ export default function App() {
   }
 
   const [isExporting, setIsExporting] = useState(false);
+  const [showReportPreview, setShowReportPreview] = useState(false);
 
   const handleDownloadImage = async () => {
     const el = document.getElementById('print-report');
@@ -245,39 +246,26 @@ export default function App() {
     try {
       setIsExporting(true);
       
-      // Temporary style to make it visible for capture but off-screen
-      const originalStyle = el.style.cssText;
-      el.style.cssText = `
-        display: flex !important;
-        position: fixed;
-        left: -9999px;
-        top: 0;
-        width: 1100px;
-        height: 750px;
-        z-index: -1;
-        visibility: visible;
-      `;
+      // Ensure the report is visible for capture
+      el.classList.add('prl-visible');
       
-      // Wait a frame for layout
-      await new Promise(r => requestAnimationFrame(r));
+      // Wait a frame for layout and SVG rendering
+      await new Promise(r => setTimeout(r, 300));
       
       const dataUrl = await toPng(el, {
         quality: 1.0,
-        pixelRatio: 2, // High resolution
+        pixelRatio: 2,
         backgroundColor: '#07080c',
-        style: {
-          display: 'flex',
-          visibility: 'visible',
-        }
       });
       
-      // Restore
-      el.style.cssText = originalStyle;
+      el.classList.remove('prl-visible');
       
       const link = document.createElement('a');
       link.download = `GymFlow-Report-${new Date().toISOString().split('T')[0]}.png`;
       link.href = dataUrl;
       link.click();
+      
+      setShowReportPreview(false);
     } catch (err) {
       console.error('Failed to export image:', err);
       alert('Failed to generate image. Please try again.');
@@ -1107,9 +1095,8 @@ export default function App() {
                 </button>
                 <button type="button" className="button button-block" 
                   style={{ background: 'linear-gradient(135deg, var(--gf-accent), #7c3aed)', border: 'none', fontWeight: 700 }}
-                  onClick={handleDownloadImage}
-                  disabled={isExporting}>
-                  {isExporting ? '⌛ Rendering...' : '🖼️ Save Image'}
+                  onClick={() => setShowReportPreview(true)}>
+                  🖼️ Preview & Save
                 </button>
               </div>
             </section>
@@ -1216,6 +1203,50 @@ export default function App() {
         onPersist={({ sessions: s, stats: st }) => persist({ ...data, sessions: s, stats: st })}
       />
     )}
+
+    {showReportPreview && (
+      <div className="prl-preview-modal">
+        <div className="prl-preview-content">
+          <PrintReport 
+            data={{
+              athleteName: userProfile.name,
+              athleteLevel: `Level ${Math.floor(computeConsistency(sessions) / 10) + 1}`,
+              analysisDays: 30,
+              analysisCounts: getPracticeCountsInWindow(sessions, 30),
+              sessions,
+              topExercises: getTopExercises(sessions, 10),
+              ppl: getPushPullLegsBalance(sessions)
+            }}
+            selectedGroups={selectedGroups}
+            className="prl-visible"
+          />
+        </div>
+        <div className="prl-preview-actions">
+          <button className="button" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--gf-border)' }}
+            onClick={() => setShowReportPreview(false)}>
+            Close
+          </button>
+          <button className="button" style={{ background: 'var(--gf-accent)', color: '#000', fontWeight: 800 }}
+            onClick={handleDownloadImage} disabled={isExporting}>
+            {isExporting ? 'Saving...' : 'Download Image'}
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* Hidden Print Anchor */}
+    <PrintReport 
+      data={{
+        athleteName: userProfile.name,
+        athleteLevel: `Level ${Math.floor(computeConsistency(sessions) / 10) + 1}`,
+        analysisDays: 30,
+        analysisCounts: getPracticeCountsInWindow(sessions, 30),
+        sessions,
+        topExercises: getTopExercises(sessions, 10),
+        ppl: getPushPullLegsBalance(sessions)
+      }}
+      selectedGroups={selectedGroups}
+    />
     </>
   );
 }

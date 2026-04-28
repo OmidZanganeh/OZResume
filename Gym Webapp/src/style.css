@@ -3039,7 +3039,7 @@ body {
 /* Used for both window.print() and html-to-image export   */
 
 #print-report {
-  display: flex;
+  display: none; /* Hidden by default */
   flex-direction: column;
   background: #07080c !important;
   -webkit-print-color-adjust: exact;
@@ -3053,6 +3053,51 @@ body {
   width: 1100px;
   height: 750px;
   overflow: hidden;
+}
+
+#print-report.prl-visible {
+  display: flex !important;
+}
+
+/* Modal for previewing the report on screen */
+.prl-preview-modal {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.prl-preview-content {
+  background: #07080c;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255,255,255,0.1);
+  transform: scale(0.65); /* Scale down to fit screen */
+  transform-origin: center center;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .prl-preview-content {
+    transform: scale(0.3); /* Fit mobile */
+  }
+}
+@media (min-width: 1400px) {
+  .prl-preview-content {
+    transform: scale(0.8);
+  }
+}
+
+.prl-preview-actions {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
 }
 
 #print-report .prl-header {
