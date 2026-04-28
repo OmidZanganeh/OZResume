@@ -439,7 +439,7 @@ export default function App() {
     setMessage(`${result.completedCount} move${result.completedCount === 1 ? '' : 's'} saved.`);
   }
 
-  const isMainView = view === 'home' || view === 'activity' || view === 'library';
+  const isMainView = view === 'home' || view === 'activity' || view === 'library' || view === 'report';
 
   return (
     <>
