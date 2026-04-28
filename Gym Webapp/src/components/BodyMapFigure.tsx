@@ -83,7 +83,8 @@ export function BodyMapFigure({
   selectedGroups,
   onToggleGroup,
   mode = 'heatmap',
-}: Props & { mode?: 'heatmap' | 'rainbow' }) {
+  orphansPlacement = 'bottom',
+}: Props & { mode?: 'heatmap' | 'rainbow'; orphansPlacement?: 'top' | 'bottom' | 'none' }) {
   const frontHostRef = useRef<HTMLDivElement>(null);
   const backHostRef = useRef<HTMLDivElement>(null);
   const frontChartRef = useRef<BodyChart | null>(null);
@@ -156,6 +157,17 @@ export function BodyMapFigure({
 
   return (
     <div className="body-map">
+      {orphansPlacement === 'top' && (
+        <div style={{ marginBottom: '1rem' }}>
+          <OrphanPills
+            practiceCounts={practiceCounts}
+            practiceWindowDays={practiceWindowDays}
+            selectedGroups={selectedGroups}
+            onToggleGroup={onToggleGroup}
+          />
+        </div>
+      )}
+
       <div className="body-map-row">
         <figure className="body-map-figure">
           <figcaption className="body-map-figure-label">Front</figcaption>
@@ -167,23 +179,25 @@ export function BodyMapFigure({
         </figure>
       </div>
 
-      <div className="report-footer-meta">
-        <div className="footer-meta-left">
-          <div className="report-legend">
-            <span className="legend-item"><span className="legend-dot legend-dot--red"></span> Needs work</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
+      {orphansPlacement === 'bottom' && (
+        <div className="report-footer-meta">
+          <div className="footer-meta-left">
+            <div className="report-legend">
+              <span className="legend-item"><span className="legend-dot legend-dot--red"></span> Needs work</span>
+              <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
+              <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
+            </div>
+            <p className="report-hint">Tap a region to plan that muscle group</p>
           </div>
-          <p className="report-hint">Tap a region to plan that muscle group</p>
-        </div>
 
-        <OrphanPills
-          practiceCounts={practiceCounts}
-          practiceWindowDays={practiceWindowDays}
-          selectedGroups={selectedGroups}
-          onToggleGroup={onToggleGroup}
-        />
-      </div>
+          <OrphanPills
+            practiceCounts={practiceCounts}
+            practiceWindowDays={practiceWindowDays}
+            selectedGroups={selectedGroups}
+            onToggleGroup={onToggleGroup}
+          />
+        </div>
+      )}
 
       <p className="body-map-credit">
         Anatomy: <a href="https://github.com/vulovix/body-muscles" target="_blank" rel="noreferrer">body-muscles</a>
