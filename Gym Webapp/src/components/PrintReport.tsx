@@ -169,127 +169,117 @@ export function PrintReport({ data }: { data: ReportData }) {
 
   return (
     <div id="print-report">
-      {/* ── COVER PAGE ─────────────────────────────────────────────── */}
-      <div className="pr-cover">
-        <div className="pr-cover-brand">
-          <span className="pr-cover-logo">🏋️</span>
-          <span className="pr-cover-app">GYM FLOW</span>
+      {/* ── HEADER BREADCRUMB ──────────────────────────────────────── */}
+      <div className="pr-header">
+        <div className="pr-header-left">
+          <div className="pr-brand">
+            <span className="pr-logo">🏋️</span>
+            <span className="pr-app-name">GYM FLOW</span>
+          </div>
+          <h1 className="pr-main-title">Analytics Intelligence Report</h1>
+          <div className="pr-header-meta">
+            <span>Period: <strong>Last {data.analysisDays} Days</strong></span>
+            <span>Generated: <strong>{today}</strong></span>
+          </div>
         </div>
-        <h1 className="pr-cover-title">Training Performance<br />Report</h1>
-        <p className="pr-cover-sub">{data.profile.name || 'Athlete'}</p>
-        {data.profile.age && <p className="pr-cover-meta">Age {data.profile.age}</p>}
-        {data.profile.weight && <p className="pr-cover-meta">{data.profile.weight} {data.profile.weightUnit} · {data.profile.height} {data.profile.heightUnit}</p>}
-        {bmi && <p className="pr-cover-meta">BMI: {bmi.toFixed(1)}</p>}
-        <p className="pr-cover-date">Generated: {today}</p>
-        <p className="pr-cover-period">Analysis Period: Last {data.analysisDays} days</p>
 
-        <div className="pr-hero-grid">
-          <div className="pr-hero-card">
-            <div className="pr-hero-val">{data.totalWorkouts}</div>
-            <div className="pr-hero-label">Total Workouts</div>
+        <div className="pr-header-right">
+          <div className="pr-user-box">
+             <div className="pr-user-name">{data.profile.name || 'Anonymous Athlete'}</div>
+             <div className="pr-user-stats">
+               {data.profile.age && <span>Age {data.profile.age} &middot; </span>}
+               {data.profile.weight && <span>{data.profile.weight}{data.profile.weightUnit} &middot; </span>}
+               {bmi && <span>BMI {bmi.toFixed(1)}</span>}
+             </div>
           </div>
-          <div className="pr-hero-card">
-            <div className="pr-hero-val">{data.totalSets}</div>
-            <div className="pr-hero-label">Total Sets</div>
-          </div>
-          <div className="pr-hero-card">
-            <div className="pr-hero-val">{data.streak.current}</div>
-            <div className="pr-hero-label">Current Streak</div>
-          </div>
-          <div className="pr-hero-card">
-            <div className="pr-hero-val">{data.consistency}%</div>
-            <div className="pr-hero-label">Consistency</div>
+          <div className="pr-summary-pills">
+            <div className="pr-pill"><strong>{data.totalWorkouts}</strong> Workouts</div>
+            <div className="pr-pill"><strong>{data.streak.current}</strong> Streak</div>
+            <div className="pr-pill"><strong>{data.consistency}%</strong> Consistency</div>
           </div>
         </div>
       </div>
 
-      {/* ── PAGE 2: WEEKLY FREQUENCY ───────────────────────────────── */}
-      <div className="pr-page">
-        <h2 className="pr-section-title">Weekly Training Frequency</h2>
-        <p className="pr-subtitle">Workouts per week over the last 12 weeks</p>
-        <div className="pr-chart-box">
-          <WeeklyBarSVG weeklyData={data.weeklyData} />
-        </div>
-
-        <h2 className="pr-section-title" style={{ marginTop: '2rem' }}>Push / Pull / Legs / Core Balance</h2>
-        <p className="pr-subtitle">Distribution of training volume across movement patterns</p>
-        <div className="pr-chart-box">
-          <PPLDonut ppl={data.ppl} />
-        </div>
-
-        {data.warnings.length > 0 && (
-          <div style={{ marginTop: '1.5rem' }}>
-            <h3 className="pr-section-title">⚠️ Imbalance Warnings</h3>
-            <ul className="pr-warning-list">
-              {data.warnings.map((w, i) => <li key={i}>{w}</li>)}
-            </ul>
+      <div className="pr-dashboard-grid">
+        {/* ── LEFT COLUMN: BALANCE ─────────────────────────────────── */}
+        <div className="pr-col">
+          <div className="pr-card">
+            <h3 className="pr-card-title">Muscle Efficiency Radar</h3>
+            <p className="pr-card-sub">Visual training balance across groups</p>
+            <div className="pr-card-body">
+               <SpiderSVG counts={data.analysisCounts} />
+            </div>
+            {data.neglectedMuscles.length > 0 && (
+              <div className="pr-alert pr-alert--red">
+                <strong>Neglected:</strong> {data.neglectedMuscles.join(', ')}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* ── PAGE 3: MUSCLE RADAR ───────────────────────────────────── */}
-      <div className="pr-page">
-        <h2 className="pr-section-title">Muscle Group Efficiency Radar</h2>
-        <p className="pr-subtitle">Training frequency per muscle group for the selected period. Larger shape = more balanced training.</p>
-        <SpiderSVG counts={data.analysisCounts} />
-      </div>
-
-      {/* ── PAGE 4: VOLUME BARS ────────────────────────────────────── */}
-      <div className="pr-page">
-        <h2 className="pr-section-title">Volume Analysis — All Muscles</h2>
-        <p className="pr-subtitle">Days trained per muscle group. Red indicator = not trained this period.</p>
-        <div className="pr-chart-box">
-          <BarChartSVG counts={data.analysisCounts} />
         </div>
 
-        {data.neglectedMuscles.length > 0 && (
-          <div className="pr-neglect-box">
-            <strong>Neglected this period:</strong>{' '}
-            {data.neglectedMuscles.join(', ')}
+        {/* ── MIDDLE COLUMN: INTENSITY ─────────────────────────────── */}
+        <div className="pr-col">
+          <div className="pr-card">
+            <h3 className="pr-card-title">Volume Analysis</h3>
+            <p className="pr-card-sub">Training days per muscle group</p>
+            <div className="pr-card-body">
+               <BarChartSVG counts={data.analysisCounts} />
+            </div>
           </div>
-        )}
+          
+          <div className="pr-card" style={{ marginTop: '0.75rem' }}>
+            <h3 className="pr-card-title">Weekly Frequency</h3>
+            <div className="pr-card-body">
+               <WeeklyBarSVG weeklyData={data.weeklyData} />
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT COLUMN: PATTERNS ────────────────────────────────── */}
+        <div className="pr-col">
+          <div className="pr-card">
+            <h3 className="pr-card-title">Push / Pull / Legs / Core</h3>
+            <p className="pr-card-sub">Movement pattern distribution</p>
+            <div className="pr-card-body">
+               <PPLDonut ppl={data.ppl} />
+            </div>
+          </div>
+
+          <div className="pr-card" style={{ marginTop: '0.75rem' }}>
+            <h3 className="pr-card-title">Top Movements</h3>
+            <div className="pr-card-body">
+               <table className="pr-small-table">
+                 <thead>
+                   <tr><th>Exercise</th><th>Sess</th><th>Sets</th></tr>
+                 </thead>
+                 <tbody>
+                   {data.topExercises.slice(0, 5).map((ex, i) => (
+                     <tr key={i}>
+                       <td>{ex.name}</td>
+                       <td>{ex.count}</td>
+                       <td>{ex.sets}</td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+            </div>
+          </div>
+
+          {data.warnings.length > 0 && (
+            <div className="pr-alert pr-alert--orange" style={{ marginTop: '0.75rem' }}>
+              {data.warnings.slice(0, 2).map((w, i) => (
+                <div key={i} className="pr-warning-item">⚠️ {w}</div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── PAGE 5: TOP EXERCISES + SESSION LOG ─────────────────────── */}
-      <div className="pr-page">
-        <h2 className="pr-section-title">Top Exercises (All Time)</h2>
-        <table className="pr-table">
-          <thead>
-            <tr><th>#</th><th>Exercise</th><th>Sessions</th><th>Total Sets</th></tr>
-          </thead>
-          <tbody>
-            {data.topExercises.map((ex, i) => (
-              <tr key={i}>
-                <td>{i + 1}</td>
-                <td>{ex.name}</td>
-                <td>{ex.count}</td>
-                <td>{ex.sets}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h2 className="pr-section-title" style={{ marginTop: '2rem' }}>Recent Session Log</h2>
-        <table className="pr-table">
-          <thead>
-            <tr><th>Date</th><th>Muscles</th><th>Exercises</th></tr>
-          </thead>
-          <tbody>
-            {data.recentSessions.map((s, i) => (
-              <tr key={i}>
-                <td>{new Date(s.date).toLocaleDateString()}</td>
-                <td>{s.groups.join(', ') || '—'}</td>
-                <td>{s.entries}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="pr-footer">
-          Generated by Gym Flow · {today}
-          {data.profile.name ? ` · ${data.profile.name}` : ''}
-        </div>
+      <div className="pr-footer-slim">
+        <div className="pr-footer-copy">Training intelligence generated by Gym Flow &copy; {new Date().getFullYear()}</div>
+        <div className="pr-footer-tagline">Achieve Balance &middot; Master Consistency &middot; Track Progress</div>
       </div>
     </div>
   );
 }
+
