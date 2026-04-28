@@ -532,7 +532,6 @@ export default function App() {
                               </button>
                             </div>
                             <div className="plan-card-home-actions">
-                              <button className="plan-action-btn" onClick={() => loadPlanForLog(plan)}>Quick log</button>
                               <button className="plan-action-btn" onClick={() => beginEditSavedPlan(plan)}>Edit</button>
                               <button
                                 className="plan-action-btn plan-action-btn--danger"
@@ -579,7 +578,7 @@ export default function App() {
                             <button className="btn-start" onClick={() => openRoutineWorkoutTab(plan.id)}>Start</button>
                           </div>
                           <div className="plan-card-home-actions">
-                             <button className="plan-action-btn" onClick={() => loadPlanForLog(plan)}>Quick log</button>
+                             {/* Only Start available in presets for now */}
                           </div>
                         </li>
                       );
