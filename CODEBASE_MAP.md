@@ -88,6 +88,8 @@
 | Build cmd | `cd "Gym Webapp" && npm run build` (runs `tsc && vite build`) |
 | Output | `public/gym-flow/` ← Vite writes directly here (see `vite.config.ts`) |
 | Served at | `/gym-flow/` (Next.js treats `public/` as static) |
+| Cloud backup | Google sign-in: `/gym-flow-account` · API `GET/PUT /api/gym-flow/data` · Neon table `gym_flow_data` |
+| Env | `.env.example` — `DATABASE_URL`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` |
 | PWA listing | `app/web-apps/page.tsx` |
 
 **Edit flow:** change files in `Gym Webapp/src/` → run build → commit `public/gym-flow/` → deploy to Vercel.

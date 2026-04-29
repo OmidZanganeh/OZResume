@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EXERCISE_LIBRARY } from './data/exerciseLibrary';
 import type { Exercise } from './data/exerciseLibrary';
 import {
@@ -22,6 +22,7 @@ import {
 } from './utils/workoutLogDraft';
 import { buildPresetPlans } from './data/presetPlans';
 import { getAlternativeExercises } from './utils/exerciseAlternatives';
+import { hydrateFromCloudIfSignedIn } from './utils/cloudSync';
 
 type Props = { planId: string };
 
@@ -80,6 +81,15 @@ export function RoutineRunView({ planId }: Props) {
   const persist = useCallback((next: PersistedGymData) => {
     setData(next);
     savePersistedGymData(next);
+  }, []);
+
+  const cloudHydratedRef = useRef(false);
+  useEffect(() => {
+    if (cloudHydratedRef.current) return;
+    cloudHydratedRef.current = true;
+    void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {
+      setData(merged);
+    });
   }, []);
 
   /** Add defaults for new ids only; keep in-progress drafts when the routine list changes slightly. */

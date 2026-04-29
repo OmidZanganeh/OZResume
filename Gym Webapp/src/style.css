@@ -2734,7 +2734,22 @@ body {
   font-weight: 800;
   color: var(--gf-accent);
   letter-spacing: -0.04em;
-  margin-bottom: 1.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.home-cloud-link {
+  margin: 0 0 1.25rem;
+  font-size: 0.82rem;
+}
+
+.home-cloud-link a {
+  color: var(--gf-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.home-cloud-link a:hover {
+  text-decoration: underline;
 }
 
 .home-section { margin-bottom: 2.25rem; }

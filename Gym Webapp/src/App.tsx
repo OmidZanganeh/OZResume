@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toPng } from 'html-to-image';
@@ -40,6 +40,7 @@ import {
   labelForFilterValue,
 } from './utils/catalogSort';
 import { buildPresetPlans } from './data/presetPlans';
+import { hydrateFromCloudIfSignedIn } from './utils/cloudSync';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
 
@@ -257,6 +258,15 @@ export default function App() {
     setData(next);
     savePersistedGymData(next);
   }
+
+  const cloudHydratedRef = useRef(false);
+  useEffect(() => {
+    if (cloudHydratedRef.current) return;
+    cloudHydratedRef.current = true;
+    void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {
+      setData(merged);
+    });
+  }, []);
 
   function toggleGroup(group: MuscleGroup) {
     setSelectedGroups((c) => c.includes(group) ? c.filter((g) => g !== group) : [...c, group]);
@@ -521,6 +531,9 @@ export default function App() {
         {view === 'home' && (
           <div className="home-view">
             <div className="home-wordmark">Gym Flow</div>
+            <p className="home-cloud-link">
+              <a href="/gym-flow-account/">Google sign-in · cloud backup</a>
+            </p>
 
             {/* MY PLANS */}
             <section className="home-section" aria-label="My Plans">

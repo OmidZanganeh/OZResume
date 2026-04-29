@@ -100,6 +100,16 @@ export function loadPersistedGymData(): PersistedGymData {
   return defaultGymData;
 }
 
-export function savePersistedGymData(data: PersistedGymData) {
+export function writeGymDataLocal(data: PersistedGymData, mtimeMs?: number): void {
   localStorage.setItem(STORAGE_V2, JSON.stringify(data));
+  localStorage.setItem('gf_last_mtime', String(mtimeMs ?? Date.now()));
+}
+
+export function savePersistedGymData(data: PersistedGymData): void {
+  writeGymDataLocal(data);
+  if (typeof window !== 'undefined') {
+    import('../utils/cloudSync')
+      .then((m) => m.scheduleCloudPush(data))
+      .catch(() => {});
+  }
 }
