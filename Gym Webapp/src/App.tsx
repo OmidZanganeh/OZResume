@@ -29,6 +29,7 @@ import {
   savePersistedGymData,
   type PersistedGymData,
   type SavedPlan,
+  type UserProfile,
 } from './data/gymFlowStorage';
 import { resolvePlanExerciseIdsToCatalog, STORAGE_V1 } from './data/migrateStorage';
 import {
@@ -132,8 +133,15 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [analysisDays, setAnalysisDays] = useState(10);
   const [reportDays, setReportDays] = useState(DEFAULT_REPORT_DAYS);
-  const [reportProfile, setReportProfile] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('gf-profile') || '{}'); } catch { return {}; }
+  const [reportProfile, setReportProfile] = useState<UserProfile>(() => {
+    const d = loadPersistedGymData();
+    let fromLs: UserProfile = {};
+    try {
+      fromLs = JSON.parse(localStorage.getItem('gf-profile') || '{}') as UserProfile;
+    } catch {
+      /* ignore */
+    }
+    return { ...fromLs, ...(d.userProfile ?? {}) };
   });
   const [exerciseImages, setExerciseImages] = useState<Record<string, ExerciseImageMeta>>({});
   const [catalogSort, setCatalogSort] = useState<CatalogSortMode>('gym');
@@ -261,12 +269,35 @@ export default function App() {
     savePersistedGymData(next);
   }
 
+  function syncReportProfileFromMerged(merged: PersistedGymData) {
+    if (!merged.userProfile) return;
+    setReportProfile((prev) => ({ ...prev, ...merged.userProfile }));
+  }
+
+  function patchReportProfile(patch: Partial<UserProfile>) {
+    setReportProfile((prev) => {
+      const p = { ...prev, ...patch };
+      try {
+        localStorage.setItem('gf-profile', JSON.stringify(p));
+      } catch {
+        /* ignore */
+      }
+      return p;
+    });
+    setData((d) => {
+      const next: PersistedGymData = { ...d, userProfile: { ...d.userProfile, ...patch } };
+      savePersistedGymData(next);
+      return next;
+    });
+  }
+
   const cloudHydratedRef = useRef(false);
   useEffect(() => {
     if (cloudHydratedRef.current) return;
     cloudHydratedRef.current = true;
     void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {
       setData(merged);
+      syncReportProfileFromMerged(merged);
     });
   }, []);
 
@@ -281,6 +312,7 @@ export default function App() {
       setCloudSignedIn(true);
       void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {
         setData(merged);
+        syncReportProfileFromMerged(merged);
       });
       setMessage('Signed in — cloud backup on.');
     }
@@ -1139,22 +1171,42 @@ export default function App() {
           <>
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Your Profile</h2>
-              <p className="panel-subtle">Used for your PDF training report (stored locally).</p>
+              <p className="panel-subtle">Used for your PDF training report. Synced with cloud backup when you are signed in.</p>
               <div className="profile-form">
                 <label className="profile-field">
                   <span>Name</span>
-                  <input className="text-input" type="text" placeholder="e.g. Alex Smith" value={reportProfile.name || ''}
-                    onChange={e => { const p = { ...reportProfile, name: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
+                  <input
+                    className="text-input"
+                    type="text"
+                    placeholder="e.g. Alex Smith"
+                    value={reportProfile.name || ''}
+                    onChange={(e) => patchReportProfile({ name: e.target.value })}
+                  />
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                   <label className="profile-field">
                     <span>Weight</span>
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <input className="text-input" type="text" placeholder="75" style={{ flex: 1 }} value={reportProfile.weight || ''}
-                        onChange={e => { const p = { ...reportProfile, weight: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
-                      <select className="select-input" style={{ width: 56 }} value={reportProfile.weightUnit || 'kg'}
-                        onChange={e => { const p = { ...reportProfile, weightUnit: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }}>
-                        <option>kg</option><option>lbs</option>
+                      <input
+                        className="text-input"
+                        type="text"
+                        placeholder="75"
+                        style={{ flex: 1 }}
+                        value={reportProfile.weight || ''}
+                        onChange={(e) => patchReportProfile({ weight: e.target.value })}
+                      />
+                      <select
+                        className="select-input"
+                        style={{ width: 56 }}
+                        value={reportProfile.weightUnit || 'kg'}
+                        onChange={(e) =>
+                          patchReportProfile({
+                            weightUnit: e.target.value === 'lbs' ? 'lbs' : 'kg',
+                          })
+                        }
+                      >
+                        <option value="kg">kg</option>
+                        <option value="lbs">lbs</option>
                       </select>
                     </div>
                   </label>
@@ -1163,36 +1215,64 @@ export default function App() {
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
                       {reportProfile.heightUnit === 'ft' ? (
                         <>
-                          <input className="text-input" type="number" placeholder="5" style={{ flex: 1 }} 
+                          <input
+                            className="text-input"
+                            type="number"
+                            placeholder="5"
+                            style={{ flex: 1 }}
                             value={(reportProfile.height || '').split("'")[0] || ''}
-                            onChange={e => {
+                            onChange={(e) => {
                               const i = (reportProfile.height || '').split("'")[1] || '';
-                              const p = { ...reportProfile, height: `${e.target.value}'${i}` };
-                              setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p));
-                            }} />
-                          <input className="text-input" type="number" placeholder="11" style={{ flex: 1 }} 
+                              patchReportProfile({ height: `${e.target.value}'${i}` });
+                            }}
+                          />
+                          <input
+                            className="text-input"
+                            type="number"
+                            placeholder="11"
+                            style={{ flex: 1 }}
                             value={(reportProfile.height || '').split("'")[1] || ''}
-                            onChange={e => {
+                            onChange={(e) => {
                               const f = (reportProfile.height || '').split("'")[0] || '';
-                              const p = { ...reportProfile, height: `${f}'${e.target.value}` };
-                              setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p));
-                            }} />
+                              patchReportProfile({ height: `${f}'${e.target.value}` });
+                            }}
+                          />
                         </>
                       ) : (
-                        <input className="text-input" type="text" placeholder="175" style={{ flex: 1 }} value={reportProfile.height || ''}
-                          onChange={e => { const p = { ...reportProfile, height: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
+                        <input
+                          className="text-input"
+                          type="text"
+                          placeholder="175"
+                          style={{ flex: 1 }}
+                          value={reportProfile.height || ''}
+                          onChange={(e) => patchReportProfile({ height: e.target.value })}
+                        />
                       )}
-                      <select className="select-input" style={{ width: 56 }} value={reportProfile.heightUnit || 'cm'}
-                        onChange={e => { const p = { ...reportProfile, heightUnit: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }}>
-                        <option>cm</option><option>ft</option>
+                      <select
+                        className="select-input"
+                        style={{ width: 56 }}
+                        value={reportProfile.heightUnit || 'cm'}
+                        onChange={(e) =>
+                          patchReportProfile({
+                            heightUnit: e.target.value === 'ft' ? 'ft' : 'cm',
+                          })
+                        }
+                      >
+                        <option value="cm">cm</option>
+                        <option value="ft">ft</option>
                       </select>
                     </div>
                   </label>
                 </div>
                 <label className="profile-field">
                   <span>Age</span>
-                  <input className="text-input" type="text" placeholder="28" value={reportProfile.age || ''}
-                    onChange={e => { const p = { ...reportProfile, age: e.target.value }; setReportProfile(p); localStorage.setItem('gf-profile', JSON.stringify(p)); }} />
+                  <input
+                    className="text-input"
+                    type="text"
+                    placeholder="28"
+                    value={reportProfile.age || ''}
+                    onChange={(e) => patchReportProfile({ age: e.target.value })}
+                  />
                 </label>
               </div>
             </section>

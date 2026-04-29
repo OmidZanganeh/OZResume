@@ -1,19 +1,8 @@
 import { auth } from '@/auth';
 import { isDatabaseConfigured } from '@/lib/db/database-url';
 import { getGymFlowData, saveGymFlowData } from '@/lib/db/gym-flow';
+import { isValidPersistedGymPayload } from '@/lib/gym-flow-payload';
 import { NextResponse } from 'next/server';
-
-function isValidPersistedPayload(x: unknown): boolean {
-  if (!x || typeof x !== 'object') return false;
-  const o = x as Record<string, unknown>;
-  return (
-    Array.isArray(o.customExercises) &&
-    o.stats !== null &&
-    typeof o.stats === 'object' &&
-    Array.isArray(o.sessions) &&
-    Array.isArray(o.savedPlans)
-  );
-}
 
 export async function GET() {
   if (!isDatabaseConfigured()) {
@@ -52,7 +41,7 @@ export async function PUT(req: Request) {
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
-  if (!isValidPersistedPayload(body)) {
+  if (!isValidPersistedGymPayload(body)) {
     return NextResponse.json({ error: 'Invalid gym data shape' }, { status: 400 });
   }
   try {

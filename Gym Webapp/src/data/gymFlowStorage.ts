@@ -48,6 +48,8 @@ export type PersistedGymData = {
   stats: Record<string, ExerciseStat>;
   sessions: WorkoutSession[];
   savedPlans: SavedPlan[];
+  /** Synced with cloud when signed in; also mirrored to local `gf-profile` for reports UI */
+  userProfile?: UserProfile;
 };
 
 export const defaultGymData: PersistedGymData = {
@@ -72,11 +74,27 @@ export function loadPersistedGymData(): PersistedGymData {
         stats: parsed.stats ?? {},
         sessions: parsed.sessions ?? [],
         savedPlans,
+        userProfile: parsed.userProfile,
       };
-      if (JSON.stringify(savedPlans) !== JSON.stringify(savedPlansRaw)) {
-        localStorage.setItem(STORAGE_V2, JSON.stringify(merged));
+      const withLegacyProfile: PersistedGymData = (() => {
+        if (merged.userProfile && Object.keys(merged.userProfile).length > 0) return merged;
+        try {
+          const ls = JSON.parse(localStorage.getItem('gf-profile') || '{}') as UserProfile;
+          if (ls && typeof ls === 'object' && (ls.name || ls.weight || ls.height || ls.age)) {
+            return { ...merged, userProfile: { ...merged.userProfile, ...ls } };
+          }
+        } catch {
+          /* ignore */
+        }
+        return merged;
+      })();
+      if (
+        JSON.stringify(savedPlans) !== JSON.stringify(savedPlansRaw) ||
+        JSON.stringify(withLegacyProfile.userProfile) !== JSON.stringify(merged.userProfile)
+      ) {
+        localStorage.setItem(STORAGE_V2, JSON.stringify(withLegacyProfile));
       }
-      return merged;
+      return withLegacyProfile;
     } catch {
       return defaultGymData;
     }
@@ -102,6 +120,9 @@ export function loadPersistedGymData(): PersistedGymData {
 
 export function writeGymDataLocal(data: PersistedGymData, mtimeMs?: number): void {
   localStorage.setItem(STORAGE_V2, JSON.stringify(data));
+  if (data.userProfile && Object.keys(data.userProfile).length > 0) {
+    localStorage.setItem('gf-profile', JSON.stringify(data.userProfile));
+  }
   localStorage.setItem('gf_last_mtime', String(mtimeMs ?? Date.now()));
 }
 

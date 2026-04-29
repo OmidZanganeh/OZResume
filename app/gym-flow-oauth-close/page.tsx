@@ -36,16 +36,10 @@ export default function GymFlowOauthClosePage() {
   }, []);
 
   return (
-    <p
-      style={{
-        fontFamily: 'system-ui, sans-serif',
-        padding: '1.5rem',
-        textAlign: 'center',
-        color: '#64748b',
-        fontSize: '0.95rem',
-      }}
-    >
-      Signed in. This window should close automatically.
-    </p>
+    <main className="gym-flow-auth-main" style={{ textAlign: 'center' }}>
+      <p className="gym-flow-auth-lead" style={{ margin: 0 }}>
+        Signed in. This window should close automatically.
+      </p>
+    </main>
   );
 }
