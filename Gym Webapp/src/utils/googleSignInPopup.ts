@@ -35,13 +35,13 @@ export function isTrustedGymFlowOAuthOrigin(messageOrigin: string): boolean {
 }
 
 /**
- * Open Google sign-in in a popup. After success, `/gym-flow-oauth-close` posts
- * `{ type: GYM_FLOW_OAUTH_SUCCESS }` to `window.opener` (see `parentOrigin` when dev).
+ * Open Google sign-in in a popup. Uses `/gym-flow-signin-popup` so `signIn()` runs
+ * inside SessionProvider (same as /gym-flow-account) — raw `/api/auth/signin/google`
+ * can trigger Auth.js configuration errors.
  */
 export function openGoogleSignInPopup(): Window | null {
   const parentOrigin = window.location.origin;
   const authBase = getAuthBaseUrl();
-  const closeUrl = `${authBase}/gym-flow-oauth-close?parentOrigin=${encodeURIComponent(parentOrigin)}`;
-  const signInUrl = `${authBase}/api/auth/signin/google?callbackUrl=${encodeURIComponent(closeUrl)}`;
-  return window.open(signInUrl, 'gymFlowGoogleSignIn', POPUP_FEATURES);
+  const url = `${authBase}/gym-flow-signin-popup?parentOrigin=${encodeURIComponent(parentOrigin)}`;
+  return window.open(url, 'gymFlowGoogleSignIn', POPUP_FEATURES);
 }
