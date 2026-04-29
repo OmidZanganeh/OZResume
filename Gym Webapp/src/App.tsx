@@ -1414,12 +1414,10 @@ export default function App() {
       consistency,
       analysisDays,
       analysisCounts,
-      ppl: pplBalance,
       topExercises,
       neglectedMuscles,
       recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
       weeklyData,
-      warnings: imbalanceWarnings,
     }} selectedGroups={selectedGroups} />
 
     {selectedCalendarDay && (

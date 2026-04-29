@@ -12,12 +12,10 @@ export type ReportData = {
   consistency: number;
   analysisDays: number;
   analysisCounts: Map<MuscleGroup, number>;
-  ppl: { push: number; pull: number; legs: number; core: number };
   topExercises: { name: string; count: number; sets: number }[];
   neglectedMuscles: MuscleGroup[];
   recentSessions: { date: string; groups: MuscleGroup[]; entries: number }[];
   weeklyData: { label: string; count: number }[];
-  warnings: string[];
 };
 
 function toRad(deg: number) { return (deg * Math.PI) / 180; }
@@ -78,56 +76,6 @@ function WeeklyBarSVG({ weeklyData }: { weeklyData: { label: string; count: numb
         );
       })}
     </svg>
-  );
-}
-
-function PPLDonut({ ppl }: { ppl: { push: number; pull: number; legs: number; core: number } }) {
-  const slices = [
-    { label: 'Push', val: ppl.push, color: '#ea580c' },
-    { label: 'Pull', val: ppl.pull, color: '#2563eb' },
-    { label: 'Legs', val: ppl.legs, color: '#16a34a' },
-    { label: 'Core', val: ppl.core, color: '#65a30d' },
-  ];
-  const total = slices.reduce((s, x) => s + x.val, 0);
-  if (total === 0) return <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.72rem' }}>No data yet.</p>;
-
-  const CX = 55, CY = 55, R = 46, INNER = 27;
-  let startAngle = -90;
-  const paths: { d: string; color: string; label: string; val: number }[] = [];
-
-  for (const sl of slices) {
-    if (sl.val === 0) continue;
-    const sweep = (sl.val / total) * 360;
-    const endAngle = startAngle + sweep;
-    const r1 = toRad(startAngle), r2 = toRad(endAngle);
-    const x1 = CX + R * Math.cos(r1), y1 = CY + R * Math.sin(r1);
-    const x2 = CX + R * Math.cos(r2), y2 = CY + R * Math.sin(r2);
-    const ix1 = CX + INNER * Math.cos(r1), iy1 = CY + INNER * Math.sin(r1);
-    const ix2 = CX + INNER * Math.cos(r2), iy2 = CY + INNER * Math.sin(r2);
-    const largeArc = sweep > 180 ? 1 : 0;
-    paths.push({
-      d: `M ${ix1} ${iy1} L ${x1} ${y1} A ${R} ${R} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${INNER} ${INNER} 0 ${largeArc} 0 ${ix1} ${iy1}`,
-      color: sl.color, label: sl.label, val: sl.val,
-    });
-    startAngle = endAngle;
-  }
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-      <svg viewBox="0 0 110 110" style={{ width: 90, height: 90, flexShrink: 0 }}>
-        {paths.map((p, i) => <path key={i} d={p.d} fill={p.color} />)}
-        <text x={CX} y={CY + 3} textAnchor="middle" fontSize="9" fontWeight="800" fill="#f1f5f9">{total}d</text>
-      </svg>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-        {slices.filter(s => s.val > 0).map(s => (
-          <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.7rem', fontWeight: 600 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-            <span style={{ color: '#f1f5f9' }}>{s.label}</span>
-            <span style={{ color: '#64748b', marginLeft: 'auto' }}>{Math.round((s.val / total) * 100)}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -218,7 +166,7 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
           </div>
         </div>
 
-        {/* COL 2: Radar + PPL Donut */}
+        {/* COL 2: Radar */}
         <div className="prl-col">
           <div className="prl-card">
             <div className="prl-card-head">
@@ -227,16 +175,6 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
             </div>
             <div className="prl-card-body">
               <SpiderSVG counts={data.analysisCounts} />
-            </div>
-          </div>
-
-          <div className="prl-card" style={{ marginTop: '0.6rem' }}>
-            <div className="prl-card-head">
-              <span className="prl-card-title">Movement Patterns</span>
-              <span className="prl-card-sub">Push / Pull / Legs / Core split</span>
-            </div>
-            <div className="prl-card-body">
-              <PPLDonut ppl={data.ppl} />
             </div>
           </div>
         </div>
@@ -282,20 +220,15 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
             </div>
           </div>
 
-          {(data.neglectedMuscles.length > 0 || data.warnings.length > 0) && (
+          {data.neglectedMuscles.length > 0 && (
             <div className="prl-card prl-card--alerts" style={{ marginTop: '0.6rem' }}>
               <div className="prl-card-head">
                 <span className="prl-card-title">⚠ Training Alerts</span>
               </div>
               <div className="prl-card-body">
-                {data.neglectedMuscles.length > 0 && (
-                  <div className="prl-alert prl-alert--red">
-                    <strong>Neglected:</strong> {data.neglectedMuscles.join(', ')}
-                  </div>
-                )}
-                {data.warnings.slice(0, 2).map((w, i) => (
-                  <div key={i} className="prl-alert prl-alert--orange">{w}</div>
-                ))}
+                <div className="prl-alert prl-alert--red">
+                  <strong>Neglected:</strong> {data.neglectedMuscles.join(', ')}
+                </div>
               </div>
             </div>
           )}

@@ -139,14 +139,15 @@ export const HEAT_INTENSITY = {
   gap: 0,
   /** 1 session in window */
   x1: 5,
+  /** 2+ sessions (heatmap uses only gap / x1 / x2) */
   x2: 2,
+  /** Unused in heatmap — were distinct slots; colors were never set (library defaults = wrong hues). */
   x3: 3,
   x4: 4,
-  /** 5 or more sessions */
   x5Plus: 6,
 } as const;
 
-/** Tier 0…5 for CSS (orphan pills / legend), aligned with {@link practiceCountToHeatIntensity} buckets. */
+/** Tier 0…5 for CSS (orphan pills / legend). Distinct from heatmap: map uses 3 body colors only. */
 export function heatTierFromCount(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
   if (count <= 0) return 0;
   if (count === 1) return 1;
@@ -156,13 +157,11 @@ export function heatTierFromCount(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
   return 5;
 }
 
+/** 3-color heatmap: gap → once → on track (2+). Slots 3/4/6 were unstyled library defaults (orange etc.). */
 export function practiceCountToHeatIntensity(count: number): number {
   if (count <= 0) return HEAT_INTENSITY.gap;
   if (count === 1) return HEAT_INTENSITY.x1;
-  if (count === 2) return HEAT_INTENSITY.x2;
-  if (count === 3) return HEAT_INTENSITY.x3;
-  if (count === 4) return HEAT_INTENSITY.x4;
-  return HEAT_INTENSITY.x5Plus;
+  return HEAT_INTENSITY.x2;
 }
 
 /**
@@ -171,7 +170,7 @@ export function practiceCountToHeatIntensity(count: number): number {
 export const MOTIVATION_GREEN_INTENSITY_SLOT = HEAT_INTENSITY.x2;
 
 /**
- * Last N days: 0→gap, 1→once, 2…4→stepped “on track”, 5+→ strongest cue.
+ * Last N days: 0→gap, 1→once, 2+→ on track (single green; bar chart still shows exact count).
  */
 export function buildBodyMusclesStateForTenDayGaps(
   practiceCounts: Map<MuscleGroup, number>,
