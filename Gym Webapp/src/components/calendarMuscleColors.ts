@@ -1,20 +1,20 @@
 import { MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../data/exerciseLibrary';
 
-/** Distinct colors for calendar muscle stripes (one per group). */
+/** Distinct, dark-theme-friendly colors for rainbow body map + calendar stripes (per muscle group). */
 export const MUSCLE_GROUP_CALENDAR_COLOR: Record<MuscleGroup, string> = {
-  Chest: '#ea580c',
-  Back: '#2563eb',
-  Shoulders: '#7c3aed',
-  Biceps: '#16a34a',
-  Triceps: '#0d9488',
-  Quads: '#ca8a04',
-  Hamstrings: '#db2777',
-  Glutes: '#e11d48',
-  Calves: '#0891b2',
-  Core: '#65a30d',
-  Forearms: '#475569',
-  Cardio: '#dc2626',
-  Mobility: '#6366f1',
+  Chest: '#fb7185',
+  Back: '#38bdf8',
+  Shoulders: '#a78bfa',
+  Biceps: '#4ade80',
+  Triceps: '#2dd4bf',
+  Quads: '#facc15',
+  Hamstrings: '#e879f9',
+  Glutes: '#f472b6',
+  Calves: '#22d3ee',
+  Core: '#a3e635',
+  Forearms: '#94a3b8',
+  Cardio: '#f87171',
+  Mobility: '#818cf8',
 };
 
 export const PUSH_MUSCLES: MuscleGroup[] = ['Chest', 'Shoulders', 'Triceps'];

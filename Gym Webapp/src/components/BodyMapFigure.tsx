@@ -9,10 +9,18 @@ import {
 } from '../bodyMap/bodyMusclesMapping';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
-/** Slot 0 = no hits in window — red "gap" cue. */
-(INTENSITY_COLORS as Record<number, string>)[0] = '#b91c1c';
-/** Slot for "2+" motivation green. */
-(INTENSITY_COLORS as Record<number, string>)[MOTIVATION_GREEN_INTENSITY_SLOT] = '#22c55e';
+/** Gym Flow heatmap slots (body-muscles intensity indices). */
+const HEAT_GAP = 0;
+const HEAT_ONCE = 5;
+/** Slot 99: unhit regions in rainbow legend mode. */
+const LEGEND_INACTIVE_SLOT = 99;
+
+/** Needs work — rose, readable on dark without harsh pure red. */
+(INTENSITY_COLORS as Record<number, string>)[HEAT_GAP] = '#f43f5e';
+/** Hit once — warm amber, clearly between gap and “on track”. */
+(INTENSITY_COLORS as Record<number, string>)[HEAT_ONCE] = '#fbbf24';
+/** 2+ sessions — brand teal (matches --gf-accent / progress cues). */
+(INTENSITY_COLORS as Record<number, string>)[MOTIVATION_GREEN_INTENSITY_SLOT] = '#2dd4bf';
 
 // Initialize Rainbow Slots (100+) to avoid library defaults
 const RAINBOW_START_SLOT = 100;
@@ -23,9 +31,8 @@ Object.keys(MUSCLE_GROUP_CALENDAR_COLOR).forEach((g, i) => {
   (INTENSITY_COLORS as Record<number, string>)[slot] = MUSCLE_GROUP_CALENDAR_COLOR[g as MuscleGroup];
 });
 
-/** Slot for non-selected/inactive muscles in legend. */
-const LEGEND_INACTIVE_SLOT = 99;
-(INTENSITY_COLORS as Record<number, string>)[LEGEND_INACTIVE_SLOT] = '#1e293b'; // Slate-800
+/** Unhit muscle silhouettes in rainbow mode — cool slate, not flat black. */
+(INTENSITY_COLORS as Record<number, string>)[LEGEND_INACTIVE_SLOT] = '#475569';
 
 type Props = {
   practiceCounts: Map<MuscleGroup, number>;
