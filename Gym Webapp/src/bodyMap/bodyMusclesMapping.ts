@@ -132,13 +132,46 @@ export function buildBodyMusclesStateFromPractice(
 }
 
 /**
- * Heatmap slot patched to green in {@link BodyMapFigure} (library default at this index is yellow).
- * Intensity 5 stays the package orange for “once”.
+ * Intensity slots for the N-day heatmap. Colors patched on `INTENSITY_COLORS` in BodyMapFigure.
+ * (body-muscles reserves 0–10; 99 = rainbow inactive; 100+ = per-group rainbow.)
  */
-export const MOTIVATION_GREEN_INTENSITY_SLOT = 2;
+export const HEAT_INTENSITY = {
+  gap: 0,
+  /** 1 session in window */
+  x1: 5,
+  x2: 2,
+  x3: 3,
+  x4: 4,
+  /** 5 or more sessions */
+  x5Plus: 6,
+} as const;
+
+/** Tier 0…5 for CSS (orphan pills / legend), aligned with {@link practiceCountToHeatIntensity} buckets. */
+export function heatTierFromCount(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
+  if (count <= 0) return 0;
+  if (count === 1) return 1;
+  if (count === 2) return 2;
+  if (count === 3) return 3;
+  if (count === 4) return 4;
+  return 5;
+}
+
+export function practiceCountToHeatIntensity(count: number): number {
+  if (count <= 0) return HEAT_INTENSITY.gap;
+  if (count === 1) return HEAT_INTENSITY.x1;
+  if (count === 2) return HEAT_INTENSITY.x2;
+  if (count === 3) return HEAT_INTENSITY.x3;
+  if (count === 4) return HEAT_INTENSITY.x4;
+  return HEAT_INTENSITY.x5Plus;
+}
 
 /**
- * Last N days: 0 sessions → red gap cue (0), 1 → orange (5), 2+ → green (patched slot {@link MOTIVATION_GREEN_INTENSITY_SLOT}).
+ * @deprecated use {@link HEAT_INTENSITY.x2} — kept for any external imports
+ */
+export const MOTIVATION_GREEN_INTENSITY_SLOT = HEAT_INTENSITY.x2;
+
+/**
+ * Last N days: 0→gap, 1→once, 2…4→stepped “on track”, 5+→ strongest cue.
  */
 export function buildBodyMusclesStateForTenDayGaps(
   practiceCounts: Map<MuscleGroup, number>,
@@ -149,8 +182,7 @@ export function buildBodyMusclesStateForTenDayGaps(
     const ids = GROUP_TO_MUSCLE_IDS[g];
     if (!ids) continue;
     const count = practiceCounts.get(g) ?? 0;
-    const intensity =
-      count >= 2 ? MOTIVATION_GREEN_INTENSITY_SLOT : count === 1 ? 5 : 0;
+    const intensity = practiceCountToHeatIntensity(count);
     const selected = selectedGroups.includes(g);
     for (const id of ids) {
       state[id] = { intensity, selected };
