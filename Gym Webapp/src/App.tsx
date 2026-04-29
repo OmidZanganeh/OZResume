@@ -136,8 +136,6 @@ export default function App() {
     'Targeted Isolation (Single Muscle)': true
   });
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
-  const [logViewMode] = useState<'cards'>('cards');
-  const [activeLogIndex, setActiveLogIndex] = useState(0);
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -235,12 +233,6 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [view]);
-
-  useEffect(() => {
-    if (activeLogIndex >= planExercises.length) {
-      setActiveLogIndex(Math.max(0, planExercises.length - 1));
-    }
-  }, [activeLogIndex, planExercises.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -813,74 +805,46 @@ export default function App() {
             <div className="view-header">
               <button className="view-back" onClick={() => { setSelectedExerciseIds([]); setExerciseDrafts({}); setActiveRoutineName(null); setView('home'); }}>← Back</button>
               <h1 className="view-title">{activeRoutineName ?? 'Quick Log'}</h1>
-              <span className="view-badge">Card view</span>
             </div>
             <p className="view-hint">Check the moves you complete, then save.</p>
-            {logViewMode === 'cards' && (
-              <div className="log-card-shell">
-                {planExercises.length > 0 ? (() => {
-                  const exercise = planExercises[activeLogIndex];
-                  const draft = exerciseDrafts[exercise.id];
-                  const isCardio = getEffectiveCategory(exercise) === 'cardio';
-                  return (
-                    <article className="plan-card log-card">
-                      <div className="log-card-progress">
-                        <span>Move {activeLogIndex + 1} of {planExercises.length}</span>
-                        <div className="log-card-progress-bar">
-                          <span style={{ width: `${((activeLogIndex + 1) / planExercises.length) * 100}%` }} />
-                        </div>
-                      </div>
-                      <div className="plan-heading">
-                        <h3>
-                          <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
-                            {exercise.name}
-                          </ExerciseYoutubeLink>
-                        </h3>
-                        <label className="checkbox">
-                          <input type="checkbox" checked={draft?.completed ?? false} onChange={(e) => updateDraft(exercise.id, { completed: e.target.checked })} />
-                          Done
+            <div className="plan-list">
+              {planExercises.map((exercise) => {
+                const draft = exerciseDrafts[exercise.id];
+                const isCardio = getEffectiveCategory(exercise) === 'cardio';
+                return (
+                  <article key={exercise.id} className="plan-card">
+                    <div className="plan-heading">
+                      <h3>
+                        <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
+                          {exercise.name}
+                        </ExerciseYoutubeLink>
+                      </h3>
+                      <label className="checkbox">
+                        <input type="checkbox" checked={draft?.completed ?? false} onChange={(e) => updateDraft(exercise.id, { completed: e.target.checked })} />
+                        Done
+                      </label>
+                    </div>
+                    <MuscleTargetPick exercise={exercise} draft={draft} onPatch={(p) => updateDraft(exercise.id, p)} />
+                    <div className="plan-grid">
+                      {isCardio ? (
+                        <label className="plan-grid-full">
+                          Minutes
+                          <input type="text" inputMode="numeric" placeholder="e.g. 20" value={draft?.reps ?? '20'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value, sets: 1 })} />
                         </label>
-                      </div>
-                      <MuscleTargetPick exercise={exercise} draft={draft} onPatch={(p) => updateDraft(exercise.id, p)} />
-                      <div className="plan-grid">
-                        {isCardio ? (
-                          <label className="plan-grid-full">
-                            Minutes
-                            <input type="text" inputMode="numeric" placeholder="e.g. 20" value={draft?.reps ?? '20'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value, sets: 1 })} />
-                          </label>
-                        ) : (
-                          <>
-                            <label>Sets<input type="number" min={1} value={draft?.sets ?? 3} onChange={(e) => updateDraft(exercise.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })} /></label>
-                            <label>Reps<input type="text" value={draft?.reps ?? '8-12'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value })} /></label>
-                            <label>Weight<input type="text" placeholder="35kg" value={draft?.weight ?? ''} onChange={(e) => updateDraft(exercise.id, { weight: e.target.value })} /></label>
-                          </>
-                        )}
-                      </div>
-                      <label>Notes<input type="text" placeholder="tempo, rest…" value={draft?.notes ?? ''} onChange={(e) => updateDraft(exercise.id, { notes: e.target.value })} /></label>
-                      {exerciseImages[exercise.name] && <p className="image-credit">{exerciseImages[exercise.name].credit}</p>}
-                      <div className="log-card-controls">
-                        <button type="button" className="button button-muted" onClick={() => setActiveLogIndex((i) => Math.max(0, i - 1))} disabled={activeLogIndex === 0}>
-                          ← Previous
-                        </button>
-                        <button
-                          type="button"
-                          className="button"
-                          onClick={() => {
-                            updateDraft(exercise.id, { completed: true });
-                            setActiveLogIndex((i) => Math.min(planExercises.length - 1, i + 1));
-                          }}
-                          disabled={activeLogIndex >= planExercises.length - 1}
-                        >
-                          Done & Next →
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })() : (
-                  <p className="empty-text">No moves selected yet.</p>
-                )}
-              </div>
-            )}
+                      ) : (
+                        <>
+                          <label>Sets<input type="number" min={1} value={draft?.sets ?? 3} onChange={(e) => updateDraft(exercise.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })} /></label>
+                          <label>Reps<input type="text" value={draft?.reps ?? '8-12'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value })} /></label>
+                          <label>Weight<input type="text" placeholder="35kg" value={draft?.weight ?? ''} onChange={(e) => updateDraft(exercise.id, { weight: e.target.value })} /></label>
+                        </>
+                      )}
+                    </div>
+                    <label>Notes<input type="text" placeholder="tempo, rest…" value={draft?.notes ?? ''} onChange={(e) => updateDraft(exercise.id, { notes: e.target.value })} /></label>
+                    {exerciseImages[exercise.name] && <p className="image-credit">{exerciseImages[exercise.name].credit}</p>}
+                  </article>
+                );
+              })}
+            </div>
             {planExercises.length > 0 && (
               <section className="sticky-save" aria-label="Save workout">
                 <div className="sticky-save-copy">

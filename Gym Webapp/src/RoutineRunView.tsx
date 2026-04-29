@@ -24,6 +24,18 @@ import { buildPresetPlans } from './data/presetPlans';
 
 type Props = { planId: string };
 
+const AUTO_ADVANCE_KEY = 'gf-routine-auto-advance';
+
+function readAutoAdvancePref(): boolean {
+  try {
+    const v = localStorage.getItem(AUTO_ADVANCE_KEY);
+    if (v === null) return true;
+    return v === '1' || v === 'true';
+  } catch {
+    return true;
+  }
+}
+
 function formatShortDate(iso: string | null) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -35,6 +47,9 @@ export function RoutineRunView({ planId }: Props) {
   const [exerciseDrafts, setExerciseDrafts] = useState<Record<string, ExerciseLogDraft>>({});
   const [saveMessage, setSaveMessage] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showNotes, setShowNotes] = useState(false);
+  const [mediaExpanded, setMediaExpanded] = useState(false);
+  const [autoAdvanceOnInclude, setAutoAdvanceOnInclude] = useState(readAutoAdvancePref);
 
   const allExercises = useMemo(
     () => [...EXERCISE_LIBRARY, ...data.customExercises],
@@ -87,6 +102,16 @@ export function RoutineRunView({ planId }: Props) {
     setSaveMessage('');
     setCurrentIndex(0);
   }, [exerciseIdsKey]);
+
+  useEffect(() => {
+    const ex = exercises[currentIndex];
+    const notes = ex ? exerciseDrafts[ex.id]?.notes : '';
+    setShowNotes(!!notes);
+  }, [currentIndex, exercises, exerciseDrafts]);
+
+  useEffect(() => {
+    setMediaExpanded(false);
+  }, [currentIndex]);
 
   useEffect(() => {
     if (plan) document.title = `${plan.name} · Gym Flow`;
@@ -145,7 +170,7 @@ export function RoutineRunView({ planId }: Props) {
     const orderIds = exercises.map((e) => e.id);
     const includedIds = orderIds.filter((id) => exerciseDrafts[id]?.completed);
     if (includedIds.length === 0) {
-      setSaveMessage('Check "Done" for at least one move.');
+      setSaveMessage('Turn on Include for at least one move.');
       return;
     }
     
@@ -226,6 +251,19 @@ export function RoutineRunView({ planId }: Props) {
 
   const currentExercise = exercises[currentIndex];
   const progressPct = exercises.length > 0 ? Math.round(((currentIndex + 1) / exercises.length) * 100) : 0;
+  const includedCount = exercises.filter((e) => exerciseDrafts[e.id]?.completed).length;
+  const remainingNotIncluded = exercises.length - includedCount;
+  const cardsLeftInRoutine = exercises.length - currentIndex - 1;
+  const canSave = includedCount > 0;
+
+  function setAutoAdvance(next: boolean) {
+    setAutoAdvanceOnInclude(next);
+    try {
+      localStorage.setItem(AUTO_ADVANCE_KEY, next ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }
 
   return (
     <div className="routine-run">
@@ -233,13 +271,20 @@ export function RoutineRunView({ planId }: Props) {
         <div>
           <h1 className="routine-run-title">{plan.name}</h1>
           <p className="routine-run-sub">
-            Work through one move at a time. Check <strong>Include when I save</strong> for each move you perform, then enter
-            sets / weight. Everything saves to the same history and body map as the Plan tab.
+            One move at a time. Use <strong>Include</strong> for moves you log today, then <strong>Save workout</strong>.
+            Same history and body map as the Plan tab.
           </p>
         </div>
-        <a className="button button-muted routine-run-planner-link" href={plannerHref}>
-          Open full planner
-        </a>
+        <div className="routine-run-header-actions">
+          {canSave ? (
+            <button type="button" className="button" onClick={handleSaveWorkout}>
+              Save workout
+            </button>
+          ) : null}
+          <a className="button button-muted routine-run-planner-link" href={plannerHref}>
+            Open full planner
+          </a>
+        </div>
       </header>
 
       {saveMessage ? (
@@ -250,9 +295,26 @@ export function RoutineRunView({ planId }: Props) {
 
       <div className="routine-run-progress" role="group" aria-label="Workout progress">
         <span className="routine-run-progress-label">Move {currentIndex + 1} of {exercises.length}</span>
+        <span className="routine-run-progress-meta">
+          <strong>
+            {includedCount}/{exercises.length} included
+          </strong>
+          {' · '}
+          {remainingNotIncluded} not in save yet
+          {' · '}
+          {cardsLeftInRoutine} left in routine
+        </span>
         <div className="routine-run-progress-bar" aria-hidden="true">
           <div className="routine-run-progress-fill" style={{ width: `${progressPct}%` }} />
         </div>
+        <label className="routine-run-auto-advance">
+          <input
+            type="checkbox"
+            checked={autoAdvanceOnInclude}
+            onChange={(e) => setAutoAdvance(e.target.checked)}
+          />
+          <span>Auto-advance after Include</span>
+        </label>
         <div className="routine-run-progress-actions">
           <button
             type="button"
@@ -279,42 +341,91 @@ export function RoutineRunView({ planId }: Props) {
         const isCardio = getEffectiveCategory(ex) === 'cardio';
         const stat = data.stats[ex.id];
         const history = getRecentLogsForExercise(data.sessions, ex.id, 5);
+        const isLast = currentIndex === exercises.length - 1;
+        const muscleMeta = [ex.primaryGroup, ...(ex.secondaryGroups ?? [])].join(' · ');
+        const imgMeta = images[ex.name];
 
         return (
           <div className="routine-run-card">
-            <div className="routine-run-card-head">
+            <div className="routine-run-card-head routine-run-card-head--with-pill">
               <span className="routine-run-num">{currentIndex + 1}</span>
-              <h2 className="routine-run-move-title">
-                <ExerciseYoutubeLink exerciseName={ex.name} className="exercise-youtube exercise-youtube--title">
-                  {ex.name}
-                </ExerciseYoutubeLink>
-              </h2>
+              <div className="routine-run-card-title-block">
+                <h2 className="routine-run-move-title">
+                  <ExerciseYoutubeLink exerciseName={ex.name} className="exercise-youtube exercise-youtube--title">
+                    {ex.name}
+                  </ExerciseYoutubeLink>
+                </h2>
+                <p className="routine-run-meta routine-run-meta--inline">
+                  {muscleMeta}
+                  <span className="routine-run-meta-sep" aria-hidden="true">
+                    {' · '}
+                  </span>
+                  Logged <strong>{stat?.timesCompleted ?? 0}</strong>× · Last {formatShortDate(stat?.lastPerformed ?? null)}
+                </p>
+              </div>
+              <button
+                type="button"
+                className={`routine-run-pill routine-run-pill--head ${draft?.completed ? 'routine-run-pill--active' : ''}`.trim()}
+                aria-pressed={draft?.completed ?? false}
+                onClick={() => {
+                  const nextCompleted = !(draft?.completed ?? false);
+                  updateDraft(ex.id, { completed: nextCompleted });
+                  if (autoAdvanceOnInclude && nextCompleted && currentIndex < exercises.length - 1) {
+                    setCurrentIndex((i) => Math.min(exercises.length - 1, i + 1));
+                  }
+                }}
+              >
+                {draft?.completed ? 'Included' : 'Include'}
+              </button>
             </div>
-            <div className="routine-run-media">
-              {images[ex.name] ? (
-                <img
-                  src={images[ex.name].url}
-                  alt={`${ex.name} demo`}
-                  className="routine-run-image"
-                  loading="eager"
-                />
+
+            <div className={`routine-run-media-wrap ${mediaExpanded ? 'routine-run-media-wrap--expanded' : ''}`.trim()}>
+              {imgMeta ? (
+                <>
+                  <button
+                    type="button"
+                    className="routine-run-media-expand"
+                    onClick={() => setMediaExpanded((v) => !v)}
+                    aria-expanded={mediaExpanded}
+                  >
+                    {!mediaExpanded ? (
+                      <>
+                        <img
+                          src={imgMeta.url}
+                          alt=""
+                          className="routine-run-thumb"
+                          width={56}
+                          height={56}
+                          loading="lazy"
+                        />
+                        <span className="routine-run-media-expand-label">Show demo</span>
+                      </>
+                    ) : (
+                      <span className="routine-run-media-expand-label">Hide demo</span>
+                    )}
+                  </button>
+                  {mediaExpanded ? (
+                    <div className="routine-run-media routine-run-media--compact">
+                      <img
+                        src={imgMeta.url}
+                        alt={`${ex.name} demo`}
+                        className="routine-run-image"
+                        loading="eager"
+                      />
+                    </div>
+                  ) : null}
+                </>
               ) : (
-                <div className="routine-run-image-fallback">{ex.primaryGroup}</div>
+                <div className="routine-run-media-fallback-inline">
+                  <span className="routine-run-media-fallback-text">{ex.primaryGroup}</span>
+                </div>
               )}
             </div>
-            <p className="routine-run-meta">
-              {ex.primaryGroup}
-              {ex.secondaryGroups?.length ? ` · ${ex.secondaryGroups.join(', ')}` : ''}
-            </p>
-            {images[ex.name]?.credit ? <p className="image-credit">{images[ex.name].credit}</p> : null}
-
-            <div className="routine-run-stat-line">
-              Logged <strong>{stat?.timesCompleted ?? 0}</strong>× · Last: {formatShortDate(stat?.lastPerformed ?? null)}
-            </div>
+            {imgMeta?.credit && mediaExpanded ? <p className="image-credit">{imgMeta.credit}</p> : null}
 
             {history.length > 0 ? (
-              <div className="routine-run-history">
-                <span className="routine-run-history-label">Recent logs</span>
+              <details className="routine-run-history-details">
+                <summary>Recent sessions ({history.length})</summary>
                 <ul className="routine-run-history-list">
                   {history.map((row, hi) => (
                     <li key={`${row.dateIso}-${hi}`}>
@@ -326,26 +437,26 @@ export function RoutineRunView({ planId }: Props) {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </details>
             ) : (
               <p className="routine-run-history-empty">No history yet for this move.</p>
             )}
 
-            <label
-              className="routine-run-count-toggle checkbox"
-              title="Only checked moves are written when you tap Save workout"
-            >
-              <input
-                type="checkbox"
-                checked={draft?.completed ?? false}
-                onChange={(e) => updateDraft(ex.id, { completed: e.target.checked })}
-              />
-              Include when I save
-            </label>
+            {!isLast ? (
+              <div className="routine-run-card-actions routine-run-card-actions--skip-only">
+                <button
+                  type="button"
+                  className="routine-run-skip"
+                  onClick={() => setCurrentIndex((i) => Math.min(exercises.length - 1, i + 1))}
+                >
+                  Skip → next move
+                </button>
+              </div>
+            ) : null}
 
             <MuscleTargetPick exercise={ex} draft={draft} onPatch={(patch) => updateDraft(ex.id, patch)} />
 
-            <div className="routine-run-log-grid">
+            <div className={`routine-run-log-grid ${!isCardio ? 'routine-run-log-grid--triple' : ''}`.trim()}>
               {isCardio ? (
                 <label className="routine-run-log-field routine-run-log-field--full">
                   Minutes
@@ -376,8 +487,8 @@ export function RoutineRunView({ planId }: Props) {
                       onChange={(e) => updateDraft(ex.id, { reps: e.target.value })}
                     />
                   </label>
-                  <label className="routine-run-log-field routine-run-log-field--wide">
-                    Weight (today)
+                  <label className="routine-run-log-field">
+                    Weight
                     <input
                       type="text"
                       placeholder="e.g. 60kg"
@@ -387,29 +498,49 @@ export function RoutineRunView({ planId }: Props) {
                   </label>
                 </>
               )}
-              <label className="routine-run-log-field routine-run-log-field--full">
-                Notes
-                <input
-                  type="text"
-                  placeholder="tempo, machine #…"
-                  value={draft?.notes ?? ''}
-                  onChange={(e) => updateDraft(ex.id, { notes: e.target.value })}
-                />
-              </label>
+              <div className="routine-run-note-row routine-run-log-field--full">
+                <button
+                  type="button"
+                  className="routine-run-note-toggle"
+                  onClick={() => setShowNotes((prev) => !prev)}
+                >
+                  {showNotes ? 'Hide note' : 'Add note'}
+                </button>
+              </div>
+              {showNotes && (
+                <label className="routine-run-log-field routine-run-log-field--full">
+                  Notes
+                  <input
+                    type="text"
+                    placeholder="tempo, machine #…"
+                    value={draft?.notes ?? ''}
+                    onChange={(e) => updateDraft(ex.id, { notes: e.target.value })}
+                  />
+                </label>
+              )}
             </div>
+            {isLast ? (
+              <p className="routine-run-last-hint">
+                Last move — tap <strong>Save workout</strong> in the header or in the bar at the bottom when you are done.
+              </p>
+            ) : null}
           </div>
         );
       })() : null}
 
-      <section className="routine-run-sticky-save" aria-label="Save workout">
-        <div className="routine-run-sticky-copy">
-          <strong>{plan.name}</strong>
-          <span>Saves to Activity &amp; body map like the planner</span>
+      {canSave ? (
+        <div className="routine-run-sticky-save">
+          <div className="routine-run-sticky-copy">
+            <strong>Finish workout</strong>
+            <span>
+              {includedCount} included · Saves to Activity &amp; body map
+            </span>
+          </div>
+          <button type="button" className="button" onClick={handleSaveWorkout}>
+            Save workout
+          </button>
         </div>
-        <button type="button" className="button" onClick={handleSaveWorkout}>
-          Save workout
-        </button>
-      </section>
+      ) : null}
     </div>
   );
 }
