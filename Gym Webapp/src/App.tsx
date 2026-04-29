@@ -104,6 +104,24 @@ function getLastPlanSessionDate(planId: string, sessions: PersistedGymData['sess
   return null;
 }
 
+/** Sort key: oldest / never-used first (next up), most-recent session last (e.g. done today → end of row). */
+function sortKeyLastPlanSession(planId: string, sessions: PersistedGymData['sessions']): number {
+  const iso = getLastPlanSessionDate(planId, sessions);
+  if (!iso) return Number.NEGATIVE_INFINITY;
+  return new Date(iso).getTime();
+}
+
+function comparePlansByLastUsed(
+  a: SavedPlan,
+  b: SavedPlan,
+  sessions: PersistedGymData['sessions'],
+): number {
+  const da = sortKeyLastPlanSession(a.id, sessions);
+  const db = sortKeyLastPlanSession(b.id, sessions);
+  if (da !== db) return da - db;
+  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+}
+
 /** Subline for home plan cards: move count + last save from this plan (session source only). */
 function planCardActivitySubline(entriesLength: number, lastUsed: string | null): string {
   if (!lastUsed) return `${entriesLength} moves · Not saved from this plan yet`;
@@ -159,6 +177,20 @@ export default function App() {
   const categoryFilterOptions = useMemo(() => collectSortedUnique(allExercises.map((e) => getEffectiveCategory(e))), [allExercises]);
   const equipmentFilterOptions = useMemo(() => collectSortedUnique(allExercises.map((e) => getEffectiveEquipment(e))), [allExercises]);
   const presetCategories = useMemo(() => buildPresetPlans(allExercises), [allExercises]);
+
+  const sortedSavedPlans = useMemo(
+    () => [...data.savedPlans].sort((a, b) => comparePlansByLastUsed(a, b, data.sessions)),
+    [data.savedPlans, data.sessions],
+  );
+
+  const presetCategoriesSorted = useMemo(
+    () =>
+      presetCategories.map((cat) => ({
+        ...cat,
+        plans: [...cat.plans].sort((a, b) => comparePlansByLastUsed(a, b, data.sessions)),
+      })),
+    [presetCategories, data.sessions],
+  );
 
   const catalogMatches = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -642,7 +674,7 @@ export default function App() {
                     </button>
                   ) : (
                     <ul className="plan-card-list">
-                      {data.savedPlans.map((plan) => {
+                      {sortedSavedPlans.map((plan) => {
                         const entries = orderedPlanEntries(plan, allExercises);
                         const lastUsed = getLastPlanSessionDate(plan.id, data.sessions);
                         return (
@@ -686,7 +718,7 @@ export default function App() {
               )}
             </section>
 
-            {presetCategories.map((category) => (
+            {presetCategoriesSorted.map((category) => (
               <section key={category.title} className="home-section" aria-label={category.title}>
                 <div className="home-section-header" onClick={() => toggleSection(category.title)} style={{ cursor: 'pointer' }}>
                   <div className="home-section-title">
