@@ -2,6 +2,7 @@ import type { PersistedGymData } from '../data/gymFlowStorage';
 
 const SESSION = '/api/auth/session';
 const DATA = '/api/gym-flow/data';
+const PROFILE = '/api/gym-flow/profile';
 
 /** -1 = never applied server payload yet; then last `updatedAt` ms from API. */
 let lastHydratedServerMtime = -1;
@@ -62,6 +63,26 @@ export function scheduleCloudPush(data: PersistedGymData): void {
     pushTimer = null;
     void pushCloudPayload(data);
   }, 900);
+}
+
+export async function saveUserProfileCloud(userProfile: PersistedGymData['userProfile']): Promise<{ ok: boolean; error?: string }> {
+  const session = await fetchSession();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in' };
+  try {
+    const r = await fetch(PROFILE, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userProfile: userProfile ?? {} }),
+    });
+    if (!r.ok) {
+      const j = (await r.json().catch(() => ({}))) as { error?: string };
+      return { ok: false, error: j.error ?? 'Could not save' };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'Network error' };
+  }
 }
 
 export async function pushCloudPayload(data: PersistedGymData): Promise<boolean> {

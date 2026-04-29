@@ -41,7 +41,7 @@ import {
   labelForFilterValue,
 } from './utils/catalogSort';
 import { buildPresetPlans } from './data/presetPlans';
-import { hydrateFromCloudIfSignedIn, fetchAuthSession, resetCloudHydrationCursor } from './utils/cloudSync';
+import { hydrateFromCloudIfSignedIn, fetchAuthSession, resetCloudHydrationCursor, saveUserProfileCloud } from './utils/cloudSync';
 import { GYM_FLOW_OAUTH_SUCCESS, getGymFlowSignInPopupUrl, isTrustedGymFlowOAuthOrigin, openGymFlowSignIn } from './utils/googleSignInPopup';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
@@ -151,6 +151,8 @@ export default function App() {
   });
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
   const [cloudSignedIn, setCloudSignedIn] = useState(false);
+  const [profileCloudBusy, setProfileCloudBusy] = useState(false);
+  const [profileCloudError, setProfileCloudError] = useState<string | null>(null);
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -268,12 +270,36 @@ export default function App() {
   }
 
   function patchReportProfile(patch: Partial<UserProfile>) {
+    setProfileCloudError(null);
     setReportProfile((prev) => ({ ...prev, ...patch }));
-    setData((d) => {
-      const next: PersistedGymData = { ...d, userProfile: { ...d.userProfile, ...patch } };
-      savePersistedGymData(next);
-      return next;
-    });
+    setData((d) => ({
+      ...d,
+      userProfile: { ...d.userProfile, ...patch },
+    }));
+  }
+
+  async function saveProfileOnline() {
+    if (!cloudSignedIn) {
+      setMessage('Sign in to save your profile online.');
+      return;
+    }
+    setProfileCloudBusy(true);
+    setProfileCloudError(null);
+    const userProfile: UserProfile = {
+      name: reportProfile.name || '',
+      weight: reportProfile.weight || '',
+      weightUnit: reportProfile.weightUnit === 'lbs' ? 'lbs' : 'kg',
+      height: reportProfile.height || '',
+      heightUnit: reportProfile.heightUnit === 'ft' ? 'ft' : 'cm',
+      age: reportProfile.age || '',
+    };
+    const res = await saveUserProfileCloud(userProfile);
+    setProfileCloudBusy(false);
+    if (res.ok) {
+      setMessage('Profile saved online.');
+    } else {
+      setProfileCloudError(res.error ?? 'Could not save');
+    }
   }
 
   const cloudHydratedRef = useRef(false);
@@ -1157,7 +1183,10 @@ export default function App() {
           <>
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Your Profile</h2>
-              <p className="panel-subtle">Used for your PDF training report. Synced with cloud backup when you are signed in.</p>
+              <p className="panel-subtle">
+                Used for your PDF training report. When you are signed in, use <strong>Save profile online</strong> to
+                update your account.
+              </p>
               <div className="profile-form">
                 <label className="profile-field">
                   <span>Name</span>
@@ -1260,6 +1289,26 @@ export default function App() {
                     onChange={(e) => patchReportProfile({ age: e.target.value })}
                   />
                 </label>
+                <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="button"
+                    disabled={profileCloudBusy || !cloudSignedIn}
+                    onClick={() => void saveProfileOnline()}
+                  >
+                    {profileCloudBusy ? 'Saving…' : 'Save profile online'}
+                  </button>
+                  {!cloudSignedIn && (
+                    <span className="panel-subtle" style={{ margin: 0 }}>
+                      Sign in from Home to enable online save.
+                    </span>
+                  )}
+                </div>
+                {profileCloudError && (
+                  <p className="panel-subtle" style={{ margin: '0.5rem 0 0', color: '#fca5a5' }} role="alert">
+                    {profileCloudError}
+                  </p>
+                )}
               </div>
             </section>
 
