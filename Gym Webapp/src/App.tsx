@@ -50,7 +50,13 @@ import {
   type ExerciseLogDraft,
 } from './utils/workoutLogDraft';
 
-const PRACTICE_WINDOW_DAYS = 10;
+const DEFAULT_REPORT_DAYS = 10;
+const PRESET_CATEGORY_META: Record<string, { description: string }> = {
+  'Core Foundations': { description: 'Balanced full-body routines' },
+  'Classic Splits': { description: 'Reliable weekly split templates' },
+  'Targeted Growth': { description: 'Extra volume for key areas' },
+  'Targeted Isolation (Single Muscle)': { description: 'Single-muscle focus days' },
+};
 
 type AppView = 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'library';
 
@@ -112,6 +118,7 @@ export default function App() {
   const [newExerciseGroup, setNewExerciseGroup] = useState<MuscleGroup>('Chest');
   const [message, setMessage] = useState('');
   const [analysisDays, setAnalysisDays] = useState(10);
+  const [reportDays, setReportDays] = useState(DEFAULT_REPORT_DAYS);
   const [reportProfile, setReportProfile] = useState(() => {
     try { return JSON.parse(localStorage.getItem('gf-profile') || '{}'); } catch { return {}; }
   });
@@ -178,8 +185,8 @@ export default function App() {
   const recentSessions = groupedSessions.slice(0, 5);
 
   const practiceCounts = useMemo(
-    () => getPracticeCountsInWindow(data.sessions, exerciseById, PRACTICE_WINDOW_DAYS),
-    [data.sessions, exerciseById],
+    () => getPracticeCountsInWindow(data.sessions, exerciseById, reportDays),
+    [data.sessions, exerciseById, reportDays],
   );
   const analysisCounts = useMemo(
     () => getPracticeCountsInWindow(data.sessions, exerciseById, analysisDays),
@@ -199,6 +206,10 @@ export default function App() {
   const trainedGroupsCount = useMemo(
     () => MUSCLE_GROUPS.filter((g) => (practiceCounts instanceof Map ? (practiceCounts.get(g) ?? 0) : ((practiceCounts as Record<string, number>)[g] ?? 0)) > 0).length,
     [practiceCounts],
+  );
+  const trainedGroupsCountAnalysis = useMemo(
+    () => MUSCLE_GROUPS.filter((g) => (analysisCounts instanceof Map ? (analysisCounts.get(g) ?? 0) : ((analysisCounts as Record<string, number>)[g] ?? 0)) > 0).length,
+    [analysisCounts],
   );
 
   const exercisesToResolveImages = useMemo(() => {
@@ -557,7 +568,13 @@ export default function App() {
             {presetCategories.map((category) => (
               <section key={category.title} className="home-section" aria-label={category.title}>
                 <div className="home-section-header" onClick={() => toggleSection(category.title)} style={{ cursor: 'pointer' }}>
-                  <span className="home-section-label">{category.title.toUpperCase()} {collapsedSections[category.title] ? '▼' : '▲'}</span>
+                  <div className="home-section-title">
+                    <span className="home-section-label">{category.title.toUpperCase()} {collapsedSections[category.title] ? '▼' : '▲'}</span>
+                    {PRESET_CATEGORY_META[category.title]?.description && (
+                      <span className="home-section-desc">{PRESET_CATEGORY_META[category.title].description}</span>
+                    )}
+                  </div>
+                  <span className="section-count-badge">{category.plans.length} plans</span>
                 </div>
                 {!collapsedSections[category.title] && (
                   <ul className="plan-card-list">
@@ -594,15 +611,27 @@ export default function App() {
             ))}
 
             {/* 10-DAY REPORT */}
-            <section className="home-section" aria-label="10-day training report">
+            <section className="home-section" aria-label={`Last ${reportDays} days report`}>
               <div className="home-section-header">
-                <span className="home-section-label">10-DAY REPORT</span>
+                <span className="home-section-label">LAST {reportDays} DAYS</span>
                 <span className="home-section-sub">{trainedGroupsCount}/{MUSCLE_GROUPS.length} groups trained</span>
+              </div>
+              <div className="home-section-controls" role="group" aria-label="Report period">
+                {[7, 10, 30, 90].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={`chip chip-compact ${reportDays === d ? 'chip-active' : ''}`}
+                    onClick={() => setReportDays(d)}
+                  >
+                    {d}d
+                  </button>
+                ))}
               </div>
               <div className="report-card">
                 <BodyMapFigure
                   practiceCounts={practiceCounts}
-                  practiceWindowDays={PRACTICE_WINDOW_DAYS}
+                  practiceWindowDays={reportDays}
                   selectedGroups={[]}
                   onToggleGroup={(group) => startCreatePlan([group])}
                 />
@@ -622,7 +651,7 @@ export default function App() {
             <p className="view-hint">Tap a muscle to focus the exercise list, or skip.</p>
             <BodyMapFigure
               practiceCounts={practiceCounts}
-              practiceWindowDays={PRACTICE_WINDOW_DAYS}
+              practiceWindowDays={reportDays}
               selectedGroups={selectedGroups}
               onToggleGroup={toggleGroup}
             />
@@ -844,7 +873,7 @@ export default function App() {
                 <article className="stat-card stat-card--accent"><h3>{streak.current}</h3><p>🔥 Streak</p></article>
                 <article className="stat-card"><h3>{streak.longest}</h3><p>Best Streak</p></article>
                 <article className="stat-card"><h3>{consistency}%</h3><p>Consistency ({analysisDays}d)</p></article>
-                <article className="stat-card"><h3>{trainedGroupsCount}</h3><p>Muscles Hit (10d)</p></article>
+                <article className="stat-card"><h3>{trainedGroupsCountAnalysis}</h3><p>Muscles Hit ({analysisDays}d)</p></article>
               </div>
             </section>
 
@@ -872,9 +901,23 @@ export default function App() {
                 selectedGroups={selectedGroups}
                 onToggleGroup={(g) => {
                   setSelectedGroups(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
-                  setView('home'); 
                 }}
               />
+              {selectedGroups.length > 0 && (
+                <div className="active-filters-row" role="status" aria-live="polite">
+                  <span className="active-filters-label">Active filters</span>
+                  <div className="active-filters-chips">
+                    {selectedGroups.map((g) => (
+                      <button key={g} type="button" className="chip chip-active" onClick={() => toggleGroup(g)}>
+                        {g} ✕
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" className="text-button" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); }}>
+                    Clear all
+                  </button>
+                </div>
+              )}
             </section>
 
             <section className="panel">

@@ -147,7 +147,7 @@ export function HistoryBackfillPanel({ allExercises, sessions, savedPlans, onPer
     <>
       <div className="history-backfill-trigger">
         <button type="button" className="button button-muted" onClick={() => setOpen(true)}>
-          Add past workout…
+          Add workout…
         </button>
         {importedCount > 0 && (
           <span className="history-backfill-trigger-note">{importedCount} imported / sample session(s)</span>

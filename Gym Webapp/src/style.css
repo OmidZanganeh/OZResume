@@ -2257,6 +2257,12 @@ body {
   margin-bottom: 0.8rem;
 }
 
+.home-section-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
 .home-section-label {
   font-size: 0.67rem;
   font-weight: 800;
@@ -2270,6 +2276,37 @@ body {
   font-weight: 600;
   color: var(--gf-accent);
   opacity: 0.8;
+}
+
+.home-section-desc {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--gf-text-muted);
+  letter-spacing: 0.01em;
+}
+
+.section-count-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  background: rgba(45, 212, 191, 0.12);
+  color: var(--gf-accent);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.home-section-controls {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.chip-compact {
+  padding: 0.26rem 0.6rem;
+  font-size: 0.7rem;
 }
 
 .icon-add-btn {
@@ -2776,6 +2813,39 @@ body {
   gap: 0.4rem;
   padding: 0.75rem 1rem 0;
   align-items: center;
+}
+
+.active-filters-row {
+  position: sticky;
+  top: 0.6rem;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--gf-radius);
+  border: 1px solid rgba(45, 212, 191, 0.18);
+  background: rgba(8, 10, 16, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.active-filters-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--gf-text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.active-filters-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 140px;
 }
 
 /* ── Moves toolbar ───────────────────────────────────── */
