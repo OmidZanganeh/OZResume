@@ -1,13 +1,14 @@
 import { neon } from '@neondatabase/serverless';
+import { getDatabaseUrl } from './database-url';
 
 export type GymFlowRow = { payload: unknown; updated_at: string };
 
 let sql: ReturnType<typeof neon> | null = null;
 
 function getSql() {
-  const url = process.env.DATABASE_URL;
+  const url = getDatabaseUrl();
   if (!url) {
-    throw new Error('DATABASE_URL is not set');
+    throw new Error('DATABASE_URL or POSTGRES_URL is not set');
   }
   if (!sql) {
     sql = neon(url);

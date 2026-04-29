@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import { isDatabaseConfigured } from '@/lib/db/database-url';
 import { getGymFlowData, saveGymFlowData } from '@/lib/db/gym-flow';
 import { NextResponse } from 'next/server';
 
@@ -15,7 +16,7 @@ function isValidPersistedPayload(x: unknown): boolean {
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
   }
   const session = await auth();
@@ -38,7 +39,7 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  if (!process.env.DATABASE_URL) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
   }
   const session = await auth();
