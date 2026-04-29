@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
-import { toPng } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import { BodyMapFigure } from './components/BodyMapFigure';
 import { MuscleSpider } from './components/MuscleSpider';
 import { HistoryBackfillPanel } from './components/HistoryBackfillPanel';
@@ -413,21 +413,23 @@ export default function App() {
       document.body.classList.add('screenshot-mode');
       await new Promise(r => setTimeout(r, 150)); // Wait for styles to settle
 
-      const dataUrl = await toPng(reportEl, {
+      const dataUrl = await toJpeg(reportEl, {
+        quality: 0.92,
+        backgroundColor: '#07080c',
         cacheBust: true,
         width: 1280,
         height: 800,
-        pixelRatio: 2, // Double resolution for sharpness
+        pixelRatio: 2,
         style: {
           display: 'flex',
           visibility: 'visible',
-          position: 'static', // Prevent fixed positioning from cutting it off
+          position: 'static',
           transform: 'none',
-        }
+        },
       });
 
       const link = document.createElement('a');
-      link.download = `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.png`;
+      link.download = `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.jpg`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -1314,7 +1316,7 @@ export default function App() {
 
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Export Report</h2>
-              <p className="panel-subtle">Choose your preferred format. The Image option is best for mobile/iPhone sharing.</p>
+              <p className="panel-subtle">Choose your preferred format. Save as Image downloads a JPEG (good for mobile sharing).</p>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
                 <button type="button" className="button" style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
