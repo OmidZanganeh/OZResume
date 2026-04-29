@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import { Component, useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toPng } from 'html-to-image';
 import { BodyMapFigure } from './components/BodyMapFigure';
@@ -59,6 +59,29 @@ const PRESET_CATEGORY_META: Record<string, { description: string }> = {
 };
 
 type AppView = 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'library';
+
+class RunnerErrorBoundary extends Component<{ onFail: () => void; children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch() {
+    this.props.onFail();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="runner-empty">
+          Runner had an issue. Switched to List view.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]) {
   if (selectedGroups.length === 0) return true;
@@ -248,6 +271,13 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [view]);
+
+  useEffect(() => {
+    if (view !== 'log') return;
+    if (typeof window !== 'undefined' && window.innerWidth < 720) {
+      setLogViewMode('runner');
+    }
   }, [view]);
 
   useEffect(() => {
@@ -888,166 +918,168 @@ export default function App() {
               </div>
             </div>
             {logViewMode === 'runner' ? (
-              <div
-                className="runner-shell"
-                onTouchStart={(e) => {
-                  const touch = e.touches[0];
-                  swipeStartXRef.current = touch?.clientX ?? null;
-                  swipeStartYRef.current = touch?.clientY ?? null;
-                }}
-                onTouchEnd={(e) => {
-                  const startX = swipeStartXRef.current;
-                  const startY = swipeStartYRef.current;
-                  swipeStartXRef.current = null;
-                  swipeStartYRef.current = null;
-                  if (startX === null || startY === null) return;
-                  const touch = e.changedTouches[0];
-                  if (!touch) return;
-                  const dx = touch.clientX - startX;
-                  const dy = touch.clientY - startY;
-                  if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-                  if (dx < 0) goRunnerNext();
-                  else goRunnerPrev();
-                }}
-              >
-                <div className="runner-progress">
-                  <span>Move {planExercises.length === 0 ? 0 : runnerIndex + 1} of {planExercises.length}</span>
-                  <span>{planExercises.filter((e) => exerciseDrafts[e.id]?.completed).length} done</span>
-                </div>
+              <RunnerErrorBoundary onFail={() => setLogViewMode('list')}>
+                <div
+                  className="runner-shell"
+                  onTouchStart={(e) => {
+                    const touch = e.touches[0];
+                    swipeStartXRef.current = touch?.clientX ?? null;
+                    swipeStartYRef.current = touch?.clientY ?? null;
+                  }}
+                  onTouchEnd={(e) => {
+                    const startX = swipeStartXRef.current;
+                    const startY = swipeStartYRef.current;
+                    swipeStartXRef.current = null;
+                    swipeStartYRef.current = null;
+                    if (startX === null || startY === null) return;
+                    const touch = e.changedTouches[0];
+                    if (!touch) return;
+                    const dx = touch.clientX - startX;
+                    const dy = touch.clientY - startY;
+                    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+                    if (dx < 0) goRunnerNext();
+                    else goRunnerPrev();
+                  }}
+                >
+                  <div className="runner-progress">
+                    <span>Move {planExercises.length === 0 ? 0 : runnerIndex + 1} of {planExercises.length}</span>
+                    <span>{planExercises.filter((e) => exerciseDrafts[e.id]?.completed).length} done</span>
+                  </div>
 
-                {planExercises.length === 0 ? (
-                  <div className="runner-empty">Add moves before starting a workout.</div>
-                ) : (
-                  (() => {
-                    const safeIndex = Math.min(runnerIndex, Math.max(planExercises.length - 1, 0));
-                    const exercise = planExercises[safeIndex];
-                    if (!exercise) return <div className="runner-empty">Loading workout…</div>;
-                    const draft = exerciseDrafts[exercise.id];
-                    const isCardio = getEffectiveCategory(exercise) === 'cardio';
-                    const isActiveTimer = timerExerciseId === exercise.id;
-                    const showTimer = isActiveTimer && timerRemaining > 0;
-                    return (
-                      <article className="runner-card">
-                        <div className="runner-card-header">
-                          <h2>
-                            <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
-                              {exercise.name}
-                            </ExerciseYoutubeLink>
-                          </h2>
-                          <label className="checkbox">
-                            <input
-                              type="checkbox"
-                              checked={draft?.completed ?? false}
-                              onChange={(e) => updateDraft(exercise.id, { completed: e.target.checked })}
-                            />
-                            Done
-                          </label>
-                        </div>
-
-                        <MuscleTargetPick exercise={exercise} draft={draft} onPatch={(p) => updateDraft(exercise.id, p)} />
-
-                        <div className="runner-timer">
-                          <div className="runner-timer-row">
-                            <span className="runner-timer-label">Set timer</span>
-                            <select
-                              className="select-input runner-timer-select"
-                              value={timerDuration}
-                              onChange={(e) => {
-                                const next = Number(e.target.value);
-                                setTimerDuration(next);
-                                if (!timerRunning) setTimerRemaining(next);
-                              }}
-                            >
-                              {[30, 60, 90, 120].map((d) => (
-                                <option key={d} value={d}>{d}s</option>
-                              ))}
-                            </select>
+                  {planExercises.length === 0 ? (
+                    <div className="runner-empty">Add moves before starting a workout.</div>
+                  ) : (
+                    (() => {
+                      const safeIndex = Math.min(runnerIndex, Math.max(planExercises.length - 1, 0));
+                      const exercise = planExercises[safeIndex];
+                      if (!exercise) return <div className="runner-empty">Loading workout…</div>;
+                      const draft = exerciseDrafts[exercise.id];
+                      const isCardio = getEffectiveCategory(exercise) === 'cardio';
+                      const isActiveTimer = timerExerciseId === exercise.id;
+                      const showTimer = isActiveTimer && timerRemaining > 0;
+                      return (
+                        <article className="runner-card">
+                          <div className="runner-card-header">
+                            <h2>
+                              <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
+                                {exercise.name}
+                              </ExerciseYoutubeLink>
+                            </h2>
+                            <label className="checkbox">
+                              <input
+                                type="checkbox"
+                                checked={draft?.completed ?? false}
+                                onChange={(e) => updateDraft(exercise.id, { completed: e.target.checked })}
+                              />
+                              Done
+                            </label>
                           </div>
-                          <div className="runner-timer-row">
-                            <span className="runner-timer-value">{showTimer ? formatTimer(timerRemaining) : formatTimer(timerDuration)}</span>
-                            <div className="runner-timer-actions">
-                              <button
-                                type="button"
-                                className="button button-small"
-                                onClick={() => {
-                                  setTimerExerciseId(exercise.id);
-                                  setTimerRemaining((s) => (s > 0 && isActiveTimer ? s : timerDuration));
-                                  setTimerRunning(true);
+
+                          <MuscleTargetPick exercise={exercise} draft={draft} onPatch={(p) => updateDraft(exercise.id, p)} />
+
+                          <div className="runner-timer">
+                            <div className="runner-timer-row">
+                              <span className="runner-timer-label">Set timer</span>
+                              <select
+                                className="select-input runner-timer-select"
+                                value={timerDuration}
+                                onChange={(e) => {
+                                  const next = Number(e.target.value);
+                                  setTimerDuration(next);
+                                  if (!timerRunning) setTimerRemaining(next);
                                 }}
                               >
-                                {timerRunning && isActiveTimer ? 'Running' : 'Start'}
-                              </button>
-                              <button
-                                type="button"
-                                className="button button-small button-muted"
-                                onClick={() => {
-                                  if (isActiveTimer) setTimerRunning(false);
-                                }}
-                              >
-                                Pause
-                              </button>
-                              <button
-                                type="button"
-                                className="text-button"
-                                onClick={() => {
-                                  setTimerExerciseId(exercise.id);
-                                  setTimerRemaining(timerDuration);
-                                  setTimerRunning(false);
-                                }}
-                              >
-                                Reset
-                              </button>
+                                {[30, 60, 90, 120].map((d) => (
+                                  <option key={d} value={d}>{d}s</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="runner-timer-row">
+                              <span className="runner-timer-value">{showTimer ? formatTimer(timerRemaining) : formatTimer(timerDuration)}</span>
+                              <div className="runner-timer-actions">
+                                <button
+                                  type="button"
+                                  className="button button-small"
+                                  onClick={() => {
+                                    setTimerExerciseId(exercise.id);
+                                    setTimerRemaining((s) => (s > 0 && isActiveTimer ? s : timerDuration));
+                                    setTimerRunning(true);
+                                  }}
+                                >
+                                  {timerRunning && isActiveTimer ? 'Running' : 'Start'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="button button-small button-muted"
+                                  onClick={() => {
+                                    if (isActiveTimer) setTimerRunning(false);
+                                  }}
+                                >
+                                  Pause
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-button"
+                                  onClick={() => {
+                                    setTimerExerciseId(exercise.id);
+                                    setTimerRemaining(timerDuration);
+                                    setTimerRunning(false);
+                                  }}
+                                >
+                                  Reset
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="plan-grid">
-                          {isCardio ? (
-                            <label className="plan-grid-full">
-                              Minutes
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                placeholder="e.g. 20"
-                                value={draft?.reps ?? '20'}
-                                onChange={(e) => updateDraft(exercise.id, { reps: e.target.value, sets: 1 })}
-                              />
-                            </label>
-                          ) : (
-                            <>
-                              <label>Sets<input type="number" min={1} value={draft?.sets ?? 3} onChange={(e) => updateDraft(exercise.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })} /></label>
-                              <label>Reps<input type="text" value={draft?.reps ?? '8-12'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value })} /></label>
-                              <label>Weight<input type="text" placeholder="35kg" value={draft?.weight ?? ''} onChange={(e) => updateDraft(exercise.id, { weight: e.target.value })} /></label>
-                            </>
-                          )}
-                        </div>
+                          <div className="plan-grid">
+                            {isCardio ? (
+                              <label className="plan-grid-full">
+                                Minutes
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  placeholder="e.g. 20"
+                                  value={draft?.reps ?? '20'}
+                                  onChange={(e) => updateDraft(exercise.id, { reps: e.target.value, sets: 1 })}
+                                />
+                              </label>
+                            ) : (
+                              <>
+                                <label>Sets<input type="number" min={1} value={draft?.sets ?? 3} onChange={(e) => updateDraft(exercise.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })} /></label>
+                                <label>Reps<input type="text" value={draft?.reps ?? '8-12'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value })} /></label>
+                                <label>Weight<input type="text" placeholder="35kg" value={draft?.weight ?? ''} onChange={(e) => updateDraft(exercise.id, { weight: e.target.value })} /></label>
+                              </>
+                            )}
+                          </div>
 
-                        <label>Notes<input type="text" placeholder="tempo, rest…" value={draft?.notes ?? ''} onChange={(e) => updateDraft(exercise.id, { notes: e.target.value })} /></label>
-                        {exerciseImages[exercise.name] && <p className="image-credit">{exerciseImages[exercise.name].credit}</p>}
-                      </article>
-                    );
-                  })()
-                )}
+                          <label>Notes<input type="text" placeholder="tempo, rest…" value={draft?.notes ?? ''} onChange={(e) => updateDraft(exercise.id, { notes: e.target.value })} /></label>
+                          {exerciseImages[exercise.name] && <p className="image-credit">{exerciseImages[exercise.name].credit}</p>}
+                        </article>
+                      );
+                    })()
+                  )}
 
-                <div className="runner-nav">
-                  <button
-                    type="button"
-                    className="button button-muted"
-                    onClick={goRunnerPrev}
-                    disabled={runnerIndex === 0}
-                  >
-                    Previous
-                  </button>
-                  <button
-                    type="button"
-                    className="button"
-                    onClick={goRunnerNext}
-                    disabled={runnerIndex >= planExercises.length - 1}
-                  >
-                    Next
-                  </button>
+                  <div className="runner-nav">
+                    <button
+                      type="button"
+                      className="button button-muted"
+                      onClick={goRunnerPrev}
+                      disabled={runnerIndex === 0}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={goRunnerNext}
+                      disabled={runnerIndex >= planExercises.length - 1}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </RunnerErrorBoundary>
             ) : (
               <div className="plan-list">
                 {planExercises.map((exercise) => {
