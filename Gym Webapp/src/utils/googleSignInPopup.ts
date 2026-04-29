@@ -1,9 +1,6 @@
 /** postMessage type from `app/gym-flow-oauth-close` after successful Google OAuth */
 export const GYM_FLOW_OAUTH_SUCCESS = 'gym-flow-oauth-success' as const;
 
-const POPUP_FEATURES =
-  'popup=yes,width=440,height=720,left=80,top=40,scrollbars=yes,resizable=yes';
-
 /** Next.js app origin (auth + callback). Vite dev proxies /api but OAuth redirect must hit Next. */
 function getAuthBaseUrl(): string {
   if (typeof window === 'undefined') return '';
@@ -19,6 +16,39 @@ function getAuthBaseUrl(): string {
   return origin;
 }
 
+const POPUP_FEATURES =
+  'width=480,height=760,left=80,top=48,scrollbars=yes,resizable=yes,status=yes';
+
+export function getGymFlowSignInPopupUrl(): string {
+  const parentOrigin = window.location.origin;
+  const authBase = getAuthBaseUrl();
+  return `${authBase}/gym-flow-signin-popup?parentOrigin=${encodeURIComponent(parentOrigin)}`;
+}
+
+/**
+ * Prefer a popup; if the browser blocks it (common in PWAs / Safari), navigate this tab.
+ * Uses `/gym-flow-signin-popup` (SessionProvider), not raw `/api/auth/signin/google`.
+ */
+export function openGymFlowSignIn(): void {
+  const url = getGymFlowSignInPopupUrl();
+  const w = window.open(url, `gymFlowSignIn_${Date.now()}`, POPUP_FEATURES);
+  if (!w) {
+    window.location.assign(url);
+    return;
+  }
+  try {
+    w.focus();
+  } catch {
+    /* ignore */
+  }
+}
+
+/** @deprecated Use openGymFlowSignIn */
+export function openGoogleSignInPopup(): Window | null {
+  const url = getGymFlowSignInPopupUrl();
+  return window.open(url, `gymFlowSignIn_${Date.now()}`, POPUP_FEATURES);
+}
+
 /** Accept postMessage from oauth-close (same origin prod, or Next :3000 in Vite dev). */
 export function isTrustedGymFlowOAuthOrigin(messageOrigin: string): boolean {
   if (messageOrigin === window.location.origin) return true;
@@ -32,15 +62,4 @@ export function isTrustedGymFlowOAuthOrigin(messageOrigin: string): boolean {
   } catch {
     return false;
   }
-}
-
-/**
- * Open the Gym Flow sign-in popup (email or Google). Uses `/gym-flow-signin-popup`
- * inside SessionProvider — not raw `/api/auth/signin/google`.
- */
-export function openGoogleSignInPopup(): Window | null {
-  const parentOrigin = window.location.origin;
-  const authBase = getAuthBaseUrl();
-  const url = `${authBase}/gym-flow-signin-popup?parentOrigin=${encodeURIComponent(parentOrigin)}`;
-  return window.open(url, 'gymFlowGoogleSignIn', POPUP_FEATURES);
 }

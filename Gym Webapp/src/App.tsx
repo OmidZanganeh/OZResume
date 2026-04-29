@@ -41,7 +41,7 @@ import {
 } from './utils/catalogSort';
 import { buildPresetPlans } from './data/presetPlans';
 import { hydrateFromCloudIfSignedIn, fetchAuthSession } from './utils/cloudSync';
-import { GYM_FLOW_OAUTH_SUCCESS, isTrustedGymFlowOAuthOrigin, openGoogleSignInPopup } from './utils/googleSignInPopup';
+import { GYM_FLOW_OAUTH_SUCCESS, getGymFlowSignInPopupUrl, isTrustedGymFlowOAuthOrigin, openGymFlowSignIn } from './utils/googleSignInPopup';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
 
@@ -564,14 +564,17 @@ export default function App() {
                     type="button"
                     className="home-signin-btn"
                     onClick={() => {
-                      const w = openGoogleSignInPopup();
-                      if (!w) setMessage('Allow pop-ups to sign in.');
+                      openGymFlowSignIn();
                     }}
                   >
                     Sign in
                   </button>
                   <p className="home-cloud-link home-cloud-link--secondary">
-                    <a href="/gym-flow-account/">Email or Google — open sign-in in this tab</a>
+                    <a href={getGymFlowSignInPopupUrl()} target="_blank" rel="opener">
+                      Open sign-in in new tab
+                    </a>
+                    {' · '}
+                    <a href="/gym-flow-account/">Full account page</a>
                   </p>
                 </>
               )}
