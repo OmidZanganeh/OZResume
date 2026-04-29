@@ -41,7 +41,7 @@ import {
 } from './utils/catalogSort';
 import { buildPresetPlans } from './data/presetPlans';
 import { hydrateFromCloudIfSignedIn, fetchAuthSession } from './utils/cloudSync';
-import { GYM_FLOW_OAUTH_SUCCESS, openGoogleSignInPopup } from './utils/googleSignInPopup';
+import { GYM_FLOW_OAUTH_SUCCESS, isTrustedGymFlowOAuthOrigin, openGoogleSignInPopup } from './utils/googleSignInPopup';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
 
@@ -276,7 +276,7 @@ export default function App() {
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
-      if (e.origin !== window.location.origin) return;
+      if (!isTrustedGymFlowOAuthOrigin(e.origin)) return;
       if (e.data?.type !== GYM_FLOW_OAUTH_SUCCESS) return;
       setCloudSignedIn(true);
       void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {

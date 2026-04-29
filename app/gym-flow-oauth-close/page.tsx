@@ -2,15 +2,28 @@
 
 import { useEffect, useRef } from 'react';
 
+function resolveParentOriginForPostMessage(): string {
+  if (typeof window === 'undefined') return '';
+  const raw = new URLSearchParams(window.location.search).get('parentOrigin');
+  if (!raw) return window.location.origin;
+  try {
+    const u = new URL(raw);
+    if (u.hostname !== window.location.hostname) return window.location.origin;
+    return u.origin;
+  } catch {
+    return window.location.origin;
+  }
+}
+
 export default function GymFlowOauthClosePage() {
   const done = useRef(false);
   useEffect(() => {
     if (done.current) return;
     done.current = true;
-    const origin = window.location.origin;
+    const targetOrigin = resolveParentOriginForPostMessage();
     try {
       if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: 'gym-flow-oauth-success' }, origin);
+        window.opener.postMessage({ type: 'gym-flow-oauth-success' }, targetOrigin);
       }
     } finally {
       window.close();
