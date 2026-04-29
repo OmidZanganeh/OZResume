@@ -21,6 +21,7 @@ import {
   type ExerciseLogDraft,
 } from './utils/workoutLogDraft';
 import { buildPresetPlans } from './data/presetPlans';
+import { getAlternativeExercises } from './utils/exerciseAlternatives';
 
 type Props = { planId: string };
 
@@ -194,6 +195,7 @@ export function RoutineRunView({ planId }: Props) {
       exerciseOrderIds: orderIds,
       exerciseDrafts,
       exerciseById,
+      sourcePlanId: planId,
     });
     if (!result.ok) {
       setSaveMessage(result.error);
@@ -345,6 +347,7 @@ export function RoutineRunView({ planId }: Props) {
         const isLast = currentIndex === exercises.length - 1;
         const muscleMeta = [ex.primaryGroup, ...(ex.secondaryGroups ?? [])].join(' · ');
         const imgMeta = images[ex.name];
+        const alternatives = getAlternativeExercises(ex, allExercises, { limit: 10 });
 
         return (
           <div className="routine-run-card">
@@ -442,6 +445,33 @@ export function RoutineRunView({ planId }: Props) {
             ) : (
               <p className="routine-run-history-empty">No history yet for this move.</p>
             )}
+
+            {alternatives.length > 0 ? (
+              <details className="routine-run-alts-details">
+                <summary>
+                  Swap ideas — same muscles ({alternatives.length})
+                </summary>
+                <ul className="routine-run-alts-list">
+                  {alternatives.map((alt) => (
+                    <li key={alt.id}>
+                      <ExerciseYoutubeLink
+                        exerciseName={alt.name}
+                        className="routine-run-alt-link exercise-youtube"
+                      >
+                        {alt.name}
+                      </ExerciseYoutubeLink>
+                      <span className="routine-run-alt-meta">
+                        {alt.primaryGroup}
+                        {alt.secondaryGroups?.length ? ` · ${alt.secondaryGroups.join(', ')}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="routine-run-alts-hint">
+                  For this routine, log the move you actually do under this card — the plan order stays the same.
+                </p>
+              </details>
+            ) : null}
 
             {!isLast ? (
               <div className="routine-run-card-actions routine-run-card-actions--skip-only">

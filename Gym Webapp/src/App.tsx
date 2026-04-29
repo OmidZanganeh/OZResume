@@ -94,15 +94,16 @@ function formatPlanLastDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function getLastUsedForPlan(plan: SavedPlan, stats: PersistedGymData['stats']): string | null {
-  const dates = plan.exerciseIds.map((id) => stats[id]?.lastPerformed).filter((d): d is string => !!d);
-  if (!dates.length) return null;
-  return [...dates].sort().at(-1) ?? null;
+function getLastPlanSessionDate(planId: string, sessions: PersistedGymData['sessions']): string | null {
+  for (const s of sessions) {
+    if (s.sourcePlanId === planId) return s.date;
+  }
+  return null;
 }
 
-/** Subline for home plan cards: move count + last activity from stats (any move in plan). */
+/** Subline for home plan cards: move count + last save from this plan (session source only). */
 function planCardActivitySubline(entriesLength: number, lastUsed: string | null): string {
-  if (!lastUsed) return `${entriesLength} moves · Not logged yet`;
+  if (!lastUsed) return `${entriesLength} moves · Not saved from this plan yet`;
   return `${entriesLength} moves · Last ${formatPlanLastDate(lastUsed)} · ${daysAgo(lastUsed)}`;
 }
 
@@ -485,7 +486,13 @@ export default function App() {
     const includedIds = selectedExerciseIds.filter((id) => exerciseDrafts[id]?.completed);
     if (includedIds.length === 0) { setMessage('Check "Done" for at least one move.'); return; }
     if (isLikelyDuplicateWorkoutSave(data.sessions, includedIds) && !window.confirm('Looks like a duplicate — save anyway?')) return;
-    const result = commitWorkoutSession({ data, exerciseOrderIds: selectedExerciseIds, exerciseDrafts, exerciseById });
+    const result = commitWorkoutSession({
+      data,
+      exerciseOrderIds: selectedExerciseIds,
+      exerciseDrafts,
+      exerciseById,
+      sourcePlanId: editingSavedPlanId,
+    });
     if (!result.ok) { setMessage(result.error); return; }
     persist(result.nextData);
     setSelectedExerciseIds([]); setExerciseDrafts({});
@@ -533,7 +540,7 @@ export default function App() {
                     <ul className="plan-card-list">
                       {data.savedPlans.map((plan) => {
                         const entries = orderedPlanEntries(plan, allExercises);
-                        const lastUsed = getLastUsedForPlan(plan, data.stats);
+                        const lastUsed = getLastPlanSessionDate(plan.id, data.sessions);
                         return (
                           <li key={plan.id} className="plan-card-home">
                             <div className="plan-card-home-row">
@@ -590,7 +597,7 @@ export default function App() {
                   <ul className="plan-card-list">
                     {category.plans.map((plan) => {
                       const entries = orderedPlanEntries(plan, allExercises);
-                      const lastUsed = getLastUsedForPlan(plan, data.stats);
+                      const lastUsed = getLastPlanSessionDate(plan.id, data.sessions);
                       return (
                         <li key={plan.id} className="plan-card-home">
                           <div className="plan-card-home-row">

@@ -12,10 +12,12 @@ export function commitWorkoutSession(params: {
   exerciseOrderIds: string[];
   exerciseDrafts: Record<string, ExerciseLogDraft | undefined>;
   exerciseById: Map<string, Exercise>;
+  /** When set, this session counts as a "plan workout" for that template (home card last-used). */
+  sourcePlanId?: string | null;
 }):
   | { ok: true; nextData: PersistedGymData; completedCount: number }
   | { ok: false; error: string } {
-  const { data, exerciseOrderIds, exerciseDrafts, exerciseById } = params;
+  const { data, exerciseOrderIds, exerciseDrafts, exerciseById, sourcePlanId: planId } = params;
 
   const completedEntries = exerciseOrderIds
     .map((exerciseId) => ({ exerciseId, draft: exerciseDrafts[exerciseId] }))
@@ -70,6 +72,7 @@ export function commitWorkoutSession(params: {
     date: nowIso,
     groups: Array.from(autoGroups),
     entries: completedEntries,
+    ...(planId ? { sourcePlanId: planId } : {}),
   };
 
   const nextData: PersistedGymData = {

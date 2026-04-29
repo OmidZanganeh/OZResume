@@ -30,6 +30,8 @@ export type WorkoutSession = {
   date: string;
   groups: MuscleGroup[];
   entries: WorkoutEntry[];
+  /** Set when the workout is saved from this plan (routine run or Plan tab while editing it). */
+  sourcePlanId?: string;
 };
 
 export type SavedPlan = {
