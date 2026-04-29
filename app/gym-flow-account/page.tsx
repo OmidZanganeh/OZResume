@@ -1,17 +1,20 @@
 import Link from 'next/link';
 import { auth } from '@/auth';
 import { GymFlowAuthButtons } from '@/components/gym-flow/GymFlowAuthButtons';
-import { getAuthEnvStatus } from '@/lib/auth-env';
+import { getAuthEnvStatus, getDeploymentEnvHint } from '@/lib/auth-env';
 
 export const metadata = {
   title: 'Gym Flow — Account & cloud backup',
   robots: { index: false, follow: false },
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function GymFlowAccountPage() {
   const session = await auth();
   const env = getAuthEnvStatus();
   const authReady = env.hasSecret && env.hasGoogle;
+  const deployHint = getDeploymentEnvHint();
 
   return (
     <main
@@ -62,9 +65,21 @@ export default async function GymFlowAccountPage() {
           }}
         >
           <p style={{ margin: '0 0 0.5rem', fontWeight: 700 }}>Sign-in is not configured on this deployment</p>
-          <p style={{ margin: 0 }}>
+          <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: '#7f1d1d', opacity: 0.95 }}>
+            {deployHint}
+          </p>
+          <p style={{ margin: 0, fontSize: '0.85rem' }}>
+            Right now the server sees:{' '}
+            <strong>{env.hasSecret ? 'AUTH_SECRET: set' : 'AUTH_SECRET: missing'}</strong>
+            {' · '}
+            <strong>
+              {env.hasGoogle ? 'Google OAuth: set' : 'Google OAuth: missing'}
+            </strong>
+          </p>
+          <p style={{ margin: '0.75rem 0 0', fontSize: '0.9rem' }}>
             Auth.js needs a secret and Google OAuth keys. In{' '}
-            <strong>Vercel → Project → Settings → Environment Variables</strong>, set for <strong>Production</strong>:
+            <strong>Vercel → Project → Settings → Environment Variables</strong>, set for the same environment as this
+            deployment (often <strong>Production</strong> and/or <strong>Preview</strong>):
           </p>
           <ul style={{ margin: '0.75rem 0 0', paddingLeft: '1.2rem' }}>
             {!env.hasSecret && (
