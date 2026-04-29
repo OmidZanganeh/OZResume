@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toPng } from 'html-to-image';
@@ -130,7 +130,11 @@ export default function App() {
   const [activeRoutineName, setActiveRoutineName] = useState<string | null>(null);
   const [editingSavedPlanId, setEditingSavedPlanId] = useState<string | null>(null);
   const [logViewMode, setLogViewMode] = useState<'runner' | 'list'>(() => {
-    if (typeof window !== 'undefined') return window.innerWidth < 720 ? 'runner' : 'list';
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem('gf-log-view');
+      if (stored === 'runner' || stored === 'list') return stored;
+      return window.innerWidth < 720 ? 'runner' : 'list';
+    }
     return 'runner';
   });
   const [runnerIndex, setRunnerIndex] = useState(0);
@@ -138,6 +142,8 @@ export default function App() {
   const [timerRemaining, setTimerRemaining] = useState(0);
   const [timerDuration, setTimerDuration] = useState(90);
   const [timerRunning, setTimerRunning] = useState(false);
+  const swipeStartXRef = useRef<number | null>(null);
+  const swipeStartYRef = useRef<number | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     'Core Foundations': true,
     'Classic Splits': true,
@@ -244,6 +250,11 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('gf-log-view', logViewMode);
+  }, [logViewMode]);
+
+  useEffect(() => {
     setRunnerIndex(0);
     setTimerExerciseId(null);
     setTimerRunning(false);
@@ -308,6 +319,14 @@ export default function App() {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function goRunnerNext() {
+    setRunnerIndex((i) => Math.min(planExercises.length - 1, i + 1));
+  }
+
+  function goRunnerPrev() {
+    setRunnerIndex((i) => Math.max(0, i - 1));
   }
 
   function moveExerciseItem(index: number, direction: -1 | 1) {
@@ -864,7 +883,28 @@ export default function App() {
             </div>
             <p className="view-hint">Check the moves you complete, then save.</p>
             {logViewMode === 'runner' ? (
-              <div className="runner-shell">
+              <div
+                className="runner-shell"
+                onTouchStart={(e) => {
+                  const touch = e.touches[0];
+                  swipeStartXRef.current = touch?.clientX ?? null;
+                  swipeStartYRef.current = touch?.clientY ?? null;
+                }}
+                onTouchEnd={(e) => {
+                  const startX = swipeStartXRef.current;
+                  const startY = swipeStartYRef.current;
+                  swipeStartXRef.current = null;
+                  swipeStartYRef.current = null;
+                  if (startX === null || startY === null) return;
+                  const touch = e.changedTouches[0];
+                  if (!touch) return;
+                  const dx = touch.clientX - startX;
+                  const dy = touch.clientY - startY;
+                  if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+                  if (dx < 0) goRunnerNext();
+                  else goRunnerPrev();
+                }}
+              >
                 <div className="runner-progress">
                   <span>Move {planExercises.length === 0 ? 0 : runnerIndex + 1} of {planExercises.length}</span>
                   <span>{planExercises.filter((e) => exerciseDrafts[e.id]?.completed).length} done</span>
@@ -986,7 +1026,7 @@ export default function App() {
                   <button
                     type="button"
                     className="button button-muted"
-                    onClick={() => setRunnerIndex((i) => Math.max(0, i - 1))}
+                    onClick={goRunnerPrev}
                     disabled={runnerIndex === 0}
                   >
                     Previous
@@ -994,7 +1034,7 @@ export default function App() {
                   <button
                     type="button"
                     className="button"
-                    onClick={() => setRunnerIndex((i) => Math.min(planExercises.length - 1, i + 1))}
+                    onClick={goRunnerNext}
                     disabled={runnerIndex >= planExercises.length - 1}
                   >
                     Next
