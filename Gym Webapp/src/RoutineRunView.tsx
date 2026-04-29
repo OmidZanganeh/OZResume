@@ -71,6 +71,12 @@ export function RoutineRunView({ planId }: Props) {
 
   const exerciseIdsKey = exercises.map((e) => e.id).join(',');
 
+  const exerciseAlternatives = useMemo(() => {
+    const ex = exercises[currentIndex];
+    if (!ex) return [];
+    return getAlternativeExercises(ex, allExercises, { limit: 10 });
+  }, [currentIndex, exercises, allExercises]);
+
   const persist = useCallback((next: PersistedGymData) => {
     setData(next);
     savePersistedGymData(next);
@@ -146,6 +152,23 @@ export function RoutineRunView({ planId }: Props) {
       cancelled = true;
     };
   }, [exercises]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (exerciseAlternatives.length === 0) return;
+    getExerciseImageMap(exerciseAlternatives)
+      .then((result) => {
+        if (!cancelled) setImages((prev) => ({ ...prev, ...result }));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          /* keep existing map */
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [exerciseAlternatives]);
 
   function updateDraft(exerciseId: string, patch: Partial<ExerciseLogDraft>) {
     setExerciseDrafts((current) => {
@@ -347,7 +370,6 @@ export function RoutineRunView({ planId }: Props) {
         const isLast = currentIndex === exercises.length - 1;
         const muscleMeta = [ex.primaryGroup, ...(ex.secondaryGroups ?? [])].join(' · ');
         const imgMeta = images[ex.name];
-        const alternatives = getAlternativeExercises(ex, allExercises, { limit: 10 });
 
         return (
           <div className="routine-run-card">
@@ -446,26 +468,47 @@ export function RoutineRunView({ planId }: Props) {
               <p className="routine-run-history-empty">No history yet for this move.</p>
             )}
 
-            {alternatives.length > 0 ? (
+            {exerciseAlternatives.length > 0 ? (
               <details className="routine-run-alts-details">
                 <summary>
-                  Swap ideas — same muscles ({alternatives.length})
+                  Swap ideas — same muscles ({exerciseAlternatives.length})
                 </summary>
                 <ul className="routine-run-alts-list">
-                  {alternatives.map((alt) => (
-                    <li key={alt.id}>
-                      <ExerciseYoutubeLink
-                        exerciseName={alt.name}
-                        className="routine-run-alt-link exercise-youtube"
-                      >
-                        {alt.name}
-                      </ExerciseYoutubeLink>
-                      <span className="routine-run-alt-meta">
-                        {alt.primaryGroup}
-                        {alt.secondaryGroups?.length ? ` · ${alt.secondaryGroups.join(', ')}` : ''}
-                      </span>
-                    </li>
-                  ))}
+                  {exerciseAlternatives.map((alt) => {
+                    const altImg = images[alt.name];
+                    return (
+                      <li key={alt.id} className="routine-run-alt-row">
+                        <div className="routine-run-alt-thumb-wrap">
+                          {altImg?.url ? (
+                            <img
+                              src={altImg.url}
+                              alt=""
+                              className="routine-run-alt-thumb"
+                              width={52}
+                              height={52}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="routine-run-alt-thumb routine-run-alt-thumb--ph" aria-hidden="true">
+                              {alt.primaryGroup.slice(0, 2)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="routine-run-alt-body">
+                          <ExerciseYoutubeLink
+                            exerciseName={alt.name}
+                            className="routine-run-alt-link exercise-youtube"
+                          >
+                            {alt.name}
+                          </ExerciseYoutubeLink>
+                          <span className="routine-run-alt-meta">
+                            {alt.primaryGroup}
+                            {alt.secondaryGroups?.length ? ` · ${alt.secondaryGroups.join(', ')}` : ''}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
                 <p className="routine-run-alts-hint">
                   For this routine, log the move you actually do under this card — the plan order stays the same.
