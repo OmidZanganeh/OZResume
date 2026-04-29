@@ -6,7 +6,7 @@ export const MUSCLE_GROUP_CALENDAR_COLOR: Record<MuscleGroup, string> = {
   Back: '#38bdf8',
   Shoulders: '#a78bfa',
   Biceps: '#4ade80',
-  Triceps: '#2dd4bf',
+  Triceps: '#10b981',
   Quads: '#facc15',
   Hamstrings: '#e879f9',
   Glutes: '#f472b6',

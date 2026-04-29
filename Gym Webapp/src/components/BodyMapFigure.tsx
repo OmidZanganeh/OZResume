@@ -4,21 +4,23 @@ import type { MuscleGroup } from '../data/exerciseLibrary';
 import {
   buildBodyMusclesStateForTenDayGaps,
   getGroupForBodyMuscleId,
-  HEAT_INTENSITY,
+  MOTIVATION_GREEN_INTENSITY_SLOT,
   GROUP_TO_MUSCLE_IDS,
-  heatTierFromCount,
 } from '../bodyMap/bodyMusclesMapping';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
-/** Gym Flow heatmap — must match {@link HEAT_INTENSITY} slots in bodyMusclesMapping. */
-(INTENSITY_COLORS as Record<number, string>)[HEAT_INTENSITY.gap] = '#f43f5e';
-(INTENSITY_COLORS as Record<number, string>)[HEAT_INTENSITY.x1] = '#fbbf24';
-(INTENSITY_COLORS as Record<number, string>)[HEAT_INTENSITY.x2] = '#fde047';
-(INTENSITY_COLORS as Record<number, string>)[HEAT_INTENSITY.x3] = '#bef264';
-(INTENSITY_COLORS as Record<number, string>)[HEAT_INTENSITY.x4] = '#4ade80';
-(INTENSITY_COLORS as Record<number, string>)[HEAT_INTENSITY.x5Plus] = '#2dd4bf';
-
+/** Gym Flow heatmap slots (body-muscles intensity indices). */
+const HEAT_GAP = 0;
+const HEAT_ONCE = 5;
+/** Slot 99: unhit regions in rainbow legend mode. */
 const LEGEND_INACTIVE_SLOT = 99;
+
+/** Needs work — rose, readable on dark without harsh pure red. */
+(INTENSITY_COLORS as Record<number, string>)[HEAT_GAP] = '#f43f5e';
+/** Hit once — warm amber, clearly between gap and “on track”. */
+(INTENSITY_COLORS as Record<number, string>)[HEAT_ONCE] = '#fbbf24';
+/** 2+ sessions — clear “on track” green (distinct from brand accent teal). */
+(INTENSITY_COLORS as Record<number, string>)[MOTIVATION_GREEN_INTENSITY_SLOT] = '#22c55e';
 
 // Initialize Rainbow Slots (100+) to avoid library defaults
 const RAINBOW_START_SLOT = 100;
@@ -60,8 +62,8 @@ function OrphanPills({
     <div className="orphan-pills" role="group" aria-label="Cardio and mobility">
       {orphans.map((g) => {
         const n = practiceCounts.get(g) ?? 0;
-        const tier = heatTierFromCount(n);
-        const colorClass = `orphan-pill--heat${tier}`;
+        const colorClass =
+          n >= 2 ? 'orphan-pill--green' : n === 1 ? 'orphan-pill--orange' : 'orphan-pill--red';
         const selected = selectedGroups.includes(g);
         return (
           <button
@@ -206,13 +208,10 @@ export function BodyMapFigure({
 
       <div className="report-footer-meta">
         <div className="footer-meta-left">
-          <div className="report-legend report-legend--heat-scale" aria-label="Sessions per muscle in this period">
-            <span className="legend-item"><span className="legend-dot legend-dot--heat0"></span> 0</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--heat1"></span> 1×</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--heat2"></span> 2×</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--heat3"></span> 3×</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--heat4"></span> 4×</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--heat5"></span> 5+×</span>
+          <div className="report-legend">
+            <span className="legend-item"><span className="legend-dot legend-dot--red"></span> Needs work</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
           </div>
           {orphansPlacement === 'bottom' && <p className="report-hint">Tap a region to plan that muscle group</p>}
         </div>
