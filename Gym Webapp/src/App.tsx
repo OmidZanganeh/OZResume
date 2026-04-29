@@ -1,5 +1,5 @@
-import { Component, useEffect, useMemo, useRef, useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toPng } from 'html-to-image';
 import { BodyMapFigure } from './components/BodyMapFigure';
@@ -59,29 +59,6 @@ const PRESET_CATEGORY_META: Record<string, { description: string }> = {
 };
 
 type AppView = 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'library';
-
-class RunnerErrorBoundary extends Component<{ onFail: () => void; children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch() {
-    this.props.onFail();
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="runner-empty">
-          Runner had an issue. Switched to List view.
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]) {
   if (selectedGroups.length === 0) return true;
@@ -152,22 +129,6 @@ export default function App() {
   const [savePlanNameInput, setSavePlanNameInput] = useState('');
   const [activeRoutineName, setActiveRoutineName] = useState<string | null>(null);
   const [editingSavedPlanId, setEditingSavedPlanId] = useState<string | null>(null);
-  const [logViewMode, setLogViewMode] = useState<'runner' | 'list'>(() => {
-    if (typeof window !== 'undefined') {
-      if (window.innerWidth < 720) return 'runner';
-      const stored = window.localStorage.getItem('gf-log-view');
-      if (stored === 'runner' || stored === 'list') return stored;
-      return 'list';
-    }
-    return 'runner';
-  });
-  const [runnerIndex, setRunnerIndex] = useState(0);
-  const [timerExerciseId, setTimerExerciseId] = useState<string | null>(null);
-  const [timerRemaining, setTimerRemaining] = useState(0);
-  const [timerDuration, setTimerDuration] = useState(90);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const swipeStartXRef = useRef<number | null>(null);
-  const swipeStartYRef = useRef<number | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     'Core Foundations': true,
     'Classic Splits': true,
@@ -175,6 +136,8 @@ export default function App() {
     'Targeted Isolation (Single Muscle)': true
   });
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
+  const [logViewMode, setLogViewMode] = useState<'list' | 'cards'>('list');
+  const [activeLogIndex, setActiveLogIndex] = useState(0);
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -274,39 +237,10 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
-    if (view !== 'log') return;
-    if (typeof window !== 'undefined' && window.innerWidth < 720) {
-      setLogViewMode('runner');
+    if (activeLogIndex >= planExercises.length) {
+      setActiveLogIndex(Math.max(0, planExercises.length - 1));
     }
-  }, [view]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem('gf-log-view', logViewMode);
-  }, [logViewMode]);
-
-  useEffect(() => {
-    setRunnerIndex(0);
-    setTimerExerciseId(null);
-    setTimerRunning(false);
-    setTimerRemaining(0);
-  }, [planExercises.length]);
-
-  useEffect(() => {
-    setTimerRunning(false);
-  }, [runnerIndex]);
-
-  useEffect(() => {
-    if (!timerRunning) return;
-    if (timerRemaining <= 0) {
-      setTimerRunning(false);
-      return;
-    }
-    const t = setInterval(() => {
-      setTimerRemaining((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-    return () => clearInterval(t);
-  }, [timerRemaining, timerRunning]);
+  }, [activeLogIndex, planExercises.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -344,22 +278,6 @@ export default function App() {
       const ex = exerciseById.get(exerciseId);
       setExerciseDrafts((d) => ({ ...d, [exerciseId]: d[exerciseId] ?? getDefaultDraftForExercise(ex) }));
     }
-  }
-
-  function formatTimer(seconds: number) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-  }
-
-  function goRunnerNext() {
-    if (planExercises.length === 0) return;
-    setRunnerIndex((i) => Math.min(planExercises.length - 1, i + 1));
-  }
-
-  function goRunnerPrev() {
-    if (planExercises.length === 0) return;
-    setRunnerIndex((i) => Math.max(0, i - 1));
   }
 
   function moveExerciseItem(index: number, direction: -1 | 1) {
@@ -895,191 +813,88 @@ export default function App() {
             <div className="view-header">
               <button className="view-back" onClick={() => { setSelectedExerciseIds([]); setExerciseDrafts({}); setActiveRoutineName(null); setView('home'); }}>← Back</button>
               <h1 className="view-title">{activeRoutineName ?? 'Quick Log'}</h1>
-            </div>
-            <p className="view-hint">Check the moves you complete, then save.</p>
-            <div className="view-toggle-row" role="group" aria-label="Log view">
-              <div className="view-toggle">
-                <button
-                  type="button"
-                  className={`chip chip-compact ${logViewMode === 'runner' ? 'chip-active' : ''}`}
-                  onClick={() => setLogViewMode('runner')}
-                  aria-pressed={logViewMode === 'runner'}
-                >
-                  Runner
-                </button>
+              <div className="log-mode-toggle" role="group" aria-label="Workout view">
                 <button
                   type="button"
                   className={`chip chip-compact ${logViewMode === 'list' ? 'chip-active' : ''}`}
                   onClick={() => setLogViewMode('list')}
-                  aria-pressed={logViewMode === 'list'}
                 >
                   List
                 </button>
+                <button
+                  type="button"
+                  className={`chip chip-compact ${logViewMode === 'cards' ? 'chip-active' : ''}`}
+                  onClick={() => setLogViewMode('cards')}
+                >
+                  Card
+                </button>
               </div>
             </div>
-            {logViewMode === 'runner' ? (
-              <RunnerErrorBoundary onFail={() => setLogViewMode('list')}>
-                <div
-                  className="runner-shell"
-                  onTouchStart={(e) => {
-                    const touch = e.touches[0];
-                    swipeStartXRef.current = touch?.clientX ?? null;
-                    swipeStartYRef.current = touch?.clientY ?? null;
-                  }}
-                  onTouchEnd={(e) => {
-                    const startX = swipeStartXRef.current;
-                    const startY = swipeStartYRef.current;
-                    swipeStartXRef.current = null;
-                    swipeStartYRef.current = null;
-                    if (startX === null || startY === null) return;
-                    const touch = e.changedTouches[0];
-                    if (!touch) return;
-                    const dx = touch.clientX - startX;
-                    const dy = touch.clientY - startY;
-                    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-                    if (dx < 0) goRunnerNext();
-                    else goRunnerPrev();
-                  }}
-                >
-                  <div className="runner-progress">
-                    <span>Move {planExercises.length === 0 ? 0 : runnerIndex + 1} of {planExercises.length}</span>
-                    <span>{planExercises.filter((e) => exerciseDrafts[e.id]?.completed).length} done</span>
-                  </div>
-
-                  {planExercises.length === 0 ? (
-                    <div className="runner-empty">Add moves before starting a workout.</div>
-                  ) : (
-                    (() => {
-                      const safeIndex = Math.min(runnerIndex, Math.max(planExercises.length - 1, 0));
-                      const exercise = planExercises[safeIndex];
-                      if (!exercise) return <div className="runner-empty">Loading workout…</div>;
-                      const draft = exerciseDrafts[exercise.id];
-                      const isCardio = getEffectiveCategory(exercise) === 'cardio';
-                      const isActiveTimer = timerExerciseId === exercise.id;
-                      const showTimer = isActiveTimer && timerRemaining > 0;
-                      return (
-                        <article className="runner-card">
-                          <div className="runner-card-header">
-                            <h2>
-                              <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
-                                {exercise.name}
-                              </ExerciseYoutubeLink>
-                            </h2>
-                            <label className="checkbox">
-                              <input
-                                type="checkbox"
-                                checked={draft?.completed ?? false}
-                                onChange={(e) => updateDraft(exercise.id, { completed: e.target.checked })}
-                              />
-                              Done
-                            </label>
-                          </div>
-
-                          <MuscleTargetPick exercise={exercise} draft={draft} onPatch={(p) => updateDraft(exercise.id, p)} />
-
-                          <div className="runner-timer">
-                            <div className="runner-timer-row">
-                              <span className="runner-timer-label">Set timer</span>
-                              <select
-                                className="select-input runner-timer-select"
-                                value={timerDuration}
-                                onChange={(e) => {
-                                  const next = Number(e.target.value);
-                                  setTimerDuration(next);
-                                  if (!timerRunning) setTimerRemaining(next);
-                                }}
-                              >
-                                {[30, 60, 90, 120].map((d) => (
-                                  <option key={d} value={d}>{d}s</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="runner-timer-row">
-                              <span className="runner-timer-value">{showTimer ? formatTimer(timerRemaining) : formatTimer(timerDuration)}</span>
-                              <div className="runner-timer-actions">
-                                <button
-                                  type="button"
-                                  className="button button-small"
-                                  onClick={() => {
-                                    setTimerExerciseId(exercise.id);
-                                    setTimerRemaining((s) => (s > 0 && isActiveTimer ? s : timerDuration));
-                                    setTimerRunning(true);
-                                  }}
-                                >
-                                  {timerRunning && isActiveTimer ? 'Running' : 'Start'}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="button button-small button-muted"
-                                  onClick={() => {
-                                    if (isActiveTimer) setTimerRunning(false);
-                                  }}
-                                >
-                                  Pause
-                                </button>
-                                <button
-                                  type="button"
-                                  className="text-button"
-                                  onClick={() => {
-                                    setTimerExerciseId(exercise.id);
-                                    setTimerRemaining(timerDuration);
-                                    setTimerRunning(false);
-                                  }}
-                                >
-                                  Reset
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="plan-grid">
-                            {isCardio ? (
-                              <label className="plan-grid-full">
-                                Minutes
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  placeholder="e.g. 20"
-                                  value={draft?.reps ?? '20'}
-                                  onChange={(e) => updateDraft(exercise.id, { reps: e.target.value, sets: 1 })}
-                                />
-                              </label>
-                            ) : (
-                              <>
-                                <label>Sets<input type="number" min={1} value={draft?.sets ?? 3} onChange={(e) => updateDraft(exercise.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })} /></label>
-                                <label>Reps<input type="text" value={draft?.reps ?? '8-12'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value })} /></label>
-                                <label>Weight<input type="text" placeholder="35kg" value={draft?.weight ?? ''} onChange={(e) => updateDraft(exercise.id, { weight: e.target.value })} /></label>
-                              </>
-                            )}
-                          </div>
-
-                          <label>Notes<input type="text" placeholder="tempo, rest…" value={draft?.notes ?? ''} onChange={(e) => updateDraft(exercise.id, { notes: e.target.value })} /></label>
-                          {exerciseImages[exercise.name] && <p className="image-credit">{exerciseImages[exercise.name].credit}</p>}
-                        </article>
-                      );
-                    })()
-                  )}
-
-                  <div className="runner-nav">
-                    <button
-                      type="button"
-                      className="button button-muted"
-                      onClick={goRunnerPrev}
-                      disabled={runnerIndex === 0}
-                    >
-                      Previous
-                    </button>
-                    <button
-                      type="button"
-                      className="button"
-                      onClick={goRunnerNext}
-                      disabled={runnerIndex >= planExercises.length - 1}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </RunnerErrorBoundary>
+            <p className="view-hint">Check the moves you complete, then save.</p>
+            {logViewMode === 'cards' ? (
+              <div className="log-card-shell">
+                {planExercises.length > 0 ? (() => {
+                  const exercise = planExercises[activeLogIndex];
+                  const draft = exerciseDrafts[exercise.id];
+                  const isCardio = getEffectiveCategory(exercise) === 'cardio';
+                  return (
+                    <article className="plan-card log-card">
+                      <div className="log-card-progress">
+                        <span>Move {activeLogIndex + 1} of {planExercises.length}</span>
+                        <div className="log-card-progress-bar">
+                          <span style={{ width: `${((activeLogIndex + 1) / planExercises.length) * 100}%` }} />
+                        </div>
+                      </div>
+                      <div className="plan-heading">
+                        <h3>
+                          <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
+                            {exercise.name}
+                          </ExerciseYoutubeLink>
+                        </h3>
+                        <label className="checkbox">
+                          <input type="checkbox" checked={draft?.completed ?? false} onChange={(e) => updateDraft(exercise.id, { completed: e.target.checked })} />
+                          Done
+                        </label>
+                      </div>
+                      <MuscleTargetPick exercise={exercise} draft={draft} onPatch={(p) => updateDraft(exercise.id, p)} />
+                      <div className="plan-grid">
+                        {isCardio ? (
+                          <label className="plan-grid-full">
+                            Minutes
+                            <input type="text" inputMode="numeric" placeholder="e.g. 20" value={draft?.reps ?? '20'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value, sets: 1 })} />
+                          </label>
+                        ) : (
+                          <>
+                            <label>Sets<input type="number" min={1} value={draft?.sets ?? 3} onChange={(e) => updateDraft(exercise.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })} /></label>
+                            <label>Reps<input type="text" value={draft?.reps ?? '8-12'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value })} /></label>
+                            <label>Weight<input type="text" placeholder="35kg" value={draft?.weight ?? ''} onChange={(e) => updateDraft(exercise.id, { weight: e.target.value })} /></label>
+                          </>
+                        )}
+                      </div>
+                      <label>Notes<input type="text" placeholder="tempo, rest…" value={draft?.notes ?? ''} onChange={(e) => updateDraft(exercise.id, { notes: e.target.value })} /></label>
+                      {exerciseImages[exercise.name] && <p className="image-credit">{exerciseImages[exercise.name].credit}</p>}
+                      <div className="log-card-controls">
+                        <button type="button" className="button button-muted" onClick={() => setActiveLogIndex((i) => Math.max(0, i - 1))} disabled={activeLogIndex === 0}>
+                          ← Previous
+                        </button>
+                        <button
+                          type="button"
+                          className="button"
+                          onClick={() => {
+                            updateDraft(exercise.id, { completed: true });
+                            setActiveLogIndex((i) => Math.min(planExercises.length - 1, i + 1));
+                          }}
+                          disabled={activeLogIndex >= planExercises.length - 1}
+                        >
+                          Done & Next →
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })() : (
+                  <p className="empty-text">No moves selected yet.</p>
+                )}
+              </div>
             ) : (
               <div className="plan-list">
                 {planExercises.map((exercise) => {
