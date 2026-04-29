@@ -2,7 +2,7 @@
 export const GYM_FLOW_OAUTH_SUCCESS = 'gym-flow-oauth-success' as const;
 
 const POPUP_FEATURES =
-  'popup=yes,width=520,height=640,left=80,top=80,scrollbars=yes,resizable=yes';
+  'popup=yes,width=440,height=720,left=80,top=40,scrollbars=yes,resizable=yes';
 
 /** Next.js app origin (auth + callback). Vite dev proxies /api but OAuth redirect must hit Next. */
 function getAuthBaseUrl(): string {
@@ -35,9 +35,8 @@ export function isTrustedGymFlowOAuthOrigin(messageOrigin: string): boolean {
 }
 
 /**
- * Open Google sign-in in a popup. Uses `/gym-flow-signin-popup` so `signIn()` runs
- * inside SessionProvider (same as /gym-flow-account) — raw `/api/auth/signin/google`
- * can trigger Auth.js configuration errors.
+ * Open the Gym Flow sign-in popup (email or Google). Uses `/gym-flow-signin-popup`
+ * inside SessionProvider — not raw `/api/auth/signin/google`.
  */
 export function openGoogleSignInPopup(): Window | null {
   const parentOrigin = window.location.origin;

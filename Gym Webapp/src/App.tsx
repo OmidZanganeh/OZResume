@@ -562,13 +562,13 @@ export default function App() {
                 <>
                   <button
                     type="button"
-                    className="home-signin-google-btn"
+                    className="home-signin-btn"
                     onClick={() => {
                       const w = openGoogleSignInPopup();
-                      if (!w) setMessage('Allow pop-ups to sign in with Google.');
+                      if (!w) setMessage('Allow pop-ups to sign in.');
                     }}
                   >
-                    Sign in with Google
+                    Sign in
                   </button>
                   <p className="home-cloud-link home-cloud-link--secondary">
                     <a href="/gym-flow-account/">Email or Google — open sign-in in this tab</a>

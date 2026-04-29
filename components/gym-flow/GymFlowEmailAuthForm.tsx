@@ -6,7 +6,13 @@ import { signIn } from 'next-auth/react';
 
 type Mode = 'signin' | 'register';
 
-export function GymFlowEmailAuthForm() {
+type Props = {
+  variant?: 'default' | 'compact';
+  /** Full URL after successful credentials sign-in (e.g. oauth-close in a popup). */
+  afterSignInRedirect?: string;
+};
+
+export function GymFlowEmailAuthForm({ variant = 'default', afterSignInRedirect }: Props) {
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,11 +38,13 @@ export function GymFlowEmailAuthForm() {
         }
       }
 
+  const redirectTarget = afterSignInRedirect ?? '/gym-flow/';
+
       const signRes = await signIn('credentials', {
         email: email.trim(),
         password,
         redirect: false,
-        callbackUrl: '/gym-flow/',
+        callbackUrl: redirectTarget,
       });
 
       if (signRes?.error) {
@@ -48,21 +56,23 @@ export function GymFlowEmailAuthForm() {
         return;
       }
 
-      window.location.assign(signRes?.url ?? '/gym-flow/');
+      window.location.assign(signRes?.url ?? redirectTarget);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div style={card}>
+    <div style={{ ...card, marginBottom: variant === 'compact' ? 0 : card.marginBottom }}>
       <p style={{ margin: '0 0 0.75rem', fontWeight: 700, fontSize: '0.95rem' }}>
-        Email & password
+        {variant === 'compact' ? 'Email' : 'Email & password'}
       </p>
-      <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#64748b' }}>
-        Create a Gym Flow account without Google. Same cloud backup as Google sign-in (separate login — not linked to a
-        Google account).
-      </p>
+      {variant === 'default' && (
+        <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#64748b' }}>
+          Create a Gym Flow account without Google. Same cloud backup as Google sign-in (separate login — not linked to a
+          Google account).
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
         <button
