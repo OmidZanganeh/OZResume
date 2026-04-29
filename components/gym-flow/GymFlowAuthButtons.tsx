@@ -5,9 +5,10 @@ import { signIn, signOut } from 'next-auth/react';
 
 type Props = {
   hasSession: boolean;
+  disabled?: boolean;
 };
 
-export function GymFlowAuthButtons({ hasSession }: Props) {
+export function GymFlowAuthButtons({ hasSession, disabled = false }: Props) {
   if (hasSession) {
     return (
       <button
@@ -23,8 +24,14 @@ export function GymFlowAuthButtons({ hasSession }: Props) {
   return (
     <button
       type="button"
-      onClick={() => signIn('google', { callbackUrl: '/gym-flow/' })}
-      style={buttonPrimary}
+      disabled={disabled}
+      onClick={() => !disabled && signIn('google', { callbackUrl: '/gym-flow/' })}
+      style={{
+        ...buttonPrimary,
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+      title={disabled ? 'Sign-in is not configured on the server' : undefined}
     >
       Sign in with Google
     </button>
