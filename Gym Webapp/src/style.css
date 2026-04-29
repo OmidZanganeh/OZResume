@@ -1507,6 +1507,13 @@ body {
 }
 
 /* —— Body map row layout */
+.body-map-toggle {
+  display: none;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
 .body-map-row {
   display: flex;
   justify-content: center;
@@ -1531,6 +1538,28 @@ body {
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+@media (max-width: 680px) {
+  .body-map-toggle { display: flex; }
+
+  .body-map-row {
+    margin-top: 0.2rem;
+  }
+
+  .body-map-row .body-map-figure {
+    display: none;
+    flex-basis: auto;
+  }
+
+  .body-map-row .body-map-figure.is-active {
+    display: block;
+  }
+
+  .body-muscles-host {
+    height: 440px;
+    max-width: 280px;
+  }
 }
 
 .body-map-legend {

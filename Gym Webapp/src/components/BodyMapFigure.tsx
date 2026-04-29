@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BodyChart, ViewSide, INTENSITY_COLORS } from 'body-muscles';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import {
@@ -89,6 +89,7 @@ export function BodyMapFigure({
   const backHostRef = useRef<HTMLDivElement>(null);
   const frontChartRef = useRef<BodyChart | null>(null);
   const backChartRef = useRef<BodyChart | null>(null);
+  const [activeSide, setActiveSide] = useState<'front' | 'back'>('front');
 
   // Keep onToggleGroup stable in the click handler so we never recreate charts
   const toggleRef = useRef(onToggleGroup);
@@ -168,12 +169,31 @@ export function BodyMapFigure({
         </div>
       )}
 
+      <div className="body-map-toggle" role="group" aria-label="Body map view">
+        <button
+          type="button"
+          className={`chip chip-compact ${activeSide === 'front' ? 'chip-active' : ''}`}
+          onClick={() => setActiveSide('front')}
+          aria-pressed={activeSide === 'front'}
+        >
+          Front
+        </button>
+        <button
+          type="button"
+          className={`chip chip-compact ${activeSide === 'back' ? 'chip-active' : ''}`}
+          onClick={() => setActiveSide('back')}
+          aria-pressed={activeSide === 'back'}
+        >
+          Back
+        </button>
+      </div>
+
       <div className="body-map-row">
-        <figure className="body-map-figure">
+        <figure className={`body-map-figure ${activeSide === 'front' ? 'is-active' : ''}`.trim()}>
           <figcaption className="body-map-figure-label">Front</figcaption>
           <div ref={frontHostRef} className="body-muscles-host" />
         </figure>
-        <figure className="body-map-figure">
+        <figure className={`body-map-figure ${activeSide === 'back' ? 'is-active' : ''}`.trim()}>
           <figcaption className="body-map-figure-label">Back</figcaption>
           <div ref={backHostRef} className="body-muscles-host" />
         </figure>
