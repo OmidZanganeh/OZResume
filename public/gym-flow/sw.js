@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-flow-v4-update';
+const CACHE_NAME = 'gym-flow-v5-update';
 /** Must match Vite `base` in vite.config.ts */
 const BASE = '/gym-flow';
 
