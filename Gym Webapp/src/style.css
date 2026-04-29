@@ -3676,6 +3676,16 @@ body {
   display: none !important;
 }
 
+/* Print report / JPEG capture: always front + back side-by-side (ignore mobile toggle). */
+#print-report .body-map-toggle,
+.screenshot-mode #print-report .body-map-toggle {
+  display: none !important;
+}
+#print-report .body-map-row .body-map-figure,
+.screenshot-mode #print-report .body-map-row .body-map-figure {
+  display: block !important;
+}
+
 .prl-table {
   width: 100%;
   border-collapse: collapse;
