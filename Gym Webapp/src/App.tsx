@@ -323,10 +323,12 @@ export default function App() {
   }
 
   function goRunnerNext() {
+    if (planExercises.length === 0) return;
     setRunnerIndex((i) => Math.min(planExercises.length - 1, i + 1));
   }
 
   function goRunnerPrev() {
+    if (planExercises.length === 0) return;
     setRunnerIndex((i) => Math.max(0, i - 1));
   }
 
@@ -917,7 +919,9 @@ export default function App() {
                   <div className="runner-empty">Add moves before starting a workout.</div>
                 ) : (
                   (() => {
-                    const exercise = planExercises[runnerIndex];
+                    const safeIndex = Math.min(runnerIndex, Math.max(planExercises.length - 1, 0));
+                    const exercise = planExercises[safeIndex];
+                    if (!exercise) return <div className="runner-empty">Loading workout…</div>;
                     const draft = exerciseDrafts[exercise.id];
                     const isCardio = getEffectiveCategory(exercise) === 'cardio';
                     const isActiveTimer = timerExerciseId === exercise.id;
