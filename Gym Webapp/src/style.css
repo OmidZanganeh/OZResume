@@ -1407,7 +1407,7 @@ body {
 }
 
 .body-muscles-host {
-  height: 600px; /* Increased taller for PC to ensure breathing room */
+  height: 660px; /* 10% taller to avoid head/foot clipping */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1557,7 +1557,7 @@ body {
   }
 
   .body-muscles-host {
-    height: 440px;
+    height: 484px;
     max-width: 280px;
   }
 }
