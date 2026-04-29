@@ -136,7 +136,7 @@ export default function App() {
     'Targeted Isolation (Single Muscle)': true
   });
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
-  const [logViewMode, setLogViewMode] = useState<'list' | 'cards'>('list');
+  const [logViewMode] = useState<'cards'>('cards');
   const [activeLogIndex, setActiveLogIndex] = useState(0);
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
@@ -813,25 +813,10 @@ export default function App() {
             <div className="view-header">
               <button className="view-back" onClick={() => { setSelectedExerciseIds([]); setExerciseDrafts({}); setActiveRoutineName(null); setView('home'); }}>← Back</button>
               <h1 className="view-title">{activeRoutineName ?? 'Quick Log'}</h1>
-              <div className="log-mode-toggle" role="group" aria-label="Workout view">
-                <button
-                  type="button"
-                  className={`chip chip-compact ${logViewMode === 'list' ? 'chip-active' : ''}`}
-                  onClick={() => setLogViewMode('list')}
-                >
-                  List
-                </button>
-                <button
-                  type="button"
-                  className={`chip chip-compact ${logViewMode === 'cards' ? 'chip-active' : ''}`}
-                  onClick={() => setLogViewMode('cards')}
-                >
-                  Card
-                </button>
-              </div>
+              <span className="view-badge">Card view</span>
             </div>
             <p className="view-hint">Check the moves you complete, then save.</p>
-            {logViewMode === 'cards' ? (
+            {logViewMode === 'cards' && (
               <div className="log-card-shell">
                 {planExercises.length > 0 ? (() => {
                   const exercise = planExercises[activeLogIndex];
@@ -894,45 +879,6 @@ export default function App() {
                 })() : (
                   <p className="empty-text">No moves selected yet.</p>
                 )}
-              </div>
-            ) : (
-              <div className="plan-list">
-                {planExercises.map((exercise) => {
-                  const draft = exerciseDrafts[exercise.id];
-                  const isCardio = getEffectiveCategory(exercise) === 'cardio';
-                  return (
-                    <article key={exercise.id} className="plan-card">
-                      <div className="plan-heading">
-                        <h3>
-                          <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
-                            {exercise.name}
-                          </ExerciseYoutubeLink>
-                        </h3>
-                        <label className="checkbox">
-                          <input type="checkbox" checked={draft?.completed ?? false} onChange={(e) => updateDraft(exercise.id, { completed: e.target.checked })} />
-                          Done
-                        </label>
-                      </div>
-                      <MuscleTargetPick exercise={exercise} draft={draft} onPatch={(p) => updateDraft(exercise.id, p)} />
-                      <div className="plan-grid">
-                        {isCardio ? (
-                          <label className="plan-grid-full">
-                            Minutes
-                            <input type="text" inputMode="numeric" placeholder="e.g. 20" value={draft?.reps ?? '20'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value, sets: 1 })} />
-                          </label>
-                        ) : (
-                          <>
-                            <label>Sets<input type="number" min={1} value={draft?.sets ?? 3} onChange={(e) => updateDraft(exercise.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })} /></label>
-                            <label>Reps<input type="text" value={draft?.reps ?? '8-12'} onChange={(e) => updateDraft(exercise.id, { reps: e.target.value })} /></label>
-                            <label>Weight<input type="text" placeholder="35kg" value={draft?.weight ?? ''} onChange={(e) => updateDraft(exercise.id, { weight: e.target.value })} /></label>
-                          </>
-                        )}
-                      </div>
-                      <label>Notes<input type="text" placeholder="tempo, rest…" value={draft?.notes ?? ''} onChange={(e) => updateDraft(exercise.id, { notes: e.target.value })} /></label>
-                      {exerciseImages[exercise.name] && <p className="image-credit">{exerciseImages[exercise.name].credit}</p>}
-                    </article>
-                  );
-                })}
               </div>
             )}
             {planExercises.length > 0 && (

@@ -1266,10 +1266,6 @@ body {
   gap: 0.7rem;
 }
 
-.log-mode-toggle {
-  display: flex;
-  gap: 0.4rem;
-}
 
 .log-card-shell {
   display: flex;
