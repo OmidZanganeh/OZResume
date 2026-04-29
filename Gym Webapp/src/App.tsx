@@ -131,9 +131,10 @@ export default function App() {
   const [editingSavedPlanId, setEditingSavedPlanId] = useState<string | null>(null);
   const [logViewMode, setLogViewMode] = useState<'runner' | 'list'>(() => {
     if (typeof window !== 'undefined') {
+      if (window.innerWidth < 720) return 'runner';
       const stored = window.localStorage.getItem('gf-log-view');
       if (stored === 'runner' || stored === 'list') return stored;
-      return window.innerWidth < 720 ? 'runner' : 'list';
+      return 'list';
     }
     return 'runner';
   });
@@ -862,7 +863,10 @@ export default function App() {
             <div className="view-header">
               <button className="view-back" onClick={() => { setSelectedExerciseIds([]); setExerciseDrafts({}); setActiveRoutineName(null); setView('home'); }}>← Back</button>
               <h1 className="view-title">{activeRoutineName ?? 'Quick Log'}</h1>
-              <div className="view-toggle" role="group" aria-label="Log view">
+            </div>
+            <p className="view-hint">Check the moves you complete, then save.</p>
+            <div className="view-toggle-row" role="group" aria-label="Log view">
+              <div className="view-toggle">
                 <button
                   type="button"
                   className={`chip chip-compact ${logViewMode === 'runner' ? 'chip-active' : ''}`}
@@ -881,7 +885,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <p className="view-hint">Check the moves you complete, then save.</p>
             {logViewMode === 'runner' ? (
               <div
                 className="runner-shell"

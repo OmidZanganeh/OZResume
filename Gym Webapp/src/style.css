@@ -2842,6 +2842,12 @@ body {
   flex-shrink: 0;
 }
 
+.view-toggle-row {
+  display: flex;
+  justify-content: center;
+  padding: 0.4rem 1rem 0;
+}
+
 .runner-shell {
   display: flex;
   flex-direction: column;
