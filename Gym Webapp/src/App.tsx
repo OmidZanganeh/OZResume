@@ -31,7 +31,7 @@ import {
   type SavedPlan,
   type UserProfile,
 } from './data/gymFlowStorage';
-import { resolvePlanExerciseIdsToCatalog, STORAGE_V1 } from './data/migrateStorage';
+import { resolvePlanExerciseIdsToCatalog } from './data/migrateStorage';
 import {
   type CatalogSortMode,
   collectSortedUnique,
@@ -41,7 +41,7 @@ import {
   labelForFilterValue,
 } from './utils/catalogSort';
 import { buildPresetPlans } from './data/presetPlans';
-import { hydrateFromCloudIfSignedIn, fetchAuthSession } from './utils/cloudSync';
+import { hydrateFromCloudIfSignedIn, fetchAuthSession, resetCloudHydrationCursor } from './utils/cloudSync';
 import { GYM_FLOW_OAUTH_SUCCESS, getGymFlowSignInPopupUrl, isTrustedGymFlowOAuthOrigin, openGymFlowSignIn } from './utils/googleSignInPopup';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
@@ -122,6 +122,8 @@ function openRoutineWorkoutTab(planId: string) {
 
 export default function App() {
   const [data, setData] = useState<PersistedGymData>(() => loadPersistedGymData());
+  const dataRef = useRef(data);
+  dataRef.current = data;
   const [view, setView] = useState<AppView>('home');
   const [selectedGroups, setSelectedGroups] = useState<MuscleGroup[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,16 +135,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [analysisDays, setAnalysisDays] = useState(10);
   const [reportDays, setReportDays] = useState(DEFAULT_REPORT_DAYS);
-  const [reportProfile, setReportProfile] = useState<UserProfile>(() => {
-    const d = loadPersistedGymData();
-    let fromLs: UserProfile = {};
-    try {
-      fromLs = JSON.parse(localStorage.getItem('gf-profile') || '{}') as UserProfile;
-    } catch {
-      /* ignore */
-    }
-    return { ...fromLs, ...(d.userProfile ?? {}) };
-  });
+  const [reportProfile, setReportProfile] = useState<UserProfile>(() => ({}));
   const [exerciseImages, setExerciseImages] = useState<Record<string, ExerciseImageMeta>>({});
   const [catalogSort, setCatalogSort] = useState<CatalogSortMode>('gym');
   const [filterWrkoutCategory, setFilterWrkoutCategory] = useState('all');
@@ -275,15 +268,7 @@ export default function App() {
   }
 
   function patchReportProfile(patch: Partial<UserProfile>) {
-    setReportProfile((prev) => {
-      const p = { ...prev, ...patch };
-      try {
-        localStorage.setItem('gf-profile', JSON.stringify(p));
-      } catch {
-        /* ignore */
-      }
-      return p;
-    });
+    setReportProfile((prev) => ({ ...prev, ...patch }));
     setData((d) => {
       const next: PersistedGymData = { ...d, userProfile: { ...d.userProfile, ...patch } };
       savePersistedGymData(next);
@@ -295,7 +280,7 @@ export default function App() {
   useEffect(() => {
     if (cloudHydratedRef.current) return;
     cloudHydratedRef.current = true;
-    void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {
+    void hydrateFromCloudIfSignedIn(() => dataRef.current, (merged) => {
       setData(merged);
       syncReportProfileFromMerged(merged);
     });
@@ -310,7 +295,8 @@ export default function App() {
       if (!isTrustedGymFlowOAuthOrigin(e.origin)) return;
       if (e.data?.type !== GYM_FLOW_OAUTH_SUCCESS) return;
       setCloudSignedIn(true);
-      void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {
+      resetCloudHydrationCursor();
+      void hydrateFromCloudIfSignedIn(() => dataRef.current, (merged) => {
         setData(merged);
         syncReportProfileFromMerged(merged);
       });
@@ -428,7 +414,7 @@ export default function App() {
 
   function clearAllUserData() {
     if (!window.confirm('Remove all workouts, stats, custom exercises, and saved plans? This cannot be undone.')) return;
-    localStorage.removeItem(STORAGE_V1);
+    setReportProfile({});
     persist(defaultGymData);
     setSelectedGroups([]); setSelectedEquipment([]); setSelectedExerciseIds([]); setExerciseDrafts({});
     setSearchTerm(''); setVisibleExerciseCount(24); setNewExerciseName(''); setSavePlanNameInput('');

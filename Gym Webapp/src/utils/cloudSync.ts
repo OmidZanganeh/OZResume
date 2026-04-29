@@ -1,14 +1,23 @@
-import { writeGymDataLocal, type PersistedGymData } from '../data/gymFlowStorage';
+import type { PersistedGymData } from '../data/gymFlowStorage';
 
 const SESSION = '/api/auth/session';
 const DATA = '/api/gym-flow/data';
+
+/** -1 = never applied server payload yet; then last `updatedAt` ms from API. */
+let lastHydratedServerMtime = -1;
+
+/** Call after sign-in so the next GET is applied even if timestamps matched a previous tab. */
+export function resetCloudHydrationCursor(): void {
+  lastHydratedServerMtime = -1;
+}
 
 function isPersistedEmpty(d: PersistedGymData): boolean {
   return (
     d.sessions.length === 0 &&
     d.savedPlans.length === 0 &&
     d.customExercises.length === 0 &&
-    Object.keys(d.stats).length === 0
+    Object.keys(d.stats).length === 0 &&
+    !(d.userProfile && Object.keys(d.userProfile).length > 0)
   );
 }
 
@@ -72,10 +81,11 @@ export async function pushCloudPayload(data: PersistedGymData): Promise<boolean>
 }
 
 /**
- * On load: if signed in and server copy is newer, apply it; if server empty and local has data, seed server.
+ * If signed in: pull newer server JSON into the app, or seed the server from current in-memory state when empty.
+ * `getSnapshot` must return current React state (e.g. via ref), not `loadPersistedGymData()`.
  */
 export async function hydrateFromCloudIfSignedIn(
-  getLocal: () => PersistedGymData,
+  getSnapshot: () => PersistedGymData,
   applyMerged: (data: PersistedGymData) => void,
 ): Promise<void> {
   const session = await fetchSession();
@@ -91,15 +101,14 @@ export async function hydrateFromCloudIfSignedIn(
   if (!res.ok) return;
 
   const json = (await res.json()) as { data: unknown; updatedAt: string | null };
-  const local = getLocal();
-  const localM = Number(localStorage.getItem('gf_last_mtime') || '0');
+  const local = getSnapshot();
   const serverM = json.updatedAt ? new Date(json.updatedAt).getTime() : 0;
 
   const serverPayload = json.data;
   if (serverPayload != null && isValidCloudPayload(serverPayload)) {
-    if (serverM > localM) {
+    if (serverM > lastHydratedServerMtime) {
       applyMerged(serverPayload);
-      writeGymDataLocal(serverPayload, serverM);
+      lastHydratedServerMtime = serverM;
     }
     return;
   }

@@ -6,7 +6,7 @@ import {
   savePersistedGymData,
   type PersistedGymData,
 } from './data/gymFlowStorage';
-import { resolvePlanExerciseIdsToCatalog, STORAGE_V2 } from './data/migrateStorage';
+import { resolvePlanExerciseIdsToCatalog } from './data/migrateStorage';
 import { MuscleTargetPick } from './components/MuscleTargetPick';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
@@ -30,7 +30,7 @@ const AUTO_ADVANCE_KEY = 'gf-routine-auto-advance';
 
 function readAutoAdvancePref(): boolean {
   try {
-    const v = localStorage.getItem(AUTO_ADVANCE_KEY);
+    const v = sessionStorage.getItem(AUTO_ADVANCE_KEY);
     if (v === null) return true;
     return v === '1' || v === 'true';
   } catch {
@@ -45,6 +45,8 @@ function formatShortDate(iso: string | null) {
 
 export function RoutineRunView({ planId }: Props) {
   const [data, setData] = useState<PersistedGymData>(() => loadPersistedGymData());
+  const dataRef = useRef(data);
+  dataRef.current = data;
   const [images, setImages] = useState<Record<string, ExerciseImageMeta>>({});
   const [exerciseDrafts, setExerciseDrafts] = useState<Record<string, ExerciseLogDraft>>({});
   const [saveMessage, setSaveMessage] = useState('');
@@ -87,7 +89,7 @@ export function RoutineRunView({ planId }: Props) {
   useEffect(() => {
     if (cloudHydratedRef.current) return;
     cloudHydratedRef.current = true;
-    void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {
+    void hydrateFromCloudIfSignedIn(() => dataRef.current, (merged) => {
       setData(merged);
     });
   }, []);
@@ -95,7 +97,7 @@ export function RoutineRunView({ planId }: Props) {
   /** Add defaults for new ids only; keep in-progress drafts when the routine list changes slightly. */
   useEffect(() => {
     if (exercises.length === 0) return;
-    const fresh = loadPersistedGymData();
+    const fresh = data;
     setExerciseDrafts((prev) => {
       const next = { ...prev };
       const keep = new Set(exercises.map((e) => e.id));
@@ -118,7 +120,7 @@ export function RoutineRunView({ planId }: Props) {
     });
     setSaveMessage('');
     setCurrentIndex(0);
-  }, [exerciseIdsKey]);
+  }, [exerciseIdsKey, data.sessions]);
 
   useEffect(() => {
     const ex = exercises[currentIndex];
@@ -133,20 +135,6 @@ export function RoutineRunView({ planId }: Props) {
   useEffect(() => {
     if (plan) document.title = `${plan.name} · Gym Flow`;
   }, [plan]);
-
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_V2 && e.newValue) {
-        try {
-          setData(JSON.parse(e.newValue) as PersistedGymData);
-        } catch {
-          /* ignore */
-        }
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -294,7 +282,7 @@ export function RoutineRunView({ planId }: Props) {
   function setAutoAdvance(next: boolean) {
     setAutoAdvanceOnInclude(next);
     try {
-      localStorage.setItem(AUTO_ADVANCE_KEY, next ? '1' : '0');
+      sessionStorage.setItem(AUTO_ADVANCE_KEY, next ? '1' : '0');
     } catch {
       /* ignore */
     }

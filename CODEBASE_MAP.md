@@ -91,7 +91,7 @@
 | Build cmd | `cd "Gym Webapp" && npm run build` (runs `tsc && vite build`) |
 | Output | `public/gym-flow/` ← Vite writes directly here (see `vite.config.ts`) |
 | Served at | `/gym-flow/` (Next.js treats `public/` as static) |
-| Cloud backup | Email/password (`gym_flow_email_accounts`) or Google · register `POST /api/gym-flow/register` · `GET/PUT /api/gym-flow/data` · optional profile step `/gym-flow-profile-setup` after sign-in · `PATCH /api/gym-flow/profile` |
+| Cloud backup | Signed-in users: in-memory app state + `GET/PUT /api/gym-flow/data` (no localStorage for workout data). Optional profile step `/gym-flow-profile-setup` · `PATCH /api/gym-flow/profile`. Unsigned: data is session-only until sign-in. |
 | Env | `.env.example` — `DATABASE_URL` **or** `POSTGRES_URL` (Vercel template), `AUTH_SECRET`, `AUTH_GOOGLE_*` · helper `lib/db/database-url.ts` |
 | PWA listing | `app/web-apps/page.tsx` |
 
