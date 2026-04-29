@@ -341,6 +341,7 @@ export function RoutineRunView({ planId }: Props) {
         const isCardio = getEffectiveCategory(ex) === 'cardio';
         const stat = data.stats[ex.id];
         const history = getRecentLogsForExercise(data.sessions, ex.id, 5);
+        const lastLog = history[0];
         const isLast = currentIndex === exercises.length - 1;
         const muscleMeta = [ex.primaryGroup, ...(ex.secondaryGroups ?? [])].join(' · ');
         const imgMeta = images[ex.name];
@@ -455,6 +456,31 @@ export function RoutineRunView({ planId }: Props) {
             ) : null}
 
             <MuscleTargetPick exercise={ex} draft={draft} onPatch={(patch) => updateDraft(ex.id, patch)} />
+
+            {lastLog ? (
+              <p className="routine-run-last-session" role="status">
+                <span className="routine-run-last-session-label">Last session</span>
+                {isCardio ? (
+                  <>
+                    {' '}
+                    <strong>{lastLog.reps?.trim() || '—'}</strong> min · {lastLog.dateLabel}
+                  </>
+                ) : (
+                  <>
+                    {' '}
+                    <strong>{lastLog.sets}×{lastLog.reps?.trim() || '—'}</strong>
+                    {lastLog.weight?.trim() ? (
+                      <>
+                        {' · '}
+                        <strong>{lastLog.weight.trim()}</strong>
+                      </>
+                    ) : null}
+                    {' · '}
+                    {lastLog.dateLabel}
+                  </>
+                )}
+              </p>
+            ) : null}
 
             <div className={`routine-run-log-grid ${!isCardio ? 'routine-run-log-grid--triple' : ''}`.trim()}>
               {isCardio ? (

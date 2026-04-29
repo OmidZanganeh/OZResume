@@ -87,13 +87,23 @@ function daysAgo(dateStr: string | null): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
-  return `${diff}d ago`;
+  return `${diff} days ago`;
+}
+
+function formatPlanLastDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function getLastUsedForPlan(plan: SavedPlan, stats: PersistedGymData['stats']): string | null {
   const dates = plan.exerciseIds.map((id) => stats[id]?.lastPerformed).filter((d): d is string => !!d);
   if (!dates.length) return null;
   return [...dates].sort().at(-1) ?? null;
+}
+
+/** Subline for home plan cards: move count + last activity from stats (any move in plan). */
+function planCardActivitySubline(entriesLength: number, lastUsed: string | null): string {
+  if (!lastUsed) return `${entriesLength} moves · Not logged yet`;
+  return `${entriesLength} moves · Last ${formatPlanLastDate(lastUsed)} · ${daysAgo(lastUsed)}`;
 }
 
 function buildRoutineRunUrl(planId: string): string {
@@ -530,7 +540,7 @@ export default function App() {
                               <div className="plan-card-home-info">
                                 <span className="plan-card-home-name">{plan.name}</span>
                                 <span className="plan-card-home-sub">
-                                  {entries.length} moves{lastUsed ? ` · ${daysAgo(lastUsed)}` : ''}
+                                  {planCardActivitySubline(entries.length, lastUsed)}
                                 </span>
                                 {plan.muscleGroups.length > 0 && (
                                   <div className="plan-card-home-muscles">
@@ -580,12 +590,13 @@ export default function App() {
                   <ul className="plan-card-list">
                     {category.plans.map((plan) => {
                       const entries = orderedPlanEntries(plan, allExercises);
+                      const lastUsed = getLastUsedForPlan(plan, data.stats);
                       return (
                         <li key={plan.id} className="plan-card-home">
                           <div className="plan-card-home-row">
                             <div className="plan-card-home-info">
                               <span className="plan-card-home-name">{plan.name}</span>
-                              <span className="plan-card-home-sub">{entries.length} moves</span>
+                              <span className="plan-card-home-sub">{planCardActivitySubline(entries.length, lastUsed)}</span>
                               {plan.muscleGroups.length > 0 && (
                                 <div className="plan-card-home-muscles">
                                   {plan.muscleGroups.slice(0, 4).map((g) => (

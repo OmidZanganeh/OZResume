@@ -703,6 +703,31 @@ body {
   cursor: default;
 }
 
+.routine-run-last-session {
+  margin: 0.6rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  background: rgba(45, 212, 191, 0.08);
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.routine-run-last-session-label {
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5eead4;
+  margin-right: 0.35rem;
+}
+
+.routine-run-last-session strong {
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
 .routine-run-log-grid {
   margin-top: 0.5rem;
   display: grid;
@@ -2765,6 +2790,7 @@ body {
 .plan-card-home-sub {
   font-size: 0.7rem;
   color: var(--gf-text-dim);
+  line-height: 1.35;
 }
 
 .plan-card-home-muscles {
