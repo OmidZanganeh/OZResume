@@ -34,6 +34,7 @@ export function RoutineRunView({ planId }: Props) {
   const [images, setImages] = useState<Record<string, ExerciseImageMeta>>({});
   const [exerciseDrafts, setExerciseDrafts] = useState<Record<string, ExerciseLogDraft>>({});
   const [saveMessage, setSaveMessage] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const allExercises = useMemo(
     () => [...EXERCISE_LIBRARY, ...data.customExercises],
@@ -84,6 +85,7 @@ export function RoutineRunView({ planId }: Props) {
       return next;
     });
     setSaveMessage('');
+    setCurrentIndex(0);
   }, [exerciseIdsKey]);
 
   useEffect(() => {
@@ -222,14 +224,17 @@ export function RoutineRunView({ planId }: Props) {
     );
   }
 
+  const currentExercise = exercises[currentIndex];
+  const progressPct = exercises.length > 0 ? Math.round(((currentIndex + 1) / exercises.length) * 100) : 0;
+
   return (
     <div className="routine-run">
       <header className="routine-run-header">
         <div>
           <h1 className="routine-run-title">{plan.name}</h1>
           <p className="routine-run-sub">
-            Check <strong>Include when I save</strong> for each move you perform, then enter sets / weight. Everything saves to
-            the same history and body map as the Plan tab. Leave moves unchecked if you skip them.
+            Work through one move at a time. Check <strong>Include when I save</strong> for each move you perform, then enter
+            sets / weight. Everything saves to the same history and body map as the Plan tab.
           </p>
         </div>
         <a className="button button-muted routine-run-planner-link" href={plannerHref}>
@@ -243,134 +248,158 @@ export function RoutineRunView({ planId }: Props) {
         </div>
       ) : null}
 
-      <ol className="routine-run-list">
-        {exercises.map((ex, index) => {
-          const draft = exerciseDrafts[ex.id];
-          const isCardio = getEffectiveCategory(ex) === 'cardio';
-          const stat = data.stats[ex.id];
-          const history = getRecentLogsForExercise(data.sessions, ex.id, 5);
+      <div className="routine-run-progress" role="group" aria-label="Workout progress">
+        <span className="routine-run-progress-label">Move {currentIndex + 1} of {exercises.length}</span>
+        <div className="routine-run-progress-bar" aria-hidden="true">
+          <div className="routine-run-progress-fill" style={{ width: `${progressPct}%` }} />
+        </div>
+        <div className="routine-run-progress-actions">
+          <button
+            type="button"
+            className="button button-muted"
+            onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+            disabled={currentIndex === 0}
+          >
+            ← Back
+          </button>
+          <button
+            type="button"
+            className="button"
+            onClick={() => setCurrentIndex((i) => Math.min(exercises.length - 1, i + 1))}
+            disabled={currentIndex === exercises.length - 1}
+          >
+            Next →
+          </button>
+        </div>
+      </div>
 
-          return (
-            <li key={ex.id} className="routine-run-card">
-              <div className="routine-run-card-head">
-                <span className="routine-run-num">{index + 1}</span>
-                <h2 className="routine-run-move-title">
-                  <ExerciseYoutubeLink exerciseName={ex.name} className="exercise-youtube exercise-youtube--title">
-                    {ex.name}
-                  </ExerciseYoutubeLink>
-                </h2>
-              </div>
-              <div className="routine-run-media">
-                {images[ex.name] ? (
-                  <img
-                    src={images[ex.name].url}
-                    alt={`${ex.name} demo`}
-                    className="routine-run-image"
-                    loading={index < 3 ? 'eager' : 'lazy'}
-                  />
-                ) : (
-                  <div className="routine-run-image-fallback">{ex.primaryGroup}</div>
-                )}
-              </div>
-              <p className="routine-run-meta">
-                {ex.primaryGroup}
-                {ex.secondaryGroups?.length ? ` · ${ex.secondaryGroups.join(', ')}` : ''}
-              </p>
-              {images[ex.name]?.credit ? <p className="image-credit">{images[ex.name].credit}</p> : null}
+      {currentExercise ? (() => {
+        const ex = currentExercise;
+        const draft = exerciseDrafts[ex.id];
+        const isCardio = getEffectiveCategory(ex) === 'cardio';
+        const stat = data.stats[ex.id];
+        const history = getRecentLogsForExercise(data.sessions, ex.id, 5);
 
-              <div className="routine-run-stat-line">
-                Logged <strong>{stat?.timesCompleted ?? 0}</strong>× · Last: {formatShortDate(stat?.lastPerformed ?? null)}
-              </div>
-
-              {history.length > 0 ? (
-                <div className="routine-run-history">
-                  <span className="routine-run-history-label">Recent logs</span>
-                  <ul className="routine-run-history-list">
-                    {history.map((row, hi) => (
-                      <li key={`${row.dateIso}-${hi}`}>
-                        <span className="routine-run-history-date">{row.dateLabel}</span>
-                        <span className="routine-run-history-detail">
-                          {row.sets}×{row.reps || '—'}
-                          {row.weight ? ` · ${row.weight}` : ''}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <p className="routine-run-history-empty">No history yet for this move.</p>
-              )}
-
-              <label
-                className="routine-run-count-toggle checkbox"
-                title="Only checked moves are written when you tap Save workout"
-              >
-                <input
-                  type="checkbox"
-                  checked={draft?.completed ?? false}
-                  onChange={(e) => updateDraft(ex.id, { completed: e.target.checked })}
+        return (
+          <div className="routine-run-card">
+            <div className="routine-run-card-head">
+              <span className="routine-run-num">{currentIndex + 1}</span>
+              <h2 className="routine-run-move-title">
+                <ExerciseYoutubeLink exerciseName={ex.name} className="exercise-youtube exercise-youtube--title">
+                  {ex.name}
+                </ExerciseYoutubeLink>
+              </h2>
+            </div>
+            <div className="routine-run-media">
+              {images[ex.name] ? (
+                <img
+                  src={images[ex.name].url}
+                  alt={`${ex.name} demo`}
+                  className="routine-run-image"
+                  loading="eager"
                 />
-                Include when I save
-              </label>
+              ) : (
+                <div className="routine-run-image-fallback">{ex.primaryGroup}</div>
+              )}
+            </div>
+            <p className="routine-run-meta">
+              {ex.primaryGroup}
+              {ex.secondaryGroups?.length ? ` · ${ex.secondaryGroups.join(', ')}` : ''}
+            </p>
+            {images[ex.name]?.credit ? <p className="image-credit">{images[ex.name].credit}</p> : null}
 
-              <MuscleTargetPick exercise={ex} draft={draft} onPatch={(patch) => updateDraft(ex.id, patch)} />
+            <div className="routine-run-stat-line">
+              Logged <strong>{stat?.timesCompleted ?? 0}</strong>× · Last: {formatShortDate(stat?.lastPerformed ?? null)}
+            </div>
 
-              <div className="routine-run-log-grid">
-                {isCardio ? (
-                  <label className="routine-run-log-field routine-run-log-field--full">
-                    Minutes
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="e.g. 20"
-                      value={draft?.reps ?? '20'}
-                      onChange={(e) => updateDraft(ex.id, { reps: e.target.value, sets: 1 })}
-                    />
-                  </label>
-                ) : (
-                  <>
-                    <label className="routine-run-log-field">
-                      Sets
-                      <input
-                        type="number"
-                        min={1}
-                        value={draft?.sets ?? 3}
-                        onChange={(e) => updateDraft(ex.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })}
-                      />
-                    </label>
-                    <label className="routine-run-log-field">
-                      Reps
-                      <input
-                        type="text"
-                        value={draft?.reps ?? '8-12'}
-                        onChange={(e) => updateDraft(ex.id, { reps: e.target.value })}
-                      />
-                    </label>
-                    <label className="routine-run-log-field routine-run-log-field--wide">
-                      Weight (today)
-                      <input
-                        type="text"
-                        placeholder="e.g. 60kg"
-                        value={draft?.weight ?? ''}
-                        onChange={(e) => updateDraft(ex.id, { weight: e.target.value })}
-                      />
-                    </label>
-                  </>
-                )}
+            {history.length > 0 ? (
+              <div className="routine-run-history">
+                <span className="routine-run-history-label">Recent logs</span>
+                <ul className="routine-run-history-list">
+                  {history.map((row, hi) => (
+                    <li key={`${row.dateIso}-${hi}`}>
+                      <span className="routine-run-history-date">{row.dateLabel}</span>
+                      <span className="routine-run-history-detail">
+                        {row.sets}×{row.reps || '—'}
+                        {row.weight ? ` · ${row.weight}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="routine-run-history-empty">No history yet for this move.</p>
+            )}
+
+            <label
+              className="routine-run-count-toggle checkbox"
+              title="Only checked moves are written when you tap Save workout"
+            >
+              <input
+                type="checkbox"
+                checked={draft?.completed ?? false}
+                onChange={(e) => updateDraft(ex.id, { completed: e.target.checked })}
+              />
+              Include when I save
+            </label>
+
+            <MuscleTargetPick exercise={ex} draft={draft} onPatch={(patch) => updateDraft(ex.id, patch)} />
+
+            <div className="routine-run-log-grid">
+              {isCardio ? (
                 <label className="routine-run-log-field routine-run-log-field--full">
-                  Notes
+                  Minutes
                   <input
                     type="text"
-                    placeholder="tempo, machine #…"
-                    value={draft?.notes ?? ''}
-                    onChange={(e) => updateDraft(ex.id, { notes: e.target.value })}
+                    inputMode="numeric"
+                    placeholder="e.g. 20"
+                    value={draft?.reps ?? '20'}
+                    onChange={(e) => updateDraft(ex.id, { reps: e.target.value, sets: 1 })}
                   />
                 </label>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+              ) : (
+                <>
+                  <label className="routine-run-log-field">
+                    Sets
+                    <input
+                      type="number"
+                      min={1}
+                      value={draft?.sets ?? 3}
+                      onChange={(e) => updateDraft(ex.id, { sets: e.target.value === '' ? '' : Number(e.target.value) })}
+                    />
+                  </label>
+                  <label className="routine-run-log-field">
+                    Reps
+                    <input
+                      type="text"
+                      value={draft?.reps ?? '8-12'}
+                      onChange={(e) => updateDraft(ex.id, { reps: e.target.value })}
+                    />
+                  </label>
+                  <label className="routine-run-log-field routine-run-log-field--wide">
+                    Weight (today)
+                    <input
+                      type="text"
+                      placeholder="e.g. 60kg"
+                      value={draft?.weight ?? ''}
+                      onChange={(e) => updateDraft(ex.id, { weight: e.target.value })}
+                    />
+                  </label>
+                </>
+              )}
+              <label className="routine-run-log-field routine-run-log-field--full">
+                Notes
+                <input
+                  type="text"
+                  placeholder="tempo, machine #…"
+                  value={draft?.notes ?? ''}
+                  onChange={(e) => updateDraft(ex.id, { notes: e.target.value })}
+                />
+              </label>
+            </div>
+          </div>
+        );
+      })() : null}
 
       <section className="routine-run-sticky-save" aria-label="Save workout">
         <div className="routine-run-sticky-copy">
