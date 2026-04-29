@@ -2,11 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { RoutineRunView } from './RoutineRunView';
+import { GlobalHaptics } from './components/GlobalHaptics';
 import './style.css';
 
 const routineParam = new URLSearchParams(window.location.search).get('routine');
 const root = (
   <React.StrictMode>
+    <GlobalHaptics />
     {routineParam ? <RoutineRunView planId={routineParam} /> : <App />}
   </React.StrictMode>
 );
