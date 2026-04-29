@@ -5,7 +5,7 @@ import '../gym-flow-surface.css';
 export default function GymFlowAccountLayout({ children }: { children: React.ReactNode }) {
   return (
     <GymFlowAuthShell>
-      <GymFlowAuthHeader subtitle="Account & cloud backup" />
+      <GymFlowAuthHeader subtitle="Account" />
       {children}
     </GymFlowAuthShell>
   );

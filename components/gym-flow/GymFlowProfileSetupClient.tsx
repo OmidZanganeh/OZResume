@@ -14,6 +14,26 @@ type ProfileForm = {
   age: string;
 };
 
+/** True only when the cloud payload itself has all four fields (not merged with what the user typed). */
+function isServerPayloadProfileComplete(u: Record<string, string | undefined>): boolean {
+  const name = typeof u.name === 'string' ? u.name.trim() : '';
+  const weight = typeof u.weight === 'string' ? u.weight.trim() : '';
+  const height = typeof u.height === 'string' ? u.height.trim() : '';
+  const age = typeof u.age === 'string' ? u.age.trim() : '';
+  return !!(name && weight && height && age);
+}
+
+function mergeServerProfile(prev: ProfileForm, u: Record<string, string | undefined>): ProfileForm {
+  return {
+    name: typeof u.name === 'string' ? u.name : prev.name,
+    weight: typeof u.weight === 'string' ? u.weight : prev.weight,
+    weightUnit: u.weightUnit === 'lbs' ? 'lbs' : 'kg',
+    height: typeof u.height === 'string' ? u.height : prev.height,
+    heightUnit: u.heightUnit === 'ft' ? 'ft' : 'cm',
+    age: typeof u.age === 'string' ? u.age : prev.age,
+  };
+}
+
 function ProfileSetupInner() {
   const { status, data: sessionData } = useSession();
   const router = useRouter();
@@ -57,14 +77,11 @@ function ProfileSetupInner() {
         const j = (await r.json()) as { data?: { userProfile?: Record<string, string> } };
         const u = j.data?.userProfile;
         if (u && !cancelled) {
-          setForm((f) => ({
-            name: typeof u.name === 'string' ? u.name : f.name,
-            weight: typeof u.weight === 'string' ? u.weight : f.weight,
-            weightUnit: u.weightUnit === 'lbs' ? 'lbs' : 'kg',
-            height: typeof u.height === 'string' ? u.height : f.height,
-            heightUnit: u.heightUnit === 'ft' ? 'ft' : 'cm',
-            age: typeof u.age === 'string' ? u.age : f.age,
-          }));
+          const rec = u as Record<string, string | undefined>;
+          setForm((f) => mergeServerProfile(f, rec));
+          if (isServerPayloadProfileComplete(rec)) {
+            queueMicrotask(() => goContinue());
+          }
         }
       } catch {
         /* ignore */
@@ -75,7 +92,7 @@ function ProfileSetupInner() {
     return () => {
       cancelled = true;
     };
-  }, [status]);
+  }, [status, goContinue]);
 
   useEffect(() => {
     const n = sessionData?.user?.name;
@@ -83,16 +100,6 @@ function ProfileSetupInner() {
       setForm((f) => (f.name ? f : { ...f, name: n }));
     }
   }, [sessionData?.user?.name]);
-
-  const profileLooksComplete =
-    form.name.trim() && form.weight.trim() && form.height.trim() && form.age.trim();
-
-  useEffect(() => {
-    if (loading || status !== 'authenticated') return;
-    if (profileLooksComplete) {
-      goContinue();
-    }
-  }, [loading, status, profileLooksComplete, goContinue]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -126,9 +133,6 @@ function ProfileSetupInner() {
 
   return (
     <div className="gym-flow-auth-main gym-flow-auth-main--narrow">
-      <p className="gym-flow-auth-lead gym-flow-auth-lead--sm">
-        Add a few details for reports and your account. You can edit these anytime in Gym Flow settings.
-      </p>
 
       <form className="gym-flow-auth-form-stack" onSubmit={(e) => void onSubmit(e)}>
         <label className="gym-flow-auth-label">

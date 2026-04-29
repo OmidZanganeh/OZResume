@@ -35,20 +35,15 @@ function SignInPopupInner({ showGoogle, showEmail }: Props) {
   const noMethod =
     !showGoogle && !showEmail ? (
       <p className="gym-flow-auth-warn-inline">
-        Sign-in is not available here. Check{' '}
+        Sign-in isn&apos;t available.{' '}
         <a href="/gym-flow-account" className="gym-flow-auth-link">
-          /gym-flow-account
-        </a>{' '}
-        or your site configuration.
+          Account page
+        </a>
       </p>
     ) : null;
 
   return (
     <div className="gym-flow-auth-centre">
-      <p className="gym-flow-auth-lead gym-flow-auth-lead--sm">
-        Use your email or Google. When you finish, this window will close.
-      </p>
-
       {noMethod}
 
       {showEmail && <GymFlowEmailAuthForm variant="compact" afterSignInRedirect={profileSetupUrl} />}
@@ -67,7 +62,7 @@ function SignInPopupInner({ showGoogle, showEmail }: Props) {
 
       <p className="gym-flow-auth-footer-note">
         <a href="/gym-flow-account" className="gym-flow-auth-link">
-          Full account page
+          Account
         </a>
       </p>
     </div>

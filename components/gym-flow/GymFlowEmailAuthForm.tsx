@@ -67,12 +67,6 @@ export function GymFlowEmailAuthForm({ variant = 'default', afterSignInRedirect 
   return (
     <div className={cardClass}>
       <p className="gym-flow-auth-card-title">{variant === 'compact' ? 'Email' : 'Email & password'}</p>
-      {variant === 'default' && (
-        <p className="gym-flow-auth-lead gym-flow-auth-lead--sm" style={{ marginTop: '-0.35rem' }}>
-          Create a Gym Flow account without Google. Same cloud backup as Google sign-in (separate login — not linked to a
-          Google account).
-        </p>
-      )}
 
       <div className="gym-flow-auth-tabs">
         <button
