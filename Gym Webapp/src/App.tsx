@@ -571,7 +571,7 @@ export default function App() {
                     Sign in with Google
                   </button>
                   <p className="home-cloud-link home-cloud-link--secondary">
-                    <a href="/gym-flow-account/">Or open sign-in in this tab</a>
+                    <a href="/gym-flow-account/">Email or Google — open sign-in in this tab</a>
                   </p>
                 </>
               )}

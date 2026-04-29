@@ -22,7 +22,7 @@ function SignInInner() {
   }, [searchParams]);
 
   return (
-    <p
+    <div
       style={{
         fontFamily: 'system-ui, sans-serif',
         padding: '2rem',
@@ -30,8 +30,13 @@ function SignInInner() {
         color: '#64748b',
       }}
     >
-      Continuing to Google…
-    </p>
+      <p style={{ margin: 0 }}>Continuing to Google…</p>
+      <p style={{ margin: '1.25rem 0 0', fontSize: '0.85rem' }}>
+        <a href="/gym-flow-account" style={{ color: '#0d9488', fontWeight: 600 }}>
+          Use email instead
+        </a>
+      </p>
+    </div>
   );
 }
 

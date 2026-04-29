@@ -1,6 +1,8 @@
 /**
  * Auth.js env checks — used to show setup hints without exposing secrets.
  */
+import { isDatabaseConfigured } from './db/database-url';
+
 function normalizeEnvValue(v: string | undefined): string {
   if (!v) return '';
   let s = v.trim();
@@ -23,9 +25,11 @@ export function getAuthEnvStatus() {
   const googleSecret = normalizeEnvValue(
     process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
   );
+  const hasDatabase = isDatabaseConfigured();
   return {
     hasSecret: secret.length > 0,
     hasGoogle: googleId.length > 0 && googleSecret.length > 0,
+    hasDatabase,
     /** Safe for session encryption / JWT — required in production */
     secret,
     googleId,
@@ -35,7 +39,8 @@ export function getAuthEnvStatus() {
 
 export function isAuthFullyConfigured(): boolean {
   const s = getAuthEnvStatus();
-  return s.hasSecret && s.hasGoogle;
+  if (!s.hasSecret) return false;
+  return s.hasGoogle || s.hasDatabase;
 }
 
 /** Where this server build is running (Vercel sets VERCEL_ENV). Helps debug Preview vs Production env. */

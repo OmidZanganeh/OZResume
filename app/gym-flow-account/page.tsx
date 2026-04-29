@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { auth } from '@/auth';
 import { GymFlowAuthButtons } from '@/components/gym-flow/GymFlowAuthButtons';
+import { GymFlowEmailAuthForm } from '@/components/gym-flow/GymFlowEmailAuthForm';
 import { getAuthEnvStatus, getDeploymentEnvHint } from '@/lib/auth-env';
 
 export const metadata = {
@@ -13,7 +14,9 @@ export const dynamic = 'force-dynamic';
 export default async function GymFlowAccountPage() {
   const session = await auth();
   const env = getAuthEnvStatus();
-  const authReady = env.hasSecret && env.hasGoogle;
+  const googleReady = env.hasSecret && env.hasGoogle;
+  const emailReady = env.hasSecret && env.hasDatabase;
+  const canSignInAny = googleReady || emailReady;
   const deployHint = getDeploymentEnvHint();
 
   return (
@@ -28,8 +31,8 @@ export default async function GymFlowAccountPage() {
     >
       <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 0.5rem' }}>Gym Flow account</h1>
       <p style={{ color: '#64748b', fontSize: '0.95rem', margin: '0 0 1.25rem' }}>
-        Sign in with Google to back up your workouts, plans, and stats to the cloud. Data syncs when you use Gym Flow
-        on this site while signed in.
+        Sign in to back up workouts, plans, and stats to the cloud. Use an email account or Google — data syncs when you
+        use Gym Flow on this site while signed in.
       </p>
 
       {session?.user ? (
@@ -51,7 +54,7 @@ export default async function GymFlowAccountPage() {
         <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>You are not signed in.</p>
       )}
 
-      {!authReady && (
+      {!env.hasSecret && (
         <div
           role="alert"
           style={{
@@ -64,50 +67,70 @@ export default async function GymFlowAccountPage() {
             marginBottom: '1rem',
           }}
         >
-          <p style={{ margin: '0 0 0.5rem', fontWeight: 700 }}>Sign-in is not configured on this deployment</p>
-          <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: '#7f1d1d', opacity: 0.95 }}>
-            {deployHint}
-          </p>
+          <p style={{ margin: '0 0 0.5rem', fontWeight: 700 }}>Auth is not configured on this deployment</p>
+          <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: '#7f1d1d', opacity: 0.95 }}>{deployHint}</p>
           <p style={{ margin: 0, fontSize: '0.85rem' }}>
-            Right now the server sees:{' '}
-            <strong>{env.hasSecret ? 'AUTH_SECRET: set' : 'AUTH_SECRET: missing'}</strong>
-            {' · '}
-            <strong>
-              {env.hasGoogle ? 'Google OAuth: set' : 'Google OAuth: missing'}
-            </strong>
-          </p>
-          <p style={{ margin: '0.75rem 0 0', fontSize: '0.9rem' }}>
-            Auth.js needs a secret and Google OAuth keys. In{' '}
-            <strong>Vercel → Project → Settings → Environment Variables</strong>, set for the same environment as this
-            deployment (often <strong>Production</strong> and/or <strong>Preview</strong>):
-          </p>
-          <ul style={{ margin: '0.75rem 0 0', paddingLeft: '1.2rem' }}>
-            {!env.hasSecret && (
-              <li>
-                <code style={{ fontSize: '0.85em' }}>AUTH_SECRET</code> — run locally:{' '}
-                <code style={{ fontSize: '0.85em' }}>npx auth secret</code> or{' '}
-                <code style={{ fontSize: '0.85em' }}>openssl rand -base64 32</code>
-              </li>
-            )}
-            {!env.hasGoogle && (
-              <li>
-                <code style={{ fontSize: '0.85em' }}>AUTH_GOOGLE_ID</code> and{' '}
-                <code style={{ fontSize: '0.85em' }}>AUTH_GOOGLE_SECRET</code> from Google Cloud OAuth (Web client)
-              </li>
-            )}
-          </ul>
-          <p style={{ margin: '0.75rem 0 0', fontSize: '0.85rem' }}>
-            Redeploy after saving. A missing <code>AUTH_SECRET</code> causes the generic “Server error / problem with the
-            server configuration” page.
+            Set <code style={{ fontSize: '0.85em' }}>AUTH_SECRET</code> in Vercel (or <code>.env.local</code> locally),
+            then redeploy. Without it you will see generic “Server error / server configuration” messages.
           </p>
         </div>
       )}
 
-      <GymFlowAuthButtons hasSession={!!session?.user} disabled={!authReady} />
+      {env.hasSecret && !canSignInAny && (
+        <div
+          role="alert"
+          style={{
+            padding: '1rem',
+            borderRadius: '12px',
+            border: '1px solid #fde68a',
+            background: '#fffbeb',
+            color: '#92400e',
+            fontSize: '0.9rem',
+            marginBottom: '1rem',
+          }}
+        >
+          <p style={{ margin: '0 0 0.5rem', fontWeight: 700 }}>No sign-in method enabled</p>
+          <p style={{ margin: 0, fontSize: '0.88rem' }}>
+            Add <strong>Neon / Postgres</strong> (<code>POSTGRES_URL</code> or <code>DATABASE_URL</code>) for email
+            accounts, and/or <strong>Google OAuth</strong> keys. Server currently:{' '}
+            <strong>{env.hasDatabase ? 'Database: set' : 'Database: missing'}</strong>
+            {' · '}
+            <strong>{env.hasGoogle ? 'Google OAuth: set' : 'Google OAuth: missing'}</strong>
+          </p>
+        </div>
+      )}
+
+      {session?.user ? (
+        <GymFlowAuthButtons hasSession disabled={false} />
+      ) : (
+        <>
+          {emailReady && <GymFlowEmailAuthForm />}
+          {googleReady && (
+            <>
+              {emailReady && (
+                <p
+                  style={{
+                    margin: '0 0 0.65rem',
+                    fontSize: '0.88rem',
+                    color: '#64748b',
+                    fontWeight: 600,
+                  }}
+                >
+                  Or continue with Google
+                </p>
+              )}
+              <GymFlowAuthButtons hasSession={false} disabled={false} />
+            </>
+          )}
+        </>
+      )}
 
       <ul style={{ margin: '1.5rem 0 0', paddingLeft: '1.2rem', color: '#64748b', fontSize: '0.88rem' }}>
         <li>Use the same browser; opening <strong>/gym-flow/</strong> after sign-in will load cloud data when it is newer than this device.</li>
-        <li>Add authorized redirect URI in Google Cloud: <code style={{ fontSize: '0.8em' }}>/api/auth/callback/google</code> on your domain.</li>
+        <li>
+          Google sign-in: add authorized redirect URI{' '}
+          <code style={{ fontSize: '0.8em' }}>/api/auth/callback/google</code> on your domain.
+        </li>
       </ul>
 
       <p style={{ marginTop: '2rem' }}>

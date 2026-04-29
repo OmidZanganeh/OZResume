@@ -37,7 +37,8 @@ export async function getGymFlowData(userId: string): Promise<GymFlowRow | null>
   const rows = (await getSql()`
     SELECT payload, updated_at FROM gym_flow_data WHERE user_id = ${userId}
   `) as unknown as GymFlowRow[];
-  const r = rows[0];  return r ?? null;
+  const r = rows[0];
+  return r ?? null;
 }
 
 export async function saveGymFlowData(userId: string, payload: unknown): Promise<void> {
