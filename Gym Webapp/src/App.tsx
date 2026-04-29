@@ -886,7 +886,7 @@ export default function App() {
                     className={`chip ${analysisDays === d ? 'chip-active' : ''}`}
                     onClick={() => setAnalysisDays(d)}
                   >
-                    Last {d}d
+                    {d}d
                   </button>
                 ))}
               </div>
