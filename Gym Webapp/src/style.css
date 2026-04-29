@@ -2752,6 +2752,54 @@ body {
   text-decoration: underline;
 }
 
+.home-cloud-row {
+  margin: 0 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.home-signin-google-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #0f766e;
+  background: #14b8a6;
+  color: #042f2e;
+  font-family: var(--gf-ui, system-ui, sans-serif);
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 118, 110, 0.2);
+}
+
+.home-signin-google-btn:hover {
+  filter: brightness(1.04);
+}
+
+.home-signin-google-btn:active {
+  transform: translateY(1px);
+}
+
+.home-cloud-link--secondary {
+  margin: 0;
+  font-size: 0.78rem;
+  opacity: 0.92;
+}
+
+.home-cloud-link--signed-in {
+  margin: 0;
+}
+
+.home-cloud-link--signed-in span {
+  color: var(--gf-text-muted, #64748b);
+  font-weight: 500;
+}
+
 .home-section { margin-bottom: 2.25rem; }
 
 .home-section-header {

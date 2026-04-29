@@ -40,7 +40,8 @@ import {
   labelForFilterValue,
 } from './utils/catalogSort';
 import { buildPresetPlans } from './data/presetPlans';
-import { hydrateFromCloudIfSignedIn } from './utils/cloudSync';
+import { hydrateFromCloudIfSignedIn, fetchAuthSession } from './utils/cloudSync';
+import { GYM_FLOW_OAUTH_SUCCESS, openGoogleSignInPopup } from './utils/googleSignInPopup';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
 
@@ -148,6 +149,7 @@ export default function App() {
     'Targeted Isolation (Single Muscle)': true
   });
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
+  const [cloudSignedIn, setCloudSignedIn] = useState(false);
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -266,6 +268,24 @@ export default function App() {
     void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {
       setData(merged);
     });
+  }, []);
+
+  useEffect(() => {
+    void fetchAuthSession().then((s) => setCloudSignedIn(!!s?.user?.id));
+  }, []);
+
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type !== GYM_FLOW_OAUTH_SUCCESS) return;
+      setCloudSignedIn(true);
+      void hydrateFromCloudIfSignedIn(loadPersistedGymData, (merged) => {
+        setData(merged);
+      });
+      setMessage('Signed in — cloud backup on.');
+    }
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
   }, []);
 
   function toggleGroup(group: MuscleGroup) {
@@ -531,9 +551,31 @@ export default function App() {
         {view === 'home' && (
           <div className="home-view">
             <div className="home-wordmark">Gym Flow</div>
-            <p className="home-cloud-link">
-              <a href="/gym-flow-account/">Google sign-in · cloud backup</a>
-            </p>
+            <div className="home-cloud-row">
+              {cloudSignedIn ? (
+                <p className="home-cloud-link home-cloud-link--signed-in">
+                  <span>Cloud backup on</span>
+                  {' · '}
+                  <a href="/gym-flow-account/">Account</a>
+                </p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="home-signin-google-btn"
+                    onClick={() => {
+                      const w = openGoogleSignInPopup();
+                      if (!w) setMessage('Allow pop-ups to sign in with Google.');
+                    }}
+                  >
+                    Sign in with Google
+                  </button>
+                  <p className="home-cloud-link home-cloud-link--secondary">
+                    <a href="/gym-flow-account/">Or open sign-in in this tab</a>
+                  </p>
+                </>
+              )}
+            </div>
 
             {/* MY PLANS */}
             <section className="home-section" aria-label="My Plans">

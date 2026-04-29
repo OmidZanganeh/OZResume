@@ -34,6 +34,11 @@ async function fetchSession(): Promise<{ user?: { id?: string } } | null> {
   }
 }
 
+/** Whether the user has a NextAuth session (same origin, cookies). */
+export async function fetchAuthSession(): Promise<{ user?: { id?: string } } | null> {
+  return fetchSession();
+}
+
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function scheduleCloudPush(data: PersistedGymData): void {
