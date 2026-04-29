@@ -1407,7 +1407,7 @@ body {
 }
 
 .body-muscles-host {
-  height: 660px; /* 10% taller to avoid head/foot clipping */
+  height: 720px; /* Taller to avoid head/foot clipping */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1557,7 +1557,7 @@ body {
   }
 
   .body-muscles-host {
-    height: 484px;
+    height: 528px;
     max-width: 280px;
   }
 }
