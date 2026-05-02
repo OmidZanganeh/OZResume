@@ -38,9 +38,19 @@ export async function GET(req: Request) {
     const url = new URL(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
     url.searchParams.set('fields', 'code,product_name,brands,quantity,serving_size,nutriments');
 
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'GymFlow/1.0 (https://omidzanganeh.com/gym-flow)',
+      },
+      cache: 'no-store',
+    });
     if (!res.ok) {
-      return NextResponse.json({ error: 'Upstream error' }, { status: 502 });
+      const text = await res.text().catch(() => '');
+      return NextResponse.json(
+        { error: 'Upstream error', details: text.slice(0, 400) },
+        { status: 502 },
+      );
     }
 
     const data = (await res.json()) as {
