@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       return NextResponse.json(
-        { error: 'Upstream error', details: text.slice(0, 400) },
+        { error: 'Upstream error', status: res.status, details: text.slice(0, 400) },
         { status: 502 },
       );
     }

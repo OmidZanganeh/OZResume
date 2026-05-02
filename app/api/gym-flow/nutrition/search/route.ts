@@ -22,11 +22,8 @@ export async function GET(req: Request) {
   }
 
   try {
-    const url = new URL('https://world.openfoodfacts.org/cgi/search.pl');
+    const url = new URL('https://world.openfoodfacts.org/api/v2/search');
     url.searchParams.set('search_terms', query);
-    url.searchParams.set('search_simple', '1');
-    url.searchParams.set('action', 'process');
-    url.searchParams.set('json', '1');
     url.searchParams.set('page_size', '20');
     url.searchParams.set('fields', 'code,product_name,brands,quantity,serving_size');
 
@@ -40,7 +37,7 @@ export async function GET(req: Request) {
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       return NextResponse.json(
-        { error: 'Upstream error', details: text.slice(0, 400) },
+        { error: 'Upstream error', status: res.status, details: text.slice(0, 400) },
         { status: 502 },
       );
     }

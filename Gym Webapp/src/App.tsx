@@ -357,7 +357,7 @@ export default function App() {
         .then((r) => r.json().then((j) => ({ ok: r.ok, json: j })))
         .then(({ ok, json }) => {
           if (!ok) {
-            setNutritionError(json?.error ?? 'Search failed');
+            setNutritionError(formatNutritionApiError(json, 'Search failed'));
             setNutritionResults([]);
             return;
           }
@@ -395,6 +395,16 @@ export default function App() {
     return Math.round(value * 10) / 10;
   }
 
+  function formatNutritionApiError(json: any, fallback: string): string {
+    if (!json) return fallback;
+    const base = typeof json.error === 'string' ? json.error : fallback;
+    const status = typeof json.status === 'number' ? ` (status ${json.status})` : '';
+    const details = typeof json.details === 'string' && json.details.trim()
+      ? ` — ${json.details.trim()}`
+      : '';
+    return `${base}${status}${details}`.trim();
+  }
+
   function computeMacros(per100g: NutritionGoals, grams: number) {
     const factor = grams / 100;
     return {
@@ -421,7 +431,9 @@ export default function App() {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setMessage(json?.error ?? 'Could not load nutrition data');
+      const err = formatNutritionApiError(json, 'Could not load nutrition data');
+      setMessage(err);
+      setNutritionError(err);
       return null;
     }
     return (json?.item as NutritionItemDetail) ?? null;
