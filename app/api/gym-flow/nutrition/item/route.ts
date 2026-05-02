@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
   try {
     const url = new URL(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
-    url.searchParams.set('fields', 'code,product_name,brands,quantity,serving_size,nutriments');
+    url.searchParams.set('fields', 'code,product_name,product_name_en,brands,quantity,serving_size,nutriments');
 
     const res = await fetch(url.toString(), {
       headers: {
@@ -76,7 +76,7 @@ export async function GET(req: Request) {
 
     const item: NutritionItem = {
       code: String(data.product.code ?? code),
-      name: String(data.product.product_name ?? '').trim() || 'Unknown food',
+      name: String(data.product.product_name_en ?? data.product.product_name ?? '').trim() || 'Unknown food',
       brands: typeof data.product.brands === 'string' ? data.product.brands : undefined,
       quantity: typeof data.product.quantity === 'string' ? data.product.quantity : undefined,
       servingSize: typeof data.product.serving_size === 'string' ? data.product.serving_size : undefined,
