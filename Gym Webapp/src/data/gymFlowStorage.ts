@@ -17,7 +17,7 @@ export type UserProfile = {
   sex?: 'male' | 'female';
 };
 
-/** User-defined pantry item; macros per 100 g (same basis as Open Food Facts logs). */
+/** User-defined pantry item; macros are stored per 100 g (same as Open Food Facts) for one consistent scale. */
 export type CustomFood = {
   id: string;
   name: string;
@@ -26,6 +26,8 @@ export type CustomFood = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  /** When set, “Amount (g)” defaults to this when you pick this food (your usual portion). */
+  defaultServingGrams?: number;
 };
 
 export type NutritionGoals = {

@@ -3925,6 +3925,87 @@ body {
   align-items: center;
 }
 
+.nutrition-add-block {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.nutrition-serving-hint {
+  margin: 0;
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
+.nutrition-grams-with-chips {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.nutrition-grams-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-grams-label > span:first-child {
+  font-weight: 500;
+  color: var(--gf-text);
+}
+
+.nutrition-grams-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.nutrition-grams-row .text-input {
+  flex: 1;
+  min-width: 0;
+  max-width: 140px;
+}
+
+.nutrition-gram-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.nutrition-entry-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.nutrition-entry-toggle-btn {
+  border: 1px solid var(--gf-border);
+  background: var(--gf-surface-2);
+  color: var(--gf-text-muted);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--gf-radius-md);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.nutrition-entry-toggle-btn:hover {
+  color: var(--gf-text);
+  border-color: var(--gf-text-dim);
+}
+
+.nutrition-entry-toggle-btn.is-active {
+  background: rgba(45, 212, 191, 0.12);
+  border-color: rgba(45, 212, 191, 0.45);
+  color: #5eead4;
+}
+
 .nutrition-search-thumb {
   width: 48px;
   height: 48px;

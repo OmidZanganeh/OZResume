@@ -10,6 +10,7 @@ import {
   recomputeStatsFromSessions,
 } from '../utils/historySeed';
 import { nutritionLogDateKey } from '../utils/nutritionGoalsFromProfile';
+import { portionMacrosToPer100g } from '../utils/nutritionServing';
 import { candidateMuscleGroupsForExercise } from '../utils/workoutLogDraft';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
@@ -44,6 +45,7 @@ type NutritionSearchItem = {
 
 type NutritionItemDetail = NutritionSearchItem & {
   per100g: NutritionGoals;
+  suggestedServingGrams?: number | null;
 };
 
 export type DayActivityPersistPatch = {
@@ -111,8 +113,13 @@ export function DayActivityModal({
   const [selectedMealItem, setSelectedMealItem] = useState<NutritionSearchItem | null>(null);
   const [mealGrams, setMealGrams] = useState('100');
   const [mealBusy, setMealBusy] = useState(false);
+  const [mealServingHint, setMealServingHint] = useState<string | null>(null);
+  const [offMealLookup, setOffMealLookup] = useState<NutritionItemDetail | null>(null);
 
   const [newFoodName, setNewFoodName] = useState('');
+  const [newFoodSaveMode, setNewFoodSaveMode] = useState<'per100g' | 'portion'>('portion');
+  const [newFoodPortionGrams, setNewFoodPortionGrams] = useState('200');
+  const [newFoodUsualGrams, setNewFoodUsualGrams] = useState('');
   const [newFoodCals, setNewFoodCals] = useState('200');
   const [newFoodP, setNewFoodP] = useState('10');
   const [newFoodC, setNewFoodC] = useState('20');
@@ -203,6 +210,62 @@ export function DayActivityModal({
     };
   }, [cloudSignedIn, mealQuery]);
 
+  async function fetchNutritionItem(code: string, silent = false): Promise<NutritionItemDetail | null> {
+    const res = await fetch(`/api/gym-flow/nutrition/item?code=${encodeURIComponent(code)}`, {
+      credentials: 'include',
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (!silent) setMealError(formatNutritionApiError(json, 'Could not load nutrition data'));
+      return null;
+    }
+    return (json?.item as NutritionItemDetail) ?? null;
+  }
+
+  useEffect(() => {
+    setOffMealLookup(null);
+    setMealServingHint(null);
+    if (!selectedMealItem) return;
+
+    if (selectedMealItem.code.startsWith('custom:')) {
+      const id = selectedMealItem.code.slice('custom:'.length);
+      const f = customFoods.find((x) => x.id === id);
+      const def = f?.defaultServingGrams ?? 100;
+      setMealGrams(String(def));
+      setMealServingHint(
+        f?.defaultServingGrams
+          ? `Default is your usual ${def} g — tap a quick amount or type any weight.`
+          : 'Everything is stored per 100 g (like nutrition labels); type how much you actually ate.',
+      );
+      return;
+    }
+
+    setMealGrams('100');
+    setMealServingHint(
+      selectedMealItem.servingSize ? `Package note: ${selectedMealItem.servingSize}` : null,
+    );
+    if (!cloudSignedIn) return;
+
+    let cancelled = false;
+    void (async () => {
+      const item = await fetchNutritionItem(selectedMealItem.code, true);
+      if (cancelled || !item) return;
+      setOffMealLookup(item);
+      const sug = item.suggestedServingGrams;
+      if (typeof sug === 'number' && sug > 0 && sug <= 2000) {
+        setMealGrams(String(Math.round(sug)));
+        setMealServingHint(
+          item.servingSize
+            ? `Prefilled ${Math.round(sug)} g from the label (“${item.servingSize}”). Change if your portion differs.`
+            : `Prefilled ${Math.round(sug)} g from product data — verify on the package.`,
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMealItem?.code, cloudSignedIn, customFoods]);
+
   function computeMacros(per100g: NutritionGoals, grams: number) {
     const factor = grams / 100;
     return {
@@ -282,19 +345,6 @@ export function DayActivityModal({
     setMessage('Workout deleted.');
   }
 
-  async function fetchNutritionItem(code: string): Promise<NutritionItemDetail | null> {
-    const res = await fetch(`/api/gym-flow/nutrition/item?code=${encodeURIComponent(code)}`, {
-      credentials: 'include',
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setMealError(formatNutritionApiError(json, 'Could not load nutrition data'));
-      return null;
-    }
-    return (json?.item as NutritionItemDetail) ?? null;
-  }
-
-  // fix typo: awaiting -> await - I'll fix in str replace
   async function addMealLog() {
     setMealError(null);
     if (!selectedMealItem) {
@@ -332,7 +382,9 @@ export function DayActivityModal({
         return;
       }
       setMealBusy(true);
-      const item = await fetchNutritionItem(selectedMealItem.code);
+      const cached =
+        offMealLookup && offMealLookup.code === selectedMealItem.code ? offMealLookup : null;
+      const item = cached ?? (await fetchNutritionItem(selectedMealItem.code));
       setMealBusy(false);
       if (!item) return;
       per100g = item.per100g;
@@ -361,6 +413,8 @@ export function DayActivityModal({
     onPersist({ nutritionLogs: [log, ...nutritionLogs] });
     setSelectedMealItem(null);
     setMealGrams('100');
+    setOffMealLookup(null);
+    setMealServingHint(null);
     setMealQuery('');
     setMealApiResults([]);
     setMessage('Meal saved.');
@@ -377,30 +431,58 @@ export function DayActivityModal({
       setMessage('Enter a food name.');
       return;
     }
-    const cals = Number.parseFloat(newFoodCals);
-    const p = Number.parseFloat(newFoodP);
-    const c = Number.parseFloat(newFoodC);
-    const f = Number.parseFloat(newFoodF);
-    if (
-      ![cals, p, c, f].every((x) => Number.isFinite(x)) ||
-      cals < 0 ||
-      p < 0 ||
-      c < 0 ||
-      f < 0
-    ) {
-      setMessage('Enter valid numbers for macros per 100g.');
-      return;
+
+    let per100g: NutritionGoals | null = null;
+    let defaultServing: number | undefined;
+
+    if (newFoodSaveMode === 'portion') {
+      const pg = Number.parseFloat(newFoodPortionGrams);
+      const cals = Number.parseFloat(newFoodCals);
+      const p = Number.parseFloat(newFoodP);
+      const c = Number.parseFloat(newFoodC);
+      const f = Number.parseFloat(newFoodF);
+      if (![pg, cals, p, c, f].every((x) => Number.isFinite(x)) || pg <= 0 || cals < 0 || p < 0 || c < 0 || f < 0) {
+        setMessage('Enter portion weight and macros for that one portion.');
+        return;
+      }
+      per100g = portionMacrosToPer100g(pg, cals, p, c, f);
+      if (!per100g) {
+        setMessage('Could not compute nutrition.');
+        return;
+      }
+      defaultServing = Math.min(5000, Math.round(pg));
+    } else {
+      const cals = Number.parseFloat(newFoodCals);
+      const p = Number.parseFloat(newFoodP);
+      const c = Number.parseFloat(newFoodC);
+      const f = Number.parseFloat(newFoodF);
+      if (![cals, p, c, f].every((x) => Number.isFinite(x)) || cals < 0 || p < 0 || c < 0 || f < 0) {
+        setMessage('Enter valid macros per 100g (numbers from the nutrition label).');
+        return;
+      }
+      per100g = {
+        calories: formatMacro(cals),
+        protein: formatMacro(p),
+        carbs: formatMacro(c),
+        fat: formatMacro(f),
+      };
+      const usual = Number.parseFloat(newFoodUsualGrams);
+      if (Number.isFinite(usual) && usual > 0 && usual <= 5000) {
+        defaultServing = Math.round(usual);
+      }
     }
+
     const food: CustomFood = {
       id: createCustomFoodId(),
       name,
       createdAt: new Date().toISOString(),
-      caloriesPer100g: cals,
-      proteinPer100g: p,
-      carbsPer100g: c,
-      fatPer100g: f,
+      caloriesPer100g: per100g.calories,
+      proteinPer100g: per100g.protein,
+      carbsPer100g: per100g.carbs,
+      fatPer100g: per100g.fat,
+      ...(defaultServing != null ? { defaultServingGrams: defaultServing } : {}),
     };
-    onPersist({ customFoods: [food, ...customFoods.filter((x) => x.id !== food.id)] });
+    onPersist({ customFoods: [food, ...customFoods] });
     setNewFoodName('');
     setMessage(`Saved “${name}” to My foods.`);
   }
@@ -471,7 +553,7 @@ export function DayActivityModal({
             )}
 
             <p className="panel-subtle" style={{ marginTop: '1rem' }}>
-              Search My foods (always) {cloudSignedIn ? 'and Open Food Facts (signed in)' : ''}. Macros are per <strong>100 g</strong> for custom foods.
+              Search My foods (always) {cloudSignedIn ? 'and Open Food Facts (signed in)' : ''}. Nutrients are stored <strong>per 100 g</strong> behind the scenes; when logging you only enter <strong>how many grams you ate</strong>. Packaged foods may prefill grams from the label when available.
             </p>
             <div className="nutrition-search-row">
               <input
@@ -497,7 +579,9 @@ export function DayActivityModal({
                     >
                       <div className="nutrition-search-text">
                         <span className="nutrition-search-name">{item.name}</span>
-                        <span className="nutrition-search-meta">{item.brands || 'Open Food Facts'}</span>
+                        <span className="nutrition-search-meta">
+                          {item.brands || item.quantity || item.servingSize || 'Open Food Facts'}
+                        </span>
                       </div>
                     </button>
                   </li>
@@ -505,20 +589,36 @@ export function DayActivityModal({
               </ul>
             )}
             {selectedMealItem && (
-              <div className="nutrition-add-row">
+              <div className="nutrition-add-block">
                 <div className="nutrition-selected">
                   <strong>{selectedMealItem.name}</strong>
+                  <span>
+                    {selectedMealItem.brands || selectedMealItem.quantity || selectedMealItem.servingSize || 'Open Food Facts'}
+                  </span>
                 </div>
-                <div className="nutrition-grams">
-                  <input
-                    className="text-input"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={mealGrams}
-                    onChange={(e) => setMealGrams(e.target.value)}
-                  />
-                  <span className="nutrition-grams-unit">g</span>
+                {mealServingHint && <p className="panel-subtle nutrition-serving-hint">{mealServingHint}</p>}
+                <div className="nutrition-grams nutrition-grams-with-chips">
+                  <label className="nutrition-grams-label">
+                    <span>Amount eaten (g)</span>
+                    <div className="nutrition-grams-row">
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={mealGrams}
+                        onChange={(e) => setMealGrams(e.target.value)}
+                      />
+                      <span className="nutrition-grams-unit">g</span>
+                    </div>
+                  </label>
+                  <div className="nutrition-gram-chips" role="group" aria-label="Quick amounts in grams">
+                    {[50, 75, 100, 125, 150, 200, 250].map((g) => (
+                      <button key={g} type="button" className="chip chip-compact" onClick={() => setMealGrams(String(g))}>
+                        {g}g
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <button type="button" className="button" disabled={mealBusy} onClick={() => void addMealLog()}>
                   {mealBusy ? 'Adding…' : 'Add meal'}
@@ -529,26 +629,75 @@ export function DayActivityModal({
 
           <div className="day-modal-section panel--compact" style={{ marginTop: '1.5rem' }}>
             <h3 className="panel-heading panel-heading--plain" style={{ marginBottom: '0.75rem' }}>Save a custom food</h3>
-            <p className="panel-subtle">Adds to My foods (saved with your account).</p>
+            <p className="panel-subtle">
+              We store each food <strong>per 100 g</strong> (same as labels and Open Food Facts). Enter that from the label, or enter <strong>one weighed portion</strong> and we convert it.
+            </p>
+            <div className="nutrition-entry-toggle" role="tablist" aria-label="How to enter nutrition">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={newFoodSaveMode === 'portion'}
+                className={`nutrition-entry-toggle-btn ${newFoodSaveMode === 'portion' ? 'is-active' : ''}`}
+                onClick={() => setNewFoodSaveMode('portion')}
+              >
+                One portion (easiest)
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={newFoodSaveMode === 'per100g'}
+                className={`nutrition-entry-toggle-btn ${newFoodSaveMode === 'per100g' ? 'is-active' : ''}`}
+                onClick={() => setNewFoodSaveMode('per100g')}
+              >
+                From label (per 100g)
+              </button>
+            </div>
             <div className="nutrition-goals-grid">
               <label className="profile-field">
                 <span>Name</span>
                 <input className="text-input" value={newFoodName} onChange={(e) => setNewFoodName(e.target.value)} placeholder="e.g. Mom's lentil soup" />
               </label>
+              {newFoodSaveMode === 'portion' ? (
+                <label className="profile-field">
+                  <span>Portion weight (g)</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={newFoodPortionGrams}
+                    onChange={(e) => setNewFoodPortionGrams(e.target.value)}
+                    placeholder="Weigh what you actually eat once"
+                  />
+                </label>
+              ) : (
+                <label className="profile-field">
+                  <span>Usual amount when logging (g, optional)</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={newFoodUsualGrams}
+                    onChange={(e) => setNewFoodUsualGrams(e.target.value)}
+                    placeholder="e.g. 180 — pre-fills grams when you pick this food"
+                  />
+                </label>
+              )}
               <label className="profile-field">
-                <span>kcal / 100g</span>
+                <span>{newFoodSaveMode === 'portion' ? 'Calories (this portion)' : 'Calories / 100g'}</span>
                 <input className="text-input" type="number" min="0" step="1" value={newFoodCals} onChange={(e) => setNewFoodCals(e.target.value)} />
               </label>
               <label className="profile-field">
-                <span>Protein g / 100g</span>
+                <span>{newFoodSaveMode === 'portion' ? 'Protein g (this portion)' : 'Protein g / 100g'}</span>
                 <input className="text-input" type="number" min="0" step="0.1" value={newFoodP} onChange={(e) => setNewFoodP(e.target.value)} />
               </label>
               <label className="profile-field">
-                <span>Carbs g / 100g</span>
+                <span>{newFoodSaveMode === 'portion' ? 'Carbs g (this portion)' : 'Carbs g / 100g'}</span>
                 <input className="text-input" type="number" min="0" step="0.1" value={newFoodC} onChange={(e) => setNewFoodC(e.target.value)} />
               </label>
               <label className="profile-field">
-                <span>Fat g / 100g</span>
+                <span>{newFoodSaveMode === 'portion' ? 'Fat g (this portion)' : 'Fat g / 100g'}</span>
                 <input className="text-input" type="number" min="0" step="0.1" value={newFoodF} onChange={(e) => setNewFoodF(e.target.value)} />
               </label>
             </div>

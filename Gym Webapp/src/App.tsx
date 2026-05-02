@@ -49,6 +49,7 @@ import { GYM_FLOW_OAUTH_SUCCESS, getGymFlowSignInPopupUrl, isTrustedGymFlowOAuth
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
 import { computeSuggestedNutritionGoals, lastNDayKeys, nutritionLogDateKey } from './utils/nutritionGoalsFromProfile';
+import { portionMacrosToPer100g } from './utils/nutritionServing';
 
 import {
   candidateMuscleGroupsForExercise,
@@ -84,6 +85,7 @@ type NutritionSearchItem = {
 
 type NutritionItemDetail = NutritionSearchItem & {
   per100g: NutritionGoals;
+  suggestedServingGrams?: number | null;
 };
 
 function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]) {
@@ -207,6 +209,11 @@ export default function App() {
   const [newMyFoodP, setNewMyFoodP] = useState('10');
   const [newMyFoodC, setNewMyFoodC] = useState('20');
   const [newMyFoodF, setNewMyFoodF] = useState('5');
+  const [myFoodEntryMode, setMyFoodEntryMode] = useState<'per100g' | 'portion'>('portion');
+  const [newMyPortionGrams, setNewMyPortionGrams] = useState('200');
+  const [newMyUsualGrams, setNewMyUsualGrams] = useState('');
+  const [servingHint, setServingHint] = useState<string | null>(null);
+  const [offNutritionLookup, setOffNutritionLookup] = useState<NutritionItemDetail | null>(null);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editingGrams, setEditingGrams] = useState('');
 
@@ -455,6 +462,50 @@ export default function App() {
   }, [cloudSignedIn, nutritionQuery]);
 
   useEffect(() => {
+    setOffNutritionLookup(null);
+    setServingHint(null);
+    if (!selectedFood) return;
+
+    if (selectedFood.code.startsWith('custom:')) {
+      const id = selectedFood.code.slice('custom:'.length);
+      const f = customFoods.find((x) => x.id === id);
+      const def = f?.defaultServingGrams ?? 100;
+      setServingGrams(String(def));
+      setServingHint(
+        f?.defaultServingGrams
+          ? `Default is your usual ${def} g — tap a quick amount or type any weight.`
+          : 'Everything is stored per 100 g (like nutrition labels); type how much you actually ate.',
+      );
+      return;
+    }
+
+    setServingGrams('100');
+    setServingHint(
+      selectedFood.servingSize ? `Package note: ${selectedFood.servingSize}` : null,
+    );
+    if (!cloudSignedIn) return;
+
+    let cancelled = false;
+    void (async () => {
+      const item = await fetchNutritionItem(selectedFood.code, true);
+      if (cancelled || !item) return;
+      setOffNutritionLookup(item);
+      const sug = item.suggestedServingGrams;
+      if (typeof sug === 'number' && sug > 0 && sug <= 2000) {
+        setServingGrams(String(Math.round(sug)));
+        setServingHint(
+          item.servingSize
+            ? `Prefilled ${Math.round(sug)} g from the label (“${item.servingSize}”). Change if your portion differs.`
+            : `Prefilled ${Math.round(sug)} g from product data — verify on the package.`,
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedFood?.code, cloudSignedIn, customFoods]);
+
+  useEffect(() => {
     let cancelled = false;
     getExerciseImageMap(exercisesToResolveImages)
       .then((r) => { if (!cancelled) setExerciseImages((c) => ({ ...c, ...r })); })
@@ -503,15 +554,17 @@ export default function App() {
     savePersistedGymData(next);
   }
 
-  async function fetchNutritionItem(code: string): Promise<NutritionItemDetail | null> {
+  async function fetchNutritionItem(code: string, silent = false): Promise<NutritionItemDetail | null> {
     const res = await fetch(`/api/gym-flow/nutrition/item?code=${encodeURIComponent(code)}`, {
       credentials: 'include',
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = formatNutritionApiError(json, 'Could not load nutrition data');
-      setMessage(err);
-      setNutritionError(err);
+      if (!silent) {
+        setMessage(err);
+        setNutritionError(err);
+      }
       return null;
     }
     return (json?.item as NutritionItemDetail) ?? null;
@@ -555,7 +608,9 @@ export default function App() {
       code = selectedFood.code;
     } else {
       setNutritionBusy(true);
-      const item = await fetchNutritionItem(selectedFood.code);
+      const cached =
+        offNutritionLookup && offNutritionLookup.code === selectedFood.code ? offNutritionLookup : null;
+      const item = cached ?? (await fetchNutritionItem(selectedFood.code));
       setNutritionBusy(false);
       if (!item) return;
       per100g = item.per100g;
@@ -605,22 +660,56 @@ export default function App() {
       setMessage('Enter a name for your food.');
       return;
     }
-    const cals = Number.parseFloat(newMyFoodCals);
-    const p = Number.parseFloat(newMyFoodP);
-    const c = Number.parseFloat(newMyFoodC);
-    const f = Number.parseFloat(newMyFoodF);
-    if (![cals, p, c, f].every((x) => Number.isFinite(x)) || cals < 0 || p < 0 || c < 0 || f < 0) {
-      setMessage('Enter valid macros per 100g.');
-      return;
+
+    let per100g: NutritionGoals | null = null;
+    let defaultServing: number | undefined;
+
+    if (myFoodEntryMode === 'portion') {
+      const pg = Number.parseFloat(newMyPortionGrams);
+      const cals = Number.parseFloat(newMyFoodCals);
+      const p = Number.parseFloat(newMyFoodP);
+      const c = Number.parseFloat(newMyFoodC);
+      const f = Number.parseFloat(newMyFoodF);
+      if (![pg, cals, p, c, f].every((x) => Number.isFinite(x)) || pg <= 0 || cals < 0 || p < 0 || c < 0 || f < 0) {
+        setMessage('Enter portion weight and macros for that one portion.');
+        return;
+      }
+      per100g = portionMacrosToPer100g(pg, cals, p, c, f);
+      if (!per100g) {
+        setMessage('Could not compute nutrition.');
+        return;
+      }
+      defaultServing = Math.min(5000, Math.round(pg));
+    } else {
+      const cals = Number.parseFloat(newMyFoodCals);
+      const p = Number.parseFloat(newMyFoodP);
+      const c = Number.parseFloat(newMyFoodC);
+      const f = Number.parseFloat(newMyFoodF);
+      if (![cals, p, c, f].every((x) => Number.isFinite(x)) || cals < 0 || p < 0 || c < 0 || f < 0) {
+        setMessage('Enter valid macros per 100g (numbers from the nutrition label).');
+        return;
+      }
+      per100g = {
+        calories: formatMacro(cals),
+        protein: formatMacro(p),
+        carbs: formatMacro(c),
+        fat: formatMacro(f),
+      };
+      const usual = Number.parseFloat(newMyUsualGrams);
+      if (Number.isFinite(usual) && usual > 0 && usual <= 5000) {
+        defaultServing = Math.round(usual);
+      }
     }
+
     const food: CustomFood = {
       id: createCustomFoodId(),
       name,
       createdAt: new Date().toISOString(),
-      caloriesPer100g: cals,
-      proteinPer100g: p,
-      carbsPer100g: c,
-      fatPer100g: f,
+      caloriesPer100g: per100g.calories,
+      proteinPer100g: per100g.protein,
+      carbsPer100g: per100g.carbs,
+      fatPer100g: per100g.fat,
+      ...(defaultServing != null ? { defaultServingGrams: defaultServing } : {}),
     };
     const base = dataRef.current;
     persist({ ...base, customFoods: [food, ...(base.customFoods ?? [])] });
@@ -1698,7 +1787,8 @@ export default function App() {
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Log food</h2>
               <p className="panel-subtle">
-                <strong>My foods</strong> are always searchable. Open Food Facts needs sign-in &amp; 2+ characters.
+                Open Food Facts lists nutrients <strong>per 100 g</strong> on the backend — you only choose <strong>how many grams you ate</strong>.
+                Packaged foods often prefill grams when the label includes a weight (e.g. &quot;30 g&quot;).
               </p>
               <div className="nutrition-search-row">
                 <input
@@ -1739,24 +1829,37 @@ export default function App() {
                 </ul>
               )}
               {selectedFood && (
-                <div className="nutrition-add-row">
+                <div className="nutrition-add-block">
                   <div className="nutrition-selected">
                     <strong>{selectedFood.name}</strong>
                     <span>{selectedFood.brands || selectedFood.quantity || selectedFood.servingSize || 'Open Food Facts'}</span>
                   </div>
-                  <div className="nutrition-grams">
-                    <input
-                      className="text-input"
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={servingGrams}
-                      onChange={(e) => setServingGrams(e.target.value)}
-                    />
-                    <span className="nutrition-grams-unit">g</span>
+                  {servingHint && <p className="panel-subtle nutrition-serving-hint">{servingHint}</p>}
+                  <div className="nutrition-grams nutrition-grams-with-chips">
+                    <label className="nutrition-grams-label">
+                      <span>Amount eaten (g)</span>
+                      <div className="nutrition-grams-row">
+                        <input
+                          className="text-input"
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={servingGrams}
+                          onChange={(e) => setServingGrams(e.target.value)}
+                        />
+                        <span className="nutrition-grams-unit">g</span>
+                      </div>
+                    </label>
+                    <div className="nutrition-gram-chips" role="group" aria-label="Quick amounts in grams">
+                      {[50, 75, 100, 125, 150, 200, 250].map((g) => (
+                        <button key={g} type="button" className="chip chip-compact" onClick={() => setServingGrams(String(g))}>
+                          {g}g
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <button type="button" className="button" disabled={nutritionBusy} onClick={() => void addNutritionLog()}>
-                    {nutritionBusy ? 'Adding…' : 'Add'}
+                    {nutritionBusy ? 'Adding…' : 'Add to log'}
                   </button>
                 </div>
               )}
@@ -1764,7 +1867,30 @@ export default function App() {
 
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Save a custom food (My foods)</h2>
-              <p className="panel-subtle">Macros per <strong>100 g</strong> — then search it anytime.</p>
+              <p className="panel-subtle">
+                We still store each food <strong>per 100 g</strong> under the hood (same scale as labels and Open Food Facts).
+                You can enter that directly, or enter <strong>one portion you weighed</strong> and we convert it.
+              </p>
+              <div className="nutrition-entry-toggle" role="tablist" aria-label="How to enter nutrition">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={myFoodEntryMode === 'portion'}
+                  className={`nutrition-entry-toggle-btn ${myFoodEntryMode === 'portion' ? 'is-active' : ''}`}
+                  onClick={() => setMyFoodEntryMode('portion')}
+                >
+                  One portion (easiest)
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={myFoodEntryMode === 'per100g'}
+                  className={`nutrition-entry-toggle-btn ${myFoodEntryMode === 'per100g' ? 'is-active' : ''}`}
+                  onClick={() => setMyFoodEntryMode('per100g')}
+                >
+                  From label (per 100g)
+                </button>
+              </div>
               <div className="nutrition-goals-grid">
                 <label className="profile-field">
                   <span>Name</span>
@@ -1775,20 +1901,47 @@ export default function App() {
                     placeholder="e.g. Overnight oats"
                   />
                 </label>
+                {myFoodEntryMode === 'portion' ? (
+                  <label className="profile-field">
+                    <span>Portion weight (g)</span>
+                    <input
+                      className="text-input"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={newMyPortionGrams}
+                      onChange={(e) => setNewMyPortionGrams(e.target.value)}
+                      placeholder="Weigh what you actually eat once"
+                    />
+                  </label>
+                ) : (
+                  <label className="profile-field">
+                    <span>Usual amount when logging (g, optional)</span>
+                    <input
+                      className="text-input"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={newMyUsualGrams}
+                      onChange={(e) => setNewMyUsualGrams(e.target.value)}
+                      placeholder="e.g. 180 — pre-fills “Amount eaten”"
+                    />
+                  </label>
+                )}
                 <label className="profile-field">
-                  <span>kcal / 100g</span>
+                  <span>{myFoodEntryMode === 'portion' ? 'Calories (this portion)' : 'Calories / 100g'}</span>
                   <input className="text-input" type="number" min="0" step="1" value={newMyFoodCals} onChange={(e) => setNewMyFoodCals(e.target.value)} />
                 </label>
                 <label className="profile-field">
-                  <span>Protein g / 100g</span>
+                  <span>{myFoodEntryMode === 'portion' ? 'Protein g (this portion)' : 'Protein g / 100g'}</span>
                   <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodP} onChange={(e) => setNewMyFoodP(e.target.value)} />
                 </label>
                 <label className="profile-field">
-                  <span>Carbs g / 100g</span>
+                  <span>{myFoodEntryMode === 'portion' ? 'Carbs g (this portion)' : 'Carbs g / 100g'}</span>
                   <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodC} onChange={(e) => setNewMyFoodC(e.target.value)} />
                 </label>
                 <label className="profile-field">
-                  <span>Fat g / 100g</span>
+                  <span>{myFoodEntryMode === 'portion' ? 'Fat g (this portion)' : 'Fat g / 100g'}</span>
                   <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodF} onChange={(e) => setNewMyFoodF(e.target.value)} />
                 </label>
               </div>

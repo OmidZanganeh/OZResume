@@ -14,6 +14,8 @@ type NutritionItem = {
   brands?: string;
   quantity?: string;
   servingSize?: string;
+  /** Grams parsed from `serving_size` when it looks like "30 g" (optional hint for logging). */
+  suggestedServingGrams?: number | null;
   per100g: NutritionPer100g;
 };
 
@@ -38,6 +40,15 @@ async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Pro
 function asNumber(value: unknown): number | null {
   const n = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseFloat(value) : NaN;
   return Number.isFinite(n) ? n : null;
+}
+
+function parseGramsFromServingText(text: string | undefined): number | null {
+  if (!text || typeof text !== 'string') return null;
+  const m = text.match(/(\d+(?:[.,]\d+)?)\s*g(?:ram)?s?\b/i);
+  if (!m) return null;
+  const n = Number.parseFloat(m[1].replace(',', '.'));
+  if (!Number.isFinite(n) || n <= 0 || n > 5000) return null;
+  return n;
 }
 
 export async function GET(req: Request) {
@@ -104,6 +115,9 @@ export async function GET(req: Request) {
         carbs,
         fat,
       },
+      suggestedServingGrams: parseGramsFromServingText(
+        typeof data.product.serving_size === 'string' ? data.product.serving_size : undefined,
+      ),
     };
 
     return NextResponse.json(
