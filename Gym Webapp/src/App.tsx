@@ -77,6 +77,7 @@ type NutritionSearchItem = {
   brands?: string;
   quantity?: string;
   servingSize?: string;
+  image?: string;
 };
 
 type NutritionItemDetail = NutritionSearchItem & {
@@ -1531,10 +1532,15 @@ export default function App() {
                             className={`nutrition-search-btn ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
                             onClick={() => setSelectedFood(item)}
                           >
-                            <span className="nutrition-search-name">{item.name}</span>
-                            <span className="nutrition-search-meta">
-                              {item.brands || item.quantity || item.servingSize || 'Open Food Facts'}
-                            </span>
+                            {item.image && (
+                              <img src={item.image} alt={item.name} className="nutrition-search-thumb" />
+                            )}
+                            <div className="nutrition-search-text">
+                              <span className="nutrition-search-name">{item.name}</span>
+                              <span className="nutrition-search-meta">
+                                {item.brands || item.quantity || item.servingSize || 'Open Food Facts'}
+                              </span>
+                            </div>
                           </button>
                         </li>
                       ))}

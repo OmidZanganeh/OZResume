@@ -7,6 +7,7 @@ type SearchResult = {
   brands?: string;
   quantity?: string;
   servingSize?: string;
+  image?: string;
 };
 
 const OPENFOODFACTS_HOST = 'https://us.openfoodfacts.org';
@@ -46,7 +47,7 @@ export async function GET(req: Request) {
     url.searchParams.set('action', 'process');
     url.searchParams.set('json', '1');
     url.searchParams.set('page_size', '20');
-    url.searchParams.set('fields', 'code,product_name,product_name_en,brands,quantity,serving_size');
+    url.searchParams.set('fields', 'code,product_name,product_name_en,brands,quantity,serving_size,image_small_url,image_thumb_url,image_front_small_url,image_front_thumb_url');
 
     const res = await fetchWithRetry(url.toString(), {
       headers: {
@@ -65,13 +66,17 @@ export async function GET(req: Request) {
 
     const data = (await res.json()) as { products?: Record<string, unknown>[] };
     const items: SearchResult[] = (data.products ?? [])
-      .map((p) => ({
-        code: String(p.code ?? ''),
-        name: String(p.product_name_en ?? p.product_name ?? '').trim(),
-        brands: typeof p.brands === 'string' ? p.brands : undefined,
-        quantity: typeof p.quantity === 'string' ? p.quantity : undefined,
-        servingSize: typeof p.serving_size === 'string' ? p.serving_size : undefined,
-      }))
+      .map((p) => {
+        const image = (p.image_front_small_url ?? p.image_small_url ?? p.image_thumb_url ?? p.image_front_thumb_url) as string | undefined;
+        return {
+          code: String(p.code ?? ''),
+          name: String(p.product_name_en ?? p.product_name ?? '').trim(),
+          brands: typeof p.brands === 'string' ? p.brands : undefined,
+          quantity: typeof p.quantity === 'string' ? p.quantity : undefined,
+          servingSize: typeof p.serving_size === 'string' ? p.serving_size : undefined,
+          image: image && image.length > 0 ? image : undefined,
+        };
+      })
       .filter((p) => p.code && p.name);
 
     return NextResponse.json(
