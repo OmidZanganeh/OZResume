@@ -58,6 +58,8 @@
 | `gym-flow/data` | Gym Flow cloud JSON (auth required) |
 | `gym-flow/profile` | PATCH merge `userProfile` into cloud payload (auth + DB) |
 | `gym-flow/register` | Email/password Gym Flow registration |
+| `gym-flow/nutrition/search` | Open Food Facts search proxy (auth required) |
+| `gym-flow/nutrition/item` | Open Food Facts product lookup (auth required) |
 
 ## Shared UI components (`app/components/`)
 

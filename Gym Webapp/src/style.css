@@ -3806,6 +3806,210 @@ body {
   color: var(--gf-text-muted);
 }
 
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.nutrition-card {
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-md);
+  background: var(--gf-surface-2);
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.nutrition-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.nutrition-card-sub {
+  font-size: 0.78rem;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  overflow: hidden;
+}
+
+.nutrition-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22d3ee, #14b8a6);
+  border-radius: inherit;
+}
+
+.nutrition-date {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-date input {
+  width: 150px;
+}
+
+.nutrition-search-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.nutrition-search-list {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.nutrition-search-item {
+  margin: 0;
+}
+
+.nutrition-search-btn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-md);
+  background: rgba(15, 23, 42, 0.45);
+  color: var(--gf-text);
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.nutrition-search-btn:hover {
+  border-color: rgba(45, 212, 191, 0.4);
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.nutrition-search-btn.is-selected {
+  border-color: rgba(45, 212, 191, 0.6);
+  background: var(--gf-accent-dim);
+  color: #ecfeff;
+}
+
+.nutrition-search-name {
+  font-weight: 600;
+}
+
+.nutrition-search-meta {
+  font-size: 0.78rem;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-search-btn.is-selected .nutrition-search-meta {
+  color: #ccfbf1;
+}
+
+.nutrition-add-row {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.nutrition-selected {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 200px;
+}
+
+.nutrition-selected span {
+  font-size: 0.78rem;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-grams {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.nutrition-grams-unit {
+  font-size: 0.85rem;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.nutrition-log-row {
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-md);
+  background: var(--gf-surface-2);
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nutrition-log-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 200px;
+}
+
+.nutrition-log-meta {
+  font-size: 0.8rem;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-log-macros {
+  font-size: 0.78rem;
+  color: var(--gf-text-dim);
+}
+
+.nutrition-log-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.nutrition-edit-input {
+  width: 90px;
+}
+
+.nutrition-goals-grid {
+  margin-top: 0.6rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.6rem;
+}
+
+.nutrition-error {
+  color: #fca5a5;
+}
+
 /* -- Mobile Input Zoom Fix ----------------------------- */
 /* iOS Safari zooms in if font-size < 16px. Setting to 16px prevents this. */
 @media screen and (max-width: 768px) {

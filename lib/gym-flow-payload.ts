@@ -16,5 +16,11 @@ export function isValidPersistedGymPayload(x: unknown): boolean {
   if (o.userProfile !== undefined && !isValidUserProfileField(o.userProfile)) {
     return false;
   }
+  if (o.nutritionLogs !== undefined && !Array.isArray(o.nutritionLogs)) {
+    return false;
+  }
+  if (o.nutritionGoals !== undefined && (o.nutritionGoals === null || typeof o.nutritionGoals !== 'object')) {
+    return false;
+  }
   return true;
 }

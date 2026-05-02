@@ -1,7 +1,7 @@
 {
   "name": "Gym Flow",
   "short_name": "GymFlow",
-  "description": "Offline-first gym planner and progress tracker.",
+  "description": "Free progressive web app: plan workouts, log sets, track muscle groups — works offline after install.",
   "start_url": "/gym-flow/",
   "scope": "/gym-flow/",
   "display": "standalone",

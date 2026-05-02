@@ -28,6 +28,8 @@ import {
   loadPersistedGymData,
   savePersistedGymData,
   type PersistedGymData,
+  type NutritionGoals,
+  type NutritionLog,
   type SavedPlan,
   type UserProfile,
 } from './data/gymFlowStorage';
@@ -54,6 +56,12 @@ import {
 } from './utils/workoutLogDraft';
 
 const DEFAULT_REPORT_DAYS = 10;
+const DEFAULT_NUTRITION_GOALS: NutritionGoals = {
+  calories: 2000,
+  protein: 150,
+  carbs: 200,
+  fat: 70,
+};
 const PRESET_CATEGORY_META: Record<string, { description: string }> = {
   'Core Foundations': { description: 'Balanced full-body routines' },
   'Classic Splits': { description: 'Reliable weekly split templates' },
@@ -61,7 +69,19 @@ const PRESET_CATEGORY_META: Record<string, { description: string }> = {
   'Targeted Isolation (Single Muscle)': { description: 'Single-muscle focus days' },
 };
 
-type AppView = 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'library';
+type AppView = 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'nutrition' | 'library';
+
+type NutritionSearchItem = {
+  code: string;
+  name: string;
+  brands?: string;
+  quantity?: string;
+  servingSize?: string;
+};
+
+type NutritionItemDetail = NutritionSearchItem & {
+  per100g: NutritionGoals;
+};
 
 function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]) {
   if (selectedGroups.length === 0) return true;
@@ -171,6 +191,16 @@ export default function App() {
   const [cloudSignedIn, setCloudSignedIn] = useState(false);
   const [profileCloudBusy, setProfileCloudBusy] = useState(false);
   const [profileCloudError, setProfileCloudError] = useState<string | null>(null);
+  const [nutritionDate, setNutritionDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [nutritionQuery, setNutritionQuery] = useState('');
+  const [nutritionResults, setNutritionResults] = useState<NutritionSearchItem[]>([]);
+  const [nutritionLoading, setNutritionLoading] = useState(false);
+  const [nutritionError, setNutritionError] = useState<string | null>(null);
+  const [selectedFood, setSelectedFood] = useState<NutritionSearchItem | null>(null);
+  const [servingGrams, setServingGrams] = useState('100');
+  const [nutritionBusy, setNutritionBusy] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [editingGrams, setEditingGrams] = useState('');
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -213,6 +243,8 @@ export default function App() {
   const totalWorkoutCount = data.sessions.length;
   const totalExerciseCompletions = Object.values(data.stats).reduce((t, s) => t + s.timesCompleted, 0);
   const totalTrackedSets = Object.values(data.stats).reduce((t, s) => t + s.totalSets, 0);
+  const nutritionLogs = data.nutritionLogs ?? [];
+  const nutritionGoals = data.nutritionGoals ?? DEFAULT_NUTRITION_GOALS;
   
   const groupedSessions = useMemo(() => {
     const map = new Map<string, { date: string; groups: MuscleGroup[]; entries: number; id: string }>();
@@ -232,6 +264,23 @@ export default function App() {
   }, [data.sessions]);
 
   const recentSessions = groupedSessions.slice(0, 5);
+
+  const dailyNutritionLogs = useMemo(
+    () => nutritionLogs.filter((l) => l.date === nutritionDate),
+    [nutritionDate, nutritionLogs],
+  );
+
+  const nutritionTotals = useMemo(() => {
+    return dailyNutritionLogs.reduce(
+      (acc, log) => ({
+        calories: acc.calories + log.calories,
+        protein: acc.protein + log.protein,
+        carbs: acc.carbs + log.carbs,
+        fat: acc.fat + log.fat,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 },
+    );
+  }, [dailyNutritionLogs]);
 
   const practiceCounts = useMemo(
     () => getPracticeCountsInWindow(data.sessions, exerciseById, reportDays),
@@ -284,6 +333,50 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
+    if (!cloudSignedIn) {
+      setNutritionResults([]);
+      setNutritionLoading(false);
+      setNutritionError(null);
+      return;
+    }
+    const term = nutritionQuery.trim();
+    if (term.length < 2) {
+      setNutritionResults([]);
+      setNutritionLoading(false);
+      setNutritionError(null);
+      return;
+    }
+    const controller = new AbortController();
+    const t = setTimeout(() => {
+      setNutritionLoading(true);
+      setNutritionError(null);
+      fetch(`/api/gym-flow/nutrition/search?query=${encodeURIComponent(term)}`, {
+        credentials: 'include',
+        signal: controller.signal,
+      })
+        .then((r) => r.json().then((j) => ({ ok: r.ok, json: j })))
+        .then(({ ok, json }) => {
+          if (!ok) {
+            setNutritionError(json?.error ?? 'Search failed');
+            setNutritionResults([]);
+            return;
+          }
+          setNutritionResults(Array.isArray(json?.items) ? json.items : []);
+        })
+        .catch((err) => {
+          if (err?.name === 'AbortError') return;
+          setNutritionError('Search failed');
+        })
+        .finally(() => setNutritionLoading(false));
+    }, 350);
+
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [cloudSignedIn, nutritionQuery]);
+
+  useEffect(() => {
     let cancelled = false;
     getExerciseImageMap(exercisesToResolveImages)
       .then((r) => { if (!cancelled) setExerciseImages((c) => ({ ...c, ...r })); })
@@ -291,9 +384,144 @@ export default function App() {
     return () => { cancelled = true; };
   }, [exercisesToResolveImages]);
 
+  function createNutritionLogId() {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return `food-${crypto.randomUUID()}`;
+    }
+    return `food-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function formatMacro(value: number) {
+    return Math.round(value * 10) / 10;
+  }
+
+  function computeMacros(per100g: NutritionGoals, grams: number) {
+    const factor = grams / 100;
+    return {
+      calories: formatMacro(per100g.calories * factor),
+      protein: formatMacro(per100g.protein * factor),
+      carbs: formatMacro(per100g.carbs * factor),
+      fat: formatMacro(per100g.fat * factor),
+    };
+  }
+
+  function macroPercent(value: number, goal: number) {
+    if (!goal || goal <= 0) return 0;
+    return Math.min(100, (value / goal) * 100);
+  }
+
   function persist(next: PersistedGymData) {
     setData(next);
     savePersistedGymData(next);
+  }
+
+  async function fetchNutritionItem(code: string): Promise<NutritionItemDetail | null> {
+    const res = await fetch(`/api/gym-flow/nutrition/item?code=${encodeURIComponent(code)}`, {
+      credentials: 'include',
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setMessage(json?.error ?? 'Could not load nutrition data');
+      return null;
+    }
+    return (json?.item as NutritionItemDetail) ?? null;
+  }
+
+  async function addNutritionLog() {
+    if (!cloudSignedIn) {
+      setMessage('Sign in to log food.');
+      return;
+    }
+    if (!selectedFood) {
+      setMessage('Select a food first.');
+      return;
+    }
+    const grams = Number.parseFloat(servingGrams);
+    if (!Number.isFinite(grams) || grams <= 0) {
+      setMessage('Enter a valid serving size in grams.');
+      return;
+    }
+
+    setNutritionBusy(true);
+    const item = await fetchNutritionItem(selectedFood.code);
+    setNutritionBusy(false);
+    if (!item) return;
+
+    const macros = computeMacros(item.per100g, grams);
+    const log: NutritionLog = {
+      id: createNutritionLogId(),
+      date: nutritionDate,
+      code: item.code,
+      name: item.name,
+      servingGrams: grams,
+      calories: macros.calories,
+      protein: macros.protein,
+      carbs: macros.carbs,
+      fat: macros.fat,
+      caloriesPer100g: item.per100g.calories,
+      proteinPer100g: item.per100g.protein,
+      carbsPer100g: item.per100g.carbs,
+      fatPer100g: item.per100g.fat,
+      createdAt: new Date().toISOString(),
+    };
+
+    const base = dataRef.current;
+    const nextLogs = [log, ...(base.nutritionLogs ?? [])];
+    persist({ ...base, nutritionLogs: nextLogs, nutritionGoals });
+    setSelectedFood(null);
+    setServingGrams('100');
+    setNutritionQuery('');
+    setNutritionResults([]);
+  }
+
+  function updateNutritionGoals(next: Partial<NutritionGoals>) {
+    const base = dataRef.current;
+    const merged = { ...(base.nutritionGoals ?? DEFAULT_NUTRITION_GOALS), ...next };
+    persist({ ...base, nutritionGoals: merged, nutritionLogs: base.nutritionLogs ?? [] });
+  }
+
+  function startEditNutritionLog(log: NutritionLog) {
+    setEditingLogId(log.id);
+    setEditingGrams(String(log.servingGrams));
+  }
+
+  function saveEditedNutritionLog(log: NutritionLog) {
+    const grams = Number.parseFloat(editingGrams);
+    if (!Number.isFinite(grams) || grams <= 0) {
+      setMessage('Enter a valid serving size in grams.');
+      return;
+    }
+    const macros = computeMacros(
+      {
+        calories: log.caloriesPer100g,
+        protein: log.proteinPer100g,
+        carbs: log.carbsPer100g,
+        fat: log.fatPer100g,
+      },
+      grams,
+    );
+    const base = dataRef.current;
+    const nextLogs = (base.nutritionLogs ?? []).map((l) =>
+      l.id === log.id
+        ? {
+            ...l,
+            servingGrams: grams,
+            calories: macros.calories,
+            protein: macros.protein,
+            carbs: macros.carbs,
+            fat: macros.fat,
+          }
+        : l,
+    );
+    persist({ ...base, nutritionLogs: nextLogs, nutritionGoals });
+    setEditingLogId(null);
+    setEditingGrams('');
+  }
+
+  function deleteNutritionLog(id: string) {
+    const base = dataRef.current;
+    const nextLogs = (base.nutritionLogs ?? []).filter((l) => l.id !== id);
+    persist({ ...base, nutritionLogs: nextLogs, nutritionGoals });
   }
 
   function syncReportProfileFromMerged(merged: PersistedGymData) {
@@ -609,7 +837,7 @@ export default function App() {
     setMessage(`${result.completedCount} move${result.completedCount === 1 ? '' : 's'} saved.`);
   }
 
-  const isMainView = view === 'home' || view === 'activity' || view === 'library';
+  const isMainView = view === 'home' || view === 'activity' || view === 'nutrition' || view === 'library';
 
   return (
     <>
@@ -1212,6 +1440,226 @@ export default function App() {
           </>
         )}
 
+        {/* ── NUTRITION ─────────────────────────────────────────────── */}
+        {view === 'nutrition' && (
+          <>
+            {!cloudSignedIn ? (
+              <section className="panel">
+                <h2 className="panel-heading panel-heading--plain">Nutrition</h2>
+                <p className="panel-subtle">Sign in to save your food logs and macro goals.</p>
+                <button type="button" className="button" onClick={openGymFlowSignIn}>
+                  Sign in
+                </button>
+              </section>
+            ) : (
+              <>
+                <section className="panel">
+                  <div className="panel-title-row" style={{ alignItems: 'center' }}>
+                    <h2 className="panel-heading panel-heading--plain">Daily summary</h2>
+                    <label className="nutrition-date">
+                      <span>Date</span>
+                      <input
+                        className="text-input"
+                        type="date"
+                        value={nutritionDate}
+                        onChange={(e) => setNutritionDate(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <div className="nutrition-grid">
+                    {[
+                      { key: 'calories', label: 'Calories', unit: 'kcal', value: nutritionTotals.calories, goal: nutritionGoals.calories },
+                      { key: 'protein', label: 'Protein', unit: 'g', value: nutritionTotals.protein, goal: nutritionGoals.protein },
+                      { key: 'carbs', label: 'Carbs', unit: 'g', value: nutritionTotals.carbs, goal: nutritionGoals.carbs },
+                      { key: 'fat', label: 'Fat', unit: 'g', value: nutritionTotals.fat, goal: nutritionGoals.fat },
+                    ].map((macro) => (
+                      <article key={macro.key} className="nutrition-card">
+                        <div className="nutrition-card-head">
+                          <span>{macro.label}</span>
+                          <strong>{formatMacro(macro.value)} {macro.unit}</strong>
+                        </div>
+                        <div className="nutrition-bar">
+                          <div
+                            className="nutrition-bar-fill"
+                            style={{ width: `${macroPercent(macro.value, macro.goal)}%` }}
+                          />
+                        </div>
+                        <span className="nutrition-card-sub">
+                          Goal {formatMacro(macro.goal)} {macro.unit}
+                        </span>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="panel">
+                  <h2 className="panel-heading panel-heading--plain">Log food</h2>
+                  <p className="panel-subtle">Search Open Food Facts and log by grams.</p>
+                  <div className="nutrition-search-row">
+                    <input
+                      className="text-input"
+                      type="text"
+                      placeholder="Search foods"
+                      value={nutritionQuery}
+                      onChange={(e) => setNutritionQuery(e.target.value)}
+                    />
+                    {nutritionLoading && <span className="panel-subtle">Searching…</span>}
+                  </div>
+                  {nutritionError && (
+                    <p className="panel-subtle nutrition-error" role="alert">
+                      {nutritionError}
+                    </p>
+                  )}
+                  {nutritionResults.length > 0 && (
+                    <ul className="nutrition-search-list">
+                      {nutritionResults.map((item) => (
+                        <li key={item.code} className="nutrition-search-item">
+                          <button
+                            type="button"
+                            className={`nutrition-search-btn ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
+                            onClick={() => setSelectedFood(item)}
+                          >
+                            <span className="nutrition-search-name">{item.name}</span>
+                            <span className="nutrition-search-meta">
+                              {item.brands || item.quantity || item.servingSize || 'Open Food Facts'}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {selectedFood && (
+                    <div className="nutrition-add-row">
+                      <div className="nutrition-selected">
+                        <strong>{selectedFood.name}</strong>
+                        <span>{selectedFood.brands || selectedFood.quantity || selectedFood.servingSize || 'Open Food Facts'}</span>
+                      </div>
+                      <div className="nutrition-grams">
+                        <input
+                          className="text-input"
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={servingGrams}
+                          onChange={(e) => setServingGrams(e.target.value)}
+                        />
+                        <span className="nutrition-grams-unit">g</span>
+                      </div>
+                      <button type="button" className="button" disabled={nutritionBusy} onClick={addNutritionLog}>
+                        {nutritionBusy ? 'Adding…' : 'Add'}
+                      </button>
+                    </div>
+                  )}
+                </section>
+
+                <section className="panel">
+                  <div className="panel-title-row" style={{ alignItems: 'center' }}>
+                    <h2 className="panel-heading panel-heading--plain">Logged foods</h2>
+                    <span className="panel-subtle">{dailyNutritionLogs.length} items</span>
+                  </div>
+                  {dailyNutritionLogs.length === 0 ? (
+                    <p className="empty-text">No foods logged for this day yet.</p>
+                  ) : (
+                    <div className="nutrition-log-list">
+                      {dailyNutritionLogs.map((log) => (
+                        <div key={log.id} className="nutrition-log-row">
+                          <div className="nutrition-log-main">
+                            <strong>{log.name}</strong>
+                            <span className="nutrition-log-meta">{log.servingGrams}g · {formatMacro(log.calories)} kcal</span>
+                            <span className="nutrition-log-macros">
+                              P {formatMacro(log.protein)}g · C {formatMacro(log.carbs)}g · F {formatMacro(log.fat)}g
+                            </span>
+                          </div>
+                          <div className="nutrition-log-actions">
+                            {editingLogId === log.id ? (
+                              <>
+                                <input
+                                  className="text-input nutrition-edit-input"
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  value={editingGrams}
+                                  onChange={(e) => setEditingGrams(e.target.value)}
+                                />
+                                <button type="button" className="button button-small" onClick={() => saveEditedNutritionLog(log)}>
+                                  Save
+                                </button>
+                                <button type="button" className="button button-muted button-small" onClick={() => { setEditingLogId(null); setEditingGrams(''); }}>
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button type="button" className="button button-muted button-small" onClick={() => startEditNutritionLog(log)}>
+                                  Edit
+                                </button>
+                                <button type="button" className="button button-danger-muted button-small" onClick={() => deleteNutritionLog(log.id)}>
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="panel panel--compact">
+                  <h2 className="panel-heading panel-heading--plain">Goals</h2>
+                  <p className="panel-subtle">Adjust daily macro targets.</p>
+                  <div className="nutrition-goals-grid">
+                    <label className="profile-field">
+                      <span>Calories (kcal)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nutritionGoals.calories}
+                        onChange={(e) => updateNutritionGoals({ calories: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="profile-field">
+                      <span>Protein (g)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nutritionGoals.protein}
+                        onChange={(e) => updateNutritionGoals({ protein: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="profile-field">
+                      <span>Carbs (g)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nutritionGoals.carbs}
+                        onChange={(e) => updateNutritionGoals({ carbs: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="profile-field">
+                      <span>Fat (g)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nutritionGoals.fat}
+                        onChange={(e) => updateNutritionGoals({ fat: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                  </div>
+                </section>
+              </>
+            )}
+          </>
+        )}
+
         {/* ── SETTINGS ──────────────────────────────────────────────── */}
         {view === 'library' && (
           <>
@@ -1427,6 +1875,10 @@ export default function App() {
           <button className={`bnav-btn ${view === 'activity' ? 'bnav-btn--active' : ''}`} onClick={() => setView('activity')}>
             <span className="bnav-icon">📊</span>
             <span className="bnav-label">Activity</span>
+          </button>
+          <button className={`bnav-btn ${view === 'nutrition' ? 'bnav-btn--active' : ''}`} onClick={() => setView('nutrition')}>
+            <span className="bnav-icon">🥗</span>
+            <span className="bnav-label">Nutrition</span>
           </button>
           <button className={`bnav-btn ${view === 'library' ? 'bnav-btn--active' : ''}`} onClick={() => setView('library')}>
             <span className="bnav-icon">⚙️</span>

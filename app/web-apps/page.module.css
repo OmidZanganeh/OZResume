@@ -4,6 +4,19 @@
   padding: 40px 44px 60px;
 }
 
+.lead {
+  font-size: 0.98em;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 52rem;
+}
+
+.lead strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 .header {
   margin-bottom: 40px;
   padding-bottom: 28px;

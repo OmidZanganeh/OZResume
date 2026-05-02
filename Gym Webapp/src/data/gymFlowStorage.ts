@@ -15,6 +15,30 @@ export type UserProfile = {
   age?: string;
 };
 
+export type NutritionGoals = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+export type NutritionLog = {
+  id: string;
+  date: string;
+  code: string;
+  name: string;
+  servingGrams: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  caloriesPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
+  createdAt: string;
+};
+
 export type WorkoutEntry = {
   exerciseId: string;
   sets: number;
@@ -49,6 +73,8 @@ export type PersistedGymData = {
   savedPlans: SavedPlan[];
   /** Stored in cloud (`/api/gym-flow/data`) when signed in */
   userProfile?: UserProfile;
+  nutritionLogs?: NutritionLog[];
+  nutritionGoals?: NutritionGoals;
 };
 
 export const defaultGymData: PersistedGymData = {
@@ -56,6 +82,13 @@ export const defaultGymData: PersistedGymData = {
   stats: {},
   sessions: [],
   savedPlans: [],
+  nutritionLogs: [],
+  nutritionGoals: {
+    calories: 2000,
+    protein: 150,
+    carbs: 200,
+    fat: 70,
+  },
 };
 
 /** In-memory default only; cloud hydrate fills data when signed in. */

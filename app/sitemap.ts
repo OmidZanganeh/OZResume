@@ -9,7 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: BASE,               lastModified: now, changeFrequency: "monthly", priority: 1.0 },
     { url: `${BASE}/projects`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE}/web-apps`, lastModified: now, changeFrequency: "monthly", priority: 0.75 },
-    { url: `${BASE}/gym-flow`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE}/gym-flow/`, lastModified: now, changeFrequency: "monthly", priority: 0.72 },
     { url: `${BASE}/news`,     lastModified: now, changeFrequency: "daily",   priority: 0.7 },
 
     // ── Tools hub ──

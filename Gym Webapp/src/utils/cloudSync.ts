@@ -18,7 +18,9 @@ function isPersistedEmpty(d: PersistedGymData): boolean {
     d.savedPlans.length === 0 &&
     d.customExercises.length === 0 &&
     Object.keys(d.stats).length === 0 &&
-    !(d.userProfile && Object.keys(d.userProfile).length > 0)
+    !(d.userProfile && Object.keys(d.userProfile).length > 0) &&
+    (!d.nutritionLogs || d.nutritionLogs.length === 0) &&
+    !(d.nutritionGoals && Object.keys(d.nutritionGoals).length > 0)
   );
 }
 
