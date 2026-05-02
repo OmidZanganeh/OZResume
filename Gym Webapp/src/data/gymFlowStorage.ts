@@ -13,6 +13,19 @@ export type UserProfile = {
   height?: string;
   heightUnit?: 'cm' | 'ft';
   age?: string;
+  /** Optional: improves estimated calorie / macro targets. */
+  sex?: 'male' | 'female';
+};
+
+/** User-defined pantry item; macros per 100 g (same basis as Open Food Facts logs). */
+export type CustomFood = {
+  id: string;
+  name: string;
+  createdAt: string;
+  caloriesPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
 };
 
 export type NutritionGoals = {
@@ -24,7 +37,9 @@ export type NutritionGoals = {
 
 export type NutritionLog = {
   id: string;
+  /** Calendar day `YYYY-MM-DD` or ISO; normalized when aggregating. */
   date: string;
+  /** Open Food Facts code, or `custom:<CustomFood.id>` for saved foods. */
   code: string;
   name: string;
   servingGrams: number;
@@ -75,6 +90,7 @@ export type PersistedGymData = {
   userProfile?: UserProfile;
   nutritionLogs?: NutritionLog[];
   nutritionGoals?: NutritionGoals;
+  customFoods?: CustomFood[];
 };
 
 export const defaultGymData: PersistedGymData = {
@@ -83,6 +99,7 @@ export const defaultGymData: PersistedGymData = {
   sessions: [],
   savedPlans: [],
   nutritionLogs: [],
+  customFoods: [],
   nutritionGoals: {
     calories: 2000,
     protein: 150,

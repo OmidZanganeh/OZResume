@@ -4015,6 +4015,115 @@ body {
   gap: 0.6rem;
 }
 
+.nutrition-7d-macros {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.nutrition-7d-block-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gf-text-muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.nutrition-7d-bars {
+  display: flex;
+  gap: 0.35rem;
+  align-items: flex-end;
+}
+
+.nutrition-7d-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.nutrition-7d-bar-track {
+  width: 100%;
+  height: 4.5rem;
+  border-radius: 6px;
+  background: rgba(51, 65, 85, 0.45);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.nutrition-7d-bar-fill {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(180deg, #2dd4bf, #0d9488);
+  transition: height 0.2s ease;
+}
+
+.nutrition-7d-dow {
+  font-size: 0.65rem;
+  color: var(--gf-text-dim, #94a3b8);
+  font-weight: 600;
+}
+
+.day-meal-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.day-meal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.35);
+  border: 1px solid rgba(51, 65, 85, 0.55);
+}
+
+.workout-cal-cell--meals:not(.workout-cal-cell--workout) {
+  background: rgba(20, 184, 166, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.2);
+}
+
+.workout-cal-meal-mark {
+  font-size: 0.62rem;
+  line-height: 1;
+  margin-top: 0.08rem;
+  user-select: none;
+}
+
+.workout-cal-legend-swatch--meal {
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  border-radius: 3px;
+}
+
+.text-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--gf-accent, #2dd4bf);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.text-button:hover {
+  opacity: 0.9;
+}
+
 .nutrition-error {
   color: #fca5a5;
 }

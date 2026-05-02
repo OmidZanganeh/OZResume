@@ -114,10 +114,12 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 type Props = {
   sessions: Session[];
   allExercises: Exercise[];
+  /** Days (`YYYY-MM-DD`) with at least one nutrition log — shows a meal marker on the cell. */
+  mealDayKeys?: Set<string>;
   onDayClick?: (dateKey: string) => void;
 };
 
-export function WorkoutCalendar({ sessions, allExercises, onDayClick }: Props) {
+export function WorkoutCalendar({ sessions, allExercises, mealDayKeys, onDayClick }: Props) {
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
     return { year: n.getFullYear(), month: n.getMonth() };
@@ -200,6 +202,7 @@ export function WorkoutCalendar({ sessions, allExercises, onDayClick }: Props) {
               }
               const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const cal = dayInfo.get(key);
+              const hasMeals = mealDayKeys?.has(key) ?? false;
               const info = cal?.summary;
               const hasWorkout = info && info.total > 0;
               const onlySample = hasWorkout && info!.real === 0 && info!.sample > 0;
@@ -221,6 +224,9 @@ export function WorkoutCalendar({ sessions, allExercises, onDayClick }: Props) {
                 if (info.sample) parts.push(`${info.sample} legacy sample`);
                 title = `${dayLabel} — ${parts.join(' · ')}`;
               }
+              if (hasMeals) {
+                title = title.includes('—') ? `${title} · Meals logged` : `${title} — Meals logged`;
+              }
 
               return (
                 <div
@@ -231,6 +237,7 @@ export function WorkoutCalendar({ sessions, allExercises, onDayClick }: Props) {
                     onlySample ? 'workout-cal-cell--sample' : '',
                     mixed ? 'workout-cal-cell--mixed' : '',
                     isToday ? 'workout-cal-cell--today' : '',
+                    hasMeals ? 'workout-cal-cell--meals' : '',
                     onDayClick ? 'workout-cal-cell--clickable' : '',
                   ]
                     .filter(Boolean)
@@ -247,6 +254,11 @@ export function WorkoutCalendar({ sessions, allExercises, onDayClick }: Props) {
                   }}
                 >
                   <span className="workout-cal-daynum">{day}</span>
+                  {hasMeals && (
+                    <span className="workout-cal-meal-mark" title="Meals logged" aria-label="Meals logged">
+                      🍽
+                    </span>
+                  )}
                   {hasWorkout && groupsStripe.length > 0 ? (
                     <div className="workout-cal-muscle-strip" aria-hidden>
                       {groupsStripe.map((g) => (
@@ -320,6 +332,10 @@ export function WorkoutCalendar({ sessions, allExercises, onDayClick }: Props) {
         <span className="workout-cal-legend-item">
           <i className="workout-cal-legend-swatch workout-cal-legend-swatch--sample" aria-hidden />
           Legacy sample only
+        </span>
+        <span className="workout-cal-legend-item">
+          <i className="workout-cal-legend-swatch workout-cal-legend-swatch--meal" aria-hidden />
+          Meals logged
         </span>
         <span className="workout-cal-legend-item">
           <i className="workout-cal-legend-ring" aria-hidden />
