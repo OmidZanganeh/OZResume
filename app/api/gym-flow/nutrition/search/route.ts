@@ -40,12 +40,12 @@ export async function GET(req: Request) {
   }
 
   try {
-    const url = new URL(`${OPENFOODFACTS_HOST}/api/v2/search`);
+    const url = new URL(`${OPENFOODFACTS_HOST}/cgi/search.pl`);
     url.searchParams.set('search_terms', query);
+    url.searchParams.set('search_simple', '1');
+    url.searchParams.set('action', 'process');
+    url.searchParams.set('json', '1');
     url.searchParams.set('page_size', '20');
-    url.searchParams.set('countries_tags', 'en:united-states');
-    url.searchParams.set('lang', 'en');
-    url.searchParams.set('sort_by', 'unique_scans_n');
     url.searchParams.set('fields', 'code,product_name,product_name_en,brands,quantity,serving_size');
 
     const res = await fetchWithRetry(url.toString(), {

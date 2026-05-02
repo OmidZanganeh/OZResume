@@ -53,7 +53,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const url = new URL(`${OPENFOODFACTS_HOST}/api/v2/product/${encodeURIComponent(code)}.json`);
+    const url = new URL(`${OPENFOODFACTS_HOST}/api/v2/product/${encodeURIComponent(code)}`);
     url.searchParams.set('fields', 'code,product_name,product_name_en,brands,quantity,serving_size,nutriments');
 
     const res = await fetchWithRetry(url.toString(), {
