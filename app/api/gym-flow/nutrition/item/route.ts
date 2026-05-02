@@ -17,6 +17,24 @@ type NutritionItem = {
   per100g: NutritionPer100g;
 };
 
+const OPENFOODFACTS_HOST = 'https://us.openfoodfacts.org';
+
+async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Promise<Response> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const res = await fetch(url, init);
+      if (res.ok || ![429, 502, 503, 504].includes(res.status)) return res;
+      lastError = new Error(`Retryable status ${res.status}`);
+    } catch (err) {
+      lastError = err;
+    }
+    const delayMs = 350 + i * 550;
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  throw lastError ?? new Error('Upstream fetch failed');
+}
+
 function asNumber(value: unknown): number | null {
   const n = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseFloat(value) : NaN;
   return Number.isFinite(n) ? n : null;
@@ -35,10 +53,10 @@ export async function GET(req: Request) {
   }
 
   try {
-    const url = new URL(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
+    const url = new URL(`${OPENFOODFACTS_HOST}/api/v2/product/${encodeURIComponent(code)}.json`);
     url.searchParams.set('fields', 'code,product_name,product_name_en,brands,quantity,serving_size,nutriments');
 
-    const res = await fetch(url.toString(), {
+    const res = await fetchWithRetry(url.toString(), {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'GymFlow/1.0 (https://omidzanganeh.com/gym-flow)',
@@ -88,7 +106,10 @@ export async function GET(req: Request) {
       },
     };
 
-    return NextResponse.json({ item });
+    return NextResponse.json(
+      { item },
+      { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=60' } },
+    );
   } catch (error) {
     console.error('[gym-flow/nutrition item]', error);
     return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });

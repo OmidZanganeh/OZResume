@@ -9,6 +9,24 @@ type SearchResult = {
   servingSize?: string;
 };
 
+const OPENFOODFACTS_HOST = 'https://us.openfoodfacts.org';
+
+async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Promise<Response> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const res = await fetch(url, init);
+      if (res.ok || ![429, 502, 503, 504].includes(res.status)) return res;
+      lastError = new Error(`Retryable status ${res.status}`);
+    } catch (err) {
+      lastError = err;
+    }
+    const delayMs = 350 + i * 550;
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  throw lastError ?? new Error('Upstream fetch failed');
+}
+
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -22,7 +40,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const url = new URL('https://world.openfoodfacts.org/api/v2/search');
+    const url = new URL(`${OPENFOODFACTS_HOST}/api/v2/search`);
     url.searchParams.set('search_terms', query);
     url.searchParams.set('page_size', '20');
     url.searchParams.set('countries_tags', 'en:united-states');
@@ -30,7 +48,7 @@ export async function GET(req: Request) {
     url.searchParams.set('sort_by', 'unique_scans_n');
     url.searchParams.set('fields', 'code,product_name,product_name_en,brands,quantity,serving_size');
 
-    const res = await fetch(url.toString(), {
+    const res = await fetchWithRetry(url.toString(), {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'GymFlow/1.0 (https://omidzanganeh.com/gym-flow)',
@@ -56,7 +74,10 @@ export async function GET(req: Request) {
       }))
       .filter((p) => p.code && p.name);
 
-    return NextResponse.json({ items });
+    return NextResponse.json(
+      { items },
+      { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=60' } },
+    );
   } catch (error) {
     console.error('[gym-flow/nutrition search]', error);
     return NextResponse.json({ error: 'Search failed' }, { status: 500 });
