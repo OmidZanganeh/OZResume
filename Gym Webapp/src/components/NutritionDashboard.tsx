@@ -30,24 +30,30 @@ const RING_COLORS: Record<(typeof WEEK_KEYS)[number], string> = {
 };
 
 type TodayRingsProps = {
-  today: NutritionGoals;
+  totals: NutritionGoals;
   goals: NutritionGoals;
-  dateKey: string;
+  endDateKey: string;
+  periodDays: number;
 };
 
-/** Five nested circles (outer → inner: kcal, P, C, F, fiber). Same arc semantics as period rings. */
-export function TodayConcentricGoalRings({ today, goals, dateKey }: TodayRingsProps) {
+/** Five nested circles (outer → inner: kcal, P, C, F, fiber). Totals = selected day or period daily average vs goals. */
+export function TodayConcentricGoalRings({ totals, goals, endDateKey, periodDays }: TodayRingsProps) {
   const VB = 120;
   const cx = VB / 2;
   const cy = VB / 2;
   /** Outer ring largest; step keeps gaps between strokes. */
   const radii = [52, 44, 36, 28, 20];
   const strokeW = 3.25;
-  const dow = new Date(dateKey + 'T12:00:00').toLocaleDateString(undefined, {
+  const endLabel = new Date(endDateKey + 'T12:00:00').toLocaleDateString(undefined, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
   });
+  const titleMain = periodDays === 1 ? 'Day' : `${periodDays}d avg`;
+  const subLine =
+    periodDays === 1
+      ? endLabel
+      : `Last ${periodDays} days ending ${endLabel} · vs daily goals`;
 
   const fmt = (key: (typeof WEEK_KEYS)[number], v: number) => {
     if (key === 'calories') return String(Math.round(v));
@@ -55,20 +61,26 @@ export function TodayConcentricGoalRings({ today, goals, dateKey }: TodayRingsPr
     return Number.isInteger(x) ? String(x) : x.toFixed(1);
   };
 
+  const centerKcal = Math.round(totals.calories);
+
   return (
     <div
       className="nutrition-viz-card nutrition-concentric-card"
       role="group"
-      aria-label={`Nutrition goals for ${dow}: calories and macros vs targets`}
+      aria-label={
+        periodDays === 1
+          ? `Nutrition for ${endLabel} versus daily goals`
+          : `${periodDays}-day average ending ${endLabel} versus daily goals`
+      }
     >
-      <h3 className="nutrition-viz-title nutrition-concentric-title">Today</h3>
-      <p className="nutrition-concentric-date">{dow}</p>
+      <h3 className="nutrition-viz-title nutrition-concentric-title">{titleMain}</h3>
+      <p className="nutrition-concentric-date">{subLine}</p>
       <div className="nutrition-concentric-svg-wrap">
         <svg className="nutrition-concentric-svg" viewBox={`0 0 ${VB} ${VB}`}>
           {WEEK_KEYS.map((key, i) => {
             const r = radii[i]!;
             const g = Math.max(goals[key], 0.001);
-            const val = today[key];
+            const val = totals[key];
             const circ = 2 * Math.PI * r;
             const arcFrac = Math.min(Math.max(g > 0 ? val / g : 0, 0), 1);
             const dash = `${arcFrac * circ} ${circ}`;
@@ -95,14 +107,17 @@ export function TodayConcentricGoalRings({ today, goals, dateKey }: TodayRingsPr
                   opacity={0.88}
                   transform={`rotate(-90 ${cx} ${cy})`}
                 />
-                <title>{`${RING_LABELS[key]}: ${fmt(key, val)} / goal ${fmt(key, goals[key])}`}</title>
+                <title>{`${RING_LABELS[key]}: ${fmt(key, val)} / goal ${fmt(key, goals[key])} per day`}</title>
               </g>
             );
           })}
         </svg>
         <div className="nutrition-concentric-center">
-          <span className="nutrition-concentric-center-kcal">{Math.round(today.calories)}</span>
-          <span className="nutrition-concentric-center-sub">kcal</span>
+          <span className="nutrition-concentric-center-kcal">{centerKcal}</span>
+          <span className="nutrition-concentric-center-sub">
+            kcal
+            {periodDays > 1 ? ' · avg' : ''}
+          </span>
         </div>
       </div>
       <ul className="nutrition-concentric-legend">
@@ -111,12 +126,15 @@ export function TodayConcentricGoalRings({ today, goals, dateKey }: TodayRingsPr
             <span className="nutrition-concentric-legend-dot" style={{ background: RING_COLORS[key] }} />
             <span className="nutrition-concentric-legend-label">{RING_LABELS[key]}</span>
             <span className="nutrition-concentric-legend-val">
-              {fmt(key, today[key])}/{fmt(key, goals[key])}
+              {fmt(key, totals[key])}/{fmt(key, goals[key])}
               {key === 'calories' ? '' : 'g'}
             </span>
           </li>
         ))}
       </ul>
+      {periodDays > 1 ? (
+        <p className="nutrition-concentric-foot">Ring values are daily averages for the window; goals are your daily targets.</p>
+      ) : null}
     </div>
   );
 }

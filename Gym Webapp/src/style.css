@@ -4407,6 +4407,14 @@ body {
   font-size: 0.74rem;
 }
 
+.nutrition-concentric-foot {
+  margin: 0.75rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--gf-text-dim);
+  text-align: center;
+}
+
 @media (min-width: 520px) {
   .nutrition-concentric-legend {
     display: grid;

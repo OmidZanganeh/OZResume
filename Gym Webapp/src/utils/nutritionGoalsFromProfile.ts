@@ -67,17 +67,39 @@ export function computeSuggestedNutritionGoals(profile: UserProfile | undefined)
 
 /** Last `n` calendar days ending today (local), oldest first. */
 export function lastNDayKeys(n: number): string[] {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  return lastNDayKeysEnding(calendarKeyFromDate(d), n);
+}
+
+/** Last `n` calendar days ending on `endDateKey` (`YYYY-MM-DD`, local), oldest first. */
+export function lastNDayKeysEnding(endDateKey: string, n: number): string[] {
+  if (n < 1) return [];
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(endDateKey);
+  if (!m) return [];
+  const end = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
+  if (Number.isNaN(end.getTime())) return [];
   const out: string[] = [];
   for (let i = n - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setHours(12, 0, 0, 0);
+    const d = new Date(end);
     d.setDate(d.getDate() - i);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    out.push(`${y}-${m}-${day}`);
+    out.push(calendarKeyFromDate(d));
   }
   return out;
+}
+
+function calendarKeyFromDate(d: Date): string {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
+/** Local calendar today as `YYYY-MM-DD`. */
+export function localTodayDateKey(): string {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  return calendarKeyFromDate(d);
 }
 
 /** Normalize any nutrition log `date` to local calendar key `YYYY-MM-DD`. */

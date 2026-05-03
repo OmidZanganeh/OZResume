@@ -53,7 +53,7 @@ import { hydrateFromCloudIfSignedIn, fetchAuthSession, resetCloudHydrationCursor
 import { GYM_FLOW_OAUTH_SUCCESS, getGymFlowSignInPopupUrl, isTrustedGymFlowOAuthOrigin, openGymFlowSignIn } from './utils/googleSignInPopup';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
-import { computeSuggestedNutritionGoals, lastNDayKeys, nutritionLogDateKey } from './utils/nutritionGoalsFromProfile';
+import { computeSuggestedNutritionGoals, lastNDayKeysEnding, localTodayDateKey, nutritionLogDateKey } from './utils/nutritionGoalsFromProfile';
 import { portionMacrosToPer100g } from './utils/nutritionServing';
 
 import {
@@ -202,9 +202,9 @@ export default function App() {
   const [cloudSignedIn, setCloudSignedIn] = useState(false);
   const [profileCloudBusy, setProfileCloudBusy] = useState(false);
   const [profileCloudError, setProfileCloudError] = useState<string | null>(null);
-  const [nutritionDate, setNutritionDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [nutritionDate, setNutritionDate] = useState(() => localTodayDateKey());
   /** Rolling window for nutrition trend charts (same idea as Activity analysis window). */
-  const [nutritionTrendDays, setNutritionTrendDays] = useState(7);
+  const [nutritionTrendDays, setNutritionTrendDays] = useState(1);
   const [nutritionQuery, setNutritionQuery] = useState('');
   const [nutritionResults, setNutritionResults] = useState<NutritionSearchItem[]>([]);
   const [nutritionLoading, setNutritionLoading] = useState(false);
@@ -286,7 +286,7 @@ export default function App() {
   }, [nutritionLogs]);
 
   const nutritionWindowByDay = useMemo(() => {
-    const keys = lastNDayKeys(nutritionTrendDays);
+    const keys = lastNDayKeysEnding(nutritionDate, nutritionTrendDays);
     const map = new Map<string, NutritionGoals>();
     for (const k of keys) {
       map.set(k, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
@@ -304,7 +304,7 @@ export default function App() {
       });
     }
     return keys.map((k) => ({ dateKey: k, ...map.get(k)! }));
-  }, [nutritionLogs, nutritionTrendDays]);
+  }, [nutritionLogs, nutritionTrendDays, nutritionDate]);
 
   const nutritionWindowAverages = useMemo(() => {
     const n = nutritionWindowByDay.length || nutritionTrendDays;
@@ -408,6 +408,11 @@ export default function App() {
       { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
     );
   }, [dailyNutritionLogs]);
+
+  const nutritionConcentricTotals = useMemo(
+    () => (nutritionTrendDays === 1 ? nutritionTotals : nutritionWindowAverages),
+    [nutritionTrendDays, nutritionTotals, nutritionWindowAverages],
+  );
 
   const todayMealShares = useMemo(
     () => dailyNutritionLogs.map((l) => ({ id: l.id, name: l.name, calories: l.calories })),
@@ -1816,9 +1821,16 @@ export default function App() {
                       onChange={(e) => setNutritionDate(e.target.value)}
                     />
                   </label>
-                  <div className="nutrition-trend-window" role="group" aria-label="Chart window (days)">
+                  <button
+                    type="button"
+                    className={`chip chip-compact ${nutritionDate === localTodayDateKey() ? 'chip-active' : ''}`}
+                    onClick={() => setNutritionDate(localTodayDateKey())}
+                  >
+                    Today
+                  </button>
+                  <div className="nutrition-trend-window" role="group" aria-label="Overview period (days ending on selected day)">
                     <span className="nutrition-trend-window-label">Period</span>
-                    {[7, 10, 30, 90].map((d) => (
+                    {[1, 7, 10, 30, 90].map((d) => (
                       <button
                         key={d}
                         type="button"
@@ -1833,13 +1845,23 @@ export default function App() {
               </div>
 
               <div className="nutrition-overview-stack">
-                <TodayConcentricGoalRings today={nutritionTotals} goals={nutritionGoals} dateKey={nutritionDate} />
-                <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
+                <TodayConcentricGoalRings
+                  totals={nutritionConcentricTotals}
+                  goals={nutritionGoals}
+                  endDateKey={nutritionDate}
+                  periodDays={nutritionTrendDays}
+                />
+                {nutritionTrendDays === 1 ? (
+                  <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
+                ) : null}
               </div>
-              <p className="nutrition-averages-line nutrition-averages-line--inline">
-                Avg · {nutritionTrendDays}d · {formatMacro(nutritionWindowAverages.calories)} kcal · P {formatMacro(nutritionWindowAverages.protein)} · C{' '}
-                {formatMacro(nutritionWindowAverages.carbs)} · F {formatMacro(nutritionWindowAverages.fat)} · Fiber {formatMacro(nutritionWindowAverages.fiber)}
-              </p>
+              {nutritionTrendDays > 1 ? (
+                <p className="nutrition-averages-line nutrition-averages-line--inline">
+                  Avg · {nutritionTrendDays}d ending {nutritionDate} · {formatMacro(nutritionWindowAverages.calories)} kcal · P{' '}
+                  {formatMacro(nutritionWindowAverages.protein)} · C {formatMacro(nutritionWindowAverages.carbs)} · F{' '}
+                  {formatMacro(nutritionWindowAverages.fat)} · Fiber {formatMacro(nutritionWindowAverages.fiber)}
+                </p>
+              ) : null}
               <WeekNutrientStrips
                 days={nutritionWindowByDay}
                 goals={nutritionGoals}
