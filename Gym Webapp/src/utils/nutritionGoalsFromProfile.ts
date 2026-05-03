@@ -88,6 +88,27 @@ export function lastNDayKeysEnding(endDateKey: string, n: number): string[] {
   return out;
 }
 
+/**
+ * Local calendar week Sun–Sat containing `containingDateKey` (`YYYY-MM-DD`).
+ * Returns 7 keys: Sunday first, Saturday last (matches typical US calendar rows).
+ */
+export function calendarWeekSunToSatKeysContaining(containingDateKey: string): string[] {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(containingDateKey);
+  if (!m) return [];
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
+  if (Number.isNaN(d.getTime())) return [];
+  const dow = d.getDay(); // 0 = Sunday … 6 = Saturday
+  const sunday = new Date(d);
+  sunday.setDate(d.getDate() - dow);
+  const out: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const x = new Date(sunday);
+    x.setDate(sunday.getDate() + i);
+    out.push(calendarKeyFromDate(x));
+  }
+  return out;
+}
+
 function calendarKeyFromDate(d: Date): string {
   const y = d.getFullYear();
   const mo = String(d.getMonth() + 1).padStart(2, '0');

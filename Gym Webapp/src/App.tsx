@@ -53,7 +53,13 @@ import { hydrateFromCloudIfSignedIn, fetchAuthSession, resetCloudHydrationCursor
 import { GYM_FLOW_OAUTH_SUCCESS, getGymFlowSignInPopupUrl, isTrustedGymFlowOAuthOrigin, openGymFlowSignIn } from './utils/googleSignInPopup';
 import { commitWorkoutSession } from './utils/commitWorkoutSession';
 import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
-import { computeSuggestedNutritionGoals, lastNDayKeysEnding, localTodayDateKey, nutritionLogDateKey } from './utils/nutritionGoalsFromProfile';
+import {
+  calendarWeekSunToSatKeysContaining,
+  computeSuggestedNutritionGoals,
+  lastNDayKeysEnding,
+  localTodayDateKey,
+  nutritionLogDateKey,
+} from './utils/nutritionGoalsFromProfile';
 import { portionMacrosToPer100g } from './utils/nutritionServing';
 
 import {
@@ -78,7 +84,16 @@ const PRESET_CATEGORY_META: Record<string, { description: string }> = {
   'Targeted Isolation (Single Muscle)': { description: 'Single-muscle focus days' },
 };
 
-type AppView = 'summary' | 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'nutrition' | 'library';
+type AppView =
+  | 'summary'
+  | 'home'
+  | 'muscle-plan-suggestions'
+  | 'create-focus'
+  | 'create-moves'
+  | 'log'
+  | 'activity'
+  | 'nutrition'
+  | 'library';
 
 type NutritionSearchItem = {
   code: string;
@@ -192,6 +207,8 @@ export default function App() {
   const [savePlanNameInput, setSavePlanNameInput] = useState('');
   const [activeRoutineName, setActiveRoutineName] = useState<string | null>(null);
   const [editingSavedPlanId, setEditingSavedPlanId] = useState<string | null>(null);
+  /** Muscle chosen from Plans heatmap — pick existing templates or build new. */
+  const [muscleSuggestionsGroup, setMuscleSuggestionsGroup] = useState<MuscleGroup | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     'Core Foundations': true,
     'Classic Splits': true,
@@ -250,6 +267,26 @@ export default function App() {
     [presetCategories, data.sessions],
   );
 
+  const musclePlanSuggestionLists = useMemo(() => {
+    const g = muscleSuggestionsGroup;
+    if (!g) {
+      return {
+        saved: [] as SavedPlan[],
+        presets: [] as { category: string; plans: SavedPlan[] }[],
+        total: 0,
+      };
+    }
+    const saved = sortedSavedPlans.filter((p) => p.muscleGroups.includes(g));
+    const presets = presetCategoriesSorted
+      .map((cat) => ({
+        category: cat.title,
+        plans: cat.plans.filter((p) => p.muscleGroups.includes(g)),
+      }))
+      .filter((block) => block.plans.length > 0);
+    const total = saved.length + presets.reduce((acc, b) => acc + b.plans.length, 0);
+    return { saved, presets, total };
+  }, [muscleSuggestionsGroup, sortedSavedPlans, presetCategoriesSorted]);
+
   const catalogMatches = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     const timesById: Record<string, number | undefined> = {};
@@ -289,7 +326,10 @@ export default function App() {
   }, [nutritionLogs]);
 
   const nutritionWindowByDay = useMemo(() => {
-    const keys = lastNDayKeysEnding(nutritionDate, nutritionTrendDays);
+    const keys =
+      nutritionTrendDays === 7
+        ? calendarWeekSunToSatKeysContaining(nutritionDate)
+        : lastNDayKeysEnding(nutritionDate, nutritionTrendDays);
     const map = new Map<string, NutritionGoals>();
     for (const k of keys) {
       map.set(k, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
@@ -309,9 +349,9 @@ export default function App() {
     return keys.map((k) => ({ dateKey: k, ...map.get(k)! }));
   }, [nutritionLogs, nutritionTrendDays, nutritionDate]);
 
-  /** Last 7 days ending on selected nutrition date (for week ring strip regardless of Period chip). */
+  /** Sun–Sat week (local) containing selected nutrition date; for ring strip when period < 7d. */
   const nutritionSevenDayRollupByDay = useMemo(() => {
-    const keys = lastNDayKeysEnding(nutritionDate, 7);
+    const keys = calendarWeekSunToSatKeysContaining(nutritionDate);
     const map = new Map<string, NutritionGoals>();
     for (const k of keys) {
       map.set(k, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
@@ -359,7 +399,7 @@ export default function App() {
     const mo = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     const todayKey = `${y}-${mo}-${day}`;
-    const keys = lastNDayKeysEnding(todayKey, 7);
+    const keys = calendarWeekSunToSatKeysContaining(todayKey);
     const map = new Map<string, { calories: number; protein: number; carbs: number; fat: number; fiber: number }>();
     for (const k of keys) {
       map.set(k, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
@@ -1020,6 +1060,7 @@ export default function App() {
   }
 
   function startCreatePlan(initialGroups: MuscleGroup[] = []) {
+    setMuscleSuggestionsGroup(null);
     setSelectedGroups(initialGroups);
     setSelectedEquipment([]);
     setSelectedExerciseIds([]);
@@ -1029,6 +1070,27 @@ export default function App() {
     setSearchTerm('');
     setVisibleExerciseCount(24);
     setView('create-focus');
+  }
+
+  function openMusclePlanSuggestions(group: MuscleGroup) {
+    setMuscleSuggestionsGroup(group);
+    setView('muscle-plan-suggestions');
+  }
+
+  function exitMusclePlanSuggestions() {
+    setMuscleSuggestionsGroup(null);
+    setView('home');
+  }
+
+  function handleMuscleSuggestionStart(plan: SavedPlan) {
+    setMuscleSuggestionsGroup(null);
+    setView('home');
+    openRoutineWorkoutTab(plan.id);
+  }
+
+  function handleMuscleSuggestionEdit(plan: SavedPlan) {
+    setMuscleSuggestionsGroup(null);
+    beginEditSavedPlan(plan);
   }
 
   function handleAddCustomExercise(e: FormEvent<HTMLFormElement>) {
@@ -1307,24 +1369,23 @@ export default function App() {
             </section>
 
             <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">Analysis Period</h2>
-              <div className="chip-list" style={{ marginTop: '0.4rem' }}>
-                {[7, 10, 30, 90, 365].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    className={`chip ${analysisDays === d ? 'chip-active' : ''}`}
-                    onClick={() => setAnalysisDays(d)}
-                  >
-                    {d}d
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
               <p className="panel-subtle">Visual balance of your training for this period.</p>
+              <div className="radar-period-row" role="group" aria-label="Analysis period">
+                <span className="radar-period-label">Period</span>
+                <div className="chip-list radar-period-chips">
+                  {[7, 10, 30, 90, 365].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className={`chip ${analysisDays === d ? 'chip-active' : ''}`}
+                      onClick={() => setAnalysisDays(d)}
+                    >
+                      {d}d
+                    </button>
+                  ))}
+                </div>
+              </div>
               <MuscleSpider counts={analysisCounts} />
             </section>
 
@@ -1334,26 +1395,33 @@ export default function App() {
               <BodyMapFigure
                 practiceCounts={analysisCounts}
                 practiceWindowDays={analysisDays}
-                selectedGroups={selectedGroups}
-                onToggleGroup={(g) => {
-                  setSelectedGroups((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
-                }}
+                selectedGroups={[]}
+                onToggleGroup={() => {}}
+                allowRegionToggle={false}
               />
-              {selectedGroups.length > 0 && (
-                <div className="active-filters-row" role="status" aria-live="polite">
-                  <span className="active-filters-label">Active filters</span>
-                  <div className="active-filters-chips">
-                    {selectedGroups.map((g) => (
-                      <button key={g} type="button" className="chip chip-active" onClick={() => toggleGroup(g)}>
-                        {g} ✕
-                      </button>
-                    ))}
-                  </div>
-                  <button type="button" className="text-button" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); }}>
-                    Clear all
-                  </button>
-                </div>
-              )}
+            </section>
+
+            <section className="panel panel--compact">
+              <h2 className="panel-heading panel-heading--plain">Export Report</h2>
+              <p className="panel-subtle">Choose your preferred format. Save as Image downloads a JPEG (good for mobile sharing).</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="button"
+                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
+                  onClick={handleDownloadImage}
+                >
+                  🖼️ Save as Image
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', fontWeight: 700 }}
+                  onClick={() => window.print()}
+                >
+                  📄 Print PDF
+                </button>
+              </div>
             </section>
           </>
         )}
@@ -1520,10 +1588,118 @@ export default function App() {
                   practiceCounts={practiceCounts}
                   practiceWindowDays={reportDays}
                   selectedGroups={[]}
-                  onToggleGroup={(group) => startCreatePlan([group])}
+                  onToggleGroup={(group) => openMusclePlanSuggestions(group)}
+                  allowRegionToggle
                 />
               </div>
             </section>
+          </div>
+        )}
+
+        {/* ── PLANS: muscle tap → suggested templates ─────────────── */}
+        {view === 'muscle-plan-suggestions' && muscleSuggestionsGroup && (
+          <div className="subview muscle-plan-suggestions">
+            <div className="view-header">
+              <button type="button" className="view-back" onClick={exitMusclePlanSuggestions}>
+                ← Back
+              </button>
+              <h1 className="view-title">{muscleSuggestionsGroup}</h1>
+              <span className="view-badge">
+                {musclePlanSuggestionLists.total} match{musclePlanSuggestionLists.total === 1 ? '' : 'es'}
+              </span>
+            </div>
+            <p className="view-hint">Plans that include this muscle. Start one, edit yours, or build from scratch.</p>
+
+            {musclePlanSuggestionLists.total === 0 ? (
+              <p className="muscle-plan-suggestions-empty">
+                No saved or preset plans list this muscle yet. Use the button below to pick moves yourself.
+              </p>
+            ) : null}
+
+            {musclePlanSuggestionLists.saved.length > 0 && (
+              <section className="panel muscle-plan-suggestions-section" aria-label="Your plans">
+                <h2 className="panel-heading panel-heading--plain">Your plans</h2>
+                <ul className="plan-card-list">
+                  {musclePlanSuggestionLists.saved.map((plan) => {
+                    const entries = orderedPlanEntries(plan, allExercises);
+                    const lastUsed = getLastPlanSessionDate(plan.id, data.sessions);
+                    return (
+                      <li key={plan.id} className="plan-card-home">
+                        <div className="plan-card-home-row">
+                          <div className="plan-card-home-info">
+                            <span className="plan-card-home-name">{plan.name}</span>
+                            <span className="plan-card-home-sub">{planCardActivitySubline(entries.length, lastUsed)}</span>
+                            {plan.muscleGroups.length > 0 && (
+                              <div className="plan-card-home-muscles">
+                                {plan.muscleGroups.slice(0, 4).map((g) => (
+                                  <span key={g} className="muscle-chip-sm">{g}</span>
+                                ))}
+                                {plan.muscleGroups.length > 4 && (
+                                  <span className="muscle-chip-sm muscle-chip-sm--more">+{plan.muscleGroups.length - 4}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <button type="button" className="btn-start" onClick={() => handleMuscleSuggestionStart(plan)}>
+                            Start
+                          </button>
+                        </div>
+                        <div className="plan-card-home-actions">
+                          <button type="button" className="plan-action-btn" onClick={() => handleMuscleSuggestionEdit(plan)}>
+                            Edit
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+
+            {musclePlanSuggestionLists.presets.map(({ category, plans }) => (
+              <section key={category} className="panel muscle-plan-suggestions-section" aria-label={category}>
+                <h2 className="panel-heading panel-heading--plain">{category}</h2>
+                <ul className="plan-card-list">
+                  {plans.map((plan) => {
+                    const entries = orderedPlanEntries(plan, allExercises);
+                    const lastUsed = getLastPlanSessionDate(plan.id, data.sessions);
+                    return (
+                      <li key={plan.id} className="plan-card-home">
+                        <div className="plan-card-home-row">
+                          <div className="plan-card-home-info">
+                            <span className="plan-card-home-name">{plan.name}</span>
+                            <span className="plan-card-home-sub">{planCardActivitySubline(entries.length, lastUsed)}</span>
+                            {plan.muscleGroups.length > 0 && (
+                              <div className="plan-card-home-muscles">
+                                {plan.muscleGroups.slice(0, 4).map((g) => (
+                                  <span key={g} className="muscle-chip-sm">{g}</span>
+                                ))}
+                                {plan.muscleGroups.length > 4 && (
+                                  <span className="muscle-chip-sm muscle-chip-sm--more">+{plan.muscleGroups.length - 4}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <button type="button" className="btn-start" onClick={() => handleMuscleSuggestionStart(plan)}>
+                            Start
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+
+            <div className="muscle-plan-suggestions-build">
+              <button
+                type="button"
+                className="button muscle-plan-suggestions-build-btn"
+                onClick={() => startCreatePlan([muscleSuggestionsGroup])}
+              >
+                Build a new plan
+              </button>
+            </div>
           </div>
         )}
 
@@ -1765,18 +1941,24 @@ export default function App() {
             </section>
 
             <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">Analysis Period</h2>
-              <div className="chip-list" style={{ marginTop: '0.4rem' }}>
-                {[7, 10, 30, 90, 365].map(d => (
-                  <button 
-                    key={d} 
-                    className={`chip ${analysisDays === d ? 'chip-active' : ''}`}
-                    onClick={() => setAnalysisDays(d)}
-                  >
-                    {d}d
-                  </button>
-                ))}
+              <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
+              <p className="panel-subtle">Visual balance of your training for this period.</p>
+              <div className="radar-period-row" role="group" aria-label="Analysis period">
+                <span className="radar-period-label">Period</span>
+                <div className="chip-list radar-period-chips">
+                  {[7, 10, 30, 90, 365].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className={`chip ${analysisDays === d ? 'chip-active' : ''}`}
+                      onClick={() => setAnalysisDays(d)}
+                    >
+                      {d}d
+                    </button>
+                  ))}
+                </div>
               </div>
+              <MuscleSpider counts={analysisCounts} />
             </section>
 
             <section className="panel">
@@ -1785,26 +1967,10 @@ export default function App() {
               <BodyMapFigure
                 practiceCounts={analysisCounts}
                 practiceWindowDays={analysisDays}
-                selectedGroups={selectedGroups}
-                onToggleGroup={(g) => {
-                  setSelectedGroups(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
-                }}
+                selectedGroups={[]}
+                onToggleGroup={() => {}}
+                allowRegionToggle={false}
               />
-              {selectedGroups.length > 0 && (
-                <div className="active-filters-row" role="status" aria-live="polite">
-                  <span className="active-filters-label">Active filters</span>
-                  <div className="active-filters-chips">
-                    {selectedGroups.map((g) => (
-                      <button key={g} type="button" className="chip chip-active" onClick={() => toggleGroup(g)}>
-                        {g} ✕
-                      </button>
-                    ))}
-                  </div>
-                  <button type="button" className="text-button" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); }}>
-                    Clear all
-                  </button>
-                </div>
-              )}
             </section>
 
             <section className="panel">
@@ -1857,13 +2023,6 @@ export default function App() {
                 </div>
               )}
             </section>
-
-            <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
-              <p className="panel-subtle">Visual balance of your training for this period.</p>
-              <MuscleSpider counts={analysisCounts} />
-            </section>
-
 
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Workout Calendar</h2>

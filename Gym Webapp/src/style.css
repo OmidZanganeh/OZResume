@@ -3277,6 +3277,41 @@ body {
 
 .subview { min-height: 100svh; padding-bottom: 6rem; }
 
+.muscle-plan-suggestions .view-hint {
+  padding: 0 1rem 0.75rem;
+}
+
+.muscle-plan-suggestions-empty {
+  margin: 0 1rem 1rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.88rem;
+  color: var(--gf-text-muted);
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius);
+}
+
+.muscle-plan-suggestions-section {
+  margin-bottom: 1rem;
+}
+
+.muscle-plan-suggestions-build {
+  padding: 1rem 1rem 2rem;
+}
+
+.muscle-plan-suggestions-build-btn {
+  width: 100%;
+  font-weight: 800;
+  border-color: rgba(56, 189, 248, 0.45);
+  background: linear-gradient(165deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.12));
+  color: var(--gf-text);
+}
+
+.muscle-plan-suggestions-build-btn:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.65);
+  background: linear-gradient(165deg, rgba(56, 189, 248, 0.32), rgba(99, 102, 241, 0.18));
+}
+
 .view-header {
   position: sticky;
   top: 0;
@@ -3926,6 +3961,30 @@ select.text-input.day-modal-select {
 .day-modal-nutrition-add .nutrition-grams-with-chips {
   margin-top: 0;
   max-width: none;
+}
+
+.radar-period-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  margin: 0.45rem 0 0.85rem;
+}
+
+.radar-period-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gf-text-muted);
+  flex-shrink: 0;
+}
+
+.radar-period-chips {
+  margin: 0 !important;
+}
+
+.orphan-pill--static {
+  cursor: default;
+  pointer-events: none;
 }
 
 .day-modal-session-card {

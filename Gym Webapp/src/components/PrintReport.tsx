@@ -166,6 +166,7 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
                 practiceWindowDays={data.analysisDays}
                 selectedGroups={selectedGroups}
                 onToggleGroup={() => {}}
+                allowRegionToggle={false}
                 orphansPlacement="top"
               />
             </div>

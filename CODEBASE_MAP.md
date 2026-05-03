@@ -97,6 +97,7 @@
 | Env | `.env.example` — `DATABASE_URL` **or** `POSTGRES_URL` (Vercel template), `AUTH_SECRET`, `AUTH_GOOGLE_*` · helper `lib/db/database-url.ts` |
 | PWA listing | `app/web-apps/page.tsx` |
 | Summary tab | `Gym Webapp/src/App.tsx` — `view === 'summary'`: calendar, nutrition overview panel (3 cards), analysis-period chips, `MuscleSpider`, `BodyMapFigure`. Bottom nav: Summary → Plans → Activity → Nutrition → Settings. |
+| Plans muscle tap | `App.tsx` — heatmap on **Plans** (`view === 'home'`) opens `muscle-plan-suggestions`: saved + preset plans whose `muscleGroups` include that muscle, **Build a new plan** → `create-focus`. |
 
 **Edit flow:** change files in `Gym Webapp/src/` → run build → commit `public/gym-flow/` → deploy to Vercel.
 

@@ -39,6 +39,8 @@ type Props = {
   practiceWindowDays: number;
   selectedGroups: MuscleGroup[];
   onToggleGroup: (group: MuscleGroup) => void;
+  /** When false, body regions and Cardio/Mobility pills are view-only (no tap-to-toggle). */
+  allowRegionToggle?: boolean;
 };
 
 const ORPHAN_ICONS: Record<string, string> = {
@@ -51,11 +53,13 @@ function OrphanPills({
   practiceWindowDays,
   selectedGroups,
   onToggleGroup,
+  interactive,
 }: {
   practiceCounts: Map<MuscleGroup, number>;
   practiceWindowDays: number;
   selectedGroups: MuscleGroup[];
   onToggleGroup: (group: MuscleGroup) => void;
+  interactive: boolean;
 }) {
   const orphans: MuscleGroup[] = ['Cardio', 'Mobility'];
   return (
@@ -64,19 +68,33 @@ function OrphanPills({
         const n = practiceCounts.get(g) ?? 0;
         const colorClass =
           n >= 2 ? 'orphan-pill--green' : n === 1 ? 'orphan-pill--orange' : 'orphan-pill--red';
-        const selected = selectedGroups.includes(g);
+        const selected = interactive && selectedGroups.includes(g);
+        const title = `${g}: ${n} session(s) last ${practiceWindowDays} days`;
+        const inner = (
+          <>
+            <span className="orphan-pill-icon">{ORPHAN_ICONS[g] ?? '⚡'}</span>
+            <span className="orphan-pill-name">{g}</span>
+            <span className="orphan-pill-count">{n === 0 ? '0×' : `${n}×`}</span>
+          </>
+        );
+        const cls = `orphan-pill ${colorClass} ${selected ? 'orphan-pill--selected' : ''}`.trim();
+        if (!interactive) {
+          return (
+            <div key={g} className={`${cls} orphan-pill--static`.trim()} title={title}>
+              {inner}
+            </div>
+          );
+        }
         return (
           <button
             key={g}
             type="button"
-            className={`orphan-pill ${colorClass} ${selected ? 'orphan-pill--selected' : ''}`.trim()}
+            className={cls}
             onClick={() => onToggleGroup(g)}
-            title={`${g}: ${n} session(s) last ${practiceWindowDays} days`}
+            title={title}
             aria-pressed={selected}
           >
-            <span className="orphan-pill-icon">{ORPHAN_ICONS[g] ?? '⚡'}</span>
-            <span className="orphan-pill-name">{g}</span>
-            <span className="orphan-pill-count">{n === 0 ? '0×' : `${n}×`}</span>
+            {inner}
           </button>
         );
       })}
@@ -89,6 +107,7 @@ export function BodyMapFigure({
   practiceWindowDays,
   selectedGroups,
   onToggleGroup,
+  allowRegionToggle = true,
   mode = 'heatmap',
   orphansPlacement = 'bottom',
 }: Props & { mode?: 'heatmap' | 'rainbow'; orphansPlacement?: 'top' | 'bottom' | 'none' }) {
@@ -101,8 +120,11 @@ export function BodyMapFigure({
   // Keep onToggleGroup stable in the click handler so we never recreate charts
   const toggleRef = useRef(onToggleGroup);
   toggleRef.current = onToggleGroup;
+  const allowToggleRef = useRef(allowRegionToggle);
+  allowToggleRef.current = allowRegionToggle;
 
   const onMuscleClick = useCallback((muscleId: string) => {
+    if (!allowToggleRef.current) return;
     const g = getGroupForBodyMuscleId(muscleId);
     if (g) toggleRef.current(g);
   }, []);
@@ -122,15 +144,22 @@ export function BodyMapFigure({
       className: 'body-muscles-inner',
     } as const;
 
+    const frontLabel = allowRegionToggle
+      ? 'Front body map — tap a region to filter or plan'
+      : 'Front body map — view only';
+    const backLabel = allowRegionToggle
+      ? 'Back body map — tap a region to filter or plan'
+      : 'Back body map — view only';
+
     frontChartRef.current = new BodyChart(frontEl, {
       ...common,
       view: ViewSide.FRONT,
-      ariaLabel: 'Front body map — tap a region to filter exercises',
+      ariaLabel: frontLabel,
     });
     backChartRef.current = new BodyChart(backEl, {
       ...common,
       view: ViewSide.BACK,
-      ariaLabel: 'Back body map — tap a region to filter exercises',
+      ariaLabel: backLabel,
     });
 
     return () => {
@@ -139,8 +168,7 @@ export function BodyMapFigure({
       frontChartRef.current = null;
       backChartRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onMuscleClick]);
+  }, [onMuscleClick, allowRegionToggle]);
 
   // Update state only — no chart recreation, no lag
   useEffect(() => {
@@ -172,6 +200,7 @@ export function BodyMapFigure({
             practiceWindowDays={practiceWindowDays}
             selectedGroups={selectedGroups}
             onToggleGroup={onToggleGroup}
+            interactive={allowRegionToggle}
           />
         </div>
       )}
@@ -213,7 +242,9 @@ export function BodyMapFigure({
             <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
             <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
           </div>
-          {orphansPlacement === 'bottom' && <p className="report-hint">Tap a region to plan that muscle group</p>}
+          {orphansPlacement === 'bottom' && allowRegionToggle ? (
+            <p className="report-hint">Tap a region to plan that muscle group</p>
+          ) : null}
         </div>
 
         {orphansPlacement === 'bottom' && (
@@ -222,6 +253,7 @@ export function BodyMapFigure({
             practiceWindowDays={practiceWindowDays}
             selectedGroups={selectedGroups}
             onToggleGroup={onToggleGroup}
+            interactive={allowRegionToggle}
           />
         )}
       </div>
