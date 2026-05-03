@@ -4452,6 +4452,27 @@ body {
   flex-shrink: 0;
 }
 
+.nutrition-donut-wrap--dual-ring {
+  width: 108px;
+  height: 108px;
+}
+
+.nutrition-fiber-inline {
+  margin: 0.65rem 0 0;
+  font-size: 0.78rem;
+  color: var(--gf-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.nutrition-fiber-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 @media (max-width: 520px) {
   .nutrition-viz-card--split {
     grid-template-columns: 1fr;

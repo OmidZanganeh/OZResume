@@ -627,11 +627,6 @@ export default function App() {
     };
   }
 
-  function macroPercent(value: number, goal: number) {
-    if (!goal || goal <= 0) return 0;
-    return Math.min(100, (value / goal) * 100);
-  }
-
   function persist(next: PersistedGymData) {
     setData(next);
     savePersistedGymData(next);
@@ -1839,43 +1834,17 @@ export default function App() {
 
               <div className="nutrition-overview-layout">
                 <div className="nutrition-overview-cards">
-                  <h3 className="nutrition-section-label">Today</h3>
-                  <div className="nutrition-grid">
-                    {[
-                      { key: 'calories', label: 'Calories', unit: 'kcal', cardClass: 'nutrition-card--accent-kcal', barClass: 'nutrition-bar-fill--kcal' },
-                      { key: 'protein', label: 'Protein', unit: 'g', cardClass: 'nutrition-card--accent-protein', barClass: 'nutrition-bar-fill--protein' },
-                      { key: 'carbs', label: 'Carbs', unit: 'g', cardClass: 'nutrition-card--accent-carbs', barClass: 'nutrition-bar-fill--carbs' },
-                      { key: 'fat', label: 'Fat', unit: 'g', cardClass: 'nutrition-card--accent-fat', barClass: 'nutrition-bar-fill--fat' },
-                      { key: 'fiber', label: 'Fiber', unit: 'g', cardClass: 'nutrition-card--accent-fiber', barClass: 'nutrition-bar-fill--fiber' },
-                    ].map((macro) => {
-                      const v = nutritionTotals[macro.key as keyof typeof nutritionTotals] as number;
-                      const goal = nutritionGoals[macro.key as keyof NutritionGoals] as number;
-                      return (
-                        <article key={macro.key} className={`nutrition-card ${macro.cardClass}`}>
-                          <div className="nutrition-card-head">
-                            <span>{macro.label}</span>
-                            <strong>{formatMacro(v)} {macro.unit}</strong>
-                          </div>
-                          <div className="nutrition-bar">
-                            <div
-                              className={`nutrition-bar-fill ${macro.barClass}`}
-                              style={{ width: `${macroPercent(v, goal)}%` }}
-                            />
-                          </div>
-                          <span className="nutrition-card-sub">
-                            Goal {formatMacro(goal)} {macro.unit}
-                          </span>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="nutrition-overview-side">
                   <MacroEnergySplit
                     protein={nutritionTotals.protein}
                     carbs={nutritionTotals.carbs}
                     fat={nutritionTotals.fat}
+                    caloriesLogged={nutritionTotals.calories}
+                    calorieGoal={nutritionGoals.calories}
+                    fiber={nutritionTotals.fiber}
+                    fiberGoal={nutritionGoals.fiber}
                   />
+                </div>
+                <div className="nutrition-overview-side">
                   <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
                 </div>
               </div>
