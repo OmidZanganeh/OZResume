@@ -14,6 +14,12 @@ import { MUSCLE_GROUP_CALENDAR_COLOR } from './components/calendarMuscleColors';
 import { PrintReport } from './components/PrintReport';
 import { DayActivityModal } from './components/DayActivityModal';
 import {
+  MacroEnergySplit,
+  SevenDayCaloriesChart,
+  TodayMealEnergyRows,
+  WeekNutrientStrips,
+} from './components/NutritionDashboard';
+import {
   computeStreak,
   computeConsistency,
   getPushPullLegsBalance,
@@ -373,6 +379,11 @@ export default function App() {
       { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
     );
   }, [dailyNutritionLogs]);
+
+  const todayMealShares = useMemo(
+    () => dailyNutritionLogs.map((l) => ({ id: l.id, name: l.name, calories: l.calories })),
+    [dailyNutritionLogs],
+  );
 
   const practiceCounts = useMemo(
     () => getPracticeCountsInWindow(data.sessions, exerciseById, reportDays),
@@ -1766,11 +1777,14 @@ export default function App() {
               </section>
             )}
 
-            <section className="panel">
-              <div className="panel-title-row" style={{ alignItems: 'center' }}>
-                <h2 className="panel-heading panel-heading--plain">Daily summary</h2>
+            <section className="panel nutrition-panel-lead">
+              <div className="panel-title-row nutrition-panel-title" style={{ alignItems: 'center' }}>
+                <div>
+                  <h2 className="panel-heading panel-heading--plain nutrition-hero-heading">Nutrition overview</h2>
+                  <p className="panel-subtle nutrition-hero-sub">Track intake against goals, see macro balance, and spot week patterns.</p>
+                </div>
                 <label className="nutrition-date">
-                  <span>Date</span>
+                  <span>Day</span>
                   <input
                     className="text-input"
                     type="date"
@@ -1779,70 +1793,73 @@ export default function App() {
                   />
                 </label>
               </div>
-              <div className="nutrition-grid">
-                {[
-                  { key: 'calories', label: 'Calories', unit: 'kcal', value: nutritionTotals.calories, goal: nutritionGoals.calories },
-                  { key: 'protein', label: 'Protein', unit: 'g', value: nutritionTotals.protein, goal: nutritionGoals.protein },
-                  { key: 'carbs', label: 'Carbs', unit: 'g', value: nutritionTotals.carbs, goal: nutritionGoals.carbs },
-                  { key: 'fat', label: 'Fat', unit: 'g', value: nutritionTotals.fat, goal: nutritionGoals.fat },
-                  { key: 'fiber', label: 'Fiber', unit: 'g', value: nutritionTotals.fiber, goal: nutritionGoals.fiber },
-                ].map((macro) => (
-                  <article key={macro.key} className="nutrition-card">
-                    <div className="nutrition-card-head">
-                      <span>{macro.label}</span>
-                      <strong>{formatMacro(macro.value)} {macro.unit}</strong>
-                    </div>
-                    <div className="nutrition-bar">
-                      <div
-                        className="nutrition-bar-fill"
-                        style={{ width: `${macroPercent(macro.value, macro.goal)}%` }}
-                      />
-                    </div>
-                    <span className="nutrition-card-sub">
-                      Goal {formatMacro(macro.goal)} {macro.unit}
-                    </span>
-                  </article>
-                ))}
+
+              <div className="nutrition-overview-layout">
+                <div className="nutrition-overview-cards">
+                  <h3 className="nutrition-section-label">Today vs goals</h3>
+                  <div className="nutrition-grid">
+                    {[
+                      { key: 'calories', label: 'Calories', unit: 'kcal', cardClass: 'nutrition-card--accent-kcal', barClass: 'nutrition-bar-fill--kcal' },
+                      { key: 'protein', label: 'Protein', unit: 'g', cardClass: 'nutrition-card--accent-protein', barClass: 'nutrition-bar-fill--protein' },
+                      { key: 'carbs', label: 'Carbs', unit: 'g', cardClass: 'nutrition-card--accent-carbs', barClass: 'nutrition-bar-fill--carbs' },
+                      { key: 'fat', label: 'Fat', unit: 'g', cardClass: 'nutrition-card--accent-fat', barClass: 'nutrition-bar-fill--fat' },
+                      { key: 'fiber', label: 'Fiber', unit: 'g', cardClass: 'nutrition-card--accent-fiber', barClass: 'nutrition-bar-fill--fiber' },
+                    ].map((macro) => {
+                      const v = nutritionTotals[macro.key as keyof typeof nutritionTotals] as number;
+                      const goal = nutritionGoals[macro.key as keyof NutritionGoals] as number;
+                      return (
+                        <article key={macro.key} className={`nutrition-card ${macro.cardClass}`}>
+                          <div className="nutrition-card-head">
+                            <span>{macro.label}</span>
+                            <strong>{formatMacro(v)} {macro.unit}</strong>
+                          </div>
+                          <div className="nutrition-bar">
+                            <div
+                              className={`nutrition-bar-fill ${macro.barClass}`}
+                              style={{ width: `${macroPercent(v, goal)}%` }}
+                            />
+                          </div>
+                          <span className="nutrition-card-sub">
+                            Goal {formatMacro(goal)} {macro.unit}
+                          </span>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="nutrition-overview-side">
+                  <MacroEnergySplit
+                    protein={nutritionTotals.protein}
+                    carbs={nutritionTotals.carbs}
+                    fat={nutritionTotals.fat}
+                  />
+                  <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
+                </div>
               </div>
             </section>
 
-            <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">Last 7 days vs goals</h2>
-              <p className="panel-subtle">
-                Bars show each day&apos;s total; line is your <strong>daily target</strong>. Averages: kcal {formatMacro(nutrition7dAverages.calories)} · P {formatMacro(nutrition7dAverages.protein)}g · C {formatMacro(nutrition7dAverages.carbs)}g · F {formatMacro(nutrition7dAverages.fat)}g · Fiber {formatMacro(nutrition7dAverages.fiber)}g
+            <section className="panel nutrition-panel-charts">
+              <h2 className="panel-heading panel-heading--plain">Trends &amp; consistency</h2>
+              <p className="panel-subtle nutrition-panel-lede">
+                Calorie bars show each of the last seven days; the highlighted weekday matches the day picker above.
+                The week strips compare every nutrient to your targets.
               </p>
-              <div className="nutrition-7d-macros">
-                {(['calories', 'protein', 'carbs', 'fat', 'fiber'] as const).map((key) => {
-                  const labels = {
-                    calories: 'Calories (kcal)',
-                    protein: 'Protein (g)',
-                    carbs: 'Carbs (g)',
-                    fat: 'Fat (g)',
-                    fiber: 'Fiber (g)',
-                  };
-                  const goal = nutritionGoals[key];
-                  return (
-                    <div key={key} className="nutrition-7d-block">
-                      <div className="nutrition-7d-block-title">{labels[key]}</div>
-                      <div className="nutrition-7d-bars">
-                        {nutrition7DayByDay.map((d) => {
-                          const v = d[key];
-                          const pct = goal > 0 ? Math.min(100, (v / goal) * 100) : 0;
-                          const dow = new Date(d.dateKey + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' });
-                          return (
-                            <div key={d.dateKey} className="nutrition-7d-cell" title={`${d.dateKey}: ${formatMacro(v)}`}>
-                              <div className="nutrition-7d-bar-track">
-                                <div className="nutrition-7d-bar-fill" style={{ height: `${pct}%` }} />
-                              </div>
-                              <span className="nutrition-7d-dow">{dow}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+              <p className="panel-subtle nutrition-averages-line">
+                Rolling averages (7d): kcal {formatMacro(nutrition7dAverages.calories)} · P {formatMacro(nutrition7dAverages.protein)}g ·
+                C {formatMacro(nutrition7dAverages.carbs)}g · F {formatMacro(nutrition7dAverages.fat)}g · Fiber {formatMacro(nutrition7dAverages.fiber)}g
+              </p>
+              <div className="nutrition-trends-top">
+                <SevenDayCaloriesChart
+                  days={nutrition7DayByDay}
+                  goalKcal={nutritionGoals.calories}
+                  highlightDateKey={nutritionDate}
+                />
               </div>
+              <WeekNutrientStrips
+                days={nutrition7DayByDay}
+                goals={nutritionGoals}
+                highlightDateKey={nutritionDate}
+              />
             </section>
 
             <section className="panel">
