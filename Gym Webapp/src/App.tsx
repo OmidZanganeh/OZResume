@@ -78,7 +78,7 @@ const PRESET_CATEGORY_META: Record<string, { description: string }> = {
   'Targeted Isolation (Single Muscle)': { description: 'Single-muscle focus days' },
 };
 
-type AppView = 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'nutrition' | 'library';
+type AppView = 'summary' | 'home' | 'create-focus' | 'create-moves' | 'log' | 'activity' | 'nutrition' | 'library';
 
 type NutritionSearchItem = {
   code: string;
@@ -1213,7 +1213,8 @@ export default function App() {
     setMessage(`${result.completedCount} move${result.completedCount === 1 ? '' : 's'} saved.`);
   }
 
-  const isMainView = view === 'home' || view === 'activity' || view === 'nutrition' || view === 'library';
+  const isMainView =
+    view === 'summary' || view === 'home' || view === 'activity' || view === 'nutrition' || view === 'library';
 
   return (
     <>
@@ -1228,6 +1229,134 @@ export default function App() {
       )}
 
       <main id="app-main" className="app-shell">
+
+        {/* ── SUMMARY (calendar + nutrition overview + radar + heatmap) ── */}
+        {view === 'summary' && (
+          <>
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Workout Calendar</h2>
+              <WorkoutCalendar
+                sessions={data.sessions}
+                allExercises={allExercises}
+                mealDayKeys={mealDayKeys}
+                onDayClick={setSelectedCalendarDay}
+              />
+            </section>
+
+            <section className="panel nutrition-panel-lead">
+              <div className="nutrition-panel-title-top">
+                <div>
+                  <h2 className="panel-heading panel-heading--plain nutrition-hero-heading">Nutrition</h2>
+                </div>
+                <div className="nutrition-panel-controls">
+                  <label className="nutrition-date">
+                    <span>Day</span>
+                    <input
+                      className="text-input"
+                      type="date"
+                      value={nutritionDate}
+                      onChange={(e) => setNutritionDate(e.target.value)}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className={`chip chip-compact ${nutritionDate === localTodayDateKey() ? 'chip-active' : ''}`}
+                    onClick={() => setNutritionDate(localTodayDateKey())}
+                  >
+                    Today
+                  </button>
+                  <div className="nutrition-trend-window" role="group" aria-label="Overview period (days ending on selected day)">
+                    <span className="nutrition-trend-window-label">Period</span>
+                    {[1, 7, 10, 30, 90].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        className={`chip chip-compact ${nutritionTrendDays === d ? 'chip-active' : ''}`}
+                        onClick={() => setNutritionTrendDays(d)}
+                      >
+                        {d}d
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="nutrition-overview-stack">
+                <TodayConcentricGoalRings
+                  totals={nutritionConcentricTotals}
+                  goals={nutritionGoals}
+                  endDateKey={nutritionDate}
+                  periodDays={nutritionTrendDays}
+                />
+                {nutritionTrendDays === 1 ? (
+                  <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
+                ) : null}
+                {nutritionTrendDays > 1 ? (
+                  <p className="nutrition-averages-line nutrition-averages-line--inline">
+                    Avg · {nutritionTrendDays}d ending {nutritionDate} · {formatMacro(nutritionWindowAverages.calories)} kcal · P{' '}
+                    {formatMacro(nutritionWindowAverages.protein)} · C {formatMacro(nutritionWindowAverages.carbs)} · F{' '}
+                    {formatMacro(nutritionWindowAverages.fat)} · Fiber {formatMacro(nutritionWindowAverages.fiber)}
+                  </p>
+                ) : null}
+                <WeekNutrientStrips
+                  days={nutritionTrendDays < 7 ? nutritionSevenDayRollupByDay : nutritionWindowByDay}
+                  goals={nutritionGoals}
+                  highlightDateKey={nutritionDate}
+                />
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Analysis Period</h2>
+              <div className="chip-list" style={{ marginTop: '0.4rem' }}>
+                {[7, 10, 30, 90, 365].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={`chip ${analysisDays === d ? 'chip-active' : ''}`}
+                    onClick={() => setAnalysisDays(d)}
+                  >
+                    {d}d
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
+              <p className="panel-subtle">Visual balance of your training for this period.</p>
+              <MuscleSpider counts={analysisCounts} />
+            </section>
+
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Muscle Focus Heatmap</h2>
+              <p className="panel-subtle">Body-wide training intensity for this period.</p>
+              <BodyMapFigure
+                practiceCounts={analysisCounts}
+                practiceWindowDays={analysisDays}
+                selectedGroups={selectedGroups}
+                onToggleGroup={(g) => {
+                  setSelectedGroups((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
+                }}
+              />
+              {selectedGroups.length > 0 && (
+                <div className="active-filters-row" role="status" aria-live="polite">
+                  <span className="active-filters-label">Active filters</span>
+                  <div className="active-filters-chips">
+                    {selectedGroups.map((g) => (
+                      <button key={g} type="button" className="chip chip-active" onClick={() => toggleGroup(g)}>
+                        {g} ✕
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" className="text-button" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); }}>
+                    Clear all
+                  </button>
+                </div>
+              )}
+            </section>
+          </>
+        )}
 
         {/* ── HOME ──────────────────────────────────────────────────── */}
         {view === 'home' && (
@@ -2492,6 +2621,10 @@ export default function App() {
       {/* ── BOTTOM NAV (main views only) ─────────────────────────── */}
       {isMainView && (
         <nav className="bottom-nav" aria-label="Main navigation">
+          <button className={`bnav-btn ${view === 'summary' ? 'bnav-btn--active' : ''}`} onClick={() => setView('summary')}>
+            <span className="bnav-icon">📋</span>
+            <span className="bnav-label">Summary</span>
+          </button>
           <button className={`bnav-btn ${view === 'home' ? 'bnav-btn--active' : ''}`} onClick={() => setView('home')}>
             <span className="bnav-icon">🏋️</span>
             <span className="bnav-label">Plans</span>

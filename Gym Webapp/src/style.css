@@ -3719,6 +3719,30 @@ body {
   overflow-x: auto;
 }
 
+#print-report .prl-card--nutrition-week-rings {
+  padding: 0.52rem 0.58rem;
+}
+
+#print-report .prl-card--nutrition-week-rings .prl-card-head {
+  margin-bottom: 0.3rem;
+}
+
+/* Keep 7-day rings inside report capture (print + html-to-image). */
+#print-report .prl-card-body--week-rings .nutrition-week-rings-scroll,
+.screenshot-mode #print-report .prl-card-body--week-rings .nutrition-week-rings-scroll {
+  max-height: 118px;
+  overflow: hidden;
+}
+
+#print-report .prl-card-body--week-rings .nutrition-chart-svg.nutrition-week-rings,
+.screenshot-mode #print-report .prl-card-body--week-rings .nutrition-chart-svg.nutrition-week-rings {
+  display: block;
+  width: auto !important;
+  max-width: 100%;
+  max-height: 112px;
+  height: auto !important;
+}
+
 .prl-nutrition-avg {
   font-size: 0.58rem;
   color: #94a3b8;
@@ -3817,6 +3841,93 @@ body {
 .day-modal-content {
   max-width: 500px;
 }
+
+.day-modal-section .form-group {
+  margin: 0;
+}
+
+.day-modal-section .form-group + .form-group {
+  margin-top: 1rem;
+}
+
+.day-modal-section .form-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gf-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+select.text-input.day-modal-select {
+  width: 100%;
+  max-width: 100%;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.day-modal-collapse-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--gf-text);
+  text-align: left;
+  background: var(--gf-surface-2);
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.day-modal-collapse-trigger:hover {
+  border-color: var(--gf-border-hover);
+}
+
+.day-modal-collapse-trigger:focus-visible {
+  outline: 2px solid var(--gf-accent);
+  outline-offset: 2px;
+}
+
+.day-modal-collapse-trigger--spaced {
+  margin-top: 1.1rem;
+}
+
+.day-modal-collapse-chevron {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  color: var(--gf-text-dim);
+}
+
+.day-modal-collapsible-body {
+  margin-top: 0.65rem;
+}
+
+.day-modal-actions {
+  margin-top: 1.25rem;
+  text-align: right;
+}
+
+.nutrition-search-list--day-modal {
+  max-height: 10.5rem;
+}
+
+.day-modal-nutrition-add {
+  width: 100%;
+  max-width: 100%;
+  align-items: stretch;
+}
+
+.day-modal-nutrition-add .nutrition-grams-with-chips {
+  margin-top: 0;
+  max-width: none;
+}
+
 .day-modal-session-card {
   background: var(--gf-surface-2);
   border: 1px solid var(--gf-border);
@@ -4433,6 +4544,11 @@ body {
   text-align: center;
   pointer-events: none;
   line-height: 1.1;
+}
+
+.nutrition-concentric-center-inner {
+  transform: scale(0.5);
+  transform-origin: center center;
 }
 
 .nutrition-concentric-center-kcal {

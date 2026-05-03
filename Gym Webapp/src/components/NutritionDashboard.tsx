@@ -115,11 +115,13 @@ export function TodayConcentricGoalRings({ totals, goals, endDateKey, periodDays
           })}
         </svg>
         <div className="nutrition-concentric-center">
-          <span className="nutrition-concentric-center-kcal">{centerKcal}</span>
-          <span className="nutrition-concentric-center-sub">
-            kcal
-            {periodDays > 1 ? ' · avg' : ''}
-          </span>
+          <div className="nutrition-concentric-center-inner">
+            <span className="nutrition-concentric-center-kcal">{centerKcal}</span>
+            <span className="nutrition-concentric-center-sub">
+              kcal
+              {periodDays > 1 ? ' · avg' : ''}
+            </span>
+          </div>
         </div>
       </div>
       <ul className="nutrition-concentric-legend">
@@ -147,17 +149,33 @@ type WeekStripesProps = {
   highlightDateKey: string;
   /** When false, omit the in-card heading (e.g. PDF report uses its own card title). */
   showTitle?: boolean;
+  /** `compact` ~10% shorter; `print` fits PDF/screenshot report column. */
+  density?: 'default' | 'compact' | 'print';
 };
 
 /** One row per nutrient: goal rings per day; one weekday row below. Shown only for 7+ days (caller + guard). */
-export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = true }: WeekStripesProps) {
-  const labels: Record<(typeof WEEK_KEYS)[number], string> = {
-    calories: 'Calories (kcal)',
-    protein: 'Protein (g)',
-    carbs: 'Carbs (g)',
-    fat: 'Fat (g)',
-    fiber: 'Fiber (g)',
-  };
+export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = true, density = 'default' }: WeekStripesProps) {
+  const n = days.length || 1;
+  if (n < 7) return null;
+
+  const isPrint = density === 'print';
+  const compact = density === 'compact' || isPrint;
+
+  const labels: Record<(typeof WEEK_KEYS)[number], string> = isPrint
+    ? {
+        calories: 'kcal',
+        protein: 'P',
+        carbs: 'C',
+        fat: 'F',
+        fiber: 'Fib',
+      }
+    : {
+        calories: 'Calories (kcal)',
+        protein: 'Protein (g)',
+        carbs: 'Carbs (g)',
+        fat: 'Fat (g)',
+        fiber: 'Fiber (g)',
+      };
   const colors: Record<(typeof WEEK_KEYS)[number], string> = {
     calories: COL.kcal,
     protein: COL.protein,
@@ -165,20 +183,23 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
     fat: COL.fat,
     fiber: COL.fiber,
   };
-  const n = days.length || 1;
-  if (n < 7) return null;
 
-  const labelColW = n <= 14 ? 70 : 88;
-  const labelToRingsGap = 14;
+  const labelColW = isPrint ? (n <= 14 ? 56 : 72) : n <= 14 ? 70 : 88;
+  const labelToRingsGap = isPrint ? 10 : 14;
   const ringsStartX = labelColW + labelToRingsGap;
   /** Slightly wider columns than before; still scrolls for very long windows. */
   const targetRingsWidth = Math.min(400, Math.max(300, 72 + n * 34));
   const cellW = Math.max(26, Math.min(44, Math.floor((targetRingsWidth - ringsStartX) / n)));
-  const rowH = 50;
-  const padT = 8;
-  const dowRowY = padT + WEEK_KEYS.length * rowH + 12;
+  const rowH = isPrint ? 30 : compact ? 45 : 50;
+  const padT = isPrint ? 4 : compact ? 7 : 8;
+  const dowGapAfterRows = isPrint ? 5 : compact ? 10 : 12;
+  const bottomPad = isPrint ? 5 : compact ? 10 : 12;
+  const dowRowY = padT + WEEK_KEYS.length * rowH + dowGapAfterRows;
   const totalW = ringsStartX + n * cellW + 6;
-  const totalH = dowRowY + 12;
+  const totalH = dowRowY + bottomPad;
+  const labelFont = isPrint ? 7 : compact ? 9 : 10;
+  const dowFont = isPrint ? 6.25 : compact ? 7.75 : 8.5;
+  const strokeW = isPrint ? 2 : compact ? 2.75 : 3;
 
   const fmtCenter = (key: (typeof WEEK_KEYS)[number], val: number) => {
     if (key === 'calories') return String(Math.round(val));
@@ -187,7 +208,9 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
   };
 
   return (
-    <div className="nutrition-viz-card nutrition-viz-card--stretch nutrition-week-rings-card nutrition-viz-card--micro">
+    <div
+      className={`nutrition-viz-card nutrition-viz-card--stretch nutrition-week-rings-card nutrition-viz-card--micro${compact ? ' nutrition-week-rings-card--compact' : ''}${isPrint ? ' nutrition-week-rings-card--print' : ''}`}
+    >
       {showTitle ? <h3 className="nutrition-viz-title">{n}-day rings</h3> : null}
       <div className="nutrition-week-rings-scroll">
         <svg
@@ -201,21 +224,40 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
             const cy = padT + row * rowH + rowH / 2;
             return (
               <g key={key}>
-                <text x={4} y={cy + 4} fill="var(--gf-text-muted)" fontSize="10" fontWeight="600">
+                <text x={4} y={cy + (isPrint ? 2.5 : compact ? 3.5 : 4)} fill="var(--gf-text-muted)" fontSize={labelFont} fontWeight="600">
                   {labels[key]}
                 </text>
                 {days.map((d, i) => {
                   const val = d[key];
                   const cx = ringsStartX + i * cellW + cellW / 2;
-                  const r = Math.max(10, Math.min(16, (cellW - 6) / 2));
-                  const strokeW = 3;
+                  const r = Math.max(
+                    isPrint ? 7 : compact ? 9 : 10,
+                    Math.min(isPrint ? 12 : compact ? 15 : 16, (cellW - (isPrint ? 8 : 6)) / 2),
+                  );
                   const circ = 2 * Math.PI * r;
                   const rawFrac = goal > 0 ? val / goal : 0;
                   const arcFrac = Math.min(Math.max(rawFrac, 0), 1);
                   const dash = `${arcFrac * circ} ${circ}`;
                   const isHi = d.dateKey === highlightDateKey;
                   const centerTxt = fmtCenter(key, val);
-                  const fs = centerTxt.length > 4 ? 7.5 : centerTxt.length > 3 ? 8.5 : 10;
+                  /** ~50% smaller than prior sizes so values fit inside small rings. */
+                  const fs = isPrint
+                    ? centerTxt.length > 4
+                      ? 2.75
+                      : centerTxt.length > 3
+                        ? 3
+                        : 3.25
+                    : compact
+                      ? centerTxt.length > 4
+                        ? 3.5
+                        : centerTxt.length > 3
+                          ? 4
+                          : 4.5
+                      : centerTxt.length > 4
+                        ? 3.75
+                        : centerTxt.length > 3
+                          ? 4.25
+                          : 5;
                   return (
                     <g key={`${key}-${d.dateKey}`}>
                       <circle
@@ -271,7 +313,7 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
                   y={dowRowY}
                   textAnchor="middle"
                   fill={isHi ? 'var(--gf-text)' : 'var(--gf-text-dim)'}
-                  fontSize="8.5"
+                  fontSize={dowFont}
                   fontWeight={isHi ? 700 : 600}
                 >
                   {dow}

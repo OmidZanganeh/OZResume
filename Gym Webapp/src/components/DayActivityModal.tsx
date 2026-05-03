@@ -127,6 +127,9 @@ export function DayActivityModal({
   const [newFoodF, setNewFoodF] = useState('5');
   const [newFoodFiber, setNewFoodFiber] = useState('0');
 
+  const [addFoodOpen, setAddFoodOpen] = useState(false);
+  const [customFoodOpen, setCustomFoodOpen] = useState(false);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -188,12 +191,12 @@ export function DayActivityModal({
 
   function runMealSearch() {
     if (!cloudSignedIn) {
-      setMessage('Sign in to search USDA and Open Food Facts.');
+      setMessage('Sign in to search the food database.');
       return;
     }
     const term = mealQuery.trim();
     if (term.length < 2) {
-      setMessage('Enter at least 2 characters, then click Search (or press Enter).');
+      setMessage('Type at least 2 characters to search.');
       return;
     }
     mealSearchAbortRef.current?.abort();
@@ -261,9 +264,7 @@ export function DayActivityModal({
     if (selectedMealItem.code.startsWith('custom:')) return;
 
     setMealGrams('100');
-    setMealServingHint(
-      selectedMealItem.servingSize ? `Package note: ${selectedMealItem.servingSize}` : null,
-    );
+    setMealServingHint(selectedMealItem.servingSize ? `Label: ${selectedMealItem.servingSize}` : null);
     if (!cloudSignedIn) return;
 
     let cancelled = false;
@@ -274,13 +275,7 @@ export function DayActivityModal({
       const sug = item.suggestedServingGrams;
       if (typeof sug === 'number' && sug > 0 && sug <= 2000) {
         setMealGrams(String(Math.round(sug)));
-        setMealServingHint(
-          item.servingSize
-            ? selectedMealItem.code.startsWith('usda:')
-              ? `Prefilled ${Math.round(sug)} g from USDA serving data (${item.servingSize}). Adjust if needed.`
-              : `Prefilled ${Math.round(sug)} g from the label (“${item.servingSize}”). Change if your portion differs.`
-            : `Prefilled ${Math.round(sug)} g from product data — verify on the package.`,
-        );
+        setMealServingHint(`Prefilled ${Math.round(sug)} g — adjust if needed.`);
       }
     })();
     return () => {
@@ -295,11 +290,7 @@ export function DayActivityModal({
     const f = customFoods.find((x) => x.id === id);
     const def = f?.defaultServingGrams ?? 100;
     setMealGrams(String(def));
-    setMealServingHint(
-      f?.defaultServingGrams
-        ? `Default is your usual ${def} g — tap a quick amount or type any weight.`
-        : 'Everything is stored per 100 g (like nutrition labels); type how much you actually ate.',
-    );
+    setMealServingHint(f?.defaultServingGrams ? `Default ${def} g` : 'Amount in grams');
   }, [mealCustomServingKey]);
 
   function computeMacros(per100g: NutritionGoals, grams: number) {
@@ -416,7 +407,7 @@ export function DayActivityModal({
       code = selectedMealItem.code;
     } else {
       if (!cloudSignedIn) {
-        setMessage('Sign in to log foods from USDA / Open Food Facts, or use My foods.');
+        setMessage('Sign in to log catalog foods, or pick from My foods.');
         return;
       }
       setMealBusy(true);
@@ -457,12 +448,12 @@ export function DayActivityModal({
     setMealServingHint(null);
     setMealQuery('');
     setMealApiResults([]);
-    setMessage('Meal saved.');
+    setMessage('Food logged.');
   }
 
   function deleteMeal(id: string) {
     onPersist({ nutritionLogs: nutritionLogs.filter((l) => l.id !== id) });
-    setMessage('Meal removed.');
+    setMessage('Food removed.');
   }
 
   function saveNewCustomFood() {
@@ -579,207 +570,11 @@ export function DayActivityModal({
           </div>
 
           <div className="day-modal-section" style={{ marginTop: '2rem' }}>
-            <h3 className="panel-heading panel-heading--plain" style={{ marginBottom: '1rem' }}>Meals</h3>
-            {dayMeals.length === 0 ? (
-              <p className="panel-subtle">No meals logged for this day.</p>
-            ) : (
-              <ul className="day-meal-list">
-                {dayMeals.map((log) => (
-                  <li key={log.id} className="day-meal-row">
-                    <div>
-                      <strong>{log.name}</strong>
-                      <span className="panel-subtle" style={{ display: 'block', fontSize: '0.8rem', marginTop: 2 }}>
-                        {log.servingGrams}g · {formatMacro(log.calories)} kcal · P {formatMacro(log.protein)} C {formatMacro(log.carbs)} F {formatMacro(log.fat)} · Fiber {formatMacro(log.fiber ?? 0)}
-                      </span>
-                    </div>
-                    <button type="button" className="button button-danger-muted button--small" onClick={() => deleteMeal(log.id)}>Remove</button>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <p className="panel-subtle" style={{ marginTop: '1rem' }}>
-              My foods filter as you type; click <strong>Search</strong> (or press Enter) for USDA and Open Food Facts when signed in. Nutrients are stored <strong>per 100 g</strong> behind the scenes; when logging you only enter <strong>how many grams you ate</strong>. Common portions may prefill when the data provides them.
-            </p>
-            <div className="nutrition-search-row">
-              <input
-                className="text-input nutrition-search-input"
-                type="text"
-                placeholder="Search foods…"
-                value={mealQuery}
-                onChange={(e) => setMealQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    runMealSearch();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="button button-primary nutrition-search-submit"
-                disabled={mealLoading || !cloudSignedIn}
-                onClick={runMealSearch}
-              >
-                {mealLoading ? 'Searching…' : 'Search'}
-              </button>
-            </div>
-            {cloudSignedIn && (
-              <p className="panel-subtle" style={{ marginTop: '0.35rem' }}>
-                {mealLoading && <span>Searching…</span>}
-              </p>
-            )}
-            {mealError && (
-              <p className="panel-subtle nutrition-error" role="alert">{mealError}</p>
-            )}
-            {mergedMealSearch.length > 0 && (
-              <ul className="nutrition-search-list">
-                {mergedMealSearch.map((item) => (
-                  <li key={item.code} className="nutrition-search-item">
-                    <button
-                      type="button"
-                      className={`nutrition-search-btn ${selectedMealItem?.code === item.code ? 'is-selected' : ''}`}
-                      onClick={() => setSelectedMealItem(item)}
-                    >
-                      <div className="nutrition-search-text">
-                        <span className="nutrition-search-name">{item.name}</span>
-                        <span className="nutrition-search-meta">
-                          {item.brands || item.quantity || item.servingSize || 'Database'}
-                        </span>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {selectedMealItem && (
-              <div className="nutrition-add-block">
-                <div className="nutrition-selected">
-                  <strong>{selectedMealItem.name}</strong>
-                  <span>
-                    {selectedMealItem.brands || selectedMealItem.quantity || selectedMealItem.servingSize || 'Database'}
-                  </span>
-                </div>
-                {mealServingHint && <p className="panel-subtle nutrition-serving-hint">{mealServingHint}</p>}
-                <div className="nutrition-grams nutrition-grams-with-chips">
-                  <label className="nutrition-grams-label">
-                    <span>Amount eaten (g)</span>
-                    <div className="nutrition-grams-row">
-                      <input
-                        className="text-input"
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={mealGrams}
-                        onChange={(e) => setMealGrams(e.target.value)}
-                      />
-                      <span className="nutrition-grams-unit">g</span>
-                    </div>
-                  </label>
-                  <div className="nutrition-gram-chips" role="group" aria-label="Quick amounts in grams">
-                    {[50, 75, 100, 125, 150, 200, 250].map((g) => (
-                      <button key={g} type="button" className="chip chip-compact" onClick={() => setMealGrams(String(g))}>
-                        {g}g
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <button type="button" className="button" disabled={mealBusy} onClick={() => void addMealLog()}>
-                  {mealBusy ? 'Adding…' : 'Add meal'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="day-modal-section panel--compact" style={{ marginTop: '1.5rem' }}>
-            <h3 className="panel-heading panel-heading--plain" style={{ marginBottom: '0.75rem' }}>Save a custom food</h3>
-            <p className="panel-subtle">
-              We store each food <strong>per 100 g</strong> (same as labels, USDA, and Open Food Facts). Enter that from the label, or enter <strong>one weighed portion</strong> and we convert it.
-            </p>
-            <div className="nutrition-entry-toggle" role="tablist" aria-label="How to enter nutrition">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={newFoodSaveMode === 'portion'}
-                className={`nutrition-entry-toggle-btn ${newFoodSaveMode === 'portion' ? 'is-active' : ''}`}
-                onClick={() => setNewFoodSaveMode('portion')}
-              >
-                One portion (easiest)
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={newFoodSaveMode === 'per100g'}
-                className={`nutrition-entry-toggle-btn ${newFoodSaveMode === 'per100g' ? 'is-active' : ''}`}
-                onClick={() => setNewFoodSaveMode('per100g')}
-              >
-                From label (per 100g)
-              </button>
-            </div>
-            <div className="nutrition-goals-grid">
-              <label className="profile-field">
-                <span>Name</span>
-                <input className="text-input" value={newFoodName} onChange={(e) => setNewFoodName(e.target.value)} placeholder="e.g. Mom's lentil soup" />
-              </label>
-              {newFoodSaveMode === 'portion' ? (
-                <label className="profile-field">
-                  <span>Portion weight (g)</span>
-                  <input
-                    className="text-input"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={newFoodPortionGrams}
-                    onChange={(e) => setNewFoodPortionGrams(e.target.value)}
-                    placeholder="Weigh what you actually eat once"
-                  />
-                </label>
-              ) : (
-                <label className="profile-field">
-                  <span>Usual amount when logging (g, optional)</span>
-                  <input
-                    className="text-input"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={newFoodUsualGrams}
-                    onChange={(e) => setNewFoodUsualGrams(e.target.value)}
-                    placeholder="e.g. 180 — pre-fills grams when you pick this food"
-                  />
-                </label>
-              )}
-              <label className="profile-field">
-                <span>{newFoodSaveMode === 'portion' ? 'Calories (this portion)' : 'Calories / 100g'}</span>
-                <input className="text-input" type="number" min="0" step="1" value={newFoodCals} onChange={(e) => setNewFoodCals(e.target.value)} />
-              </label>
-              <label className="profile-field">
-                <span>{newFoodSaveMode === 'portion' ? 'Protein g (this portion)' : 'Protein g / 100g'}</span>
-                <input className="text-input" type="number" min="0" step="0.1" value={newFoodP} onChange={(e) => setNewFoodP(e.target.value)} />
-              </label>
-              <label className="profile-field">
-                <span>{newFoodSaveMode === 'portion' ? 'Carbs g (this portion)' : 'Carbs g / 100g'}</span>
-                <input className="text-input" type="number" min="0" step="0.1" value={newFoodC} onChange={(e) => setNewFoodC(e.target.value)} />
-              </label>
-              <label className="profile-field">
-                <span>{newFoodSaveMode === 'portion' ? 'Fat g (this portion)' : 'Fat g / 100g'}</span>
-                <input className="text-input" type="number" min="0" step="0.1" value={newFoodF} onChange={(e) => setNewFoodF(e.target.value)} />
-              </label>
-              <label className="profile-field">
-                <span>{newFoodSaveMode === 'portion' ? 'Fiber g (this portion)' : 'Fiber g / 100g'}</span>
-                <input className="text-input" type="number" min="0" step="0.1" value={newFoodFiber} onChange={(e) => setNewFoodFiber(e.target.value)} placeholder="0" />
-              </label>
-            </div>
-            <button type="button" className="button button-muted" style={{ marginTop: '0.75rem' }} onClick={saveNewCustomFood}>
-              Save to My foods
-            </button>
-          </div>
-
-          <div className="day-modal-section" style={{ marginTop: '2rem' }}>
             <h3 className="panel-heading panel-heading--plain" style={{ marginBottom: '1rem' }}>Add Workout to this Day</h3>
             <div className="form-group">
               <label className="form-label">From Saved Plan</label>
               <select
-                className="input"
+                className="text-input day-modal-select"
                 value={selectedPlanId}
                 onChange={(e) => {
                   setSelectedPlanId(e.target.value);
@@ -812,7 +607,7 @@ export function DayActivityModal({
               </div>
             </div>
 
-            <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+            <div className="day-modal-actions">
               <button
                 type="button"
                 className="button button-primary"
@@ -822,6 +617,232 @@ export function DayActivityModal({
                 + Add to Day
               </button>
             </div>
+          </div>
+
+          <div className="day-modal-section" style={{ marginTop: '2rem' }}>
+            <h3 className="panel-heading panel-heading--plain" style={{ marginBottom: '0.65rem' }}>Meals logged</h3>
+            {dayMeals.length === 0 ? (
+              <p className="panel-subtle">None yet.</p>
+            ) : (
+              <ul className="day-meal-list">
+                {dayMeals.map((log) => (
+                  <li key={log.id} className="day-meal-row">
+                    <div>
+                      <strong>{log.name}</strong>
+                      <span className="panel-subtle" style={{ display: 'block', fontSize: '0.8rem', marginTop: 2 }}>
+                        {log.servingGrams}g · {formatMacro(log.calories)} kcal · P {formatMacro(log.protein)} C {formatMacro(log.carbs)} F {formatMacro(log.fat)} · Fiber {formatMacro(log.fiber ?? 0)}
+                      </span>
+                    </div>
+                    <button type="button" className="button button-danger-muted button--small" onClick={() => deleteMeal(log.id)}>Remove</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <button
+              type="button"
+              className="day-modal-collapse-trigger"
+              aria-expanded={addFoodOpen}
+              onClick={() => setAddFoodOpen((o) => !o)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setAddFoodOpen((o) => !o);
+                }
+              }}
+            >
+              <span>Add food</span>
+              <span className="day-modal-collapse-chevron" aria-hidden>{addFoodOpen ? '▲' : '▼'}</span>
+            </button>
+            {addFoodOpen ? (
+              <div className="day-modal-collapsible-body">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="day-modal-meal-search">Search</label>
+                  <div className="nutrition-search-row">
+                    <input
+                      id="day-modal-meal-search"
+                      className="text-input nutrition-search-input"
+                      type="text"
+                      placeholder={cloudSignedIn ? 'Type to filter My foods, or search…' : 'Type to filter My foods'}
+                      value={mealQuery}
+                      onChange={(e) => setMealQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          runMealSearch();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="button button-primary nutrition-search-submit"
+                      disabled={mealLoading || !cloudSignedIn}
+                      onClick={runMealSearch}
+                    >
+                      {mealLoading ? '…' : 'Search'}
+                    </button>
+                  </div>
+                </div>
+                {mealError ? (
+                  <p className="panel-subtle nutrition-error" role="alert">{mealError}</p>
+                ) : null}
+                {mergedMealSearch.length > 0 ? (
+                  <ul className="nutrition-search-list nutrition-search-list--day-modal">
+                    {mergedMealSearch.map((item) => {
+                      const sub = item.brands || item.quantity || item.servingSize || '';
+                      return (
+                        <li key={item.code} className="nutrition-search-item">
+                          <button
+                            type="button"
+                            className={`nutrition-search-btn ${selectedMealItem?.code === item.code ? 'is-selected' : ''}`}
+                            onClick={() => setSelectedMealItem(item)}
+                          >
+                            <div className="nutrition-search-text">
+                              <span className="nutrition-search-name">{item.name}</span>
+                              {sub ? <span className="nutrition-search-meta">{sub}</span> : null}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+                {selectedMealItem ? (
+                  <div className="nutrition-add-block day-modal-nutrition-add">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="day-modal-meal-grams">
+                        Grams · <strong>{selectedMealItem.name}</strong>
+                      </label>
+                      <div className="nutrition-grams nutrition-grams-with-chips">
+                        <div className="nutrition-grams-row">
+                          <input
+                            id="day-modal-meal-grams"
+                            className="text-input"
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={mealGrams}
+                            title={mealServingHint ?? undefined}
+                            onChange={(e) => setMealGrams(e.target.value)}
+                          />
+                          <span className="nutrition-grams-unit">g</span>
+                        </div>
+                        <div className="nutrition-gram-chips" role="group" aria-label="Quick grams">
+                          {[50, 75, 100, 125, 150, 200, 250].map((g) => (
+                            <button key={g} type="button" className="chip chip-compact" onClick={() => setMealGrams(String(g))}>
+                              {g}g
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="day-modal-actions">
+                      <button type="button" className="button button-primary" disabled={mealBusy} onClick={() => void addMealLog()}>
+                        {mealBusy ? 'Adding…' : 'Add food'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              className="day-modal-collapse-trigger day-modal-collapse-trigger--spaced"
+              aria-expanded={customFoodOpen}
+              onClick={() => setCustomFoodOpen((o) => !o)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setCustomFoodOpen((o) => !o);
+                }
+              }}
+            >
+              <span>Save custom food</span>
+              <span className="day-modal-collapse-chevron" aria-hidden>{customFoodOpen ? '▲' : '▼'}</span>
+            </button>
+            {customFoodOpen ? (
+              <div className="day-modal-collapsible-body">
+                <div className="nutrition-entry-toggle" role="tablist" aria-label="Entry mode">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={newFoodSaveMode === 'portion'}
+                    className={`nutrition-entry-toggle-btn ${newFoodSaveMode === 'portion' ? 'is-active' : ''}`}
+                    onClick={() => setNewFoodSaveMode('portion')}
+                  >
+                    One portion
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={newFoodSaveMode === 'per100g'}
+                    className={`nutrition-entry-toggle-btn ${newFoodSaveMode === 'per100g' ? 'is-active' : ''}`}
+                    onClick={() => setNewFoodSaveMode('per100g')}
+                  >
+                    Per 100g
+                  </button>
+                </div>
+                <div className="nutrition-goals-grid">
+                  <label className="profile-field">
+                    <span>Name</span>
+                    <input className="text-input" value={newFoodName} onChange={(e) => setNewFoodName(e.target.value)} placeholder="Food name" />
+                  </label>
+                  {newFoodSaveMode === 'portion' ? (
+                    <label className="profile-field">
+                      <span>Portion weight (g)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={newFoodPortionGrams}
+                        onChange={(e) => setNewFoodPortionGrams(e.target.value)}
+                        placeholder="g"
+                      />
+                    </label>
+                  ) : (
+                    <label className="profile-field">
+                      <span>Default grams when logging (optional)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={newFoodUsualGrams}
+                        onChange={(e) => setNewFoodUsualGrams(e.target.value)}
+                        placeholder="e.g. 180"
+                      />
+                    </label>
+                  )}
+                  <label className="profile-field">
+                    <span>{newFoodSaveMode === 'portion' ? 'Calories (this portion)' : 'Calories / 100g'}</span>
+                    <input className="text-input" type="number" min="0" step="1" value={newFoodCals} onChange={(e) => setNewFoodCals(e.target.value)} />
+                  </label>
+                  <label className="profile-field">
+                    <span>{newFoodSaveMode === 'portion' ? 'Protein (g)' : 'Protein g / 100g'}</span>
+                    <input className="text-input" type="number" min="0" step="0.1" value={newFoodP} onChange={(e) => setNewFoodP(e.target.value)} />
+                  </label>
+                  <label className="profile-field">
+                    <span>{newFoodSaveMode === 'portion' ? 'Carbs (g)' : 'Carbs g / 100g'}</span>
+                    <input className="text-input" type="number" min="0" step="0.1" value={newFoodC} onChange={(e) => setNewFoodC(e.target.value)} />
+                  </label>
+                  <label className="profile-field">
+                    <span>{newFoodSaveMode === 'portion' ? 'Fat (g)' : 'Fat g / 100g'}</span>
+                    <input className="text-input" type="number" min="0" step="0.1" value={newFoodF} onChange={(e) => setNewFoodF(e.target.value)} />
+                  </label>
+                  <label className="profile-field">
+                    <span>{newFoodSaveMode === 'portion' ? 'Fiber (g)' : 'Fiber g / 100g'}</span>
+                    <input className="text-input" type="number" min="0" step="0.1" value={newFoodFiber} onChange={(e) => setNewFoodFiber(e.target.value)} placeholder="0" />
+                  </label>
+                </div>
+                <div className="day-modal-actions">
+                  <button type="button" className="button button-muted" onClick={saveNewCustomFood}>
+                    Save to My foods
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

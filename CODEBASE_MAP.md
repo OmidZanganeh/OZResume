@@ -96,6 +96,7 @@
 | Cloud backup | Signed-in users: in-memory app state + `GET/PUT /api/gym-flow/data` (no localStorage for workout data). Optional profile step `/gym-flow-profile-setup` · `PATCH /api/gym-flow/profile`. Unsigned: data is session-only until sign-in. |
 | Env | `.env.example` — `DATABASE_URL` **or** `POSTGRES_URL` (Vercel template), `AUTH_SECRET`, `AUTH_GOOGLE_*` · helper `lib/db/database-url.ts` |
 | PWA listing | `app/web-apps/page.tsx` |
+| Summary tab | `Gym Webapp/src/App.tsx` — `view === 'summary'`: calendar, nutrition overview panel (3 cards), analysis-period chips, `MuscleSpider`, `BodyMapFigure`. Bottom nav: Summary → Plans → Activity → Nutrition → Settings. |
 
 **Edit flow:** change files in `Gym Webapp/src/` → run build → commit `public/gym-flow/` → deploy to Vercel.
 

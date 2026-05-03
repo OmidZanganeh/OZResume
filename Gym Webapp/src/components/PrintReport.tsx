@@ -200,6 +200,7 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
                 goals={data.nutrition.goals}
                 highlightDateKey={data.nutrition.dateKey}
                 showTitle={false}
+                density="print"
               />
             </div>
           </div>
