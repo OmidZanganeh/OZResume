@@ -439,14 +439,23 @@ export default function App() {
         credentials: 'include',
         signal: controller.signal,
       })
-        .then((r) => r.json().then((j) => ({ ok: r.ok, json: j })))
+        .then(async (r) => {
+          let json: unknown = {};
+          try {
+            json = await r.json();
+          } catch {
+            json = {};
+          }
+          return { ok: r.ok, json };
+        })
         .then(({ ok, json }) => {
           if (!ok) {
             setNutritionError(formatNutritionApiError(json, 'Search failed'));
             setNutritionResults([]);
             return;
           }
-          setNutritionResults(Array.isArray(json?.items) ? json.items : []);
+          const payload = json as { items?: NutritionSearchItem[] };
+          setNutritionResults(Array.isArray(payload.items) ? payload.items : []);
         })
         .catch((err) => {
           if (err?.name === 'AbortError') return;

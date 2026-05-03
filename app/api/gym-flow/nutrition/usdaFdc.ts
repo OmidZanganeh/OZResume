@@ -194,44 +194,108 @@ export function mapFdcFoodDocumentToItem(food: Record<string, unknown>, code: st
   };
 }
 
-export async function searchUsdaFoods(query: string, apiKey: string): Promise<UsdaSearchResult[]> {
+function coerceFdcId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+  if (typeof value === 'string') {
+    const n = Number.parseInt(value, 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  return null;
+}
+
+function usdaResponseError(data: { error?: unknown; errors?: unknown }): unknown {
+  if (data.error != null && data.error !== '') return data.error;
+  if (Array.isArray(data.errors) && data.errors.length > 0) return data.errors;
+  return undefined;
+}
+
+function parseUsdaSearchResponse(text: string): {
+  foods: Record<string, unknown>[];
+  error?: unknown;
+} | null {
+  try {
+    const data = JSON.parse(text) as {
+      foods?: Record<string, unknown>[];
+      error?: unknown;
+      errors?: unknown;
+    };
+    const err = usdaResponseError(data);
+    return {
+      foods: Array.isArray(data.foods) ? data.foods : [],
+      error: err,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function postUsdaSearch(body: object, apiKey: string): Promise<Response> {
   const url = new URL(FDC_SEARCH);
   url.searchParams.set('api_key', apiKey);
-
-  const res = await fetch(url.toString(), {
+  return fetch(url.toString(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  });
+}
+
+export async function searchUsdaFoods(query: string, apiKey: string): Promise<UsdaSearchResult[]> {
+  const tryBodies: object[] = [
+    {
       query,
       pageSize: 12,
       dataType: ['Foundation', 'SR Legacy', 'Survey (FNDDS)', 'Branded'],
-    }),
-    cache: 'no-store',
-  });
+    },
+    { query, pageSize: 12 },
+  ];
 
-  if (!res.ok) return [];
+  let lastText = '';
+  let lastStatus = 0;
 
-  const data = (await res.json()) as { foods?: Record<string, unknown>[] };
-  const foods = data.foods ?? [];
+  for (const body of tryBodies) {
+    const res = await postUsdaSearch(body, apiKey);
+    lastStatus = res.status;
+    lastText = await res.text();
+    const parsed = parseUsdaSearchResponse(lastText);
+    if (!parsed) {
+      console.error('[gym-flow/nutrition USDA] Non-JSON response', res.status, lastText.slice(0, 200));
+      continue;
+    }
+    if (parsed.error) {
+      console.error('[gym-flow/nutrition USDA] API error payload', parsed.error);
+      continue;
+    }
+    if (!res.ok) {
+      console.error('[gym-flow/nutrition USDA] HTTP', res.status, lastText.slice(0, 200));
+      continue;
+    }
 
-  const out: UsdaSearchResult[] = [];
-  for (const f of foods) {
-    const fdcId = f.fdcId;
-    if (typeof fdcId !== 'number' || !Number.isFinite(fdcId)) continue;
-    const name = String(f.description ?? '').trim();
-    if (!name) continue;
-    const dataType = typeof f.dataType === 'string' ? f.dataType : '';
-    const hint =
-      servingHintFromMeasures(f)?.label ??
-      (typeof f.householdServingFullText === 'string' ? f.householdServingFullText : undefined);
-    out.push({
-      code: `${USDA_CODE_PREFIX}${fdcId}`,
-      name,
-      brands: dataType ? `USDA · ${dataType}` : 'USDA',
-      servingSize: hint,
-    });
+    const foods = parsed.foods;
+    const out: UsdaSearchResult[] = [];
+    for (const f of foods) {
+      const fdcId = coerceFdcId(f.fdcId);
+      if (fdcId == null) continue;
+      const name = String(f.description ?? '').trim();
+      if (!name) continue;
+      const dataType = typeof f.dataType === 'string' ? f.dataType : '';
+      const hint =
+        servingHintFromMeasures(f)?.label ??
+        (typeof f.householdServingFullText === 'string' ? f.householdServingFullText : undefined);
+      out.push({
+        code: `${USDA_CODE_PREFIX}${fdcId}`,
+        name,
+        brands: dataType ? `USDA · ${dataType}` : 'USDA',
+        servingSize: hint,
+      });
+    }
+    if (out.length > 0) return out;
   }
-  return out;
+
+  if (lastStatus) {
+    console.error('[gym-flow/nutrition USDA] No results after retries', lastStatus, lastText.slice(0, 200));
+  }
+  return [];
 }
 
 export async function fetchUsdaFoodItem(fdcId: number, apiKey: string): Promise<UsdaNutritionItem | null> {

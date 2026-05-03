@@ -188,14 +188,23 @@ export function DayActivityModal({
         credentials: 'include',
         signal: controller.signal,
       })
-        .then((r) => r.json().then((j) => ({ ok: r.ok, json: j })))
+        .then(async (r) => {
+          let json: unknown = {};
+          try {
+            json = await r.json();
+          } catch {
+            json = {};
+          }
+          return { ok: r.ok, json };
+        })
         .then(({ ok, json }) => {
           if (!ok) {
             setMealError(formatNutritionApiError(json, 'Search failed'));
             setMealApiResults([]);
             return;
           }
-          setMealApiResults(Array.isArray(json?.items) ? json.items : []);
+          const payload = json as { items?: NutritionSearchItem[] };
+          setMealApiResults(Array.isArray(payload.items) ? payload.items : []);
         })
         .catch((err) => {
           if (err?.name === 'AbortError') return;
