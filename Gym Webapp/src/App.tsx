@@ -14,7 +14,7 @@ import { MUSCLE_GROUP_CALENDAR_COLOR } from './components/calendarMuscleColors';
 import { PrintReport } from './components/PrintReport';
 import { DayActivityModal } from './components/DayActivityModal';
 import {
-  MacroEnergySplit,
+  TodayConcentricGoalRings,
   TodayMealEnergyRows,
   WeekNutrientStrips,
 } from './components/NutritionDashboard';
@@ -1832,21 +1832,9 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="nutrition-overview-layout">
-                <div className="nutrition-overview-cards">
-                  <MacroEnergySplit
-                    protein={nutritionTotals.protein}
-                    carbs={nutritionTotals.carbs}
-                    fat={nutritionTotals.fat}
-                    caloriesLogged={nutritionTotals.calories}
-                    calorieGoal={nutritionGoals.calories}
-                    fiber={nutritionTotals.fiber}
-                    fiberGoal={nutritionGoals.fiber}
-                  />
-                </div>
-                <div className="nutrition-overview-side">
-                  <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
-                </div>
+              <div className="nutrition-overview-stack">
+                <TodayConcentricGoalRings today={nutritionTotals} goals={nutritionGoals} dateKey={nutritionDate} />
+                <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
               </div>
               <p className="nutrition-averages-line nutrition-averages-line--inline">
                 Avg · {nutritionTrendDays}d · {formatMacro(nutritionWindowAverages.calories)} kcal · P {formatMacro(nutritionWindowAverages.protein)} · C{' '}

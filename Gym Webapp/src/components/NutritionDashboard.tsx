@@ -11,192 +11,115 @@ const COL = {
 
 export type NutritionDayRollup = { dateKey: string } & NutritionGoals;
 
-type MacroEnergySplitProps = {
-  protein: number;
-  carbs: number;
-  fat: number;
-  /** Logged kcal for the day (may differ slightly from macro-derived kcal). */
-  caloriesLogged: number;
-  calorieGoal: number;
-  fiber: number;
-  fiberGoal: number;
+const WEEK_KEYS = ['calories', 'protein', 'carbs', 'fat', 'fiber'] as const;
+
+const RING_LABELS: Record<(typeof WEEK_KEYS)[number], string> = {
+  calories: 'kcal',
+  protein: 'Protein',
+  carbs: 'Carbs',
+  fat: 'Fat',
+  fiber: 'Fiber',
 };
 
-/** Outer ring = calories vs goal; inner donut = P/C/F share of macro-derived kcal. */
-export function MacroEnergySplit({
-  protein,
-  carbs,
-  fat,
-  caloriesLogged,
-  calorieGoal,
-  fiber,
-  fiberGoal,
-}: MacroEnergySplitProps) {
-  const kP = Math.max(0, protein) * 4;
-  const kC = Math.max(0, carbs) * 4;
-  const kF = Math.max(0, fat) * 9;
-  const macroKcal = kP + kC + kF;
-  const pct = (n: number) => (macroKcal > 0 ? Math.round((n / macroKcal) * 100) : 0);
-  const pFrac = macroKcal > 0 ? kP / macroKcal : 0;
-  const cFrac = macroKcal > 0 ? kC / macroKcal : 0;
-  const fFrac = macroKcal > 0 ? kF / macroKcal : 0;
+const RING_COLORS: Record<(typeof WEEK_KEYS)[number], string> = {
+  calories: COL.kcal,
+  protein: COL.protein,
+  carbs: COL.carbs,
+  fat: COL.fat,
+  fiber: COL.fiber,
+};
 
-  const hasAnything = caloriesLogged > 0 || macroKcal > 0;
+type TodayRingsProps = {
+  today: NutritionGoals;
+  goals: NutritionGoals;
+  dateKey: string;
+};
 
-  if (!hasAnything) {
-    return (
-      <div className="nutrition-viz-card nutrition-viz-card--empty nutrition-viz-card--micro">
-        <h3 className="nutrition-viz-title">Today</h3>
-        <p className="nutrition-viz-caption nutrition-viz-caption--tight">Log food to see calories and macro split.</p>
-      </div>
-    );
-  }
+/** Five nested circles (outer → inner: kcal, P, C, F, fiber). Same arc semantics as period rings. */
+export function TodayConcentricGoalRings({ today, goals, dateKey }: TodayRingsProps) {
+  const VB = 120;
+  const cx = VB / 2;
+  const cy = VB / 2;
+  /** Outer ring largest; step keeps gaps between strokes. */
+  const radii = [52, 44, 36, 28, 20];
+  const strokeW = 3.25;
+  const dow = new Date(dateKey + 'T12:00:00').toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  const fmt = (key: (typeof WEEK_KEYS)[number], v: number) => {
+    if (key === 'calories') return String(Math.round(v));
+    const x = Math.round(v * 10) / 10;
+    return Number.isInteger(x) ? String(x) : x.toFixed(1);
+  };
 
   return (
-    <div className="nutrition-viz-card nutrition-viz-card--split nutrition-viz-card--micro">
-      <h3 className="nutrition-viz-title nutrition-viz-span-full">Today</h3>
-      <div className="nutrition-viz-body">
-        {macroKcal > 0 ? (
-          <>
-            <div
-              className="nutrition-macro-stack"
-              role="img"
-              aria-label={`Protein ${pct(kP)} percent, carbs ${pct(kC)} percent, fat ${pct(kF)} percent of macro calories`}
-            >
-              <span className="nutrition-macro-stack-seg" style={{ flex: pFrac, background: COL.protein }} title={`Protein ~${pct(kP)}%`} />
-              <span className="nutrition-macro-stack-seg" style={{ flex: cFrac, background: COL.carbs }} title={`Carbs ~${pct(kC)}%`} />
-              <span className="nutrition-macro-stack-seg" style={{ flex: fFrac, background: COL.fat }} title={`Fat ~${pct(kF)}%`} />
-            </div>
-            <ul className="nutrition-macro-legend">
-              <li>
-                <span className="nutrition-dot" style={{ background: COL.protein }} /> Protein ~{pct(kP)}%
-              </li>
-              <li>
-                <span className="nutrition-dot" style={{ background: COL.carbs }} /> Carbs ~{pct(kC)}%
-              </li>
-              <li>
-                <span className="nutrition-dot" style={{ background: COL.fat }} /> Fat ~{pct(kF)}%
-              </li>
-            </ul>
-          </>
-        ) : (
-          <p className="nutrition-viz-caption nutrition-viz-caption--tight" style={{ marginBottom: '0.5rem' }}>
-            Add protein, carbs, or fat to see macro split. Outer ring shows kcal vs goal.
-          </p>
-        )}
-        <p className="nutrition-fiber-inline">
-          <span className="nutrition-fiber-dot" style={{ background: COL.fiber }} aria-hidden />
-          Fiber <strong>{Math.round(fiber * 10) / 10}</strong> / {Math.round(fiberGoal * 10) / 10} g
-        </p>
-      </div>
-      <div className="nutrition-donut-wrap nutrition-donut-wrap--dual-ring">
-        <svg className="nutrition-donut" viewBox="0 0 44 44" role="img" aria-label={`Calories ${Math.round(caloriesLogged)} of ${Math.round(calorieGoal)}; macro ring shows protein carbs fat split`}>
-          <title>{`Calories ${Math.round(caloriesLogged)} / ${Math.round(calorieGoal)} kcal`}</title>
-          <CalorieWrappedMacroDonut
-            p={pFrac}
-            c={cFrac}
-            f={fFrac}
-            caloriesLogged={caloriesLogged}
-            calorieGoal={calorieGoal}
-            hasMacroSplit={macroKcal > 0}
-          />
+    <div
+      className="nutrition-viz-card nutrition-concentric-card"
+      role="group"
+      aria-label={`Nutrition goals for ${dow}: calories and macros vs targets`}
+    >
+      <h3 className="nutrition-viz-title nutrition-concentric-title">Today</h3>
+      <p className="nutrition-concentric-date">{dow}</p>
+      <div className="nutrition-concentric-svg-wrap">
+        <svg className="nutrition-concentric-svg" viewBox={`0 0 ${VB} ${VB}`}>
+          {WEEK_KEYS.map((key, i) => {
+            const r = radii[i]!;
+            const g = Math.max(goals[key], 0.001);
+            const val = today[key];
+            const circ = 2 * Math.PI * r;
+            const arcFrac = Math.min(Math.max(g > 0 ? val / g : 0, 0), 1);
+            const dash = `${arcFrac * circ} ${circ}`;
+            const color = RING_COLORS[key];
+            return (
+              <g key={key}>
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={r}
+                  fill="none"
+                  stroke="rgba(148, 163, 184, 0.28)"
+                  strokeWidth={strokeW}
+                />
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={r}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={strokeW}
+                  strokeDasharray={dash}
+                  strokeLinecap="round"
+                  opacity={0.88}
+                  transform={`rotate(-90 ${cx} ${cy})`}
+                />
+                <title>{`${RING_LABELS[key]}: ${fmt(key, val)} / goal ${fmt(key, goals[key])}`}</title>
+              </g>
+            );
+          })}
         </svg>
+        <div className="nutrition-concentric-center">
+          <span className="nutrition-concentric-center-kcal">{Math.round(today.calories)}</span>
+          <span className="nutrition-concentric-center-sub">kcal</span>
+        </div>
       </div>
+      <ul className="nutrition-concentric-legend">
+        {WEEK_KEYS.map((key) => (
+          <li key={key} className="nutrition-concentric-legend-item">
+            <span className="nutrition-concentric-legend-dot" style={{ background: RING_COLORS[key] }} />
+            <span className="nutrition-concentric-legend-label">{RING_LABELS[key]}</span>
+            <span className="nutrition-concentric-legend-val">
+              {fmt(key, today[key])}/{fmt(key, goals[key])}
+              {key === 'calories' ? '' : 'g'}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
-
-function CalorieWrappedMacroDonut({
-  p,
-  c,
-  f,
-  caloriesLogged,
-  calorieGoal,
-  hasMacroSplit,
-}: {
-  p: number;
-  c: number;
-  f: number;
-  caloriesLogged: number;
-  calorieGoal: number;
-  hasMacroSplit: boolean;
-}) {
-  const cx = 22;
-  const cy = 22;
-  const R_OUT = 19;
-  const R_IN = 12;
-  const swOut = 3;
-  const swIn = 3.25;
-  const circOut = 2 * Math.PI * R_OUT;
-  const circIn = 2 * Math.PI * R_IN;
-  const dashFor = (frac: number, circ: number) => `${Math.max(0, Math.min(1, frac)) * circ} ${circ}`;
-  const calFrac = calorieGoal > 0 ? Math.min(Math.max(caloriesLogged / calorieGoal, 0), 1) : 0;
-
-  return (
-    <>
-      <circle cx={cx} cy={cy} r={R_OUT} fill="none" stroke="rgba(148, 163, 184, 0.28)" strokeWidth={swOut} />
-      <circle
-        cx={cx}
-        cy={cy}
-        r={R_OUT}
-        fill="none"
-        stroke={COL.kcal}
-        strokeWidth={swOut}
-        strokeLinecap="round"
-        strokeDasharray={dashFor(calFrac, circOut)}
-        transform={`rotate(-90 ${cx} ${cy})`}
-        opacity={0.92}
-      />
-      {hasMacroSplit ? (
-        <>
-          <circle cx={cx} cy={cy} r={R_IN} fill="none" strokeWidth={swIn} stroke={COL.muted} />
-          <circle
-            cx={cx}
-            cy={cy}
-            r={R_IN}
-            fill="none"
-            strokeWidth={swIn}
-            stroke={COL.protein}
-            strokeDasharray={dashFor(p, circIn)}
-            transform={`rotate(-90 ${cx} ${cy})`}
-          />
-          <circle
-            cx={cx}
-            cy={cy}
-            r={R_IN}
-            fill="none"
-            strokeWidth={swIn}
-            stroke={COL.carbs}
-            strokeDasharray={dashFor(c, circIn)}
-            strokeDashoffset={-p * circIn}
-            transform={`rotate(-90 ${cx} ${cy})`}
-          />
-          <circle
-            cx={cx}
-            cy={cy}
-            r={R_IN}
-            fill="none"
-            strokeWidth={swIn}
-            stroke={COL.fat}
-            strokeDasharray={dashFor(f, circIn)}
-            strokeDashoffset={-(p + c) * circIn}
-            transform={`rotate(-90 ${cx} ${cy})`}
-          />
-        </>
-      ) : (
-        <circle cx={cx} cy={cy} r={R_IN} fill="none" strokeWidth={swIn} stroke="rgba(148, 163, 184, 0.2)" />
-      )}
-      <text x={cx} y={cy - 1} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="var(--gf-text)">
-        {Math.round(caloriesLogged)}
-      </text>
-      <text x={cx} y={cy + 7} textAnchor="middle" fontSize="4.8" fill="#94a3b8">
-        / {Math.round(calorieGoal)} kcal
-      </text>
-    </>
-  );
-}
-
-const WEEK_KEYS = ['calories', 'protein', 'carbs', 'fat', 'fiber'] as const;
 
 type WeekStripesProps = {
   days: NutritionDayRollup[];
