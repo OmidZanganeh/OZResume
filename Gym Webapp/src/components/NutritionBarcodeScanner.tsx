@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { BrowserCodeReader, BrowserMultiFormatReader } from '@zxing/browser';
-import { NotFoundException } from '@zxing/library';
+
+/** ZXing throws this on every frame with no decode; avoid importing `@zxing/library` (not a direct dep on CI). */
+function isZxingNotFoundInFrame(err: unknown): boolean {
+  if (err == null || typeof err !== 'object') return false;
+  return (err as { name?: string }).name === 'NotFoundException';
+}
 
 type NutritionBarcodeScannerProps = {
   open: boolean;
@@ -69,7 +74,7 @@ function NutritionBarcodeScanner({ open, onClose, onBarcode, onScannerError }: N
           }
           return;
         }
-        if (err && !(err instanceof NotFoundException)) {
+        if (err && !isZxingNotFoundInFrame(err)) {
           console.warn('[NutritionBarcodeScanner]', err);
         }
       })
