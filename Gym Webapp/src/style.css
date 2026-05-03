@@ -3700,6 +3700,25 @@ body {
   justify-content: flex-start !important;
   gap: 0.35rem;
 }
+
+.prl-card--nutrition-week-rings .nutrition-viz-card.nutrition-week-rings-card {
+  border: none;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.prl-card-body--week-rings {
+  justify-content: flex-start !important;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.prl-card-body--week-rings .nutrition-week-rings-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .prl-nutrition-avg {
   font-size: 0.58rem;
   color: #94a3b8;
@@ -4312,7 +4331,23 @@ body {
   flex-direction: column;
   gap: 1rem;
   margin-top: 1rem;
-  align-items: center;
+  align-items: stretch;
+}
+
+/* Same max width for day rings, today’s foods, and 7-day strip in the overview column */
+.nutrition-overview-stack > .nutrition-viz-card,
+.nutrition-overview-stack > .nutrition-concentric-card {
+  width: 100%;
+  max-width: 22rem;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.nutrition-overview-stack > .nutrition-averages-line--inline {
+  width: 100%;
+  max-width: 22rem;
+  margin-inline: auto;
+  box-sizing: border-box;
 }
 
 .nutrition-log-food-panel {
@@ -4364,7 +4399,6 @@ body {
 
 .nutrition-concentric-card {
   width: 100%;
-  max-width: 22rem;
   text-align: center;
 }
 

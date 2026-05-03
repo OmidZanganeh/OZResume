@@ -67,7 +67,7 @@ export function TodayConcentricGoalRings({ totals, goals, endDateKey, periodDays
 
   return (
     <div
-      className="nutrition-viz-card nutrition-concentric-card"
+      className="nutrition-viz-card nutrition-viz-card--stretch nutrition-viz-card--micro nutrition-concentric-card"
       role="group"
       aria-label={
         periodDays === 1
@@ -145,10 +145,12 @@ type WeekStripesProps = {
   days: NutritionDayRollup[];
   goals: NutritionGoals;
   highlightDateKey: string;
+  /** When false, omit the in-card heading (e.g. PDF report uses its own card title). */
+  showTitle?: boolean;
 };
 
 /** One row per nutrient: goal rings per day; one weekday row below. Shown only for 7+ days (caller + guard). */
-export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripesProps) {
+export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = true }: WeekStripesProps) {
   const labels: Record<(typeof WEEK_KEYS)[number], string> = {
     calories: 'Calories (kcal)',
     protein: 'Protein (g)',
@@ -186,7 +188,7 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripe
 
   return (
     <div className="nutrition-viz-card nutrition-viz-card--stretch nutrition-week-rings-card nutrition-viz-card--micro">
-      <h3 className="nutrition-viz-title">{n}-day rings</h3>
+      {showTitle ? <h3 className="nutrition-viz-title">{n}-day rings</h3> : null}
       <div className="nutrition-week-rings-scroll">
         <svg
           className="nutrition-chart-svg nutrition-week-rings"
@@ -291,7 +293,7 @@ export function TodayMealEnergyRows({ logs, dayTotalKcal }: { logs: LogKcalShare
   const sorted = [...logs].sort((a, b) => b.calories - a.calories).slice(0, 8);
 
   return (
-    <div className="nutrition-viz-card nutrition-viz-card--compact nutrition-viz-card--micro">
+    <div className="nutrition-viz-card nutrition-viz-card--stretch nutrition-viz-card--micro">
       <h3 className="nutrition-viz-title">Today’s foods</h3>
       <ul className="nutrition-meal-share-list">
         {sorted.map((l) => {

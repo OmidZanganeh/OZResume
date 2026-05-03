@@ -1,5 +1,6 @@
 import { BodyMapFigure } from './BodyMapFigure';
 import type { NutritionGoals } from '../data/gymFlowStorage';
+import { WeekNutrientStrips, type NutritionDayRollup } from './NutritionDashboard';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
@@ -19,10 +20,8 @@ export type ReportData = {
   weeklyData: { label: string; count: number }[];
   nutrition: {
     dateKey: string;
-    today: NutritionGoals;
     goals: NutritionGoals;
-    windowDays: number;
-    averages: NutritionGoals;
+    ringDays: NutritionDayRollup[];
   };
 };
 
@@ -87,22 +86,6 @@ function WeeklyBarSVG({ weeklyData }: { weeklyData: { label: string; count: numb
   );
 }
 
-function fmtNutVal(key: keyof NutritionGoals, n: number): string {
-  if (key === 'calories') return Math.round(n).toString();
-  const r = Math.round(n * 10) / 10;
-  return Number.isInteger(r) ? String(r) : r.toFixed(1);
-}
-
-function macroKcalSplit(today: NutritionGoals): string | null {
-  const kP = Math.max(0, today.protein) * 4;
-  const kC = Math.max(0, today.carbs) * 4;
-  const kF = Math.max(0, today.fat) * 9;
-  const t = kP + kC + kF;
-  if (t <= 0) return null;
-  const pct = (x: number) => Math.round((x / t) * 100);
-  return `Today's macro calories · P ${pct(kP)}% · C ${pct(kC)}% · F ${pct(kF)}%`;
-}
-
 export function PrintReport({ data, selectedGroups }: { data: ReportData, selectedGroups: MuscleGroup[] }) {
   const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const hasBMI = data.profile.weight && data.profile.height;
@@ -123,8 +106,6 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
 
   const insight = data.consistency > 85 ? 'Elite Consistency' : data.consistency > 60 ? 'Active Momentum' : 'Needs Regularity';
   const balanceInsight = data.neglectedMuscles.length < 2 ? 'Excellent Balance' : 'Focus Needed';
-  const nutritionMacroLine = macroKcalSplit(data.nutrition.today);
-
   return (
     <div id="print-report">
 
@@ -203,45 +184,23 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
             </div>
           </div>
 
-          <div className="prl-card prl-card--nutrition" style={{ marginTop: '0.6rem' }}>
+          <div className="prl-card prl-card--nutrition-week-rings" style={{ marginTop: '0.6rem' }}>
             <div className="prl-card-head">
-              <span className="prl-card-title">Nutrition overview</span>
+              <span className="prl-card-title">7-day goal rings</span>
               <span className="prl-card-sub">
+                Ending{' '}
                 {new Date(data.nutrition.dateKey + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                {` · vs goals · ${data.nutrition.windowDays}d rolling avg`}
+                {' · '}
+                vs daily targets
               </span>
             </div>
-            <div className="prl-card-body prl-card-body--nutrition">
-              <table className="prl-table prl-table--nutrition">
-                <thead>
-                  <tr>
-                    <th />
-                    <th>Today</th>
-                    <th>Goal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {([
-                    ['kcal', 'calories' as const],
-                    ['Protein', 'protein' as const],
-                    ['Carbs', 'carbs' as const],
-                    ['Fat', 'fat' as const],
-                    ['Fiber', 'fiber' as const],
-                  ] as const).map(([label, key]) => (
-                    <tr key={key}>
-                      <td style={{ color: '#94a3b8', fontWeight: 600 }}>{label}</td>
-                      <td style={{ color: '#f1f5f9', fontWeight: 700 }}>{fmtNutVal(key, data.nutrition.today[key])}</td>
-                      <td style={{ color: '#64748b' }}>{fmtNutVal(key, data.nutrition.goals[key])}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="prl-nutrition-avg">
-                Avg ({data.nutrition.windowDays}d): {fmtNutVal('calories', data.nutrition.averages.calories)} kcal · P {fmtNutVal('protein', data.nutrition.averages.protein)} ·
-                C {fmtNutVal('carbs', data.nutrition.averages.carbs)} · F {fmtNutVal('fat', data.nutrition.averages.fat)} · Fiber{' '}
-                {fmtNutVal('fiber', data.nutrition.averages.fiber)}
-              </div>
-              {nutritionMacroLine ? <div className="prl-nutrition-macro-split">{nutritionMacroLine}</div> : null}
+            <div className="prl-card-body prl-card-body--week-rings">
+              <WeekNutrientStrips
+                days={data.nutrition.ringDays}
+                goals={data.nutrition.goals}
+                highlightDateKey={data.nutrition.dateKey}
+                showTitle={false}
+              />
             </div>
           </div>
         </div>

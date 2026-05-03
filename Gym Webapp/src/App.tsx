@@ -309,6 +309,28 @@ export default function App() {
     return keys.map((k) => ({ dateKey: k, ...map.get(k)! }));
   }, [nutritionLogs, nutritionTrendDays, nutritionDate]);
 
+  /** Last 7 days ending on selected nutrition date (for week ring strip regardless of Period chip). */
+  const nutritionSevenDayRollupByDay = useMemo(() => {
+    const keys = lastNDayKeysEnding(nutritionDate, 7);
+    const map = new Map<string, NutritionGoals>();
+    for (const k of keys) {
+      map.set(k, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+    }
+    for (const log of nutritionLogs) {
+      const dk = nutritionLogDateKey(log.date);
+      const cur = map.get(dk);
+      if (!cur) continue;
+      map.set(dk, {
+        calories: cur.calories + log.calories,
+        protein: cur.protein + log.protein,
+        carbs: cur.carbs + log.carbs,
+        fat: cur.fat + log.fat,
+        fiber: cur.fiber + (log.fiber ?? 0),
+      });
+    }
+    return keys.map((k) => ({ dateKey: k, ...map.get(k)! }));
+  }, [nutritionLogs, nutritionDate]);
+
   const nutritionWindowAverages = useMemo(() => {
     const n = nutritionWindowByDay.length || nutritionTrendDays;
     const sum = nutritionWindowByDay.reduce(
@@ -337,26 +359,30 @@ export default function App() {
     const mo = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     const todayKey = `${y}-${mo}-${day}`;
-    const today = nutritionLogs
-      .filter((l) => nutritionLogDateKey(l.date) === todayKey)
-      .reduce(
-        (acc, log) => ({
-          calories: acc.calories + log.calories,
-          protein: acc.protein + log.protein,
-          carbs: acc.carbs + log.carbs,
-          fat: acc.fat + log.fat,
-          fiber: acc.fiber + (log.fiber ?? 0),
-        }),
-        { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
-      );
+    const keys = lastNDayKeysEnding(todayKey, 7);
+    const map = new Map<string, { calories: number; protein: number; carbs: number; fat: number; fiber: number }>();
+    for (const k of keys) {
+      map.set(k, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+    }
+    for (const log of nutritionLogs) {
+      const dk = nutritionLogDateKey(log.date);
+      const cur = map.get(dk);
+      if (!cur) continue;
+      map.set(dk, {
+        calories: cur.calories + log.calories,
+        protein: cur.protein + log.protein,
+        carbs: cur.carbs + log.carbs,
+        fat: cur.fat + log.fat,
+        fiber: cur.fiber + (log.fiber ?? 0),
+      });
+    }
+    const ringDays = keys.map((k) => ({ dateKey: k, ...map.get(k)! }));
     return {
       dateKey: todayKey,
-      today,
       goals: nutritionGoals,
-      windowDays: nutritionTrendDays,
-      averages: nutritionWindowAverages,
+      ringDays,
     };
-  }, [nutritionLogs, nutritionGoals, nutritionTrendDays, nutritionWindowAverages]);
+  }, [nutritionLogs, nutritionGoals]);
 
   const customFoodSearchMatches = useMemo((): NutritionSearchItem[] => {
     const q = nutritionQuery.trim().toLowerCase();
@@ -1950,21 +1976,19 @@ export default function App() {
                 {nutritionTrendDays === 1 ? (
                   <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
                 ) : null}
-              </div>
-              {nutritionTrendDays > 1 ? (
-                <p className="nutrition-averages-line nutrition-averages-line--inline">
-                  Avg · {nutritionTrendDays}d ending {nutritionDate} · {formatMacro(nutritionWindowAverages.calories)} kcal · P{' '}
-                  {formatMacro(nutritionWindowAverages.protein)} · C {formatMacro(nutritionWindowAverages.carbs)} · F{' '}
-                  {formatMacro(nutritionWindowAverages.fat)} · Fiber {formatMacro(nutritionWindowAverages.fiber)}
-                </p>
-              ) : null}
-              {nutritionTrendDays >= 7 ? (
+                {nutritionTrendDays > 1 ? (
+                  <p className="nutrition-averages-line nutrition-averages-line--inline">
+                    Avg · {nutritionTrendDays}d ending {nutritionDate} · {formatMacro(nutritionWindowAverages.calories)} kcal · P{' '}
+                    {formatMacro(nutritionWindowAverages.protein)} · C {formatMacro(nutritionWindowAverages.carbs)} · F{' '}
+                    {formatMacro(nutritionWindowAverages.fat)} · Fiber {formatMacro(nutritionWindowAverages.fiber)}
+                  </p>
+                ) : null}
                 <WeekNutrientStrips
-                  days={nutritionWindowByDay}
+                  days={nutritionSevenDayRollupByDay}
                   goals={nutritionGoals}
                   highlightDateKey={nutritionDate}
                 />
-              ) : null}
+              </div>
             </section>
 
             <section className="panel panel--compact">
