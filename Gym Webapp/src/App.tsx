@@ -371,12 +371,14 @@ export default function App() {
     suggestedNutritionGoals,
   ]);
 
-  const mealDayKeys = useMemo(() => {
-    const s = new Set<string>();
+  /** Calendar: date key → total kcal from all food logs that day. */
+  const mealDayCalories = useMemo(() => {
+    const m = new Map<string, number>();
     for (const l of nutritionLogs) {
-      s.add(nutritionLogDateKey(l.date));
+      const dk = nutritionLogDateKey(l.date);
+      m.set(dk, (m.get(dk) ?? 0) + l.calories);
     }
-    return s;
+    return m;
   }, [nutritionLogs]);
 
   const nutritionWindowByDay = useMemo(() => {
@@ -1537,7 +1539,7 @@ export default function App() {
               <WorkoutCalendar
                 sessions={data.sessions}
                 allExercises={allExercises}
-                mealDayKeys={mealDayKeys}
+                mealDayCalories={mealDayCalories}
                 onDayClick={setSelectedCalendarDay}
               />
             </section>
@@ -2266,7 +2268,7 @@ export default function App() {
               <WorkoutCalendar
                 sessions={data.sessions}
                 allExercises={allExercises}
-                mealDayKeys={mealDayKeys}
+                mealDayCalories={mealDayCalories}
                 onDayClick={setSelectedCalendarDay}
               />
             </section>

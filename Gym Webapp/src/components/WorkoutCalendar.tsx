@@ -111,15 +111,31 @@ function monthMatrix(year: number, month: number): (number | null)[][] {
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
+const compactKcalFormatter =
+  typeof Intl !== 'undefined' && typeof Intl.NumberFormat === 'function'
+    ? new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 })
+    : null;
+
+/** Short label for calendar cell (e.g. 847, 1.8k). */
+function formatCalendarDayKcal(kcal: number): string {
+  const n = Math.round(Number.isFinite(kcal) ? kcal : 0);
+  if (compactKcalFormatter) return compactKcalFormatter.format(n);
+  if (n >= 1000) {
+    const t = Math.round((n / 1000) * 10) / 10;
+    return `${Number.isInteger(t) ? String(t) : t.toFixed(1)}k`;
+  }
+  return String(n);
+}
+
 type Props = {
   sessions: Session[];
   allExercises: Exercise[];
-  /** Days (`YYYY-MM-DD`) with at least one nutrition log — shows a meal marker on the cell. */
-  mealDayKeys?: Set<string>;
+  /** Date key → total kcal from food logs that day; cell shows a compact total. */
+  mealDayCalories?: ReadonlyMap<string, number>;
   onDayClick?: (dateKey: string) => void;
 };
 
-export function WorkoutCalendar({ sessions, allExercises, mealDayKeys, onDayClick }: Props) {
+export function WorkoutCalendar({ sessions, allExercises, mealDayCalories, onDayClick }: Props) {
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
     return { year: n.getFullYear(), month: n.getMonth() };
@@ -202,7 +218,8 @@ export function WorkoutCalendar({ sessions, allExercises, mealDayKeys, onDayClic
               }
               const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const cal = dayInfo.get(key);
-              const hasMeals = mealDayKeys?.has(key) ?? false;
+              const hasMeals = mealDayCalories?.has(key) ?? false;
+              const mealKcal = mealDayCalories?.get(key) ?? 0;
               const info = cal?.summary;
               const hasWorkout = info && info.total > 0;
               const onlySample = hasWorkout && info!.real === 0 && info!.sample > 0;
@@ -225,7 +242,9 @@ export function WorkoutCalendar({ sessions, allExercises, mealDayKeys, onDayClic
                 title = `${dayLabel} — ${parts.join(' · ')}`;
               }
               if (hasMeals) {
-                title = title.includes('—') ? `${title} · Meals logged` : `${title} — Meals logged`;
+                const exact = Math.round(mealKcal);
+                const extra = `${exact.toLocaleString()} kcal from food logs`;
+                title = title.includes('—') ? `${title} · ${extra}` : `${title} — ${extra}`;
               }
 
               return (
@@ -254,11 +273,15 @@ export function WorkoutCalendar({ sessions, allExercises, mealDayKeys, onDayClic
                   }}
                 >
                   <span className="workout-cal-daynum">{day}</span>
-                  {hasMeals && (
-                    <span className="workout-cal-meal-mark" title="Meals logged" aria-label="Meals logged">
-                      🍽
+                  {hasMeals ? (
+                    <span
+                      className="workout-cal-meal-mark"
+                      title={`${Math.round(mealKcal).toLocaleString()} kcal logged`}
+                      aria-label={`${Math.round(mealKcal).toLocaleString()} kilocalories from food logs`}
+                    >
+                      {formatCalendarDayKcal(mealKcal)}
                     </span>
-                  )}
+                  ) : null}
                   {hasWorkout && groupsStripe.length > 0 ? (
                     <div className="workout-cal-muscle-strip" aria-hidden>
                       {groupsStripe.map((g) => (
@@ -334,8 +357,10 @@ export function WorkoutCalendar({ sessions, allExercises, mealDayKeys, onDayClic
           Legacy sample only
         </span>
         <span className="workout-cal-legend-item">
-          <i className="workout-cal-legend-swatch workout-cal-legend-swatch--meal" aria-hidden />
-          Meals logged
+          <span className="workout-cal-legend-meal-pill" aria-hidden>
+            {formatCalendarDayKcal(1847)}
+          </span>
+          Food logged (day total kcal)
         </span>
         <span className="workout-cal-legend-item">
           <i className="workout-cal-legend-ring" aria-hidden />

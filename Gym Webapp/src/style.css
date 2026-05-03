@@ -4688,10 +4688,32 @@ select.text-input.day-modal-select {
 }
 
 .workout-cal-meal-mark {
-  font-size: 0.62rem;
-  line-height: 1;
-  margin-top: 0.08rem;
+  display: block;
+  font-size: 0.56rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  margin-top: 0.06rem;
+  max-width: 100%;
+  text-align: center;
+  color: #5eead4;
+  letter-spacing: -0.03em;
   user-select: none;
+}
+
+.workout-cal-legend-meal-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.55rem;
+  padding: 0.08rem 0.28rem;
+  border-radius: 4px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #ccfbf1;
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  line-height: 1;
 }
 
 .workout-cal-legend-swatch--meal {
