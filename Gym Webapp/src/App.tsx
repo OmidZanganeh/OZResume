@@ -1984,7 +1984,7 @@ export default function App() {
                   </p>
                 ) : null}
                 <WeekNutrientStrips
-                  days={nutritionSevenDayRollupByDay}
+                  days={nutritionTrendDays < 7 ? nutritionSevenDayRollupByDay : nutritionWindowByDay}
                   goals={nutritionGoals}
                   highlightDateKey={nutritionDate}
                 />
