@@ -4315,6 +4315,53 @@ body {
   align-items: center;
 }
 
+.nutrition-log-food-panel {
+  margin-bottom: 0.25rem;
+}
+
+.nutrition-collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0.65rem;
+}
+
+.nutrition-collapse-header:hover {
+  opacity: 0.92;
+}
+
+.nutrition-collapse-header:focus-visible {
+  outline: 2px solid var(--gf-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.nutrition-collapse-header-titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.nutrition-collapse-header-titles .panel-heading {
+  margin: 0;
+}
+
+.nutrition-collapse-header > .panel-heading {
+  margin: 0;
+}
+
+.nutrition-collapse-chevron {
+  font-size: 0.7rem;
+  color: var(--gf-text-dim);
+  flex-shrink: 0;
+}
+
 .nutrition-concentric-card {
   width: 100%;
   max-width: 22rem;

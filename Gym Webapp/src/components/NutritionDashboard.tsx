@@ -145,7 +145,7 @@ type WeekStripesProps = {
   highlightDateKey: string;
 };
 
-/** One row per nutrient: compact goal rings (full gray ring = target; colored arc = logged; number centered). */
+/** One row per nutrient: compact goal rings; one weekday row below all rows. */
 export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripesProps) {
   const labels: Record<(typeof WEEK_KEYS)[number], string> = {
     calories: 'Calories (kcal)',
@@ -162,12 +162,14 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripe
     fiber: COL.fiber,
   };
   const n = days.length || 1;
-  const labelW = 108;
-  const cellW = Math.max(36, Math.min(52, Math.floor(680 / Math.max(n, 8))));
-  const rowH = 58;
-  const padT = 10;
+  const labelW = n <= 14 ? 68 : 96;
+  const maxChartW = 268;
+  const cellW = Math.max(24, Math.min(36, Math.floor((maxChartW - labelW) / n)));
+  const rowH = 46;
+  const padT = 8;
+  const dowRowY = padT + WEEK_KEYS.length * rowH + 10;
   const totalW = labelW + n * cellW;
-  const totalH = padT + WEEK_KEYS.length * rowH + 6;
+  const totalH = dowRowY + 12;
 
   const fmtCenter = (key: (typeof WEEK_KEYS)[number], val: number) => {
     if (key === 'calories') return String(Math.round(val));
@@ -190,24 +192,23 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripe
             const cy = padT + row * rowH + rowH / 2;
             return (
               <g key={key}>
-                <text x={4} y={cy + 4} fill="var(--gf-text-muted)" fontSize="11" fontWeight="600">
+                <text x={4} y={cy + 4} fill="var(--gf-text-muted)" fontSize="10" fontWeight="600">
                   {labels[key]}
                 </text>
                 {days.map((d, i) => {
                   const val = d[key];
                   const cx = labelW + i * cellW + cellW / 2;
-                  const r = Math.max(12, Math.min(17, (cellW - 14) / 2));
-                  const strokeW = 3.5;
+                  const r = Math.max(9, Math.min(14, (cellW - 8) / 2));
+                  const strokeW = 3;
                   const circ = 2 * Math.PI * r;
                   const rawFrac = goal > 0 ? val / goal : 0;
                   const arcFrac = Math.min(Math.max(rawFrac, 0), 1);
                   const dash = `${arcFrac * circ} ${circ}`;
                   const isHi = d.dateKey === highlightDateKey;
-                  const dow = new Date(d.dateKey + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'narrow' });
                   const centerTxt = fmtCenter(key, val);
-                  const fs = centerTxt.length > 4 ? 8.5 : centerTxt.length > 3 ? 9.5 : 11;
+                  const fs = centerTxt.length > 4 ? 7.5 : centerTxt.length > 3 ? 8.5 : 10;
                   return (
-                    <g key={d.dateKey}>
+                    <g key={`${key}-${d.dateKey}`}>
                       <circle
                         cx={cx}
                         cy={cy}
@@ -242,9 +243,6 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripe
                       >
                         {centerTxt}
                       </text>
-                      <text x={cx} y={cy + r + 11} textAnchor="middle" fill="var(--gf-text-dim)" fontSize="8.5">
-                        {dow}
-                      </text>
                       <title>{`${d.dateKey} · ${labels[key]} ${typeof val === 'number' ? val.toFixed(1) : val} (goal ${goal})`}</title>
                     </g>
                   );
@@ -252,6 +250,26 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripe
               </g>
             );
           })}
+          <g aria-hidden>
+            {days.map((d, i) => {
+              const cx = labelW + i * cellW + cellW / 2;
+              const dow = new Date(d.dateKey + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'narrow' });
+              const isHi = d.dateKey === highlightDateKey;
+              return (
+                <text
+                  key={`dow-${d.dateKey}`}
+                  x={cx}
+                  y={dowRowY}
+                  textAnchor="middle"
+                  fill={isHi ? 'var(--gf-text)' : 'var(--gf-text-dim)'}
+                  fontSize="8.5"
+                  fontWeight={isHi ? 700 : 600}
+                >
+                  {dow}
+                </text>
+              );
+            })}
+          </g>
         </svg>
       </div>
     </div>

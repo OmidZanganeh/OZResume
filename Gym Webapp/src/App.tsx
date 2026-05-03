@@ -196,7 +196,10 @@ export default function App() {
     'Core Foundations': true,
     'Classic Splits': true,
     'Targeted Growth': true,
-    'Targeted Isolation (Single Muscle)': true
+    'Targeted Isolation (Single Muscle)': true,
+    'nutrition-my-foods': true,
+    'nutrition-logged-foods': true,
+    'nutrition-goals': true,
   });
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
   const [cloudSignedIn, setCloudSignedIn] = useState(false);
@@ -1806,70 +1809,7 @@ export default function App() {
               </section>
             )}
 
-            <section className="panel nutrition-panel-lead">
-              <div className="nutrition-panel-title-top">
-                <div>
-                  <h2 className="panel-heading panel-heading--plain nutrition-hero-heading">Nutrition</h2>
-                </div>
-                <div className="nutrition-panel-controls">
-                  <label className="nutrition-date">
-                    <span>Day</span>
-                    <input
-                      className="text-input"
-                      type="date"
-                      value={nutritionDate}
-                      onChange={(e) => setNutritionDate(e.target.value)}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className={`chip chip-compact ${nutritionDate === localTodayDateKey() ? 'chip-active' : ''}`}
-                    onClick={() => setNutritionDate(localTodayDateKey())}
-                  >
-                    Today
-                  </button>
-                  <div className="nutrition-trend-window" role="group" aria-label="Overview period (days ending on selected day)">
-                    <span className="nutrition-trend-window-label">Period</span>
-                    {[1, 7, 10, 30, 90].map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        className={`chip chip-compact ${nutritionTrendDays === d ? 'chip-active' : ''}`}
-                        onClick={() => setNutritionTrendDays(d)}
-                      >
-                        {d}d
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="nutrition-overview-stack">
-                <TodayConcentricGoalRings
-                  totals={nutritionConcentricTotals}
-                  goals={nutritionGoals}
-                  endDateKey={nutritionDate}
-                  periodDays={nutritionTrendDays}
-                />
-                {nutritionTrendDays === 1 ? (
-                  <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
-                ) : null}
-              </div>
-              {nutritionTrendDays > 1 ? (
-                <p className="nutrition-averages-line nutrition-averages-line--inline">
-                  Avg · {nutritionTrendDays}d ending {nutritionDate} · {formatMacro(nutritionWindowAverages.calories)} kcal · P{' '}
-                  {formatMacro(nutritionWindowAverages.protein)} · C {formatMacro(nutritionWindowAverages.carbs)} · F{' '}
-                  {formatMacro(nutritionWindowAverages.fat)} · Fiber {formatMacro(nutritionWindowAverages.fiber)}
-                </p>
-              ) : null}
-              <WeekNutrientStrips
-                days={nutritionWindowByDay}
-                goals={nutritionGoals}
-                highlightDateKey={nutritionDate}
-              />
-            </section>
-
-            <section className="panel">
+            <section className="panel nutrition-log-food-panel">
               <h2 className="panel-heading panel-heading--plain">Log food</h2>
               <div className="nutrition-search-row">
                 <input
@@ -1962,216 +1902,337 @@ export default function App() {
               )}
             </section>
 
+            <section className="panel nutrition-panel-lead">
+              <div className="nutrition-panel-title-top">
+                <div>
+                  <h2 className="panel-heading panel-heading--plain nutrition-hero-heading">Nutrition</h2>
+                </div>
+                <div className="nutrition-panel-controls">
+                  <label className="nutrition-date">
+                    <span>Day</span>
+                    <input
+                      className="text-input"
+                      type="date"
+                      value={nutritionDate}
+                      onChange={(e) => setNutritionDate(e.target.value)}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className={`chip chip-compact ${nutritionDate === localTodayDateKey() ? 'chip-active' : ''}`}
+                    onClick={() => setNutritionDate(localTodayDateKey())}
+                  >
+                    Today
+                  </button>
+                  <div className="nutrition-trend-window" role="group" aria-label="Overview period (days ending on selected day)">
+                    <span className="nutrition-trend-window-label">Period</span>
+                    {[1, 7, 10, 30, 90].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        className={`chip chip-compact ${nutritionTrendDays === d ? 'chip-active' : ''}`}
+                        onClick={() => setNutritionTrendDays(d)}
+                      >
+                        {d}d
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="nutrition-overview-stack">
+                <TodayConcentricGoalRings
+                  totals={nutritionConcentricTotals}
+                  goals={nutritionGoals}
+                  endDateKey={nutritionDate}
+                  periodDays={nutritionTrendDays}
+                />
+                {nutritionTrendDays === 1 ? (
+                  <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
+                ) : null}
+              </div>
+              {nutritionTrendDays > 1 ? (
+                <p className="nutrition-averages-line nutrition-averages-line--inline">
+                  Avg · {nutritionTrendDays}d ending {nutritionDate} · {formatMacro(nutritionWindowAverages.calories)} kcal · P{' '}
+                  {formatMacro(nutritionWindowAverages.protein)} · C {formatMacro(nutritionWindowAverages.carbs)} · F{' '}
+                  {formatMacro(nutritionWindowAverages.fat)} · Fiber {formatMacro(nutritionWindowAverages.fiber)}
+                </p>
+              ) : null}
+              <WeekNutrientStrips
+                days={nutritionWindowByDay}
+                goals={nutritionGoals}
+                highlightDateKey={nutritionDate}
+              />
+            </section>
+
             <section className="panel panel--compact">
-              <h2 className="panel-heading panel-heading--plain">My foods</h2>
-              <div className="nutrition-entry-toggle" role="tablist" aria-label="How to enter nutrition">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={myFoodEntryMode === 'portion'}
-                  className={`nutrition-entry-toggle-btn ${myFoodEntryMode === 'portion' ? 'is-active' : ''}`}
-                  onClick={() => setMyFoodEntryMode('portion')}
-                >
-                  One portion (easiest)
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={myFoodEntryMode === 'per100g'}
-                  className={`nutrition-entry-toggle-btn ${myFoodEntryMode === 'per100g' ? 'is-active' : ''}`}
-                  onClick={() => setMyFoodEntryMode('per100g')}
-                >
-                  From label (per 100g)
-                </button>
+              <div
+                className="nutrition-collapse-header"
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleSection('nutrition-my-foods')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSection('nutrition-my-foods');
+                  }
+                }}
+              >
+                <h2 className="panel-heading panel-heading--plain">My foods</h2>
+                <span className="nutrition-collapse-chevron" aria-hidden>
+                  {collapsedSections['nutrition-my-foods'] ? '▼' : '▲'}
+                </span>
               </div>
-              <div className="nutrition-goals-grid">
-                <label className="profile-field">
-                  <span>Name</span>
-                  <input
-                    className="text-input"
-                    value={newMyFoodName}
-                    onChange={(e) => setNewMyFoodName(e.target.value)}
-                    placeholder="e.g. Overnight oats"
-                  />
-                </label>
-                {myFoodEntryMode === 'portion' ? (
-                  <label className="profile-field">
-                    <span>Portion weight (g)</span>
-                    <input
-                      className="text-input"
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={newMyPortionGrams}
-                      onChange={(e) => setNewMyPortionGrams(e.target.value)}
-                      placeholder="Weigh what you actually eat once"
-                    />
-                  </label>
-                ) : (
-                  <label className="profile-field">
-                    <span>Usual amount when logging (g, optional)</span>
-                    <input
-                      className="text-input"
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={newMyUsualGrams}
-                      onChange={(e) => setNewMyUsualGrams(e.target.value)}
-                      placeholder="e.g. 180 — pre-fills “Amount eaten”"
-                    />
-                  </label>
-                )}
-                <label className="profile-field">
-                  <span>{myFoodEntryMode === 'portion' ? 'Calories (this portion)' : 'Calories / 100g'}</span>
-                  <input className="text-input" type="number" min="0" step="1" value={newMyFoodCals} onChange={(e) => setNewMyFoodCals(e.target.value)} />
-                </label>
-                <label className="profile-field">
-                  <span>{myFoodEntryMode === 'portion' ? 'Protein g (this portion)' : 'Protein g / 100g'}</span>
-                  <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodP} onChange={(e) => setNewMyFoodP(e.target.value)} />
-                </label>
-                <label className="profile-field">
-                  <span>{myFoodEntryMode === 'portion' ? 'Carbs g (this portion)' : 'Carbs g / 100g'}</span>
-                  <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodC} onChange={(e) => setNewMyFoodC(e.target.value)} />
-                </label>
-                <label className="profile-field">
-                  <span>{myFoodEntryMode === 'portion' ? 'Fat g (this portion)' : 'Fat g / 100g'}</span>
-                  <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodF} onChange={(e) => setNewMyFoodF(e.target.value)} />
-                </label>
-                <label className="profile-field">
-                  <span>{myFoodEntryMode === 'portion' ? 'Fiber g (this portion)' : 'Fiber g / 100g'}</span>
-                  <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodFiber} onChange={(e) => setNewMyFoodFiber(e.target.value)} placeholder="0 if unknown" />
-                </label>
-              </div>
-              <button type="button" className="button" style={{ marginTop: '0.6rem' }} onClick={saveMyFoodFromNutritionTab}>
-                Save to My foods
-              </button>
+              {!collapsedSections['nutrition-my-foods'] ? (
+                <>
+                  <div className="nutrition-entry-toggle" role="tablist" aria-label="How to enter nutrition">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={myFoodEntryMode === 'portion'}
+                      className={`nutrition-entry-toggle-btn ${myFoodEntryMode === 'portion' ? 'is-active' : ''}`}
+                      onClick={() => setMyFoodEntryMode('portion')}
+                    >
+                      One portion (easiest)
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={myFoodEntryMode === 'per100g'}
+                      className={`nutrition-entry-toggle-btn ${myFoodEntryMode === 'per100g' ? 'is-active' : ''}`}
+                      onClick={() => setMyFoodEntryMode('per100g')}
+                    >
+                      From label (per 100g)
+                    </button>
+                  </div>
+                  <div className="nutrition-goals-grid">
+                    <label className="profile-field">
+                      <span>Name</span>
+                      <input
+                        className="text-input"
+                        value={newMyFoodName}
+                        onChange={(e) => setNewMyFoodName(e.target.value)}
+                        placeholder="e.g. Overnight oats"
+                      />
+                    </label>
+                    {myFoodEntryMode === 'portion' ? (
+                      <label className="profile-field">
+                        <span>Portion weight (g)</span>
+                        <input
+                          className="text-input"
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={newMyPortionGrams}
+                          onChange={(e) => setNewMyPortionGrams(e.target.value)}
+                          placeholder="Weigh what you actually eat once"
+                        />
+                      </label>
+                    ) : (
+                      <label className="profile-field">
+                        <span>Usual amount when logging (g, optional)</span>
+                        <input
+                          className="text-input"
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={newMyUsualGrams}
+                          onChange={(e) => setNewMyUsualGrams(e.target.value)}
+                          placeholder="e.g. 180 — pre-fills “Amount eaten”"
+                        />
+                      </label>
+                    )}
+                    <label className="profile-field">
+                      <span>{myFoodEntryMode === 'portion' ? 'Calories (this portion)' : 'Calories / 100g'}</span>
+                      <input className="text-input" type="number" min="0" step="1" value={newMyFoodCals} onChange={(e) => setNewMyFoodCals(e.target.value)} />
+                    </label>
+                    <label className="profile-field">
+                      <span>{myFoodEntryMode === 'portion' ? 'Protein g (this portion)' : 'Protein g / 100g'}</span>
+                      <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodP} onChange={(e) => setNewMyFoodP(e.target.value)} />
+                    </label>
+                    <label className="profile-field">
+                      <span>{myFoodEntryMode === 'portion' ? 'Carbs g (this portion)' : 'Carbs g / 100g'}</span>
+                      <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodC} onChange={(e) => setNewMyFoodC(e.target.value)} />
+                    </label>
+                    <label className="profile-field">
+                      <span>{myFoodEntryMode === 'portion' ? 'Fat g (this portion)' : 'Fat g / 100g'}</span>
+                      <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodF} onChange={(e) => setNewMyFoodF(e.target.value)} />
+                    </label>
+                    <label className="profile-field">
+                      <span>{myFoodEntryMode === 'portion' ? 'Fiber g (this portion)' : 'Fiber g / 100g'}</span>
+                      <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodFiber} onChange={(e) => setNewMyFoodFiber(e.target.value)} placeholder="0 if unknown" />
+                    </label>
+                  </div>
+                  <button type="button" className="button" style={{ marginTop: '0.6rem' }} onClick={saveMyFoodFromNutritionTab}>
+                    Save to My foods
+                  </button>
+                </>
+              ) : null}
             </section>
 
             <section className="panel">
-              <div className="panel-title-row" style={{ alignItems: 'center' }}>
-                <h2 className="panel-heading panel-heading--plain">Logged foods</h2>
-                <span className="panel-subtle">{dailyNutritionLogs.length} items</span>
-              </div>
-              {dailyNutritionLogs.length === 0 ? (
-                <p className="empty-text">No foods logged for this day yet.</p>
-              ) : (
-                <div className="nutrition-log-list">
-                  {dailyNutritionLogs.map((log) => (
-                    <div key={log.id} className="nutrition-log-row">
-                      <div className="nutrition-log-main">
-                        <strong>{log.name}</strong>
-                        <span className="nutrition-log-meta">{log.servingGrams}g · {formatMacro(log.calories)} kcal</span>
-                        <span className="nutrition-log-macros">
-                          P {formatMacro(log.protein)}g · C {formatMacro(log.carbs)}g · F {formatMacro(log.fat)}g · Fiber {formatMacro(log.fiber ?? 0)}g
-                        </span>
-                      </div>
-                      <div className="nutrition-log-actions">
-                        {editingLogId === log.id ? (
-                          <>
-                            <input
-                              className="text-input nutrition-edit-input"
-                              type="number"
-                              min="1"
-                              step="1"
-                              value={editingGrams}
-                              onChange={(e) => setEditingGrams(e.target.value)}
-                            />
-                            <button type="button" className="button button-small" onClick={() => saveEditedNutritionLog(log)}>
-                              Save
-                            </button>
-                            <button type="button" className="button button-muted button-small" onClick={() => { setEditingLogId(null); setEditingGrams(''); }}>
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button type="button" className="button button-muted button-small" onClick={() => startEditNutritionLog(log)}>
-                              Edit
-                            </button>
-                            <button type="button" className="button button-danger-muted button-small" onClick={() => deleteNutritionLog(log.id)}>
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+              <div
+                className="nutrition-collapse-header"
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleSection('nutrition-logged-foods')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSection('nutrition-logged-foods');
+                  }
+                }}
+              >
+                <div className="nutrition-collapse-header-titles">
+                  <h2 className="panel-heading panel-heading--plain">Logged foods</h2>
+                  <span className="panel-subtle">{dailyNutritionLogs.length} items</span>
                 </div>
-              )}
+                <span className="nutrition-collapse-chevron" aria-hidden>
+                  {collapsedSections['nutrition-logged-foods'] ? '▼' : '▲'}
+                </span>
+              </div>
+              {!collapsedSections['nutrition-logged-foods'] ? (
+                dailyNutritionLogs.length === 0 ? (
+                  <p className="empty-text">No foods logged for this day yet.</p>
+                ) : (
+                  <div className="nutrition-log-list">
+                    {dailyNutritionLogs.map((log) => (
+                      <div key={log.id} className="nutrition-log-row">
+                        <div className="nutrition-log-main">
+                          <strong>{log.name}</strong>
+                          <span className="nutrition-log-meta">{log.servingGrams}g · {formatMacro(log.calories)} kcal</span>
+                          <span className="nutrition-log-macros">
+                            P {formatMacro(log.protein)}g · C {formatMacro(log.carbs)}g · F {formatMacro(log.fat)}g · Fiber {formatMacro(log.fiber ?? 0)}g
+                          </span>
+                        </div>
+                        <div className="nutrition-log-actions">
+                          {editingLogId === log.id ? (
+                            <>
+                              <input
+                                className="text-input nutrition-edit-input"
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={editingGrams}
+                                onChange={(e) => setEditingGrams(e.target.value)}
+                              />
+                              <button type="button" className="button button-small" onClick={() => saveEditedNutritionLog(log)}>
+                                Save
+                              </button>
+                              <button type="button" className="button button-muted button-small" onClick={() => { setEditingLogId(null); setEditingGrams(''); }}>
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button type="button" className="button button-muted button-small" onClick={() => startEditNutritionLog(log)}>
+                                Edit
+                              </button>
+                              <button type="button" className="button button-danger-muted button-small" onClick={() => deleteNutritionLog(log.id)}>
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : null}
             </section>
 
             <section className="panel panel--compact">
-              <h2 className="panel-heading panel-heading--plain">Goals</h2>
-              <p className="panel-subtle nutrition-goals-hint">
-                {suggestedNutritionGoals ? (
-                  <>
-                    Suggested from profile: {suggestedNutritionGoals.calories} kcal · P {suggestedNutritionGoals.protein} · C {suggestedNutritionGoals.carbs} · F{' '}
-                    {suggestedNutritionGoals.fat} · Fiber {suggestedNutritionGoals.fiber}.{` `}
-                    <button type="button" className="text-button" onClick={applySuggestedNutritionGoals}>
-                      Apply
-                    </button>
-                  </>
-                ) : (
-                  <>Set weight, height, and age in Settings for suggestions.</>
-                )}
-              </p>
-              <div className="nutrition-goals-grid">
-                <label className="profile-field">
-                  <span>Calories (kcal)</span>
-                  <input
-                    className="text-input"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={nutritionGoals.calories}
-                    onChange={(e) => updateNutritionGoals({ calories: Number(e.target.value) || 0 })}
-                  />
-                </label>
-                <label className="profile-field">
-                  <span>Protein (g)</span>
-                  <input
-                    className="text-input"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={nutritionGoals.protein}
-                    onChange={(e) => updateNutritionGoals({ protein: Number(e.target.value) || 0 })}
-                  />
-                </label>
-                <label className="profile-field">
-                  <span>Carbs (g)</span>
-                  <input
-                    className="text-input"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={nutritionGoals.carbs}
-                    onChange={(e) => updateNutritionGoals({ carbs: Number(e.target.value) || 0 })}
-                  />
-                </label>
-                <label className="profile-field">
-                  <span>Fat (g)</span>
-                  <input
-                    className="text-input"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={nutritionGoals.fat}
-                    onChange={(e) => updateNutritionGoals({ fat: Number(e.target.value) || 0 })}
-                  />
-                </label>
-                <label className="profile-field">
-                  <span>Fiber (g)</span>
-                  <input
-                    className="text-input"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={nutritionGoals.fiber}
-                    onChange={(e) => updateNutritionGoals({ fiber: Number(e.target.value) || 0 })}
-                  />
-                </label>
+              <div
+                className="nutrition-collapse-header"
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleSection('nutrition-goals')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSection('nutrition-goals');
+                  }
+                }}
+              >
+                <h2 className="panel-heading panel-heading--plain">Goals</h2>
+                <span className="nutrition-collapse-chevron" aria-hidden>
+                  {collapsedSections['nutrition-goals'] ? '▼' : '▲'}
+                </span>
               </div>
+              {!collapsedSections['nutrition-goals'] ? (
+                <>
+                  <p className="panel-subtle nutrition-goals-hint">
+                    {suggestedNutritionGoals ? (
+                      <>
+                        Suggested from profile: {suggestedNutritionGoals.calories} kcal · P {suggestedNutritionGoals.protein} · C {suggestedNutritionGoals.carbs} · F{' '}
+                        {suggestedNutritionGoals.fat} · Fiber {suggestedNutritionGoals.fiber}.{` `}
+                        <button type="button" className="text-button" onClick={applySuggestedNutritionGoals}>
+                          Apply
+                        </button>
+                      </>
+                    ) : (
+                      <>Set weight, height, and age in Settings for suggestions.</>
+                    )}
+                  </p>
+                  <div className="nutrition-goals-grid">
+                    <label className="profile-field">
+                      <span>Calories (kcal)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nutritionGoals.calories}
+                        onChange={(e) => updateNutritionGoals({ calories: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="profile-field">
+                      <span>Protein (g)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nutritionGoals.protein}
+                        onChange={(e) => updateNutritionGoals({ protein: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="profile-field">
+                      <span>Carbs (g)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nutritionGoals.carbs}
+                        onChange={(e) => updateNutritionGoals({ carbs: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="profile-field">
+                      <span>Fat (g)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nutritionGoals.fat}
+                        onChange={(e) => updateNutritionGoals({ fat: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="profile-field">
+                      <span>Fiber (g)</span>
+                      <input
+                        className="text-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={nutritionGoals.fiber}
+                        onChange={(e) => updateNutritionGoals({ fiber: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                  </div>
+                </>
+              ) : null}
             </section>
           </>
         )}
