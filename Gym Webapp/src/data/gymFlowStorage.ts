@@ -26,6 +26,8 @@ export type CustomFood = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  /** Fiber per 100 g when known (optional for older saved foods). */
+  fiberPer100g?: number;
   /** When set, “Amount (g)” defaults to this when you pick this food (your usual portion). */
   defaultServingGrams?: number;
 };
@@ -35,6 +37,8 @@ export type NutritionGoals = {
   protein: number;
   carbs: number;
   fat: number;
+  /** Dietary fiber (g); targets and per-100g values match USDA / OFF where available. */
+  fiber: number;
 };
 
 export type NutritionLog = {
@@ -49,10 +53,12 @@ export type NutritionLog = {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
   caloriesPer100g: number;
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  fiberPer100g: number;
   createdAt: string;
 };
 
@@ -107,6 +113,7 @@ export const defaultGymData: PersistedGymData = {
     protein: 150,
     carbs: 200,
     fat: 70,
+    fiber: 28,
   },
 };
 

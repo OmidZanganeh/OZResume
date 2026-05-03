@@ -26,6 +26,7 @@ export type UsdaNutritionItem = {
     protein: number;
     carbs: number;
     fat: number;
+    fiber: number;
   };
 };
 
@@ -64,11 +65,13 @@ function macrosFromNutrientMapPer100g(m: Map<number, number>): UsdaNutritionItem
   }
   if (kcal == null || protein == null || fat == null || carbs == null) return null;
   if (![kcal, protein, fat, carbs].every((x) => Number.isFinite(x))) return null;
+  const fiber = m.get(1079);
   return {
     calories: roundN(kcal),
     protein: roundN(protein),
     carbs: roundN(carbs),
     fat: roundN(fat),
+    fiber: roundN(fiber != null && Number.isFinite(fiber) ? fiber : 0),
   };
 }
 
@@ -88,12 +91,24 @@ function servingGramsFromBranded(food: Record<string, unknown>): number | null {
 
 function servingHintFromMeasures(food: Record<string, unknown>): { grams: number; label: string } | null {
   const measures = food.foodMeasures as
-    | { gramWeight?: number; disseminationText?: string }[]
+    | { gramWeight?: number; disseminationText?: string; rank?: number }[]
     | undefined;
   if (!Array.isArray(measures)) return null;
-  const hit = measures.find((x) => typeof x.gramWeight === 'number' && x.gramWeight > 0);
-  if (!hit?.gramWeight) return null;
-  const grams = Math.round(hit.gramWeight);
+  const valid = measures.filter(
+    (x) => typeof x.gramWeight === 'number' && x.gramWeight > 0,
+  );
+  if (valid.length === 0) return null;
+  /** USDA sets lower rank for the primary household measure (e.g. "1 egg" before "1 cup"). */
+  valid.sort((a, b) => {
+    const ra = typeof a.rank === 'number' && Number.isFinite(a.rank) ? a.rank : 999;
+    const rb = typeof b.rank === 'number' && Number.isFinite(b.rank) ? b.rank : 999;
+    if (ra !== rb) return ra - rb;
+    const qa = /quantity not specified/i.test(String(a.disseminationText ?? '')) ? 1 : 0;
+    const qb = /quantity not specified/i.test(String(b.disseminationText ?? '')) ? 1 : 0;
+    return qa - qb;
+  });
+  const hit = valid[0];
+  const grams = Math.round(hit.gramWeight!);
   const label = hit.disseminationText
     ? `${hit.disseminationText} (~${grams} g)`
     : `${grams} g`;
@@ -113,12 +128,15 @@ function tryBrandedLabelPer100g(food: Record<string, unknown>): {
   const cal = ln.calories?.value;
   if (cal == null || !Number.isFinite(cal)) return null;
   const k = 100 / sg;
+  const lnRec = ln as Record<string, { value?: number } | undefined>;
+  const fiberLabel = lnRec.fiber?.value;
   return {
     per100g: {
       calories: roundN(cal * k),
       protein: roundN((ln.protein?.value ?? 0) * k),
       carbs: roundN((ln.carbohydrates?.value ?? 0) * k),
       fat: roundN((ln.fat?.value ?? 0) * k),
+      fiber: roundN((fiberLabel != null && Number.isFinite(fiberLabel) ? fiberLabel : 0) * k),
     },
     suggestedServingGrams: Math.min(5000, Math.round(sg)),
     servingLabel: food.householdServingFullText
@@ -141,11 +159,13 @@ function tryPerServingNutrients(food: Record<string, unknown>, m: Map<number, nu
   if (kcal == null || protein == null || fat == null || carbs == null) return null;
   if (![kcal, protein, fat, carbs].every((x) => Number.isFinite(x))) return null;
   const factor = 100 / sg;
+  const fiber = m.get(1079);
   return {
     calories: roundN(kcal * factor),
     protein: roundN(protein * factor),
     carbs: roundN(carbs * factor),
     fat: roundN(fat * factor),
+    fiber: roundN((fiber != null && Number.isFinite(fiber) ? fiber : 0) * factor),
   };
 }
 

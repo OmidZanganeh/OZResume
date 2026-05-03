@@ -125,6 +125,7 @@ export function DayActivityModal({
   const [newFoodP, setNewFoodP] = useState('10');
   const [newFoodC, setNewFoodC] = useState('20');
   const [newFoodF, setNewFoodF] = useState('5');
+  const [newFoodFiber, setNewFoodFiber] = useState('0');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -246,23 +247,18 @@ export function DayActivityModal({
     return (json?.item as NutritionItemDetail) ?? null;
   }
 
+  const mealCustomServingKey = useMemo(() => {
+    if (!selectedMealItem?.code?.startsWith('custom:')) return '';
+    const id = selectedMealItem.code.slice('custom:'.length);
+    const f = customFoods.find((x) => x.id === id);
+    return `${id}:${f?.defaultServingGrams ?? 'na'}:${f?.fiberPer100g ?? 'na'}`;
+  }, [selectedMealItem?.code, customFoods]);
+
   useEffect(() => {
     setOffMealLookup(null);
     setMealServingHint(null);
     if (!selectedMealItem) return;
-
-    if (selectedMealItem.code.startsWith('custom:')) {
-      const id = selectedMealItem.code.slice('custom:'.length);
-      const f = customFoods.find((x) => x.id === id);
-      const def = f?.defaultServingGrams ?? 100;
-      setMealGrams(String(def));
-      setMealServingHint(
-        f?.defaultServingGrams
-          ? `Default is your usual ${def} g — tap a quick amount or type any weight.`
-          : 'Everything is stored per 100 g (like nutrition labels); type how much you actually ate.',
-      );
-      return;
-    }
+    if (selectedMealItem.code.startsWith('custom:')) return;
 
     setMealGrams('100');
     setMealServingHint(
@@ -290,7 +286,21 @@ export function DayActivityModal({
     return () => {
       cancelled = true;
     };
-  }, [selectedMealItem?.code, cloudSignedIn, customFoods]);
+  }, [selectedMealItem?.code, cloudSignedIn]);
+
+  useEffect(() => {
+    if (!selectedMealItem?.code?.startsWith('custom:')) return;
+    setOffMealLookup(null);
+    const id = selectedMealItem.code.slice('custom:'.length);
+    const f = customFoods.find((x) => x.id === id);
+    const def = f?.defaultServingGrams ?? 100;
+    setMealGrams(String(def));
+    setMealServingHint(
+      f?.defaultServingGrams
+        ? `Default is your usual ${def} g — tap a quick amount or type any weight.`
+        : 'Everything is stored per 100 g (like nutrition labels); type how much you actually ate.',
+    );
+  }, [mealCustomServingKey]);
 
   function computeMacros(per100g: NutritionGoals, grams: number) {
     const factor = grams / 100;
@@ -299,6 +309,7 @@ export function DayActivityModal({
       protein: formatMacro(per100g.protein * factor),
       carbs: formatMacro(per100g.carbs * factor),
       fat: formatMacro(per100g.fat * factor),
+      fiber: formatMacro((per100g.fiber ?? 0) * factor),
     };
   }
 
@@ -399,6 +410,7 @@ export function DayActivityModal({
         protein: food.proteinPer100g,
         carbs: food.carbsPer100g,
         fat: food.fatPer100g,
+        fiber: food.fiberPer100g ?? 0,
       };
       name = food.name;
       code = selectedMealItem.code;
@@ -429,10 +441,12 @@ export function DayActivityModal({
       protein: macros.protein,
       carbs: macros.carbs,
       fat: macros.fat,
+      fiber: macros.fiber,
       caloriesPer100g: per100g.calories,
       proteinPer100g: per100g.protein,
       carbsPer100g: per100g.carbs,
       fatPer100g: per100g.fat,
+      fiberPer100g: per100g.fiber ?? 0,
       createdAt: new Date().toISOString(),
     };
 
@@ -467,11 +481,13 @@ export function DayActivityModal({
       const p = Number.parseFloat(newFoodP);
       const c = Number.parseFloat(newFoodC);
       const f = Number.parseFloat(newFoodF);
+      const fibParsed = Number.parseFloat(newFoodFiber);
+      const fib = Number.isFinite(fibParsed) && fibParsed >= 0 ? fibParsed : 0;
       if (![pg, cals, p, c, f].every((x) => Number.isFinite(x)) || pg <= 0 || cals < 0 || p < 0 || c < 0 || f < 0) {
         setMessage('Enter portion weight and macros for that one portion.');
         return;
       }
-      per100g = portionMacrosToPer100g(pg, cals, p, c, f);
+      per100g = portionMacrosToPer100g(pg, cals, p, c, f, fib);
       if (!per100g) {
         setMessage('Could not compute nutrition.');
         return;
@@ -482,6 +498,8 @@ export function DayActivityModal({
       const p = Number.parseFloat(newFoodP);
       const c = Number.parseFloat(newFoodC);
       const f = Number.parseFloat(newFoodF);
+      const fibParsed = Number.parseFloat(newFoodFiber);
+      const fib = Number.isFinite(fibParsed) && fibParsed >= 0 ? fibParsed : 0;
       if (![cals, p, c, f].every((x) => Number.isFinite(x)) || cals < 0 || p < 0 || c < 0 || f < 0) {
         setMessage('Enter valid macros per 100g (numbers from the nutrition label).');
         return;
@@ -491,6 +509,7 @@ export function DayActivityModal({
         protein: formatMacro(p),
         carbs: formatMacro(c),
         fat: formatMacro(f),
+        fiber: formatMacro(fib),
       };
       const usual = Number.parseFloat(newFoodUsualGrams);
       if (Number.isFinite(usual) && usual > 0 && usual <= 5000) {
@@ -506,6 +525,7 @@ export function DayActivityModal({
       proteinPer100g: per100g.protein,
       carbsPer100g: per100g.carbs,
       fatPer100g: per100g.fat,
+      ...(per100g.fiber > 0 ? { fiberPer100g: per100g.fiber } : {}),
       ...(defaultServing != null ? { defaultServingGrams: defaultServing } : {}),
     };
     onPersist({ customFoods: [food, ...customFoods] });
@@ -569,7 +589,7 @@ export function DayActivityModal({
                     <div>
                       <strong>{log.name}</strong>
                       <span className="panel-subtle" style={{ display: 'block', fontSize: '0.8rem', marginTop: 2 }}>
-                        {log.servingGrams}g · {formatMacro(log.calories)} kcal · P {formatMacro(log.protein)} C {formatMacro(log.carbs)} F {formatMacro(log.fat)}
+                        {log.servingGrams}g · {formatMacro(log.calories)} kcal · P {formatMacro(log.protein)} C {formatMacro(log.carbs)} F {formatMacro(log.fat)} · Fiber {formatMacro(log.fiber ?? 0)}
                       </span>
                     </div>
                     <button type="button" className="button button-danger-muted button--small" onClick={() => deleteMeal(log.id)}>Remove</button>
@@ -743,6 +763,10 @@ export function DayActivityModal({
               <label className="profile-field">
                 <span>{newFoodSaveMode === 'portion' ? 'Fat g (this portion)' : 'Fat g / 100g'}</span>
                 <input className="text-input" type="number" min="0" step="0.1" value={newFoodF} onChange={(e) => setNewFoodF(e.target.value)} />
+              </label>
+              <label className="profile-field">
+                <span>{newFoodSaveMode === 'portion' ? 'Fiber g (this portion)' : 'Fiber g / 100g'}</span>
+                <input className="text-input" type="number" min="0" step="0.1" value={newFoodFiber} onChange={(e) => setNewFoodFiber(e.target.value)} placeholder="0" />
               </label>
             </div>
             <button type="button" className="button button-muted" style={{ marginTop: '0.75rem' }} onClick={saveNewCustomFood}>

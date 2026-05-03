@@ -64,6 +64,7 @@ const DEFAULT_NUTRITION_GOALS: NutritionGoals = {
   protein: 150,
   carbs: 200,
   fat: 70,
+  fiber: 28,
 };
 const PRESET_CATEGORY_META: Record<string, { description: string }> = {
   'Core Foundations': { description: 'Balanced full-body routines' },
@@ -209,6 +210,7 @@ export default function App() {
   const [newMyFoodP, setNewMyFoodP] = useState('10');
   const [newMyFoodC, setNewMyFoodC] = useState('20');
   const [newMyFoodF, setNewMyFoodF] = useState('5');
+  const [newMyFoodFiber, setNewMyFoodFiber] = useState('0');
   const [myFoodEntryMode, setMyFoodEntryMode] = useState<'per100g' | 'portion'>('portion');
   const [newMyPortionGrams, setNewMyPortionGrams] = useState('200');
   const [newMyUsualGrams, setNewMyUsualGrams] = useState('');
@@ -260,7 +262,7 @@ export default function App() {
   const totalExerciseCompletions = Object.values(data.stats).reduce((t, s) => t + s.timesCompleted, 0);
   const totalTrackedSets = Object.values(data.stats).reduce((t, s) => t + s.totalSets, 0);
   const nutritionLogs = data.nutritionLogs ?? [];
-  const nutritionGoals = data.nutritionGoals ?? DEFAULT_NUTRITION_GOALS;
+  const nutritionGoals = { ...DEFAULT_NUTRITION_GOALS, ...data.nutritionGoals };
   const customFoods = data.customFoods ?? [];
 
   const suggestedNutritionGoals = useMemo(
@@ -280,7 +282,7 @@ export default function App() {
     const keys = lastNDayKeys(7);
     const map = new Map<string, NutritionGoals>();
     for (const k of keys) {
-      map.set(k, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      map.set(k, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
     }
     for (const log of nutritionLogs) {
       const dk = nutritionLogDateKey(log.date);
@@ -291,6 +293,7 @@ export default function App() {
         protein: cur.protein + log.protein,
         carbs: cur.carbs + log.carbs,
         fat: cur.fat + log.fat,
+        fiber: cur.fiber + (log.fiber ?? 0),
       });
     }
     return keys.map((k) => ({ dateKey: k, ...map.get(k)! }));
@@ -304,14 +307,16 @@ export default function App() {
         protein: acc.protein + d.protein,
         carbs: acc.carbs + d.carbs,
         fat: acc.fat + d.fat,
+        fiber: acc.fiber + d.fiber,
       }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 },
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
     );
     return {
       calories: sum.calories / n,
       protein: sum.protein / n,
       carbs: sum.carbs / n,
       fat: sum.fat / n,
+      fiber: sum.fiber / n,
     };
   }, [nutrition7DayByDay]);
 
@@ -363,8 +368,9 @@ export default function App() {
         protein: acc.protein + log.protein,
         carbs: acc.carbs + log.carbs,
         fat: acc.fat + log.fat,
+        fiber: acc.fiber + (log.fiber ?? 0),
       }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 },
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
     );
   }, [dailyNutritionLogs]);
 
@@ -436,23 +442,19 @@ export default function App() {
     }
   }, [cloudSignedIn]);
 
+  /** Only when this string changes should custom-food defaults reset grams (not on every customFoods []). */
+  const nutritionCustomServingKey = useMemo(() => {
+    if (!selectedFood?.code?.startsWith('custom:')) return '';
+    const id = selectedFood.code.slice('custom:'.length);
+    const f = customFoods.find((x) => x.id === id);
+    return `${id}:${f?.defaultServingGrams ?? 'na'}:${f?.fiberPer100g ?? 'na'}`;
+  }, [selectedFood?.code, customFoods]);
+
   useEffect(() => {
     setOffNutritionLookup(null);
     setServingHint(null);
     if (!selectedFood) return;
-
-    if (selectedFood.code.startsWith('custom:')) {
-      const id = selectedFood.code.slice('custom:'.length);
-      const f = customFoods.find((x) => x.id === id);
-      const def = f?.defaultServingGrams ?? 100;
-      setServingGrams(String(def));
-      setServingHint(
-        f?.defaultServingGrams
-          ? `Default is your usual ${def} g — tap a quick amount or type any weight.`
-          : 'Everything is stored per 100 g (like nutrition labels); type how much you actually ate.',
-      );
-      return;
-    }
+    if (selectedFood.code.startsWith('custom:')) return;
 
     setServingGrams('100');
     setServingHint(
@@ -480,7 +482,21 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedFood?.code, cloudSignedIn, customFoods]);
+  }, [selectedFood?.code, cloudSignedIn]);
+
+  useEffect(() => {
+    if (!selectedFood?.code?.startsWith('custom:')) return;
+    setOffNutritionLookup(null);
+    const id = selectedFood.code.slice('custom:'.length);
+    const f = customFoods.find((x) => x.id === id);
+    const def = f?.defaultServingGrams ?? 100;
+    setServingGrams(String(def));
+    setServingHint(
+      f?.defaultServingGrams
+        ? `Default is your usual ${def} g — tap a quick amount or type any weight.`
+        : 'Everything is stored per 100 g (like nutrition labels); type how much you actually ate.',
+    );
+  }, [nutritionCustomServingKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -567,6 +583,7 @@ export default function App() {
       protein: formatMacro(per100g.protein * factor),
       carbs: formatMacro(per100g.carbs * factor),
       fat: formatMacro(per100g.fat * factor),
+      fiber: formatMacro((per100g.fiber ?? 0) * factor),
     };
   }
 
@@ -629,6 +646,7 @@ export default function App() {
         protein: food.proteinPer100g,
         carbs: food.carbsPer100g,
         fat: food.fatPer100g,
+        fiber: food.fiberPer100g ?? 0,
       };
       name = food.name;
       code = selectedFood.code;
@@ -655,10 +673,12 @@ export default function App() {
       protein: macros.protein,
       carbs: macros.carbs,
       fat: macros.fat,
+      fiber: macros.fiber,
       caloriesPer100g: per100g.calories,
       proteinPer100g: per100g.protein,
       carbsPer100g: per100g.carbs,
       fatPer100g: per100g.fat,
+      fiberPer100g: per100g.fiber ?? 0,
       createdAt: new Date().toISOString(),
     };
 
@@ -667,7 +687,7 @@ export default function App() {
     persist({
       ...base,
       nutritionLogs: nextLogs,
-      nutritionGoals: base.nutritionGoals ?? DEFAULT_NUTRITION_GOALS,
+      nutritionGoals: { ...DEFAULT_NUTRITION_GOALS, ...(base.nutritionGoals ?? {}) },
     });
     setSelectedFood(null);
     setServingGrams('100');
@@ -696,11 +716,13 @@ export default function App() {
       const p = Number.parseFloat(newMyFoodP);
       const c = Number.parseFloat(newMyFoodC);
       const f = Number.parseFloat(newMyFoodF);
+      const fibParsed = Number.parseFloat(newMyFoodFiber);
+      const fib = Number.isFinite(fibParsed) && fibParsed >= 0 ? fibParsed : 0;
       if (![pg, cals, p, c, f].every((x) => Number.isFinite(x)) || pg <= 0 || cals < 0 || p < 0 || c < 0 || f < 0) {
         setMessage('Enter portion weight and macros for that one portion.');
         return;
       }
-      per100g = portionMacrosToPer100g(pg, cals, p, c, f);
+      per100g = portionMacrosToPer100g(pg, cals, p, c, f, fib);
       if (!per100g) {
         setMessage('Could not compute nutrition.');
         return;
@@ -711,6 +733,8 @@ export default function App() {
       const p = Number.parseFloat(newMyFoodP);
       const c = Number.parseFloat(newMyFoodC);
       const f = Number.parseFloat(newMyFoodF);
+      const fibParsed = Number.parseFloat(newMyFoodFiber);
+      const fib = Number.isFinite(fibParsed) && fibParsed >= 0 ? fibParsed : 0;
       if (![cals, p, c, f].every((x) => Number.isFinite(x)) || cals < 0 || p < 0 || c < 0 || f < 0) {
         setMessage('Enter valid macros per 100g (numbers from the nutrition label).');
         return;
@@ -720,6 +744,7 @@ export default function App() {
         protein: formatMacro(p),
         carbs: formatMacro(c),
         fat: formatMacro(f),
+        fiber: formatMacro(fib),
       };
       const usual = Number.parseFloat(newMyUsualGrams);
       if (Number.isFinite(usual) && usual > 0 && usual <= 5000) {
@@ -735,6 +760,7 @@ export default function App() {
       proteinPer100g: per100g.protein,
       carbsPer100g: per100g.carbs,
       fatPer100g: per100g.fat,
+      ...(per100g.fiber > 0 ? { fiberPer100g: per100g.fiber } : {}),
       ...(defaultServing != null ? { defaultServingGrams: defaultServing } : {}),
     };
     const base = dataRef.current;
@@ -754,7 +780,7 @@ export default function App() {
 
   function updateNutritionGoals(next: Partial<NutritionGoals>) {
     const base = dataRef.current;
-    const merged = { ...(base.nutritionGoals ?? DEFAULT_NUTRITION_GOALS), ...next };
+    const merged = { ...DEFAULT_NUTRITION_GOALS, ...(base.nutritionGoals ?? {}), ...next };
     persist({ ...base, nutritionGoals: merged, nutritionLogs: base.nutritionLogs ?? [] });
   }
 
@@ -775,6 +801,7 @@ export default function App() {
         protein: log.proteinPer100g,
         carbs: log.carbsPer100g,
         fat: log.fatPer100g,
+        fiber: log.fiberPer100g ?? 0,
       },
       grams,
     );
@@ -788,10 +815,11 @@ export default function App() {
             protein: macros.protein,
             carbs: macros.carbs,
             fat: macros.fat,
+            fiber: macros.fiber,
           }
         : l,
     );
-    persist({ ...base, nutritionLogs: nextLogs, nutritionGoals: base.nutritionGoals ?? DEFAULT_NUTRITION_GOALS });
+    persist({ ...base, nutritionLogs: nextLogs, nutritionGoals: { ...DEFAULT_NUTRITION_GOALS, ...(base.nutritionGoals ?? {}) } });
     setEditingLogId(null);
     setEditingGrams('');
   }
@@ -799,7 +827,7 @@ export default function App() {
   function deleteNutritionLog(id: string) {
     const base = dataRef.current;
     const nextLogs = (base.nutritionLogs ?? []).filter((l) => l.id !== id);
-    persist({ ...base, nutritionLogs: nextLogs, nutritionGoals: base.nutritionGoals ?? DEFAULT_NUTRITION_GOALS });
+    persist({ ...base, nutritionLogs: nextLogs, nutritionGoals: { ...DEFAULT_NUTRITION_GOALS, ...(base.nutritionGoals ?? {}) } });
   }
 
   function syncReportProfileFromMerged(merged: PersistedGymData) {
@@ -1757,6 +1785,7 @@ export default function App() {
                   { key: 'protein', label: 'Protein', unit: 'g', value: nutritionTotals.protein, goal: nutritionGoals.protein },
                   { key: 'carbs', label: 'Carbs', unit: 'g', value: nutritionTotals.carbs, goal: nutritionGoals.carbs },
                   { key: 'fat', label: 'Fat', unit: 'g', value: nutritionTotals.fat, goal: nutritionGoals.fat },
+                  { key: 'fiber', label: 'Fiber', unit: 'g', value: nutritionTotals.fiber, goal: nutritionGoals.fiber },
                 ].map((macro) => (
                   <article key={macro.key} className="nutrition-card">
                     <div className="nutrition-card-head">
@@ -1780,11 +1809,17 @@ export default function App() {
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Last 7 days vs goals</h2>
               <p className="panel-subtle">
-                Bars show each day&apos;s total; line is your <strong>daily target</strong>. Averages: kcal {formatMacro(nutrition7dAverages.calories)} · P {formatMacro(nutrition7dAverages.protein)}g · C {formatMacro(nutrition7dAverages.carbs)}g · F {formatMacro(nutrition7dAverages.fat)}g
+                Bars show each day&apos;s total; line is your <strong>daily target</strong>. Averages: kcal {formatMacro(nutrition7dAverages.calories)} · P {formatMacro(nutrition7dAverages.protein)}g · C {formatMacro(nutrition7dAverages.carbs)}g · F {formatMacro(nutrition7dAverages.fat)}g · Fiber {formatMacro(nutrition7dAverages.fiber)}g
               </p>
               <div className="nutrition-7d-macros">
-                {(['calories', 'protein', 'carbs', 'fat'] as const).map((key) => {
-                  const labels = { calories: 'Calories (kcal)', protein: 'Protein (g)', carbs: 'Carbs (g)', fat: 'Fat (g)' };
+                {(['calories', 'protein', 'carbs', 'fat', 'fiber'] as const).map((key) => {
+                  const labels = {
+                    calories: 'Calories (kcal)',
+                    protein: 'Protein (g)',
+                    carbs: 'Carbs (g)',
+                    fat: 'Fat (g)',
+                    fiber: 'Fiber (g)',
+                  };
                   const goal = nutritionGoals[key];
                   return (
                     <div key={key} className="nutrition-7d-block">
@@ -1988,6 +2023,10 @@ export default function App() {
                   <span>{myFoodEntryMode === 'portion' ? 'Fat g (this portion)' : 'Fat g / 100g'}</span>
                   <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodF} onChange={(e) => setNewMyFoodF(e.target.value)} />
                 </label>
+                <label className="profile-field">
+                  <span>{myFoodEntryMode === 'portion' ? 'Fiber g (this portion)' : 'Fiber g / 100g'}</span>
+                  <input className="text-input" type="number" min="0" step="0.1" value={newMyFoodFiber} onChange={(e) => setNewMyFoodFiber(e.target.value)} placeholder="0 if unknown" />
+                </label>
               </div>
               <button type="button" className="button" style={{ marginTop: '0.6rem' }} onClick={saveMyFoodFromNutritionTab}>
                 Save to My foods
@@ -2009,7 +2048,7 @@ export default function App() {
                         <strong>{log.name}</strong>
                         <span className="nutrition-log-meta">{log.servingGrams}g · {formatMacro(log.calories)} kcal</span>
                         <span className="nutrition-log-macros">
-                          P {formatMacro(log.protein)}g · C {formatMacro(log.carbs)}g · F {formatMacro(log.fat)}g
+                          P {formatMacro(log.protein)}g · C {formatMacro(log.carbs)}g · F {formatMacro(log.fat)}g · Fiber {formatMacro(log.fiber ?? 0)}g
                         </span>
                       </div>
                       <div className="nutrition-log-actions">
@@ -2053,7 +2092,7 @@ export default function App() {
                 Estimated from your profile (Mifflin–St Jeor × activity, training-friendly macros){' '}
                 {suggestedNutritionGoals ? (
                   <>
-                    — kcal {suggestedNutritionGoals.calories}, P {suggestedNutritionGoals.protein}g, C {suggestedNutritionGoals.carbs}g, F {suggestedNutritionGoals.fat}g.
+                    — kcal {suggestedNutritionGoals.calories}, P {suggestedNutritionGoals.protein}g, C {suggestedNutritionGoals.carbs}g, F {suggestedNutritionGoals.fat}g, Fiber {suggestedNutritionGoals.fiber}g.
                     <button type="button" className="text-button" style={{ marginLeft: '0.35rem' }} onClick={applySuggestedNutritionGoals}>
                       Apply to targets
                     </button>
@@ -2105,6 +2144,17 @@ export default function App() {
                     step="1"
                     value={nutritionGoals.fat}
                     onChange={(e) => updateNutritionGoals({ fat: Number(e.target.value) || 0 })}
+                  />
+                </label>
+                <label className="profile-field">
+                  <span>Fiber (g)</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={nutritionGoals.fiber}
+                    onChange={(e) => updateNutritionGoals({ fiber: Number(e.target.value) || 0 })}
                   />
                 </label>
               </div>

@@ -15,6 +15,7 @@ export function portionMacrosToPer100g(
   protein: number,
   carbs: number,
   fat: number,
+  fiber = 0,
 ): NutritionGoals | null {
   if (!(portionGrams > 0) || !Number.isFinite(portionGrams)) return null;
   const k = 100 / portionGrams;
@@ -23,5 +24,6 @@ export function portionMacrosToPer100g(
     protein: roundNutrient(protein * k),
     carbs: roundNutrient(carbs * k),
     fat: roundNutrient(fat * k),
+    fiber: roundNutrient(fiber * k),
   };
 }

@@ -7,6 +7,7 @@ type NutritionPer100g = {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
 };
 
 type NutritionItem = {
@@ -123,6 +124,7 @@ export async function GET(req: Request) {
     const protein = asNumber(nutriments['proteins_100g']);
     const carbs = asNumber(nutriments['carbohydrates_100g']);
     const fat = asNumber(nutriments['fat_100g']);
+    const fiber = asNumber(nutriments['fiber_100g']) ?? 0;
 
     if (calories === null || protein === null || carbs === null || fat === null) {
       return NextResponse.json({ error: 'Missing nutrient data' }, { status: 422 });
@@ -139,6 +141,7 @@ export async function GET(req: Request) {
         protein,
         carbs,
         fat,
+        fiber: Number.isFinite(fiber) ? fiber : 0,
       },
       suggestedServingGrams: parseGramsFromServingText(
         typeof data.product.serving_size === 'string' ? data.product.serving_size : undefined,

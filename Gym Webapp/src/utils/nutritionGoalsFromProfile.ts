@@ -53,12 +53,15 @@ export function computeSuggestedNutritionGoals(profile: UserProfile | undefined)
   const fatKcal = fat * 9;
   const carbKcal = Math.max(calories - proteinKcal - fatKcal, 0);
   const carbs = Math.round(carbKcal / 4);
+  /** ~14 g fiber per 1000 kcal (common guideline), bounded for plausibility. */
+  const fiber = Math.min(45, Math.max(20, Math.round((14 * calories) / 1000)));
 
   return {
     calories,
     protein,
     carbs: Math.max(carbs, 40),
     fat: Math.max(fat, 30),
+    fiber,
   };
 }
 
