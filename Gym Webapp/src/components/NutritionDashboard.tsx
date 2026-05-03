@@ -161,21 +161,14 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
   const isPrint = density === 'print';
   const compact = density === 'compact' || isPrint;
 
-  const labels: Record<(typeof WEEK_KEYS)[number], string> = isPrint
-    ? {
-        calories: 'kcal',
-        protein: 'P',
-        carbs: 'C',
-        fat: 'F',
-        fiber: 'Fib',
-      }
-    : {
-        calories: 'Calories (kcal)',
-        protein: 'Protein (g)',
-        carbs: 'Carbs (g)',
-        fat: 'Fat (g)',
-        fiber: 'Fiber (g)',
-      };
+  /** Same full labels for app, compact, and print/PDF — short codes were unreadable in exports. */
+  const labels: Record<(typeof WEEK_KEYS)[number], string> = {
+    calories: 'Calories (kcal)',
+    protein: 'Protein (g)',
+    carbs: 'Carbs (g)',
+    fat: 'Fat (g)',
+    fiber: 'Fiber (g)',
+  };
   const colors: Record<(typeof WEEK_KEYS)[number], string> = {
     calories: COL.kcal,
     protein: COL.protein,
@@ -184,8 +177,8 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
     fiber: COL.fiber,
   };
 
-  /** Print/PDF/JPEG report: larger rings + type (in-app default density stays the original smaller layout). */
-  const labelColW = isPrint ? (n <= 14 ? 64 : 82) : n <= 14 ? 70 : 88;
+  /** Print/PDF/JPEG: wider label column so full nutrient names fit beside rings. */
+  const labelColW = isPrint ? (n <= 14 ? 100 : 118) : n <= 14 ? 70 : 88;
   const labelToRingsGap = isPrint ? 12 : compact ? 14 : 14;
   const ringsStartX = labelColW + labelToRingsGap;
   /** Slightly wider columns than before; still scrolls for very long windows. */

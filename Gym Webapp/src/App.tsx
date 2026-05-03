@@ -678,14 +678,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [view]);
 
-  useEffect(() => {
-    nutritionSearchAbortRef.current?.abort();
-    nutritionSearchAbortRef.current = null;
-    setNutritionResults([]);
-    setNutritionError(null);
-    setNutritionLoading(false);
-  }, [nutritionQuery]);
-
+  /** Barcode-shaped query (8–14 digits): debounced auto-search. Other queries: clear stale API results when text changes (search is manual). */
   useEffect(() => {
     if (!cloudSignedIn) {
       nutritionSearchAbortRef.current?.abort();
@@ -693,8 +686,32 @@ export default function App() {
       setNutritionResults([]);
       setNutritionLoading(false);
       setNutritionError(null);
+      return;
     }
-  }, [cloudSignedIn]);
+
+    const q = nutritionQuery.trim();
+    if (q.length < 2) {
+      nutritionSearchAbortRef.current?.abort();
+      nutritionSearchAbortRef.current = null;
+      setNutritionResults([]);
+      setNutritionError(null);
+      setNutritionLoading(false);
+      return;
+    }
+
+    if (/^\d{8,14}$/.test(q)) {
+      const tid = window.setTimeout(() => {
+        runNutritionSearch(q);
+      }, 280);
+      return () => window.clearTimeout(tid);
+    }
+
+    nutritionSearchAbortRef.current?.abort();
+    nutritionSearchAbortRef.current = null;
+    setNutritionResults([]);
+    setNutritionError(null);
+    setNutritionLoading(false);
+  }, [nutritionQuery, cloudSignedIn]);
 
   /** Only when this string changes should custom-food defaults reset grams (not on every customFoods []). */
   const nutritionCustomServingKey = useMemo(() => {
@@ -958,8 +975,7 @@ export default function App() {
     setOffNutritionLookup(null);
     setNutritionError(null);
     setNutritionQuery(code);
-    runNutritionSearch(code);
-    setMessage('Barcode in search — pick the match, review nutrition, then add.');
+    setMessage('Barcode in search — results load in a moment; pick the match, then add.');
   }
 
   async function addNutritionLog() {
@@ -2357,7 +2373,7 @@ export default function App() {
                 </button>
                 <p className="panel-subtle nutrition-scan-primary-hint">
                   {cloudSignedIn
-                    ? 'Point the camera at a UPC or EAN — the search box fills and results load so you can confirm before adding. Requires HTTPS or localhost and camera permission.'
+                    ? 'Point the camera at a UPC or EAN — the search box fills and results load automatically (or type/paste 8–14 digits). Requires HTTPS or localhost and camera permission.'
                     : 'Sign in to scan or search the food database.'}
                 </p>
               </div>
