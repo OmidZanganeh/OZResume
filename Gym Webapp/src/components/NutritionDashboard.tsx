@@ -149,7 +149,7 @@ type WeekStripesProps = {
   highlightDateKey: string;
   /** When false, omit the in-card heading (e.g. PDF report uses its own card title). */
   showTitle?: boolean;
-  /** `compact` ~10% shorter; `print` fits PDF/screenshot report column. */
+  /** `compact` ~10% shorter; `print` = PDF / Save-as-image report (larger than old micro print). */
   density?: 'default' | 'compact' | 'print';
 };
 
@@ -184,26 +184,30 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
     fiber: COL.fiber,
   };
 
-  const labelColW = isPrint ? (n <= 14 ? 56 : 72) : n <= 14 ? 76 : 88;
-  const labelToRingsGap = isPrint ? 10 : compact ? 14 : 16;
+  /** Print/PDF/JPEG report: larger rings + type (in-app default density stays the original smaller layout). */
+  const labelColW = isPrint ? (n <= 14 ? 64 : 82) : n <= 14 ? 70 : 88;
+  const labelToRingsGap = isPrint ? 12 : compact ? 14 : 14;
   const ringsStartX = labelColW + labelToRingsGap;
   /** Slightly wider columns than before; still scrolls for very long windows. */
   const targetRingsWidth = isPrint
-    ? Math.min(400, Math.max(300, 72 + n * 34))
+    ? Math.min(480, Math.max(360, 88 + n * 42))
     : compact
       ? Math.min(400, Math.max(300, 72 + n * 34))
-      : Math.min(460, Math.max(340, 80 + n * 40));
-  const cellW = Math.max(26, Math.min(44, Math.floor((targetRingsWidth - ringsStartX) / n)));
-  const rowH = isPrint ? 30 : compact ? 45 : 66;
-  const padT = isPrint ? 4 : compact ? 7 : 11;
-  const dowGapAfterRows = isPrint ? 5 : compact ? 10 : 16;
-  const bottomPad = isPrint ? 5 : compact ? 10 : 16;
+      : Math.min(400, Math.max(300, 72 + n * 34));
+  const cellW = Math.max(
+    26,
+    Math.min(isPrint ? 48 : 44, Math.floor((targetRingsWidth - ringsStartX) / n)),
+  );
+  const rowH = isPrint ? 46 : compact ? 45 : 50;
+  const padT = isPrint ? 8 : compact ? 7 : 8;
+  const dowGapAfterRows = isPrint ? 10 : compact ? 10 : 12;
+  const bottomPad = isPrint ? 12 : compact ? 10 : 12;
   const dowRowY = padT + WEEK_KEYS.length * rowH + dowGapAfterRows;
   const totalW = ringsStartX + n * cellW + 6;
   const totalH = dowRowY + bottomPad;
-  const labelFont = isPrint ? 7 : compact ? 9 : 13;
-  const dowFont = isPrint ? 6.25 : compact ? 7.75 : 11;
-  const strokeW = isPrint ? 2 : compact ? 2.75 : 3.5;
+  const labelFont = isPrint ? 10 : compact ? 9 : 10;
+  const dowFont = isPrint ? 8.5 : compact ? 7.75 : 8.5;
+  const strokeW = isPrint ? 2.85 : compact ? 2.75 : 3;
 
   const fmtCenter = (key: (typeof WEEK_KEYS)[number], val: number) => {
     if (key === 'calories') return String(Math.round(val));
@@ -228,17 +232,17 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
             const cy = padT + row * rowH + rowH / 2;
             return (
               <g key={key}>
-                <text x={4} y={cy + (isPrint ? 2.5 : compact ? 3.5 : 5)} fill="var(--gf-text-muted)" fontSize={labelFont} fontWeight="600">
+                <text x={4} y={cy + (isPrint ? 4.25 : compact ? 3.5 : 4)} fill="var(--gf-text-muted)" fontSize={labelFont} fontWeight="600">
                   {labels[key]}
                 </text>
                 {days.map((d, i) => {
                   const val = d[key];
                   const cx = ringsStartX + i * cellW + cellW / 2;
                   const r = Math.max(
-                    isPrint ? 7 : compact ? 9 : 12,
+                    isPrint ? 10 : compact ? 9 : 10,
                     Math.min(
-                      isPrint ? 12 : compact ? 15 : 20,
-                      (cellW - (isPrint ? 8 : compact ? 6 : 4)) / 2,
+                      isPrint ? 19 : compact ? 15 : 16,
+                      (cellW - (isPrint ? 8 : 6)) / 2,
                     ),
                   );
                   const circ = 2 * Math.PI * r;
@@ -247,13 +251,12 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
                   const dash = `${arcFrac * circ} ${circ}`;
                   const isHi = d.dateKey === highlightDateKey;
                   const centerTxt = fmtCenter(key, val);
-                  /** Center value inside ring; default density sized for readability (~30%+ vs prior). */
                   const fs = isPrint
                     ? centerTxt.length > 4
-                      ? 2.75
+                      ? 3.85
                       : centerTxt.length > 3
-                        ? 3
-                        : 3.25
+                        ? 4.25
+                        : 4.75
                     : compact
                       ? centerTxt.length > 4
                         ? 3.5
@@ -261,10 +264,10 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
                           ? 4
                           : 4.5
                       : centerTxt.length > 4
-                        ? 5
+                        ? 3.75
                         : centerTxt.length > 3
-                          ? 5.75
-                          : 6.5;
+                          ? 4.25
+                          : 5;
                   return (
                     <g key={`${key}-${d.dateKey}`}>
                       <circle

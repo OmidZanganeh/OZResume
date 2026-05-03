@@ -3768,10 +3768,10 @@ body {
   margin-bottom: 0.3rem;
 }
 
-/* Keep 7-day rings inside report capture (print + html-to-image). */
+/* 7-day rings in PDF + Save as Image — tall enough for WeekNutrientStrips density="print" layout. */
 #print-report .prl-card-body--week-rings .nutrition-week-rings-scroll,
 .screenshot-mode #print-report .prl-card-body--week-rings .nutrition-week-rings-scroll {
-  max-height: 118px;
+  max-height: 270px;
   overflow: hidden;
 }
 
@@ -3780,7 +3780,7 @@ body {
   display: block;
   width: auto !important;
   max-width: 100%;
-  max-height: 112px;
+  max-height: 262px;
   height: auto !important;
 }
 
