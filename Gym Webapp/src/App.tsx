@@ -1958,11 +1958,13 @@ export default function App() {
                   {formatMacro(nutritionWindowAverages.fat)} · Fiber {formatMacro(nutritionWindowAverages.fiber)}
                 </p>
               ) : null}
-              <WeekNutrientStrips
-                days={nutritionWindowByDay}
-                goals={nutritionGoals}
-                highlightDateKey={nutritionDate}
-              />
+              {nutritionTrendDays >= 7 ? (
+                <WeekNutrientStrips
+                  days={nutritionWindowByDay}
+                  goals={nutritionGoals}
+                  highlightDateKey={nutritionDate}
+                />
+              ) : null}
             </section>
 
             <section className="panel panel--compact">

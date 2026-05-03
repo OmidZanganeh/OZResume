@@ -38,9 +38,11 @@ type TodayRingsProps = {
 
 /** Five nested circles (outer → inner: kcal, P, C, F, fiber). Totals = selected day or period daily average vs goals. */
 export function TodayConcentricGoalRings({ totals, goals, endDateKey, periodDays }: TodayRingsProps) {
-  const VB = 120;
-  const cx = VB / 2;
-  const cy = VB / 2;
+  const VB_W = 128;
+  const VB_H = 120;
+  /** Nudge rings right so they sit a bit farther from the title/date block above. */
+  const cx = VB_W / 2 + 5;
+  const cy = VB_H / 2;
   /** Outer ring largest; step keeps gaps between strokes. */
   const radii = [52, 44, 36, 28, 20];
   const strokeW = 3.25;
@@ -76,7 +78,7 @@ export function TodayConcentricGoalRings({ totals, goals, endDateKey, periodDays
       <h3 className="nutrition-viz-title nutrition-concentric-title">{titleMain}</h3>
       <p className="nutrition-concentric-date">{subLine}</p>
       <div className="nutrition-concentric-svg-wrap">
-        <svg className="nutrition-concentric-svg" viewBox={`0 0 ${VB} ${VB}`}>
+        <svg className="nutrition-concentric-svg" viewBox={`0 0 ${VB_W} ${VB_H}`}>
           {WEEK_KEYS.map((key, i) => {
             const r = radii[i]!;
             const g = Math.max(goals[key], 0.001);
@@ -145,7 +147,7 @@ type WeekStripesProps = {
   highlightDateKey: string;
 };
 
-/** One row per nutrient: compact goal rings; one weekday row below all rows. */
+/** One row per nutrient: goal rings per day; one weekday row below. Shown only for 7+ days (caller + guard). */
 export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripesProps) {
   const labels: Record<(typeof WEEK_KEYS)[number], string> = {
     calories: 'Calories (kcal)',
@@ -162,13 +164,18 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripe
     fiber: COL.fiber,
   };
   const n = days.length || 1;
-  const labelW = n <= 14 ? 68 : 96;
-  const maxChartW = 268;
-  const cellW = Math.max(24, Math.min(36, Math.floor((maxChartW - labelW) / n)));
-  const rowH = 46;
+  if (n < 7) return null;
+
+  const labelColW = n <= 14 ? 70 : 88;
+  const labelToRingsGap = 14;
+  const ringsStartX = labelColW + labelToRingsGap;
+  /** Slightly wider columns than before; still scrolls for very long windows. */
+  const targetRingsWidth = Math.min(400, Math.max(300, 72 + n * 34));
+  const cellW = Math.max(26, Math.min(44, Math.floor((targetRingsWidth - ringsStartX) / n)));
+  const rowH = 50;
   const padT = 8;
-  const dowRowY = padT + WEEK_KEYS.length * rowH + 10;
-  const totalW = labelW + n * cellW;
+  const dowRowY = padT + WEEK_KEYS.length * rowH + 12;
+  const totalW = ringsStartX + n * cellW + 6;
   const totalH = dowRowY + 12;
 
   const fmtCenter = (key: (typeof WEEK_KEYS)[number], val: number) => {
@@ -197,8 +204,8 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripe
                 </text>
                 {days.map((d, i) => {
                   const val = d[key];
-                  const cx = labelW + i * cellW + cellW / 2;
-                  const r = Math.max(9, Math.min(14, (cellW - 8) / 2));
+                  const cx = ringsStartX + i * cellW + cellW / 2;
+                  const r = Math.max(10, Math.min(16, (cellW - 6) / 2));
                   const strokeW = 3;
                   const circ = 2 * Math.PI * r;
                   const rawFrac = goal > 0 ? val / goal : 0;
@@ -252,7 +259,7 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripe
           })}
           <g aria-hidden>
             {days.map((d, i) => {
-              const cx = labelW + i * cellW + cellW / 2;
+              const cx = ringsStartX + i * cellW + cellW / 2;
               const dow = new Date(d.dateKey + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'narrow' });
               const isHi = d.dateKey === highlightDateKey;
               return (
