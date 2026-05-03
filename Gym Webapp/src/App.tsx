@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toJpeg } from 'html-to-image';
@@ -18,6 +18,7 @@ import {
   TodayMealEnergyRows,
   WeekNutrientStrips,
 } from './components/NutritionDashboard';
+const NutritionBarcodeScanner = lazy(() => import('./components/NutritionBarcodeScanner'));
 import {
   computeStreak,
   computeConsistency,
@@ -251,6 +252,7 @@ export default function App() {
   const [selectedFood, setSelectedFood] = useState<NutritionSearchItem | null>(null);
   const [servingGrams, setServingGrams] = useState('100');
   const [nutritionBusy, setNutritionBusy] = useState(false);
+  const [nutritionBarcodeScanOpen, setNutritionBarcodeScanOpen] = useState(false);
   const [newMyFoodName, setNewMyFoodName] = useState('');
   const [newMyFoodCals, setNewMyFoodCals] = useState('200');
   const [newMyFoodP, setNewMyFoodP] = useState('10');
@@ -884,6 +886,86 @@ export default function App() {
     return (json?.item as NutritionItemDetail) ?? null;
   }
 
+  /** EAN-13 / UPC-A style: digits only, typical length 8–14. */
+  function normalizeNutritionBarcodeInput(raw: string): string {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length >= 8 && digits.length <= 14) return digits;
+    const t = raw.trim();
+    if (/^\d{8,14}$/.test(t)) return t;
+    return '';
+  }
+
+  function appendNutritionLogFromMacros(params: {
+    code: string;
+    name: string;
+    per100g: NutritionGoals;
+    grams: number;
+  }) {
+    const { code, name, per100g, grams } = params;
+    const macros = computeMacros(per100g, grams);
+    const log: NutritionLog = {
+      id: createNutritionLogId(),
+      date: nutritionDate,
+      code,
+      name,
+      servingGrams: grams,
+      calories: macros.calories,
+      protein: macros.protein,
+      carbs: macros.carbs,
+      fat: macros.fat,
+      fiber: macros.fiber,
+      caloriesPer100g: per100g.calories,
+      proteinPer100g: per100g.protein,
+      carbsPer100g: per100g.carbs,
+      fatPer100g: per100g.fat,
+      fiberPer100g: per100g.fiber ?? 0,
+      createdAt: new Date().toISOString(),
+    };
+    const base = dataRef.current;
+    persist({
+      ...base,
+      nutritionLogs: [log, ...(base.nutritionLogs ?? [])],
+      nutritionGoals: { ...DEFAULT_NUTRITION_GOALS, ...(base.nutritionGoals ?? {}) },
+    });
+    setSelectedFood(null);
+    setServingGrams('100');
+    setNutritionQuery('');
+    setNutritionResults([]);
+    setOffNutritionLookup(null);
+  }
+
+  async function handleNutritionBarcodeDecoded(raw: string) {
+    if (!cloudSignedIn) {
+      setMessage('Sign in to log foods from a barcode.');
+      return;
+    }
+    const code = normalizeNutritionBarcodeInput(raw);
+    if (!code) {
+      setMessage('That scan is not a usable product barcode (need 8–14 digits). Try again or search by name.');
+      return;
+    }
+    setNutritionBusy(true);
+    setNutritionError(null);
+    const item = await fetchNutritionItem(code, false);
+    setNutritionBusy(false);
+    if (!item) return;
+
+    setNutritionError(null);
+
+    let grams = 100;
+    const sug = item.suggestedServingGrams;
+    if (typeof sug === 'number' && sug > 0 && sug <= 2000) {
+      grams = Math.round(sug);
+    }
+    appendNutritionLogFromMacros({
+      code: item.code,
+      name: item.name,
+      per100g: item.per100g,
+      grams,
+    });
+    setMessage(`Logged ${item.name} (${grams} g).`);
+  }
+
   async function addNutritionLog() {
     if (!selectedFood) {
       setMessage('Select a food first.');
@@ -933,37 +1015,7 @@ export default function App() {
       code = item.code;
     }
 
-    const macros = computeMacros(per100g, grams);
-    const log: NutritionLog = {
-      id: createNutritionLogId(),
-      date: nutritionDate,
-      code,
-      name,
-      servingGrams: grams,
-      calories: macros.calories,
-      protein: macros.protein,
-      carbs: macros.carbs,
-      fat: macros.fat,
-      fiber: macros.fiber,
-      caloriesPer100g: per100g.calories,
-      proteinPer100g: per100g.protein,
-      carbsPer100g: per100g.carbs,
-      fatPer100g: per100g.fat,
-      fiberPer100g: per100g.fiber ?? 0,
-      createdAt: new Date().toISOString(),
-    };
-
-    const base = dataRef.current;
-    const nextLogs = [log, ...(base.nutritionLogs ?? [])];
-    persist({
-      ...base,
-      nutritionLogs: nextLogs,
-      nutritionGoals: { ...DEFAULT_NUTRITION_GOALS, ...(base.nutritionGoals ?? {}) },
-    });
-    setSelectedFood(null);
-    setServingGrams('100');
-    setNutritionQuery('');
-    setNutritionResults([]);
+    appendNutritionLogFromMacros({ code, name, per100g, grams });
     setMessage('Food logged.');
   }
 
@@ -2298,6 +2350,22 @@ export default function App() {
 
             <section className="panel nutrition-log-food-panel">
               <h2 className="panel-heading panel-heading--plain">Log food</h2>
+              <div className="nutrition-scan-primary">
+                <button
+                  type="button"
+                  className="button button-primary nutrition-scan-open-btn"
+                  disabled={!cloudSignedIn || nutritionBusy}
+                  onClick={() => setNutritionBarcodeScanOpen(true)}
+                >
+                  {nutritionBusy ? 'Working…' : 'Scan barcode'}
+                </button>
+                <p className="panel-subtle nutrition-scan-primary-hint">
+                  {cloudSignedIn
+                    ? 'Point the camera at a UPC or EAN on the package. Logs immediately when recognized (Open Food Facts). Requires HTTPS or localhost and camera permission.'
+                    : 'Sign in to scan or search the food database.'}
+                </p>
+              </div>
+              <p className="panel-subtle nutrition-search-fallback-label">Or search by name</p>
               <div className="nutrition-search-row">
                 <input
                   className="text-input nutrition-search-input"
@@ -2830,6 +2898,29 @@ export default function App() {
                 </>
               ) : null}
             </section>
+
+            {nutritionBarcodeScanOpen ? (
+              <Suspense
+                fallback={
+                  <div className="nutrition-scan-overlay" role="status" aria-live="polite">
+                    <div className="nutrition-scan-card">
+                      <p className="panel-subtle" style={{ margin: 0 }}>
+                        Loading scanner…
+                      </p>
+                    </div>
+                  </div>
+                }
+              >
+                <NutritionBarcodeScanner
+                  open={nutritionBarcodeScanOpen}
+                  onClose={() => setNutritionBarcodeScanOpen(false)}
+                  onBarcode={(raw) => {
+                    void handleNutritionBarcodeDecoded(raw);
+                  }}
+                  onScannerError={(msg) => setMessage(msg)}
+                />
+              </Suspense>
+            ) : null}
           </>
         )}
 

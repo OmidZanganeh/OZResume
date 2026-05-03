@@ -4073,6 +4073,84 @@ select.text-input.day-modal-select {
   width: 150px;
 }
 
+.nutrition-scan-primary {
+  margin: 0.35rem 0 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.nutrition-scan-open-btn {
+  width: 100%;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.nutrition-scan-primary-hint {
+  margin: 0 !important;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.nutrition-search-fallback-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gf-text-dim);
+}
+
+.nutrition-scan-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(4px);
+}
+
+.nutrition-scan-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: var(--gf-radius-lg, 12px);
+  border: 1px solid var(--gf-border-hover);
+  background: linear-gradient(165deg, rgba(22, 28, 40, 0.98) 0%, rgba(16, 20, 28, 0.95) 100%);
+  box-shadow: var(--gf-shadow);
+  padding: 0.75rem 0.85rem 1rem;
+}
+
+.nutrition-scan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.nutrition-scan-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+}
+
+.nutrition-scan-video {
+  width: 100%;
+  max-height: min(52vh, 360px);
+  border-radius: var(--gf-radius-md);
+  background: #020617;
+  object-fit: cover;
+}
+
+.nutrition-scan-hint {
+  margin: 0.55rem 0 0 !important;
+  font-size: 0.78rem;
+}
+
 .nutrition-search-row {
   display: flex;
   flex-wrap: wrap;

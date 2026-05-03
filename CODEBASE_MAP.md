@@ -59,7 +59,7 @@
 | `gym-flow/profile` | PATCH merge `userProfile` into cloud payload (auth + DB) |
 | `gym-flow/register` | Email/password Gym Flow registration |
 | `gym-flow/nutrition/search` | USDA FoodData Central + Open Food Facts search (auth; `USDA_FDC_API_KEY` optional for USDA) |
-| `gym-flow/nutrition/item` | USDA FDC or Open Food Facts product detail; codes `usda:{fdcId}` vs barcode |
+| `gym-flow/nutrition/item` | USDA FDC or Open Food Facts product detail; codes `usda:{fdcId}` vs barcode (US + world OFF hosts) |
 
 ## Shared UI components (`app/components/`)
 
@@ -97,6 +97,7 @@
 | Env | `.env.example` — `DATABASE_URL` **or** `POSTGRES_URL` (Vercel template), `AUTH_SECRET`, `AUTH_GOOGLE_*` · helper `lib/db/database-url.ts` |
 | PWA listing | `app/web-apps/page.tsx` |
 | Summary tab | `Gym Webapp/src/App.tsx` — `view === 'summary'`: calendar, nutrition overview panel (3 cards), analysis-period chips, `MuscleSpider`, `BodyMapFigure`. Bottom nav: Summary → Plans → Activity → Nutrition → Settings. |
+| Nutrition barcode | `Gym Webapp/src/components/NutritionBarcodeScanner.tsx` (lazy): camera → Open Food Facts lookup → instant log on Nutrition tab. |
 | Plans muscle tap | `App.tsx` — heatmap on **Plans** (`view === 'home'`) opens `muscle-plan-suggestions`: saved + preset plans whose `muscleGroups` include that muscle, **Build a new plan** → `create-focus`. |
 
 **Edit flow:** change files in `Gym Webapp/src/` → run build → commit `public/gym-flow/` → deploy to Vercel.
