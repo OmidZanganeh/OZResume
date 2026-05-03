@@ -58,7 +58,7 @@
 | `gym-flow/data` | Gym Flow cloud JSON (auth required) |
 | `gym-flow/profile` | PATCH merge `userProfile` into cloud payload (auth + DB) |
 | `gym-flow/register` | Email/password Gym Flow registration |
-| `gym-flow/nutrition/search` | USDA FoodData Central + Open Food Facts search (auth; `USDA_FDC_API_KEY` optional for USDA) |
+| `gym-flow/nutrition/search` | USDA + OFF text search; **8–14 digit query** also hits OFF `/product/{code}` (barcode) and merges first |
 | `gym-flow/nutrition/item` | USDA FDC or Open Food Facts product detail; codes `usda:{fdcId}` vs barcode (US + world OFF hosts) |
 
 ## Shared UI components (`app/components/`)
