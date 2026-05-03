@@ -214,6 +214,7 @@ export default function App() {
   const [newMyUsualGrams, setNewMyUsualGrams] = useState('');
   const [servingHint, setServingHint] = useState<string | null>(null);
   const [offNutritionLookup, setOffNutritionLookup] = useState<NutritionItemDetail | null>(null);
+  const nutritionSearchAbortRef = useRef<AbortController | null>(null);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editingGrams, setEditingGrams] = useState('');
 
@@ -418,57 +419,22 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
-    if (!cloudSignedIn) {
-      setNutritionResults([]);
-      setNutritionLoading(false);
-      setNutritionError(null);
-      return;
-    }
-    const term = nutritionQuery.trim();
-    if (term.length < 2) {
-      setNutritionResults([]);
-      setNutritionLoading(false);
-      setNutritionError(null);
-      return;
-    }
-    const controller = new AbortController();
-    const t = setTimeout(() => {
-      setNutritionLoading(true);
-      setNutritionError(null);
-      fetch(`/api/gym-flow/nutrition/search?query=${encodeURIComponent(term)}`, {
-        credentials: 'include',
-        signal: controller.signal,
-      })
-        .then(async (r) => {
-          let json: unknown = {};
-          try {
-            json = await r.json();
-          } catch {
-            json = {};
-          }
-          return { ok: r.ok, json };
-        })
-        .then(({ ok, json }) => {
-          if (!ok) {
-            setNutritionError(formatNutritionApiError(json, 'Search failed'));
-            setNutritionResults([]);
-            return;
-          }
-          const payload = json as { items?: NutritionSearchItem[] };
-          setNutritionResults(Array.isArray(payload.items) ? payload.items : []);
-        })
-        .catch((err) => {
-          if (err?.name === 'AbortError') return;
-          setNutritionError('Search failed');
-        })
-        .finally(() => setNutritionLoading(false));
-    }, 350);
+    nutritionSearchAbortRef.current?.abort();
+    nutritionSearchAbortRef.current = null;
+    setNutritionResults([]);
+    setNutritionError(null);
+    setNutritionLoading(false);
+  }, [nutritionQuery]);
 
-    return () => {
-      clearTimeout(t);
-      controller.abort();
-    };
-  }, [cloudSignedIn, nutritionQuery]);
+  useEffect(() => {
+    if (!cloudSignedIn) {
+      nutritionSearchAbortRef.current?.abort();
+      nutritionSearchAbortRef.current = null;
+      setNutritionResults([]);
+      setNutritionLoading(false);
+      setNutritionError(null);
+    }
+  }, [cloudSignedIn]);
 
   useEffect(() => {
     setOffNutritionLookup(null);
@@ -543,6 +509,55 @@ export default function App() {
       ? ` — ${json.details.trim()}`
       : '';
     return `${base}${status}${details}`.trim();
+  }
+
+  function runNutritionSearch() {
+    if (!cloudSignedIn) {
+      setMessage('Sign in to search USDA and Open Food Facts.');
+      return;
+    }
+    const term = nutritionQuery.trim();
+    if (term.length < 2) {
+      setMessage('Enter at least 2 characters, then click Search (or press Enter).');
+      return;
+    }
+    nutritionSearchAbortRef.current?.abort();
+    const controller = new AbortController();
+    nutritionSearchAbortRef.current = controller;
+    setNutritionLoading(true);
+    setNutritionError(null);
+    fetch(`/api/gym-flow/nutrition/search?query=${encodeURIComponent(term)}`, {
+      credentials: 'include',
+      signal: controller.signal,
+    })
+      .then(async (r) => {
+        let json: unknown = {};
+        try {
+          json = await r.json();
+        } catch {
+          json = {};
+        }
+        return { ok: r.ok, json };
+      })
+      .then(({ ok, json }) => {
+        if (!ok) {
+          setNutritionError(formatNutritionApiError(json, 'Search failed'));
+          setNutritionResults([]);
+          return;
+        }
+        const payload = json as { items?: NutritionSearchItem[] };
+        setNutritionResults(Array.isArray(payload.items) ? payload.items : []);
+      })
+      .catch((err) => {
+        if (err?.name === 'AbortError') return;
+        setNutritionError('Search failed');
+      })
+      .finally(() => {
+        if (nutritionSearchAbortRef.current === controller) {
+          nutritionSearchAbortRef.current = null;
+        }
+        setNutritionLoading(false);
+      });
   }
 
   function computeMacros(per100g: NutritionGoals, grams: number) {
@@ -1799,18 +1814,36 @@ export default function App() {
               <h2 className="panel-heading panel-heading--plain">Log food</h2>
               <p className="panel-subtle">
                 USDA and Open Food Facts supply nutrients <strong>per 100 g</strong> — you choose <strong>how many grams you ate</strong>. USDA is strong for generic foods (e.g. eggs, rice); Open Food Facts for packaged brands.
-                Packaged foods often prefill grams when the label includes a weight (e.g. &quot;30 g&quot;).
+                Packaged foods often prefill grams when the label includes a weight (e.g. &quot;30 g&quot;). Click <strong>Search</strong> (or press Enter) to query the databases — My foods filter as you type.
               </p>
               <div className="nutrition-search-row">
                 <input
-                  className="text-input"
+                  className="text-input nutrition-search-input"
                   type="text"
                   placeholder="Search My foods, USDA, or Open Food Facts…"
                   value={nutritionQuery}
                   onChange={(e) => setNutritionQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      runNutritionSearch();
+                    }
+                  }}
                 />
-                {nutritionLoading && <span className="panel-subtle">Searching…</span>}
+                <button
+                  type="button"
+                  className="button button-primary nutrition-search-submit"
+                  disabled={nutritionLoading || !cloudSignedIn}
+                  onClick={runNutritionSearch}
+                >
+                  {nutritionLoading ? 'Searching…' : 'Search'}
+                </button>
               </div>
+              {cloudSignedIn && (
+                <p className="panel-subtle" style={{ marginTop: '0.35rem' }}>
+                  {nutritionLoading && <span>Searching…</span>}
+                </p>
+              )}
               {nutritionError && (
                 <p className="panel-subtle nutrition-error" role="alert">
                   {nutritionError}

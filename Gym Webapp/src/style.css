@@ -3863,6 +3863,11 @@ body {
   align-items: center;
 }
 
+.nutrition-search-row .nutrition-search-input {
+  flex: 1;
+  min-width: 0;
+}
+
 .nutrition-search-list {
   list-style: none;
   margin: 0.6rem 0 0;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Exercise, MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
@@ -107,6 +107,7 @@ export function DayActivityModal({
   const [message, setMessage] = useState<string | null>(null);
 
   const [mealQuery, setMealQuery] = useState('');
+  const mealSearchAbortRef = useRef<AbortController | null>(null);
   const [mealApiResults, setMealApiResults] = useState<NutritionSearchItem[]>([]);
   const [mealLoading, setMealLoading] = useState(false);
   const [mealError, setMealError] = useState<string | null>(null);
@@ -167,57 +168,71 @@ export function DayActivityModal({
   }, [mealQuery, customFoods, mealApiResults, cloudSignedIn]);
 
   useEffect(() => {
+    mealSearchAbortRef.current?.abort();
+    mealSearchAbortRef.current = null;
+    setMealApiResults([]);
+    setMealError(null);
+    setMealLoading(false);
+  }, [mealQuery]);
+
+  useEffect(() => {
     if (!cloudSignedIn) {
+      mealSearchAbortRef.current?.abort();
+      mealSearchAbortRef.current = null;
       setMealApiResults([]);
       setMealLoading(false);
       setMealError(null);
+    }
+  }, [cloudSignedIn]);
+
+  function runMealSearch() {
+    if (!cloudSignedIn) {
+      setMessage('Sign in to search USDA and Open Food Facts.');
       return;
     }
     const term = mealQuery.trim();
     if (term.length < 2) {
-      setMealApiResults([]);
-      setMealLoading(false);
-      setMealError(null);
+      setMessage('Enter at least 2 characters, then click Search (or press Enter).');
       return;
     }
+    mealSearchAbortRef.current?.abort();
     const controller = new AbortController();
-    const t = setTimeout(() => {
-      setMealLoading(true);
-      setMealError(null);
-      fetch(`/api/gym-flow/nutrition/search?query=${encodeURIComponent(term)}`, {
-        credentials: 'include',
-        signal: controller.signal,
+    mealSearchAbortRef.current = controller;
+    setMealLoading(true);
+    setMealError(null);
+    fetch(`/api/gym-flow/nutrition/search?query=${encodeURIComponent(term)}`, {
+      credentials: 'include',
+      signal: controller.signal,
+    })
+      .then(async (r) => {
+        let json: unknown = {};
+        try {
+          json = await r.json();
+        } catch {
+          json = {};
+        }
+        return { ok: r.ok, json };
       })
-        .then(async (r) => {
-          let json: unknown = {};
-          try {
-            json = await r.json();
-          } catch {
-            json = {};
-          }
-          return { ok: r.ok, json };
-        })
-        .then(({ ok, json }) => {
-          if (!ok) {
-            setMealError(formatNutritionApiError(json, 'Search failed'));
-            setMealApiResults([]);
-            return;
-          }
-          const payload = json as { items?: NutritionSearchItem[] };
-          setMealApiResults(Array.isArray(payload.items) ? payload.items : []);
-        })
-        .catch((err) => {
-          if (err?.name === 'AbortError') return;
-          setMealError('Search failed');
-        })
-        .finally(() => setMealLoading(false));
-    }, 350);
-
-    return () => {
-      clearTimeout(t);
-      controller.abort();
-    };
-  }, [cloudSignedIn, mealQuery]);
+      .then(({ ok, json }) => {
+        if (!ok) {
+          setMealError(formatNutritionApiError(json, 'Search failed'));
+          setMealApiResults([]);
+          return;
+        }
+        const payload = json as { items?: NutritionSearchItem[] };
+        setMealApiResults(Array.isArray(payload.items) ? payload.items : []);
+      })
+      .catch((err) => {
+        if (err?.name === 'AbortError') return;
+        setMealError('Search failed');
+      })
+      .finally(() => {
+        if (mealSearchAbortRef.current === controller) {
+          mealSearchAbortRef.current = null;
+        }
+        setMealLoading(false);
+      });
+  }
 
   async function fetchNutritionItem(code: string, silent = false): Promise<NutritionItemDetail | null> {
     const res = await fetch(`/api/gym-flow/nutrition/item?code=${encodeURIComponent(code)}`, {
@@ -564,18 +579,36 @@ export function DayActivityModal({
             )}
 
             <p className="panel-subtle" style={{ marginTop: '1rem' }}>
-              Search My foods (always) {cloudSignedIn ? 'plus USDA and Open Food Facts when signed in' : ''}. Nutrients are stored <strong>per 100 g</strong> behind the scenes; when logging you only enter <strong>how many grams you ate</strong>. Common portions may prefill when the data provides them.
+              My foods filter as you type; click <strong>Search</strong> (or press Enter) for USDA and Open Food Facts when signed in. Nutrients are stored <strong>per 100 g</strong> behind the scenes; when logging you only enter <strong>how many grams you ate</strong>. Common portions may prefill when the data provides them.
             </p>
             <div className="nutrition-search-row">
               <input
-                className="text-input"
+                className="text-input nutrition-search-input"
                 type="text"
                 placeholder="Search foods…"
                 value={mealQuery}
                 onChange={(e) => setMealQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    runMealSearch();
+                  }
+                }}
               />
-              {mealLoading && <span className="panel-subtle">Searching…</span>}
+              <button
+                type="button"
+                className="button button-primary nutrition-search-submit"
+                disabled={mealLoading || !cloudSignedIn}
+                onClick={runMealSearch}
+              >
+                {mealLoading ? 'Searching…' : 'Search'}
+              </button>
             </div>
+            {cloudSignedIn && (
+              <p className="panel-subtle" style={{ marginTop: '0.35rem' }}>
+                {mealLoading && <span>Searching…</span>}
+              </p>
+            )}
             {mealError && (
               <p className="panel-subtle nutrition-error" role="alert">{mealError}</p>
             )}
