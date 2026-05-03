@@ -40,8 +40,8 @@ type TodayRingsProps = {
 export function TodayConcentricGoalRings({ totals, goals, endDateKey, periodDays }: TodayRingsProps) {
   const VB_W = 128;
   const VB_H = 120;
-  /** Nudge rings right so they sit a bit farther from the title/date block above. */
-  const cx = VB_W / 2 + 5;
+  /** Keep geometric center aligned with the overlaid kcal label (`.nutrition-concentric-center`). */
+  const cx = VB_W / 2;
   const cy = VB_H / 2;
   /** Outer ring largest; step keeps gaps between strokes. */
   const radii = [52, 44, 36, 28, 20];
@@ -296,8 +296,9 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
                       ) : null}
                       <text
                         x={cx}
-                        y={cy + fs / 3}
+                        y={cy}
                         textAnchor="middle"
+                        dominantBaseline="central"
                         fill="var(--gf-text)"
                         fontSize={fs}
                         fontWeight="700"

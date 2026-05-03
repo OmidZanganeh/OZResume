@@ -4770,15 +4770,20 @@ select.text-input.day-modal-select {
 
 .nutrition-concentric-center {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   pointer-events: none;
   line-height: 1.1;
 }
 
 .nutrition-concentric-center-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   transform: scale(0.5);
   transform-origin: center center;
 }
@@ -4929,6 +4934,39 @@ select.text-input.day-modal-select {
 .nutrition-goals-hint {
   margin: 0 0 0.65rem;
   line-height: 1.45;
+}
+
+.nutrition-deficit-presets {
+  margin: 0 0 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--gf-border);
+}
+
+.nutrition-deficit-intro {
+  margin: 0 0 0.55rem !important;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.nutrition-deficit-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.nutrition-deficit-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  text-align: left;
+  font-weight: 700;
+}
+
+.nutrition-deficit-chip-sub {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--gf-text-muted);
 }
 
 .nutrition-loading-hint {

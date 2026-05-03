@@ -65,6 +65,63 @@ export function computeSuggestedNutritionGoals(profile: UserProfile | undefined)
   };
 }
 
+/**
+ * Rough minimum daily calories vs estimated BMR (not medical advice).
+ * Uses slightly higher floor when sex is not set (treated like male for BMR only elsewhere).
+ */
+function minimumSafeDailyCalories(profile: UserProfile, bmr: number): number {
+  const sedentaryFloor = Math.round(bmr * 1.2);
+  const hardFloor = profile.sex === 'female' ? 1200 : 1400;
+  return Math.max(sedentaryFloor, hardFloor);
+}
+
+/**
+ * Same macro style as {@link computeSuggestedNutritionGoals} but with a daily calorie deficit
+ * subtracted from maintenance TDEE. Floors to a safe minimum; keeps protein (g) from maintenance.
+ */
+export function computeSuggestedNutritionGoalsWithDeficit(
+  profile: UserProfile | undefined,
+  dailyDeficitKcal: number,
+): NutritionGoals | null {
+  const maintenance = computeSuggestedNutritionGoals(profile);
+  if (!maintenance || !profile || dailyDeficitKcal <= 0) return null;
+
+  const weightKg = parseWeightKg(profile.weight, profile.weightUnit);
+  const heightCm = parseHeightCm(profile.height, profile.heightUnit);
+  const age = Number.parseInt(profile.age ?? '', 10);
+  if (weightKg == null || heightCm == null || !Number.isFinite(age) || age < 16 || age > 90) {
+    return null;
+  }
+
+  let bmr: number;
+  if (profile.sex === 'female') {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  } else {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+  }
+  if (!Number.isFinite(bmr) || bmr < 800) return null;
+
+  const minKcal = minimumSafeDailyCalories(profile, bmr);
+  const targetCal = Math.round(Math.max(minKcal, maintenance.calories - dailyDeficitKcal));
+  if (targetCal >= maintenance.calories) return null;
+
+  const protein = maintenance.protein;
+  const fat = Math.round((targetCal * 0.28) / 9);
+  const proteinKcal = protein * 4;
+  const fatKcal = fat * 9;
+  const carbKcal = Math.max(targetCal - proteinKcal - fatKcal, 0);
+  const carbs = Math.round(carbKcal / 4);
+  const fiber = Math.min(45, Math.max(20, Math.round((14 * targetCal) / 1000)));
+
+  return {
+    calories: targetCal,
+    protein,
+    carbs: Math.max(carbs, 40),
+    fat: Math.max(fat, 30),
+    fiber,
+  };
+}
+
 /** Last `n` calendar days ending today (local), oldest first. */
 export function lastNDayKeys(n: number): string[] {
   const d = new Date();

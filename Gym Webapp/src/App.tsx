@@ -57,6 +57,7 @@ import { isLikelyDuplicateWorkoutSave } from './utils/recentDuplicateSave';
 import {
   calendarWeekSunToSatKeysContaining,
   computeSuggestedNutritionGoals,
+  computeSuggestedNutritionGoalsWithDeficit,
   lastNDayKeysEnding,
   localTodayDateKey,
   nutritionLogDateKey,
@@ -334,6 +335,37 @@ export default function App() {
     () => computeSuggestedNutritionGoals(reportProfile),
     [reportProfile.weight, reportProfile.weightUnit, reportProfile.height, reportProfile.heightUnit, reportProfile.age, reportProfile.sex],
   );
+
+  /** Weight-loss presets: same profile as maintenance, minus kcal/day (floored to a rough safe minimum). */
+  const suggestedDeficitPresets = useMemo(() => {
+    if (!suggestedNutritionGoals) return [] as { label: string; deficit: number; goals: NutritionGoals }[];
+    const maintCal = suggestedNutritionGoals.calories;
+    const out: { label: string; deficit: number; goals: NutritionGoals }[] = [];
+    for (const deficit of [300, 500, 750] as const) {
+      const g = computeSuggestedNutritionGoalsWithDeficit(reportProfile, deficit);
+      if (g && g.calories < maintCal - 25) {
+        out.push({
+          label:
+            deficit === 300
+              ? 'Mild · −300 kcal/d'
+              : deficit === 500
+                ? 'Moderate · −500 kcal/d'
+                : 'Steeper · −750 kcal/d',
+          deficit,
+          goals: g,
+        });
+      }
+    }
+    return out;
+  }, [
+    reportProfile.weight,
+    reportProfile.weightUnit,
+    reportProfile.height,
+    reportProfile.heightUnit,
+    reportProfile.age,
+    reportProfile.sex,
+    suggestedNutritionGoals,
+  ]);
 
   const mealDayKeys = useMemo(() => {
     const s = new Set<string>();
@@ -1015,6 +1047,13 @@ export default function App() {
     }
     updateNutritionGoals(suggestedNutritionGoals);
     setMessage('Daily targets updated from your profile (you can still edit them).');
+  }
+
+  function applyDeficitNutritionPreset(goals: NutritionGoals, deficitKcal: number) {
+    updateNutritionGoals(goals);
+    setMessage(
+      `Targets set to ~${deficitKcal} kcal/day below your estimated maintenance (not medical advice — adjust as needed).`,
+    );
   }
 
   function updateNutritionGoals(next: Partial<NutritionGoals>) {
@@ -2697,16 +2736,40 @@ export default function App() {
                   <p className="panel-subtle nutrition-goals-hint">
                     {suggestedNutritionGoals ? (
                       <>
-                        Suggested from profile: {suggestedNutritionGoals.calories} kcal · P {suggestedNutritionGoals.protein} · C {suggestedNutritionGoals.carbs} · F{' '}
-                        {suggestedNutritionGoals.fat} · Fiber {suggestedNutritionGoals.fiber}.{` `}
+                        <strong>Maintenance</strong> (from profile): {suggestedNutritionGoals.calories} kcal · P{' '}
+                        {suggestedNutritionGoals.protein} · C {suggestedNutritionGoals.carbs} · F {suggestedNutritionGoals.fat} · Fiber{' '}
+                        {suggestedNutritionGoals.fiber}.{` `}
                         <button type="button" className="text-button" onClick={applySuggestedNutritionGoals}>
-                          Apply
+                          Apply maintenance
                         </button>
                       </>
                     ) : (
                       <>Set weight, height, and age in Settings for suggestions.</>
                     )}
                   </p>
+                  {suggestedDeficitPresets.length > 0 ? (
+                    <div className="nutrition-deficit-presets" role="group" aria-label="Weight loss calorie presets">
+                      <p className="panel-subtle nutrition-deficit-intro">
+                        <strong>Lose weight:</strong> pick a daily deficit vs maintenance (macros stay high-protein; carbs/fat
+                        scale down). Estimates only — not medical advice.
+                      </p>
+                      <div className="nutrition-deficit-chip-row">
+                        {suggestedDeficitPresets.map(({ label, deficit, goals }) => (
+                          <button
+                            key={deficit}
+                            type="button"
+                            className="chip chip-compact nutrition-deficit-chip"
+                            onClick={() => applyDeficitNutritionPreset(goals, deficit)}
+                          >
+                            {label}
+                            <span className="nutrition-deficit-chip-sub">
+                              {goals.calories} kcal · P {goals.protein}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="nutrition-goals-grid">
                     <label className="profile-field">
                       <span>Calories (kcal)</span>
