@@ -15,7 +15,6 @@ import { PrintReport } from './components/PrintReport';
 import { DayActivityModal } from './components/DayActivityModal';
 import {
   MacroEnergySplit,
-  SevenDayCaloriesChart,
   TodayMealEnergyRows,
   WeekNutrientStrips,
 } from './components/NutritionDashboard';
@@ -327,6 +326,34 @@ export default function App() {
       fiber: sum.fiber / n,
     };
   }, [nutritionWindowByDay, nutritionTrendDays]);
+
+  const printReportNutrition = useMemo(() => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const todayKey = `${y}-${mo}-${day}`;
+    const today = nutritionLogs
+      .filter((l) => nutritionLogDateKey(l.date) === todayKey)
+      .reduce(
+        (acc, log) => ({
+          calories: acc.calories + log.calories,
+          protein: acc.protein + log.protein,
+          carbs: acc.carbs + log.carbs,
+          fat: acc.fat + log.fat,
+          fiber: acc.fiber + (log.fiber ?? 0),
+        }),
+        { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+      );
+    return {
+      dateKey: todayKey,
+      today,
+      goals: nutritionGoals,
+      windowDays: nutritionTrendDays,
+      averages: nutritionWindowAverages,
+    };
+  }, [nutritionLogs, nutritionGoals, nutritionTrendDays, nutritionWindowAverages]);
 
   const customFoodSearchMatches = useMemo((): NutritionSearchItem[] => {
     const q = nutritionQuery.trim().toLowerCase();
@@ -1769,11 +1796,11 @@ export default function App() {
         {view === 'nutrition' && (
           <>
             {!cloudSignedIn && (
-              <section className="panel panel--compact">
+              <section className="panel panel--compact nutrition-signin-nudge">
                 <p className="panel-subtle" style={{ margin: 0 }}>
-                  <strong>Tip:</strong> Sign in to search <strong>USDA FoodData Central</strong> and <strong>Open Food Facts</strong> and sync logs to your account. You can still use <strong>My foods</strong> and daily summaries in this session.
+                  Sign in to search USDA and Open Food Facts and sync your log.
                 </p>
-                <button type="button" className="button" style={{ marginTop: '0.6rem' }} onClick={openGymFlowSignIn}>
+                <button type="button" className="button" style={{ marginTop: '0.5rem' }} onClick={openGymFlowSignIn}>
                   Sign in
                 </button>
               </section>
@@ -1782,10 +1809,7 @@ export default function App() {
             <section className="panel nutrition-panel-lead">
               <div className="nutrition-panel-title-top">
                 <div>
-                  <h2 className="panel-heading panel-heading--plain nutrition-hero-heading">Nutrition overview</h2>
-                  <p className="panel-subtle nutrition-hero-sub">
-                    Track intake against goals and macro balance. Charts below use the same trend window as Activity (7–90 days).
-                  </p>
+                  <h2 className="panel-heading panel-heading--plain nutrition-hero-heading">Nutrition</h2>
                 </div>
                 <div className="nutrition-panel-controls">
                   <label className="nutrition-date">
@@ -1797,8 +1821,8 @@ export default function App() {
                       onChange={(e) => setNutritionDate(e.target.value)}
                     />
                   </label>
-                  <div className="nutrition-trend-window" role="group" aria-label="Nutrition trend window">
-                    <span className="nutrition-trend-window-label">Trend</span>
+                  <div className="nutrition-trend-window" role="group" aria-label="Chart window (days)">
+                    <span className="nutrition-trend-window-label">Period</span>
                     {[7, 10, 30, 90].map((d) => (
                       <button
                         key={d}
@@ -1815,7 +1839,7 @@ export default function App() {
 
               <div className="nutrition-overview-layout">
                 <div className="nutrition-overview-cards">
-                  <h3 className="nutrition-section-label">Today vs goals</h3>
+                  <h3 className="nutrition-section-label">Today</h3>
                   <div className="nutrition-grid">
                     {[
                       { key: 'calories', label: 'Calories', unit: 'kcal', cardClass: 'nutrition-card--accent-kcal', barClass: 'nutrition-bar-fill--kcal' },
@@ -1855,40 +1879,10 @@ export default function App() {
                   <TodayMealEnergyRows logs={todayMealShares} dayTotalKcal={nutritionTotals.calories} />
                 </div>
               </div>
-            </section>
-
-            <section className="panel nutrition-panel-charts">
-              <div className="panel-title-row nutrition-trends-heading-row" style={{ alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <h2 className="panel-heading panel-heading--plain" style={{ margin: 0 }}>Trends &amp; consistency</h2>
-                <div className="nutrition-trend-window" role="group" aria-label="Nutrition trend window">
-                  <span className="nutrition-trend-window-label">Window</span>
-                  {[7, 10, 30, 90].map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      className={`chip chip-compact ${nutritionTrendDays === d ? 'chip-active' : ''}`}
-                      onClick={() => setNutritionTrendDays(d)}
-                    >
-                      {d}d
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <p className="panel-subtle nutrition-panel-lede">
-                Calorie bars span the selected window (oldest → newest). Highlight matches the day picker. Goal rings: full gray ring = 100% of target; colored arc = logged share (center = amount).
+              <p className="nutrition-averages-line nutrition-averages-line--inline">
+                Avg · {nutritionTrendDays}d · {formatMacro(nutritionWindowAverages.calories)} kcal · P {formatMacro(nutritionWindowAverages.protein)} · C{' '}
+                {formatMacro(nutritionWindowAverages.carbs)} · F {formatMacro(nutritionWindowAverages.fat)} · Fiber {formatMacro(nutritionWindowAverages.fiber)}
               </p>
-              <p className="panel-subtle nutrition-averages-line">
-                Rolling averages ({nutritionTrendDays}d): kcal {formatMacro(nutritionWindowAverages.calories)} · P {formatMacro(nutritionWindowAverages.protein)}g ·
-                C {formatMacro(nutritionWindowAverages.carbs)}g · F {formatMacro(nutritionWindowAverages.fat)}g · Fiber {formatMacro(nutritionWindowAverages.fiber)}g
-              </p>
-              <div className="nutrition-trends-top">
-                <SevenDayCaloriesChart
-                  days={nutritionWindowByDay}
-                  goalKcal={nutritionGoals.calories}
-                  highlightDateKey={nutritionDate}
-                  windowDays={nutritionTrendDays}
-                />
-              </div>
               <WeekNutrientStrips
                 days={nutritionWindowByDay}
                 goals={nutritionGoals}
@@ -1898,15 +1892,11 @@ export default function App() {
 
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Log food</h2>
-              <p className="panel-subtle">
-                USDA and Open Food Facts supply nutrients <strong>per 100 g</strong> — you choose <strong>how many grams you ate</strong>. USDA is strong for generic foods (e.g. eggs, rice); Open Food Facts for packaged brands.
-                Packaged foods often prefill grams when the label includes a weight (e.g. &quot;30 g&quot;). Click <strong>Search</strong> (or press Enter) to query the databases — My foods filter as you type.
-              </p>
               <div className="nutrition-search-row">
                 <input
                   className="text-input nutrition-search-input"
                   type="text"
-                  placeholder="Search My foods, USDA, or Open Food Facts…"
+                  placeholder="Search foods…"
                   value={nutritionQuery}
                   onChange={(e) => setNutritionQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -1925,11 +1915,9 @@ export default function App() {
                   {nutritionLoading ? 'Searching…' : 'Search'}
                 </button>
               </div>
-              {cloudSignedIn && (
-                <p className="panel-subtle" style={{ marginTop: '0.35rem' }}>
-                  {nutritionLoading && <span>Searching…</span>}
-                </p>
-              )}
+              {cloudSignedIn && nutritionLoading ? (
+                <p className="panel-subtle nutrition-loading-hint">Searching…</p>
+              ) : null}
               {nutritionError && (
                 <p className="panel-subtle nutrition-error" role="alert">
                   {nutritionError}
@@ -1996,11 +1984,7 @@ export default function App() {
             </section>
 
             <section className="panel panel--compact">
-              <h2 className="panel-heading panel-heading--plain">Save a custom food (My foods)</h2>
-              <p className="panel-subtle">
-                We still store each food <strong>per 100 g</strong> under the hood (same scale as labels, USDA, and Open Food Facts).
-                You can enter that directly, or enter <strong>one portion you weighed</strong> and we convert it.
-              </p>
+              <h2 className="panel-heading panel-heading--plain">My foods</h2>
               <div className="nutrition-entry-toggle" role="tablist" aria-label="How to enter nutrition">
                 <button
                   type="button"
@@ -2139,17 +2123,17 @@ export default function App() {
 
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Goals</h2>
-              <p className="panel-subtle">
-                Estimated from your profile (Mifflin–St Jeor × activity, training-friendly macros){' '}
+              <p className="panel-subtle nutrition-goals-hint">
                 {suggestedNutritionGoals ? (
                   <>
-                    — kcal {suggestedNutritionGoals.calories}, P {suggestedNutritionGoals.protein}g, C {suggestedNutritionGoals.carbs}g, F {suggestedNutritionGoals.fat}g, Fiber {suggestedNutritionGoals.fiber}g.
-                    <button type="button" className="text-button" style={{ marginLeft: '0.35rem' }} onClick={applySuggestedNutritionGoals}>
-                      Apply to targets
+                    Suggested from profile: {suggestedNutritionGoals.calories} kcal · P {suggestedNutritionGoals.protein} · C {suggestedNutritionGoals.carbs} · F{' '}
+                    {suggestedNutritionGoals.fat} · Fiber {suggestedNutritionGoals.fiber}.{` `}
+                    <button type="button" className="text-button" onClick={applySuggestedNutritionGoals}>
+                      Apply
                     </button>
                   </>
                 ) : (
-                  <>— add weight, height, and age in Settings (optional sex for accuracy).</>
+                  <>Set weight, height, and age in Settings for suggestions.</>
                 )}
               </p>
               <div className="nutrition-goals-grid">
@@ -2476,6 +2460,7 @@ export default function App() {
       neglectedMuscles,
       recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
       weeklyData,
+      nutrition: printReportNutrition,
     }} selectedGroups={selectedGroups} />
 
     {selectedCalendarDay && (
