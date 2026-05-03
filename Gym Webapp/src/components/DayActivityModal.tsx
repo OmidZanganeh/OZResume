@@ -256,7 +256,9 @@ export function DayActivityModal({
         setMealGrams(String(Math.round(sug)));
         setMealServingHint(
           item.servingSize
-            ? `Prefilled ${Math.round(sug)} g from the label (“${item.servingSize}”). Change if your portion differs.`
+            ? selectedMealItem.code.startsWith('usda:')
+              ? `Prefilled ${Math.round(sug)} g from USDA serving data (${item.servingSize}). Adjust if needed.`
+              : `Prefilled ${Math.round(sug)} g from the label (“${item.servingSize}”). Change if your portion differs.`
             : `Prefilled ${Math.round(sug)} g from product data — verify on the package.`,
         );
       }
@@ -378,7 +380,7 @@ export function DayActivityModal({
       code = selectedMealItem.code;
     } else {
       if (!cloudSignedIn) {
-        setMessage('Sign in to log foods from Open Food Facts, or use My foods.');
+        setMessage('Sign in to log foods from USDA / Open Food Facts, or use My foods.');
         return;
       }
       setMealBusy(true);
@@ -553,7 +555,7 @@ export function DayActivityModal({
             )}
 
             <p className="panel-subtle" style={{ marginTop: '1rem' }}>
-              Search My foods (always) {cloudSignedIn ? 'and Open Food Facts (signed in)' : ''}. Nutrients are stored <strong>per 100 g</strong> behind the scenes; when logging you only enter <strong>how many grams you ate</strong>. Packaged foods may prefill grams from the label when available.
+              Search My foods (always) {cloudSignedIn ? 'plus USDA and Open Food Facts when signed in' : ''}. Nutrients are stored <strong>per 100 g</strong> behind the scenes; when logging you only enter <strong>how many grams you ate</strong>. Common portions may prefill when the data provides them.
             </p>
             <div className="nutrition-search-row">
               <input
@@ -580,7 +582,7 @@ export function DayActivityModal({
                       <div className="nutrition-search-text">
                         <span className="nutrition-search-name">{item.name}</span>
                         <span className="nutrition-search-meta">
-                          {item.brands || item.quantity || item.servingSize || 'Open Food Facts'}
+                          {item.brands || item.quantity || item.servingSize || 'Database'}
                         </span>
                       </div>
                     </button>
@@ -593,7 +595,7 @@ export function DayActivityModal({
                 <div className="nutrition-selected">
                   <strong>{selectedMealItem.name}</strong>
                   <span>
-                    {selectedMealItem.brands || selectedMealItem.quantity || selectedMealItem.servingSize || 'Open Food Facts'}
+                    {selectedMealItem.brands || selectedMealItem.quantity || selectedMealItem.servingSize || 'Database'}
                   </span>
                 </div>
                 {mealServingHint && <p className="panel-subtle nutrition-serving-hint">{mealServingHint}</p>}
@@ -630,7 +632,7 @@ export function DayActivityModal({
           <div className="day-modal-section panel--compact" style={{ marginTop: '1.5rem' }}>
             <h3 className="panel-heading panel-heading--plain" style={{ marginBottom: '0.75rem' }}>Save a custom food</h3>
             <p className="panel-subtle">
-              We store each food <strong>per 100 g</strong> (same as labels and Open Food Facts). Enter that from the label, or enter <strong>one weighed portion</strong> and we convert it.
+              We store each food <strong>per 100 g</strong> (same as labels, USDA, and Open Food Facts). Enter that from the label, or enter <strong>one weighed portion</strong> and we convert it.
             </p>
             <div className="nutrition-entry-toggle" role="tablist" aria-label="How to enter nutrition">
               <button

@@ -495,7 +495,9 @@ export default function App() {
         setServingGrams(String(Math.round(sug)));
         setServingHint(
           item.servingSize
-            ? `Prefilled ${Math.round(sug)} g from the label (“${item.servingSize}”). Change if your portion differs.`
+            ? selectedFood.code.startsWith('usda:')
+              ? `Prefilled ${Math.round(sug)} g from USDA serving data (${item.servingSize}). Adjust if needed.`
+              : `Prefilled ${Math.round(sug)} g from the label (“${item.servingSize}”). Change if your portion differs.`
             : `Prefilled ${Math.round(sug)} g from product data — verify on the package.`,
         );
       }
@@ -583,7 +585,7 @@ export default function App() {
 
     const isCustom = selectedFood.code.startsWith('custom:');
     if (!isCustom && !cloudSignedIn) {
-      setMessage('Sign in to log foods from Open Food Facts, or choose a My food item.');
+      setMessage('Sign in to log foods from the database (USDA + Open Food Facts), or choose a My food item.');
       return;
     }
 
@@ -1704,7 +1706,7 @@ export default function App() {
             {!cloudSignedIn && (
               <section className="panel panel--compact">
                 <p className="panel-subtle" style={{ margin: 0 }}>
-                  <strong>Tip:</strong> Sign in to search <strong>Open Food Facts</strong> and sync logs to your account. You can still use <strong>My foods</strong> and daily summaries in this session.
+                  <strong>Tip:</strong> Sign in to search <strong>USDA FoodData Central</strong> and <strong>Open Food Facts</strong> and sync logs to your account. You can still use <strong>My foods</strong> and daily summaries in this session.
                 </p>
                 <button type="button" className="button" style={{ marginTop: '0.6rem' }} onClick={openGymFlowSignIn}>
                   Sign in
@@ -1787,14 +1789,14 @@ export default function App() {
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Log food</h2>
               <p className="panel-subtle">
-                Open Food Facts lists nutrients <strong>per 100 g</strong> on the backend — you only choose <strong>how many grams you ate</strong>.
+                USDA and Open Food Facts supply nutrients <strong>per 100 g</strong> — you choose <strong>how many grams you ate</strong>. USDA is strong for generic foods (e.g. eggs, rice); Open Food Facts for packaged brands.
                 Packaged foods often prefill grams when the label includes a weight (e.g. &quot;30 g&quot;).
               </p>
               <div className="nutrition-search-row">
                 <input
                   className="text-input"
                   type="text"
-                  placeholder="Search My foods or type to search Open Food Facts…"
+                  placeholder="Search My foods, USDA, or Open Food Facts…"
                   value={nutritionQuery}
                   onChange={(e) => setNutritionQuery(e.target.value)}
                 />
@@ -1820,7 +1822,7 @@ export default function App() {
                         <div className="nutrition-search-text">
                           <span className="nutrition-search-name">{item.name}</span>
                           <span className="nutrition-search-meta">
-                            {item.brands || item.quantity || item.servingSize || 'Open Food Facts'}
+                            {item.brands || item.quantity || item.servingSize || 'Database'}
                           </span>
                         </div>
                       </button>
@@ -1832,7 +1834,7 @@ export default function App() {
                 <div className="nutrition-add-block">
                   <div className="nutrition-selected">
                     <strong>{selectedFood.name}</strong>
-                    <span>{selectedFood.brands || selectedFood.quantity || selectedFood.servingSize || 'Open Food Facts'}</span>
+                    <span>{selectedFood.brands || selectedFood.quantity || selectedFood.servingSize || 'Database'}</span>
                   </div>
                   {servingHint && <p className="panel-subtle nutrition-serving-hint">{servingHint}</p>}
                   <div className="nutrition-grams nutrition-grams-with-chips">
@@ -1868,7 +1870,7 @@ export default function App() {
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Save a custom food (My foods)</h2>
               <p className="panel-subtle">
-                We still store each food <strong>per 100 g</strong> under the hood (same scale as labels and Open Food Facts).
+                We still store each food <strong>per 100 g</strong> under the hood (same scale as labels, USDA, and Open Food Facts).
                 You can enter that directly, or enter <strong>one portion you weighed</strong> and we convert it.
               </p>
               <div className="nutrition-entry-toggle" role="tablist" aria-label="How to enter nutrition">

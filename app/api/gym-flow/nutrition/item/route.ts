@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
+import { fetchUsdaFoodItem, parseUsdaFdcIdFromCode } from '../usdaFdc';
 
 type NutritionPer100g = {
   calories: number;
@@ -61,6 +62,30 @@ export async function GET(req: Request) {
   const code = searchParams.get('code')?.trim();
   if (!code) {
     return NextResponse.json({ error: 'Missing code' }, { status: 400 });
+  }
+
+  const usdaId = parseUsdaFdcIdFromCode(code);
+  if (usdaId != null) {
+    const apiKey = process.env.USDA_FDC_API_KEY?.trim();
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'USDA FoodData Central is not configured (missing USDA_FDC_API_KEY)' },
+        { status: 503 },
+      );
+    }
+    try {
+      const item = await fetchUsdaFoodItem(usdaId, apiKey);
+      if (!item) {
+        return NextResponse.json({ error: 'Food not found' }, { status: 404 });
+      }
+      return NextResponse.json(
+        { item },
+        { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=60' } },
+      );
+    } catch (error) {
+      console.error('[gym-flow/nutrition item USDA]', error);
+      return NextResponse.json({ error: 'USDA lookup failed' }, { status: 502 });
+    }
   }
 
   try {

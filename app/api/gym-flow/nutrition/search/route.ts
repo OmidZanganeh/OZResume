@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
+import { searchUsdaFoods } from '../usdaFdc';
 
 type SearchResult = {
   code: string;
@@ -40,44 +41,59 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Missing query' }, { status: 400 });
   }
 
+  const usdaKey = process.env.USDA_FDC_API_KEY?.trim();
+
   try {
-    const url = new URL(`${OPENFOODFACTS_HOST}/cgi/search.pl`);
-    url.searchParams.set('search_terms', query);
-    url.searchParams.set('search_simple', '1');
-    url.searchParams.set('action', 'process');
-    url.searchParams.set('json', '1');
-    url.searchParams.set('page_size', '20');
-    url.searchParams.set('fields', 'code,product_name,product_name_en,brands,quantity,serving_size,image_small_url,image_thumb_url,image_front_small_url,image_front_thumb_url');
+    const offPromise = (async (): Promise<SearchResult[]> => {
+      const url = new URL(`${OPENFOODFACTS_HOST}/cgi/search.pl`);
+      url.searchParams.set('search_terms', query);
+      url.searchParams.set('search_simple', '1');
+      url.searchParams.set('action', 'process');
+      url.searchParams.set('json', '1');
+      url.searchParams.set('page_size', '20');
+      url.searchParams.set('fields', 'code,product_name,product_name_en,brands,quantity,serving_size,image_small_url,image_thumb_url,image_front_small_url,image_front_thumb_url');
 
-    const res = await fetchWithRetry(url.toString(), {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'GymFlow/1.0 (https://omidzanganeh.com/gym-flow)',
-      },
-      cache: 'no-store',
+      const res = await fetchWithRetry(url.toString(), {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'GymFlow/1.0 (https://omidzanganeh.com/gym-flow)',
+        },
+        cache: 'no-store',
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw Object.assign(new Error('Open Food Facts error'), {
+          status: res.status,
+          details: text.slice(0, 400),
+        });
+      }
+
+      const data = (await res.json()) as { products?: Record<string, unknown>[] };
+      return (data.products ?? [])
+        .map((p) => {
+          const image = (p.image_front_small_url ?? p.image_small_url ?? p.image_thumb_url ?? p.image_front_thumb_url) as string | undefined;
+          return {
+            code: String(p.code ?? ''),
+            name: String(p.product_name_en ?? p.product_name ?? '').trim(),
+            brands: typeof p.brands === 'string' ? p.brands : undefined,
+            quantity: typeof p.quantity === 'string' ? p.quantity : undefined,
+            servingSize: typeof p.serving_size === 'string' ? p.serving_size : undefined,
+            image: image && image.length > 0 ? image : undefined,
+          };
+        })
+        .filter((p) => p.code && p.name);
+    })();
+
+    const usdaPromise = usdaKey ? searchUsdaFoods(query, usdaKey) : Promise.resolve([]);
+
+    const offSafe = offPromise.catch((e) => {
+      console.error('[gym-flow/nutrition search] Open Food Facts', e);
+      return [] as SearchResult[];
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      return NextResponse.json(
-        { error: 'Upstream error', status: res.status, details: text.slice(0, 400) },
-        { status: 502 },
-      );
-    }
 
-    const data = (await res.json()) as { products?: Record<string, unknown>[] };
-    const items: SearchResult[] = (data.products ?? [])
-      .map((p) => {
-        const image = (p.image_front_small_url ?? p.image_small_url ?? p.image_thumb_url ?? p.image_front_thumb_url) as string | undefined;
-        return {
-          code: String(p.code ?? ''),
-          name: String(p.product_name_en ?? p.product_name ?? '').trim(),
-          brands: typeof p.brands === 'string' ? p.brands : undefined,
-          quantity: typeof p.quantity === 'string' ? p.quantity : undefined,
-          servingSize: typeof p.serving_size === 'string' ? p.serving_size : undefined,
-          image: image && image.length > 0 ? image : undefined,
-        };
-      })
-      .filter((p) => p.code && p.name);
+    const [offRes, usdaItems] = await Promise.all([offSafe, usdaPromise]);
+
+    const items: SearchResult[] = [...usdaItems, ...offRes];
 
     return NextResponse.json(
       { items },
