@@ -112,10 +112,12 @@ type SevenDayCaloriesProps = {
   days: NutritionDayRollup[];
   goalKcal: number;
   highlightDateKey: string;
+  windowDays: number;
 };
 
-export function SevenDayCaloriesChart({ days, goalKcal, highlightDateKey }: SevenDayCaloriesProps) {
-  const w = 320;
+export function SevenDayCaloriesChart({ days, goalKcal, highlightDateKey, windowDays }: SevenDayCaloriesProps) {
+  const n = days.length || 1;
+  const w = Math.min(720, Math.max(268, 12 * n + 96));
   const h = 120;
   const padL = 8;
   const padR = 8;
@@ -124,8 +126,7 @@ export function SevenDayCaloriesChart({ days, goalKcal, highlightDateKey }: Seve
   const innerW = w - padL - padR;
   const innerH = h - padT - padB;
   const maxCal = Math.max(goalKcal * 1.05, ...days.map((d) => d.calories), 1);
-  const n = days.length || 1;
-  const barW = Math.min(28, (innerW / n) * 0.62);
+  const barW = Math.min(26, (innerW / n) * 0.58);
   const gap = innerW / n;
 
   const barX = (i: number) => padL + gap * i + (gap - barW) / 2;
@@ -134,7 +135,7 @@ export function SevenDayCaloriesChart({ days, goalKcal, highlightDateKey }: Seve
 
   return (
     <div className="nutrition-viz-card nutrition-viz-card--wide">
-      <h3 className="nutrition-viz-title">7-day calories vs target</h3>
+      <h3 className="nutrition-viz-title">{windowDays}-day calories vs target</h3>
       <p className="nutrition-viz-caption">Bar height = logged kcal; dashed line = your calorie goal.</p>
       <svg className="nutrition-chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet">
         <line
@@ -194,7 +195,7 @@ type WeekStripesProps = {
   highlightDateKey: string;
 };
 
-/** One horizontal strip per nutrient: easy to scan vs goal. */
+/** One row per nutrient: compact goal rings (full gray ring = target; colored arc = logged; number centered). */
 export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripesProps) {
   const labels: Record<(typeof WEEK_KEYS)[number], string> = {
     calories: 'Calories (kcal)',
@@ -210,75 +211,102 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey }: WeekStripe
     fat: COL.fat,
     fiber: COL.fiber,
   };
-  const w = 400;
-  const rowH = 40;
-  const labelW = 118;
-  const chartW = w - labelW - 12;
-  const padT = 8;
-  const maxBarH = 18;
-  const baselinePad = 6;
   const n = days.length || 1;
-  const slotW = chartW / n;
-  const barW = Math.max(2, slotW - 4);
+  const labelW = 108;
+  const cellW = Math.max(36, Math.min(52, Math.floor(680 / Math.max(n, 8))));
+  const rowH = 58;
+  const padT = 10;
+  const totalW = labelW + n * cellW;
+  const totalH = padT + WEEK_KEYS.length * rowH + 6;
+
+  const fmtCenter = (key: (typeof WEEK_KEYS)[number], val: number) => {
+    if (key === 'calories') return String(Math.round(val));
+    const v = Math.round(val * 10) / 10;
+    return Number.isInteger(v) ? String(v) : v.toFixed(1);
+  };
 
   return (
-    <div className="nutrition-viz-card nutrition-viz-card--stretch">
-      <h3 className="nutrition-viz-title">Week at a glance</h3>
-      <p className="nutrition-viz-caption">Taller bars = higher logged amount; dotted line marks your daily goal.</p>
-      <svg className="nutrition-chart-svg nutrition-week-strips" viewBox={`0 0 ${w} ${WEEK_KEYS.length * rowH + padT}`} preserveAspectRatio="xMidYMid meet">
-        {WEEK_KEYS.map((key, row) => {
-          const yBase = padT + row * rowH + maxBarH + baselinePad;
-          const goal = Math.max(goals[key], 0.001);
-          const maxV = Math.max(goal * 1.12, ...days.map((d) => d[key]), 1);
-          const goalLineY = yBase - (goal / maxV) * maxBarH;
-
-          return (
-            <g key={key}>
-              <text x={4} y={yBase - maxBarH - 2} fill="var(--gf-text-muted)" fontSize="11" fontWeight="600">
-                {labels[key]}
-              </text>
-              <line
-                x1={labelW}
-                x2={labelW + chartW}
-                y1={yBase}
-                y2={yBase}
-                stroke="var(--gf-border)"
-                strokeWidth="1"
-              />
-              <line
-                x1={labelW}
-                x2={labelW + chartW}
-                y1={goalLineY}
-                y2={goalLineY}
-                stroke="rgba(148, 163, 184, 0.5)"
-                strokeDasharray="3 3"
-              />
-              {days.map((d, i) => {
-                const val = d[key];
-                const h = Math.max(2, (val / maxV) * maxBarH);
-                const x = labelW + i * slotW + (slotW - barW) / 2;
-                const y = yBase - h;
-                const isHi = d.dateKey === highlightDateKey;
-                return (
-                  <rect
-                    key={d.dateKey}
-                    x={x}
-                    y={y}
-                    width={barW}
-                    height={h}
-                    rx={3}
-                    fill={colors[key]}
-                    opacity={isHi ? 0.95 : 0.48}
-                    className="nutrition-strip-bar"
-                  >
-                    <title>{`${d.dateKey}: ${labels[key]} ${typeof val === 'number' ? val.toFixed(1) : val}`}</title>
-                  </rect>
-                );
-              })}
-            </g>
-          );
-        })}
-      </svg>
+    <div className="nutrition-viz-card nutrition-viz-card--stretch nutrition-week-rings-card">
+      <h3 className="nutrition-viz-title">{n}-day at a glance</h3>
+      <p className="nutrition-viz-caption">
+        Each ring is one day: gray track = your goal; colored arc = share of goal (capped at 100% for the arc). Center = logged amount. Scroll horizontally on small screens when the window is long.
+      </p>
+      <div className="nutrition-week-rings-scroll">
+        <svg
+          className="nutrition-chart-svg nutrition-week-rings"
+          viewBox={`0 0 ${totalW} ${totalH}`}
+          preserveAspectRatio="xMinYMid meet"
+          style={{ width: `${totalW}px`, maxWidth: 'none', height: 'auto' }}
+        >
+          {WEEK_KEYS.map((key, row) => {
+            const goal = Math.max(goals[key], 0.001);
+            const cy = padT + row * rowH + rowH / 2;
+            return (
+              <g key={key}>
+                <text x={4} y={cy + 4} fill="var(--gf-text-muted)" fontSize="11" fontWeight="600">
+                  {labels[key]}
+                </text>
+                {days.map((d, i) => {
+                  const val = d[key];
+                  const cx = labelW + i * cellW + cellW / 2;
+                  const r = Math.max(12, Math.min(17, (cellW - 14) / 2));
+                  const strokeW = 3.5;
+                  const circ = 2 * Math.PI * r;
+                  const rawFrac = goal > 0 ? val / goal : 0;
+                  const arcFrac = Math.min(Math.max(rawFrac, 0), 1);
+                  const dash = `${arcFrac * circ} ${circ}`;
+                  const isHi = d.dateKey === highlightDateKey;
+                  const dow = new Date(d.dateKey + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'narrow' });
+                  const centerTxt = fmtCenter(key, val);
+                  const fs = centerTxt.length > 4 ? 8.5 : centerTxt.length > 3 ? 9.5 : 11;
+                  return (
+                    <g key={d.dateKey}>
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={r}
+                        fill="none"
+                        stroke="rgba(148, 163, 184, 0.32)"
+                        strokeWidth={strokeW}
+                      />
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={r}
+                        fill="none"
+                        stroke={colors[key]}
+                        strokeWidth={strokeW}
+                        strokeDasharray={dash}
+                        strokeLinecap="round"
+                        opacity={isHi ? 1 : 0.72}
+                        transform={`rotate(-90 ${cx} ${cy})`}
+                        className="nutrition-ring-arc"
+                      />
+                      {isHi ? (
+                        <circle cx={cx} cy={cy} r={r + strokeW} fill="none" stroke={COL.kcal} strokeWidth="1" opacity="0.45" />
+                      ) : null}
+                      <text
+                        x={cx}
+                        y={cy + fs / 3}
+                        textAnchor="middle"
+                        fill="var(--gf-text)"
+                        fontSize={fs}
+                        fontWeight="700"
+                      >
+                        {centerTxt}
+                      </text>
+                      <text x={cx} y={cy + r + 11} textAnchor="middle" fill="var(--gf-text-dim)" fontSize="8.5">
+                        {dow}
+                      </text>
+                      <title>{`${d.dateKey} · ${labels[key]} ${typeof val === 'number' ? val.toFixed(1) : val} (goal ${goal})`}</title>
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
     </div>
   );
 }

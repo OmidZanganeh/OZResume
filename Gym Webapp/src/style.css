@@ -4226,6 +4226,53 @@ body {
   gap: 0.75rem;
 }
 
+.nutrition-panel-title-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.nutrition-panel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.nutrition-trend-window {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.nutrition-trend-window-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gf-text-dim);
+}
+
+.nutrition-trends-heading-row {
+  gap: 0.75rem;
+}
+
+.nutrition-week-rings-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -0.15rem;
+  padding: 0 0.15rem 0.4rem;
+  scrollbar-gutter: stable;
+}
+
+.nutrition-week-rings-card .nutrition-week-rings {
+  display: block;
+}
+
 .nutrition-hero-heading {
   font-family: var(--gf-display);
   letter-spacing: -0.02em;

@@ -204,6 +204,8 @@ export default function App() {
   const [profileCloudBusy, setProfileCloudBusy] = useState(false);
   const [profileCloudError, setProfileCloudError] = useState<string | null>(null);
   const [nutritionDate, setNutritionDate] = useState(() => new Date().toISOString().split('T')[0]);
+  /** Rolling window for nutrition trend charts (same idea as Activity analysis window). */
+  const [nutritionTrendDays, setNutritionTrendDays] = useState(7);
   const [nutritionQuery, setNutritionQuery] = useState('');
   const [nutritionResults, setNutritionResults] = useState<NutritionSearchItem[]>([]);
   const [nutritionLoading, setNutritionLoading] = useState(false);
@@ -284,8 +286,8 @@ export default function App() {
     return s;
   }, [nutritionLogs]);
 
-  const nutrition7DayByDay = useMemo(() => {
-    const keys = lastNDayKeys(7);
+  const nutritionWindowByDay = useMemo(() => {
+    const keys = lastNDayKeys(nutritionTrendDays);
     const map = new Map<string, NutritionGoals>();
     for (const k of keys) {
       map.set(k, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
@@ -303,11 +305,11 @@ export default function App() {
       });
     }
     return keys.map((k) => ({ dateKey: k, ...map.get(k)! }));
-  }, [nutritionLogs]);
+  }, [nutritionLogs, nutritionTrendDays]);
 
-  const nutrition7dAverages = useMemo(() => {
-    const n = nutrition7DayByDay.length || 7;
-    const sum = nutrition7DayByDay.reduce(
+  const nutritionWindowAverages = useMemo(() => {
+    const n = nutritionWindowByDay.length || nutritionTrendDays;
+    const sum = nutritionWindowByDay.reduce(
       (acc, d) => ({
         calories: acc.calories + d.calories,
         protein: acc.protein + d.protein,
@@ -324,7 +326,7 @@ export default function App() {
       fat: sum.fat / n,
       fiber: sum.fiber / n,
     };
-  }, [nutrition7DayByDay]);
+  }, [nutritionWindowByDay, nutritionTrendDays]);
 
   const customFoodSearchMatches = useMemo((): NutritionSearchItem[] => {
     const q = nutritionQuery.trim().toLowerCase();
@@ -1778,20 +1780,37 @@ export default function App() {
             )}
 
             <section className="panel nutrition-panel-lead">
-              <div className="panel-title-row nutrition-panel-title" style={{ alignItems: 'center' }}>
+              <div className="nutrition-panel-title-top">
                 <div>
                   <h2 className="panel-heading panel-heading--plain nutrition-hero-heading">Nutrition overview</h2>
-                  <p className="panel-subtle nutrition-hero-sub">Track intake against goals, see macro balance, and spot week patterns.</p>
+                  <p className="panel-subtle nutrition-hero-sub">
+                    Track intake against goals and macro balance. Charts below use the same trend window as Activity (7–90 days).
+                  </p>
                 </div>
-                <label className="nutrition-date">
-                  <span>Day</span>
-                  <input
-                    className="text-input"
-                    type="date"
-                    value={nutritionDate}
-                    onChange={(e) => setNutritionDate(e.target.value)}
-                  />
-                </label>
+                <div className="nutrition-panel-controls">
+                  <label className="nutrition-date">
+                    <span>Day</span>
+                    <input
+                      className="text-input"
+                      type="date"
+                      value={nutritionDate}
+                      onChange={(e) => setNutritionDate(e.target.value)}
+                    />
+                  </label>
+                  <div className="nutrition-trend-window" role="group" aria-label="Nutrition trend window">
+                    <span className="nutrition-trend-window-label">Trend</span>
+                    {[7, 10, 30, 90].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        className={`chip chip-compact ${nutritionTrendDays === d ? 'chip-active' : ''}`}
+                        onClick={() => setNutritionTrendDays(d)}
+                      >
+                        {d}d
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="nutrition-overview-layout">
@@ -1839,24 +1858,39 @@ export default function App() {
             </section>
 
             <section className="panel nutrition-panel-charts">
-              <h2 className="panel-heading panel-heading--plain">Trends &amp; consistency</h2>
+              <div className="panel-title-row nutrition-trends-heading-row" style={{ alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <h2 className="panel-heading panel-heading--plain" style={{ margin: 0 }}>Trends &amp; consistency</h2>
+                <div className="nutrition-trend-window" role="group" aria-label="Nutrition trend window">
+                  <span className="nutrition-trend-window-label">Window</span>
+                  {[7, 10, 30, 90].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className={`chip chip-compact ${nutritionTrendDays === d ? 'chip-active' : ''}`}
+                      onClick={() => setNutritionTrendDays(d)}
+                    >
+                      {d}d
+                    </button>
+                  ))}
+                </div>
+              </div>
               <p className="panel-subtle nutrition-panel-lede">
-                Calorie bars show each of the last seven days; the highlighted weekday matches the day picker above.
-                The week strips compare every nutrient to your targets.
+                Calorie bars span the selected window (oldest → newest). Highlight matches the day picker. Goal rings: full gray ring = 100% of target; colored arc = logged share (center = amount).
               </p>
               <p className="panel-subtle nutrition-averages-line">
-                Rolling averages (7d): kcal {formatMacro(nutrition7dAverages.calories)} · P {formatMacro(nutrition7dAverages.protein)}g ·
-                C {formatMacro(nutrition7dAverages.carbs)}g · F {formatMacro(nutrition7dAverages.fat)}g · Fiber {formatMacro(nutrition7dAverages.fiber)}g
+                Rolling averages ({nutritionTrendDays}d): kcal {formatMacro(nutritionWindowAverages.calories)} · P {formatMacro(nutritionWindowAverages.protein)}g ·
+                C {formatMacro(nutritionWindowAverages.carbs)}g · F {formatMacro(nutritionWindowAverages.fat)}g · Fiber {formatMacro(nutritionWindowAverages.fiber)}g
               </p>
               <div className="nutrition-trends-top">
                 <SevenDayCaloriesChart
-                  days={nutrition7DayByDay}
+                  days={nutritionWindowByDay}
                   goalKcal={nutritionGoals.calories}
                   highlightDateKey={nutritionDate}
+                  windowDays={nutritionTrendDays}
                 />
               </div>
               <WeekNutrientStrips
-                days={nutrition7DayByDay}
+                days={nutritionWindowByDay}
                 goals={nutritionGoals}
                 highlightDateKey={nutritionDate}
               />
