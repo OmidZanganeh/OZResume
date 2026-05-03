@@ -4385,6 +4385,49 @@ select.text-input.day-modal-select {
   line-height: 1.45;
 }
 
+.nutrition-preview-block {
+  width: 100%;
+  max-width: 420px;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--gf-radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.nutrition-preview-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gf-text-dim);
+}
+
+.nutrition-preview-line {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.nutrition-preview-line + .nutrition-preview-line {
+  margin-top: 0.35rem;
+}
+
+.nutrition-preview-line--muted {
+  color: var(--gf-text-muted);
+}
+
+.nutrition-preview-line--emph {
+  color: var(--gf-text);
+  font-weight: 600;
+}
+
+.nutrition-preview-unavail,
+.nutrition-preview-loading {
+  margin: 0 !important;
+  font-size: 0.8rem;
+}
+
 .nutrition-grams-with-chips {
   flex-direction: column;
   align-items: stretch;

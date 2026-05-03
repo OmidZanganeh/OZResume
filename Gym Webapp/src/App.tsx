@@ -252,6 +252,8 @@ export default function App() {
   const [selectedFood, setSelectedFood] = useState<NutritionSearchItem | null>(null);
   const [servingGrams, setServingGrams] = useState('100');
   const [nutritionBusy, setNutritionBusy] = useState(false);
+  /** Loading full item (per 100g) after picking a database hit in the list. */
+  const [nutritionItemLoading, setNutritionItemLoading] = useState(false);
   const [nutritionBarcodeScanOpen, setNutritionBarcodeScanOpen] = useState(false);
   const [newMyFoodName, setNewMyFoodName] = useState('');
   const [newMyFoodCals, setNewMyFoodCals] = useState('200');
@@ -705,6 +707,7 @@ export default function App() {
   useEffect(() => {
     setOffNutritionLookup(null);
     setServingHint(null);
+    setNutritionItemLoading(false);
     if (!selectedFood) return;
     if (selectedFood.code.startsWith('custom:')) return;
 
@@ -715,9 +718,14 @@ export default function App() {
     if (!cloudSignedIn) return;
 
     let cancelled = false;
+    setNutritionItemLoading(true);
     void (async () => {
       const item = await fetchNutritionItem(selectedFood.code, true);
-      if (cancelled || !item) return;
+      if (cancelled) return;
+      if (!item) {
+        setNutritionItemLoading(false);
+        return;
+      }
       setOffNutritionLookup(item);
       const sug = item.suggestedServingGrams;
       if (typeof sug === 'number' && sug > 0 && sug <= 2000) {
@@ -730,9 +738,11 @@ export default function App() {
             : `Prefilled ${Math.round(sug)} g from product data — verify on the package.`,
         );
       }
+      setNutritionItemLoading(false);
     })();
     return () => {
       cancelled = true;
+      setNutritionItemLoading(false);
     };
   }, [selectedFood?.code, cloudSignedIn]);
 
@@ -779,12 +789,12 @@ export default function App() {
     return `${base}${status}${details}`.trim();
   }
 
-  function runNutritionSearch() {
+  function runNutritionSearch(searchQueryOverride?: string) {
     if (!cloudSignedIn) {
       setMessage('Sign in to search USDA and Open Food Facts.');
       return;
     }
-    const term = nutritionQuery.trim();
+    const term = (searchQueryOverride ?? nutritionQuery).trim();
     if (term.length < 2) {
       setMessage('Enter at least 2 characters, then click Search (or press Enter).');
       return;
@@ -934,9 +944,9 @@ export default function App() {
     setOffNutritionLookup(null);
   }
 
-  async function handleNutritionBarcodeDecoded(raw: string) {
+  function handleNutritionBarcodeDecoded(raw: string) {
     if (!cloudSignedIn) {
-      setMessage('Sign in to log foods from a barcode.');
+      setMessage('Sign in to scan barcodes.');
       return;
     }
     const code = normalizeNutritionBarcodeInput(raw);
@@ -944,26 +954,12 @@ export default function App() {
       setMessage('That scan is not a usable product barcode (need 8–14 digits). Try again or search by name.');
       return;
     }
-    setNutritionBusy(true);
+    setSelectedFood(null);
+    setOffNutritionLookup(null);
     setNutritionError(null);
-    const item = await fetchNutritionItem(code, false);
-    setNutritionBusy(false);
-    if (!item) return;
-
-    setNutritionError(null);
-
-    let grams = 100;
-    const sug = item.suggestedServingGrams;
-    if (typeof sug === 'number' && sug > 0 && sug <= 2000) {
-      grams = Math.round(sug);
-    }
-    appendNutritionLogFromMacros({
-      code: item.code,
-      name: item.name,
-      per100g: item.per100g,
-      grams,
-    });
-    setMessage(`Logged ${item.name} (${grams} g).`);
+    setNutritionQuery(code);
+    runNutritionSearch(code);
+    setMessage('Barcode in search — pick the match, review nutrition, then add.');
   }
 
   async function addNutritionLog() {
@@ -2361,7 +2357,7 @@ export default function App() {
                 </button>
                 <p className="panel-subtle nutrition-scan-primary-hint">
                   {cloudSignedIn
-                    ? 'Point the camera at a UPC or EAN on the package. Logs immediately when recognized (Open Food Facts). Requires HTTPS or localhost and camera permission.'
+                    ? 'Point the camera at a UPC or EAN — the search box fills and results load so you can confirm before adding. Requires HTTPS or localhost and camera permission.'
                     : 'Sign in to scan or search the food database.'}
                 </p>
               </div>
@@ -2384,7 +2380,7 @@ export default function App() {
                   type="button"
                   className="button button-primary nutrition-search-submit"
                   disabled={nutritionLoading || !cloudSignedIn}
-                  onClick={runNutritionSearch}
+                  onClick={() => runNutritionSearch()}
                 >
                   {nutritionLoading ? 'Searching…' : 'Search'}
                 </button>
@@ -2499,6 +2495,72 @@ export default function App() {
                     </button>
                   </div>
                   {servingHint && <p className="panel-subtle nutrition-serving-hint">{servingHint}</p>}
+                  <div className="nutrition-preview-block" aria-live="polite">
+                    <p className="nutrition-preview-title">Nutrition preview</p>
+                    {selectedFood.code.startsWith('custom:') ? (() => {
+                      const cid = selectedFood.code.slice('custom:'.length);
+                      const cf = customFoods.find((x) => x.id === cid);
+                      if (!cf) {
+                        return <p className="panel-subtle nutrition-preview-unavail">My food entry not found.</p>;
+                      }
+                      const per100g: NutritionGoals = {
+                        calories: cf.caloriesPer100g,
+                        protein: cf.proteinPer100g,
+                        carbs: cf.carbsPer100g,
+                        fat: cf.fatPer100g,
+                        fiber: cf.fiberPer100g ?? 0,
+                      };
+                      const g = Number.parseFloat(servingGrams);
+                      const gOk = Number.isFinite(g) && g > 0;
+                      const portion = gOk ? computeMacros(per100g, g) : null;
+                      return (
+                        <>
+                          <p className="nutrition-preview-line nutrition-preview-line--muted">
+                            Per 100 g: {formatMacro(per100g.calories)} kcal · P {formatMacro(per100g.protein)} · C{' '}
+                            {formatMacro(per100g.carbs)} · F {formatMacro(per100g.fat)} · Fiber {formatMacro(per100g.fiber ?? 0)}
+                          </p>
+                          {portion ? (
+                            <p className="nutrition-preview-line nutrition-preview-line--emph">
+                              For {Math.round(g)} g: {portion.calories} kcal · P {portion.protein} · C {portion.carbs} · F {portion.fat} ·
+                              Fiber {portion.fiber}
+                            </p>
+                          ) : (
+                            <p className="panel-subtle nutrition-preview-unavail">Enter a valid amount (g) to preview your portion.</p>
+                          )}
+                        </>
+                      );
+                    })() : !cloudSignedIn ? (
+                      <p className="panel-subtle nutrition-preview-unavail">Sign in to load nutrition from the database.</p>
+                    ) : nutritionItemLoading ? (
+                      <p className="panel-subtle nutrition-preview-loading">Loading nutrition details…</p>
+                    ) : offNutritionLookup?.code === selectedFood.code ? (() => {
+                      const per100g = offNutritionLookup.per100g;
+                      const g = Number.parseFloat(servingGrams);
+                      const gOk = Number.isFinite(g) && g > 0;
+                      const portion = gOk ? computeMacros(per100g, g) : null;
+                      return (
+                        <>
+                          <p className="nutrition-preview-line nutrition-preview-line--muted">
+                            Per 100 g: {formatMacro(per100g.calories)} kcal · P {formatMacro(per100g.protein)} · C{' '}
+                            {formatMacro(per100g.carbs)} · F {formatMacro(per100g.fat)} · Fiber {formatMacro(per100g.fiber ?? 0)}
+                          </p>
+                          {portion ? (
+                            <p className="nutrition-preview-line nutrition-preview-line--emph">
+                              For {Math.round(g)} g: {portion.calories} kcal · P {portion.protein} · C {portion.carbs} · F {portion.fat} ·
+                              Fiber {portion.fiber}
+                            </p>
+                          ) : (
+                            <p className="panel-subtle nutrition-preview-unavail">Enter a valid amount (g) to preview your portion.</p>
+                          )}
+                        </>
+                      );
+                    })() : (
+                      <p className="panel-subtle nutrition-preview-unavail">
+                        Could not load preview. Try <strong>Search</strong> again, or use <strong>Add to log</strong> (nutrition loads when
+                        adding).
+                      </p>
+                    )}
+                  </div>
                   <div className="nutrition-grams nutrition-grams-with-chips">
                     <label className="nutrition-grams-label">
                       <span>Amount eaten (g)</span>
