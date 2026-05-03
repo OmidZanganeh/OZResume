@@ -41,6 +41,14 @@ export type NutritionGoals = {
   fiber: number;
 };
 
+/** Saved catalog / custom food for quick pick on the Nutrition tab (same `code` as logs / search). */
+export type NutritionFavoriteFood = {
+  code: string;
+  name: string;
+  brands?: string;
+  image?: string;
+};
+
 export type NutritionLog = {
   id: string;
   /** Calendar day `YYYY-MM-DD` or ISO; normalized when aggregating. */
@@ -99,6 +107,8 @@ export type PersistedGymData = {
   nutritionLogs?: NutritionLog[];
   nutritionGoals?: NutritionGoals;
   customFoods?: CustomFood[];
+  /** Starred foods for quick re-add (synced with cloud payload when signed in). */
+  nutritionFavorites?: NutritionFavoriteFood[];
 };
 
 export const defaultGymData: PersistedGymData = {
@@ -107,6 +117,7 @@ export const defaultGymData: PersistedGymData = {
   sessions: [],
   savedPlans: [],
   nutritionLogs: [],
+  nutritionFavorites: [],
   customFoods: [],
   nutritionGoals: {
     calories: 2000,

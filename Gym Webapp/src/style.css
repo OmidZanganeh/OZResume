@@ -3597,7 +3597,13 @@ body {
 }
 
 /* ── LANDSCAPE DASHBOARD (PRL) SHARED STYLES ── */
+/*
+ * Single layout ratio for **Print PDF** (@page letter landscape) and **Save as Image** (html-to-image):
+ * US Letter landscape 11" × 8.5" → 1056 × 816 px at 96 CSS px/in (same as App.tsx toJpeg width/height).
+ */
 #print-report {
+  --prl-capture-w: 1056px;
+  --prl-capture-h: 816px;
   display: none; /* Hidden by default */
   flex-direction: column;
   background: #07080c !important;
@@ -3843,14 +3849,14 @@ body {
   }
 }
 
-/* -- Screenshot Mode (for html-to-image) -- */
+/* -- Screenshot Mode (for html-to-image) — same aspect as @page letter landscape above -- */
 .screenshot-mode #print-report {
   display: flex !important;
   visibility: visible !important;
   position: fixed;
   left: 0; top: 0;
-  width: 1280px; /* Fixed width for consistent high-res capture */
-  height: 800px; /* Fixed height for landscape aspect ratio */
+  width: var(--prl-capture-w);
+  height: var(--prl-capture-h);
   z-index: -9999; /* Stay behind everything */
   pointer-events: none;
   background: #07080c !important;
@@ -4079,6 +4085,80 @@ select.text-input.day-modal-select {
   min-width: 0;
 }
 
+.nutrition-recent-picks-block {
+  margin-top: 0.75rem;
+}
+
+.nutrition-recent-picks-label {
+  margin: 0 0 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gf-text-dim);
+}
+
+.nutrition-recent-picks-hint {
+  margin: 0 0 0.5rem !important;
+  font-size: 0.78rem;
+}
+
+.nutrition-recent-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: stretch;
+  max-height: 9.5rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.15rem;
+}
+
+.nutrition-recent-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  max-width: 100%;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--gf-radius-md);
+  border: 1px solid var(--gf-border);
+  background: rgba(15, 23, 42, 0.5);
+  color: var(--gf-text);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.nutrition-recent-chip:hover {
+  border-color: rgba(45, 212, 191, 0.45);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.nutrition-recent-chip.is-selected {
+  border-color: rgba(45, 212, 191, 0.65);
+  background: var(--gf-accent-dim);
+  color: #ecfeff;
+}
+
+.nutrition-recent-chip-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.nutrition-recent-chip-meta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-recent-chip.is-selected .nutrition-recent-chip-meta {
+  color: #99f6e4;
+}
+
 .nutrition-search-list {
   list-style: none;
   margin: 0.6rem 0 0;
@@ -4092,6 +4172,78 @@ select.text-input.day-modal-select {
 
 .nutrition-search-item {
   margin: 0;
+}
+
+.nutrition-search-item--with-fav {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.nutrition-search-item--with-fav .nutrition-search-btn {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+.nutrition-fav-star {
+  flex: 0 0 2.5rem;
+  min-width: 2.5rem;
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-md);
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--gf-text-muted);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.nutrition-fav-star:hover {
+  border-color: rgba(250, 204, 21, 0.45);
+  color: #fde047;
+}
+
+.nutrition-fav-star.is-on {
+  border-color: rgba(250, 204, 21, 0.55);
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde047;
+}
+
+.nutrition-fav-chip-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  max-width: 100%;
+}
+
+.nutrition-fav-chip-wrap .nutrition-recent-chip {
+  flex: 1;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.nutrition-fav-remove {
+  flex: 0 0 2rem;
+  min-width: 2rem;
+  border: 1px solid var(--gf-border);
+  border-left: none;
+  border-radius: 0 var(--gf-radius-md) var(--gf-radius-md) 0;
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--gf-text-muted);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nutrition-fav-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
 }
 
 .nutrition-search-btn {
@@ -4238,14 +4390,35 @@ select.text-input.day-modal-select {
 
 .nutrition-selected {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 200px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  width: 100%;
 }
 
-.nutrition-selected span {
+.nutrition-selected-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.nutrition-selected-text span {
   font-size: 0.78rem;
   color: var(--gf-text-muted);
+}
+
+.nutrition-fav-toggle.is-active {
+  border-color: rgba(250, 204, 21, 0.55) !important;
+  color: #fde047 !important;
+}
+
+.nutrition-log-actions .button.is-active {
+  border-color: rgba(250, 204, 21, 0.55);
+  color: #fde047;
 }
 
 .nutrition-grams {

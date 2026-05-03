@@ -21,7 +21,8 @@ function isPersistedEmpty(d: PersistedGymData): boolean {
     !(d.userProfile && Object.keys(d.userProfile).length > 0) &&
     (!d.nutritionLogs || d.nutritionLogs.length === 0) &&
     !(d.nutritionGoals && Object.keys(d.nutritionGoals).length > 0) &&
-    (!d.customFoods || d.customFoods.length === 0)
+    (!d.customFoods || d.customFoods.length === 0) &&
+    (!d.nutritionFavorites || d.nutritionFavorites.length === 0)
   );
 }
 

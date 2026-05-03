@@ -34,6 +34,7 @@ import {
   savePersistedGymData,
   type CustomFood,
   type PersistedGymData,
+  type NutritionFavoriteFood,
   type NutritionGoals,
   type NutritionLog,
   type SavedPlan,
@@ -143,16 +144,33 @@ function formatPlanLastDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function getLastPlanSessionDate(planId: string, sessions: PersistedGymData['sessions']): string | null {
+/**
+ * Muscle-only / calendar session with no sourcePlanId: treat as using `plan` when every muscle
+ * in the session appears on that plan’s list (partial days still match a broader template).
+ */
+function sessionCalendarImpliesPlanUsage(s: PersistedGymData['sessions'][number], plan: SavedPlan): boolean {
+  if (s.sourcePlanId) return false;
+  const sg = s.groups ?? [];
+  if (plan.muscleGroups.length === 0 || sg.length === 0) return false;
+  return sg.every((g) => plan.muscleGroups.includes(g));
+}
+
+/** Latest session date for this plan: explicit `sourcePlanId` or implied calendar/muscle log. */
+function getLastPlanSessionDate(plan: SavedPlan, sessions: PersistedGymData['sessions']): string | null {
+  let best = Number.NEGATIVE_INFINITY;
   for (const s of sessions) {
-    if (s.sourcePlanId === planId) return s.date;
+    const hit = s.sourcePlanId === plan.id || sessionCalendarImpliesPlanUsage(s, plan);
+    if (!hit) continue;
+    const t = new Date(s.date).getTime();
+    if (Number.isFinite(t) && t > best) best = t;
   }
-  return null;
+  if (best === Number.NEGATIVE_INFINITY) return null;
+  return new Date(best).toISOString();
 }
 
 /** Sort key: oldest / never-used first (next up), most-recent session last (e.g. done today → end of row). */
-function sortKeyLastPlanSession(planId: string, sessions: PersistedGymData['sessions']): number {
-  const iso = getLastPlanSessionDate(planId, sessions);
+function sortKeyLastPlanSession(plan: SavedPlan, sessions: PersistedGymData['sessions']): number {
+  const iso = getLastPlanSessionDate(plan, sessions);
   if (!iso) return Number.NEGATIVE_INFINITY;
   return new Date(iso).getTime();
 }
@@ -162,8 +180,8 @@ function comparePlansByLastUsed(
   b: SavedPlan,
   sessions: PersistedGymData['sessions'],
 ): number {
-  const da = sortKeyLastPlanSession(a.id, sessions);
-  const db = sortKeyLastPlanSession(b.id, sessions);
+  const da = sortKeyLastPlanSession(a, sessions);
+  const db = sortKeyLastPlanSession(b, sessions);
   if (da !== db) return da - db;
   return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 }
@@ -424,6 +442,71 @@ export default function App() {
     };
   }, [nutritionLogs, nutritionGoals]);
 
+  /** Unique foods from the log (newest first) for quick re-pick before searching. */
+  const recentFoodPickItems = useMemo((): NutritionSearchItem[] => {
+    const seen = new Set<string>();
+    const out: NutritionSearchItem[] = [];
+    const sorted = [...nutritionLogs].sort((a, b) => {
+      const ta = new Date(a.createdAt || `${nutritionLogDateKey(a.date)}T12:00:00`).getTime();
+      const tb = new Date(b.createdAt || `${nutritionLogDateKey(b.date)}T12:00:00`).getTime();
+      return tb - ta;
+    });
+    for (const log of sorted) {
+      const code = log.code?.trim();
+      if (!code || seen.has(code)) continue;
+      seen.add(code);
+      const g = log.servingGrams;
+      out.push({
+        code,
+        name: log.name,
+        brands: 'Recent',
+        quantity:
+          typeof g === 'number' && Number.isFinite(g) && g > 0 ? `Last: ${Math.round(g)} g` : undefined,
+      });
+      if (out.length >= 24) break;
+    }
+    return out;
+  }, [nutritionLogs]);
+
+  const favoriteCodeSet = useMemo(
+    () => new Set((data.nutritionFavorites ?? []).map((f) => f.code)),
+    [data.nutritionFavorites],
+  );
+
+  const favoriteFoodItemsForPicker = useMemo((): NutritionSearchItem[] => {
+    return (data.nutritionFavorites ?? []).map((f) => ({
+      code: f.code,
+      name: f.name,
+      brands: 'Favorite',
+      image: f.image,
+    }));
+  }, [data.nutritionFavorites]);
+
+  const favoriteFoodMatchesForPicker = useMemo(() => {
+    const q = nutritionQuery.trim().toLowerCase();
+    if (q.length < 2) return favoriteFoodItemsForPicker;
+    return favoriteFoodItemsForPicker.filter(
+      (i) => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q),
+    );
+  }, [nutritionQuery, favoriteFoodItemsForPicker]);
+
+  const favoritePickerCodes = useMemo(
+    () => new Set(favoriteFoodMatchesForPicker.map((x) => x.code)),
+    [favoriteFoodMatchesForPicker],
+  );
+
+  const recentFoodMatchesForPicker = useMemo(() => {
+    const q = nutritionQuery.trim().toLowerCase();
+    const base = recentFoodPickItems.filter((i) => !favoriteCodeSet.has(i.code));
+    if (q.length < 2) return base;
+    return base.filter((i) => i.name.toLowerCase().includes(q));
+  }, [nutritionQuery, recentFoodPickItems, favoriteCodeSet]);
+
+  const recentPickerCodes = useMemo(
+    () => new Set(recentFoodMatchesForPicker.map((x) => x.code)),
+    [recentFoodMatchesForPicker],
+  );
+
   const customFoodSearchMatches = useMemo((): NutritionSearchItem[] => {
     const q = nutritionQuery.trim().toLowerCase();
     const base = [...customFoods].sort((a, b) => a.name.localeCompare(b.name));
@@ -437,9 +520,30 @@ export default function App() {
 
   const displayNutritionResults = useMemo(() => {
     const fromApi = cloudSignedIn && nutritionQuery.trim().length >= 2 ? nutritionResults : [];
-    const codes = new Set(customFoodSearchMatches.map((i) => i.code));
-    return [...customFoodSearchMatches, ...fromApi.filter((i) => !codes.has(i.code))];
-  }, [customFoodSearchMatches, nutritionResults, cloudSignedIn, nutritionQuery]);
+    const codes = new Set<string>();
+    const skipStrip = (c: string) => recentPickerCodes.has(c) || favoritePickerCodes.has(c);
+    const merged: NutritionSearchItem[] = [];
+    for (const x of customFoodSearchMatches) {
+      if (skipStrip(x.code)) continue;
+      if (codes.has(x.code)) continue;
+      codes.add(x.code);
+      merged.push(x);
+    }
+    for (const x of fromApi) {
+      if (skipStrip(x.code)) continue;
+      if (codes.has(x.code)) continue;
+      codes.add(x.code);
+      merged.push(x);
+    }
+    return merged;
+  }, [
+    customFoodSearchMatches,
+    nutritionResults,
+    cloudSignedIn,
+    nutritionQuery,
+    recentPickerCodes,
+    favoritePickerCodes,
+  ]);
 
   const groupedSessions = useMemo(() => {
     const map = new Map<string, { date: string; groups: MuscleGroup[]; entries: number; id: string }>();
@@ -704,6 +808,32 @@ export default function App() {
   function persist(next: PersistedGymData) {
     setData(next);
     savePersistedGymData(next);
+  }
+
+  function toggleNutritionFavorite(item: {
+    code: string;
+    name: string;
+    brands?: string;
+    image?: string;
+  }) {
+    const base = dataRef.current;
+    const prev = base.nutritionFavorites ?? [];
+    const idx = prev.findIndex((f) => f.code === item.code);
+    let next: NutritionFavoriteFood[];
+    if (idx >= 0) {
+      next = prev.filter((_, i) => i !== idx);
+    } else {
+      next = [
+        {
+          code: item.code,
+          name: item.name,
+          brands: item.brands,
+          image: item.image,
+        },
+        ...prev.filter((f) => f.code !== item.code),
+      ];
+    }
+    persist({ ...base, nutritionFavorites: next });
   }
 
   async function fetchNutritionItem(code: string, silent = false): Promise<NutritionItemDetail | null> {
@@ -1107,6 +1237,10 @@ export default function App() {
     const reportEl = document.getElementById('print-report');
     if (!reportEl) return;
 
+    /** US Letter landscape @ 96 CSS px/in — must match `#print-report` in style.css (print + screenshot). */
+    const PRL_CAPTURE_W = 1056;
+    const PRL_CAPTURE_H = 816;
+
     try {
       document.body.classList.add('screenshot-mode');
       await new Promise(r => setTimeout(r, 150)); // Wait for styles to settle
@@ -1115,8 +1249,8 @@ export default function App() {
         quality: 0.92,
         backgroundColor: '#07080c',
         cacheBust: true,
-        width: 1280,
-        height: 800,
+        width: PRL_CAPTURE_W,
+        height: PRL_CAPTURE_H,
         pixelRatio: 2,
         style: {
           display: 'flex',
@@ -1477,7 +1611,7 @@ export default function App() {
                     <ul className="plan-card-list">
                       {sortedSavedPlans.map((plan) => {
                         const entries = orderedPlanEntries(plan, allExercises);
-                        const lastUsed = getLastPlanSessionDate(plan.id, data.sessions);
+                        const lastUsed = getLastPlanSessionDate(plan, data.sessions);
                         return (
                           <li key={plan.id} className="plan-card-home">
                             <div className="plan-card-home-row">
@@ -1534,7 +1668,7 @@ export default function App() {
                   <ul className="plan-card-list">
                     {category.plans.map((plan) => {
                       const entries = orderedPlanEntries(plan, allExercises);
-                      const lastUsed = getLastPlanSessionDate(plan.id, data.sessions);
+                      const lastUsed = getLastPlanSessionDate(plan, data.sessions);
                       return (
                         <li key={plan.id} className="plan-card-home">
                           <div className="plan-card-home-row">
@@ -1622,7 +1756,7 @@ export default function App() {
                 <ul className="plan-card-list">
                   {musclePlanSuggestionLists.saved.map((plan) => {
                     const entries = orderedPlanEntries(plan, allExercises);
-                    const lastUsed = getLastPlanSessionDate(plan.id, data.sessions);
+                    const lastUsed = getLastPlanSessionDate(plan, data.sessions);
                     return (
                       <li key={plan.id} className="plan-card-home">
                         <div className="plan-card-home-row">
@@ -1662,7 +1796,7 @@ export default function App() {
                 <ul className="plan-card-list">
                   {plans.map((plan) => {
                     const entries = orderedPlanEntries(plan, allExercises);
-                    const lastUsed = getLastPlanSessionDate(plan.id, data.sessions);
+                    const lastUsed = getLastPlanSessionDate(plan, data.sessions);
                     return (
                       <li key={plan.id} className="plan-card-home">
                         <div className="plan-card-home-row">
@@ -2156,10 +2290,61 @@ export default function App() {
                   {nutritionError}
                 </p>
               )}
+              {favoriteFoodMatchesForPicker.length > 0 ? (
+                <div className="nutrition-recent-picks-block nutrition-favorites-picks-block">
+                  <p className="nutrition-recent-picks-label">Favorites</p>
+                  <p className="panel-subtle nutrition-recent-picks-hint">
+                    Tap to log again. × removes from favorites (does not delete past log entries).
+                  </p>
+                  <div className="nutrition-recent-picks nutrition-favorites-picks" role="list">
+                    {favoriteFoodMatchesForPicker.map((item) => (
+                      <div key={item.code} className="nutrition-fav-chip-wrap" role="listitem">
+                        <button
+                          type="button"
+                          className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
+                          onClick={() => setSelectedFood(item)}
+                        >
+                          <span className="nutrition-recent-chip-name">{item.name}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="nutrition-fav-remove"
+                          aria-label={`Remove ${item.name} from favorites`}
+                          onClick={() => toggleNutritionFavorite(item)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {recentFoodMatchesForPicker.length > 0 ? (
+                <div className="nutrition-recent-picks-block">
+                  <p className="nutrition-recent-picks-label">Recently logged</p>
+                  <p className="panel-subtle nutrition-recent-picks-hint">Tap a food to add it again — no search needed.</p>
+                  <div className="nutrition-recent-picks" role="list">
+                    {recentFoodMatchesForPicker.map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        role="listitem"
+                        className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
+                        onClick={() => setSelectedFood(item)}
+                      >
+                        <span className="nutrition-recent-chip-name">{item.name}</span>
+                        {item.quantity ? (
+                          <span className="nutrition-recent-chip-meta">{item.quantity}</span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {displayNutritionResults.length > 0 && (
                 <ul className="nutrition-search-list">
                   {displayNutritionResults.map((item) => (
-                    <li key={item.code} className="nutrition-search-item">
+                    <li key={item.code} className="nutrition-search-item nutrition-search-item--with-fav">
                       <button
                         type="button"
                         className={`nutrition-search-btn ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
@@ -2175,6 +2360,17 @@ export default function App() {
                           </span>
                         </div>
                       </button>
+                      <button
+                        type="button"
+                        className={`nutrition-fav-star ${favoriteCodeSet.has(item.code) ? 'is-on' : ''}`}
+                        aria-label={
+                          favoriteCodeSet.has(item.code) ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`
+                        }
+                        aria-pressed={favoriteCodeSet.has(item.code)}
+                        onClick={() => toggleNutritionFavorite(item)}
+                      >
+                        {favoriteCodeSet.has(item.code) ? '★' : '☆'}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -2182,8 +2378,18 @@ export default function App() {
               {selectedFood && (
                 <div className="nutrition-add-block">
                   <div className="nutrition-selected">
-                    <strong>{selectedFood.name}</strong>
-                    <span>{selectedFood.brands || selectedFood.quantity || selectedFood.servingSize || 'Database'}</span>
+                    <div className="nutrition-selected-text">
+                      <strong>{selectedFood.name}</strong>
+                      <span>{selectedFood.brands || selectedFood.quantity || selectedFood.servingSize || 'Database'}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`button button-muted button-small nutrition-fav-toggle ${favoriteCodeSet.has(selectedFood.code) ? 'is-active' : ''}`}
+                      aria-pressed={favoriteCodeSet.has(selectedFood.code)}
+                      onClick={() => toggleNutritionFavorite(selectedFood)}
+                    >
+                      {favoriteCodeSet.has(selectedFood.code) ? '★ Favorited' : '☆ Favorite'}
+                    </button>
                   </div>
                   {servingHint && <p className="panel-subtle nutrition-serving-hint">{servingHint}</p>}
                   <div className="nutrition-grams nutrition-grams-with-chips">
@@ -2439,6 +2645,19 @@ export default function App() {
                             </>
                           ) : (
                             <>
+                              <button
+                                type="button"
+                                className={`button button-muted button-small ${favoriteCodeSet.has(log.code) ? 'is-active' : ''}`}
+                                aria-pressed={favoriteCodeSet.has(log.code)}
+                                onClick={() =>
+                                  toggleNutritionFavorite({
+                                    code: log.code,
+                                    name: log.name,
+                                  })
+                                }
+                              >
+                                {favoriteCodeSet.has(log.code) ? '★' : '☆'}
+                              </button>
                               <button type="button" className="button button-muted button-small" onClick={() => startEditNutritionLog(log)}>
                                 Edit
                               </button>

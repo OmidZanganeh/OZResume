@@ -22,5 +22,13 @@ export function isValidPersistedGymPayload(x: unknown): boolean {
   if (o.nutritionGoals !== undefined && (o.nutritionGoals === null || typeof o.nutritionGoals !== 'object')) {
     return false;
   }
+  if (o.nutritionFavorites !== undefined) {
+    if (!Array.isArray(o.nutritionFavorites)) return false;
+    for (const row of o.nutritionFavorites) {
+      if (!row || typeof row !== 'object') return false;
+      const f = row as Record<string, unknown>;
+      if (typeof f.code !== 'string' || typeof f.name !== 'string') return false;
+    }
+  }
   return true;
 }

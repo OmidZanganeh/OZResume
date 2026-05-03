@@ -32,6 +32,8 @@ type WorkoutSession = {
     notes: string;
     trainedMuscleGroups?: MuscleGroup[];
   }[];
+  /** When added from a saved plan in this modal — drives plan “last used” ordering on Home. */
+  sourcePlanId?: string;
 };
 
 type NutritionSearchItem = {
@@ -326,6 +328,7 @@ export function DayActivityModal({
       session = {
         id: `h-plan-${Date.now()}`,
         date: createHistorySessionDate(dateKey),
+        sourcePlanId: plan.id,
         groups: [...plan.muscleGroups],
         entries: plan.exerciseIds.map((id) => {
           const ex = allExercises.find((e) => e.id === id);

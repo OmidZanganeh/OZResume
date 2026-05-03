@@ -184,22 +184,26 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
     fiber: COL.fiber,
   };
 
-  const labelColW = isPrint ? (n <= 14 ? 56 : 72) : n <= 14 ? 70 : 88;
-  const labelToRingsGap = isPrint ? 10 : 14;
+  const labelColW = isPrint ? (n <= 14 ? 56 : 72) : n <= 14 ? 76 : 88;
+  const labelToRingsGap = isPrint ? 10 : compact ? 14 : 16;
   const ringsStartX = labelColW + labelToRingsGap;
   /** Slightly wider columns than before; still scrolls for very long windows. */
-  const targetRingsWidth = Math.min(400, Math.max(300, 72 + n * 34));
+  const targetRingsWidth = isPrint
+    ? Math.min(400, Math.max(300, 72 + n * 34))
+    : compact
+      ? Math.min(400, Math.max(300, 72 + n * 34))
+      : Math.min(460, Math.max(340, 80 + n * 40));
   const cellW = Math.max(26, Math.min(44, Math.floor((targetRingsWidth - ringsStartX) / n)));
-  const rowH = isPrint ? 30 : compact ? 45 : 50;
-  const padT = isPrint ? 4 : compact ? 7 : 8;
-  const dowGapAfterRows = isPrint ? 5 : compact ? 10 : 12;
-  const bottomPad = isPrint ? 5 : compact ? 10 : 12;
+  const rowH = isPrint ? 30 : compact ? 45 : 66;
+  const padT = isPrint ? 4 : compact ? 7 : 11;
+  const dowGapAfterRows = isPrint ? 5 : compact ? 10 : 16;
+  const bottomPad = isPrint ? 5 : compact ? 10 : 16;
   const dowRowY = padT + WEEK_KEYS.length * rowH + dowGapAfterRows;
   const totalW = ringsStartX + n * cellW + 6;
   const totalH = dowRowY + bottomPad;
-  const labelFont = isPrint ? 7 : compact ? 9 : 10;
-  const dowFont = isPrint ? 6.25 : compact ? 7.75 : 8.5;
-  const strokeW = isPrint ? 2 : compact ? 2.75 : 3;
+  const labelFont = isPrint ? 7 : compact ? 9 : 13;
+  const dowFont = isPrint ? 6.25 : compact ? 7.75 : 11;
+  const strokeW = isPrint ? 2 : compact ? 2.75 : 3.5;
 
   const fmtCenter = (key: (typeof WEEK_KEYS)[number], val: number) => {
     if (key === 'calories') return String(Math.round(val));
@@ -224,15 +228,18 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
             const cy = padT + row * rowH + rowH / 2;
             return (
               <g key={key}>
-                <text x={4} y={cy + (isPrint ? 2.5 : compact ? 3.5 : 4)} fill="var(--gf-text-muted)" fontSize={labelFont} fontWeight="600">
+                <text x={4} y={cy + (isPrint ? 2.5 : compact ? 3.5 : 5)} fill="var(--gf-text-muted)" fontSize={labelFont} fontWeight="600">
                   {labels[key]}
                 </text>
                 {days.map((d, i) => {
                   const val = d[key];
                   const cx = ringsStartX + i * cellW + cellW / 2;
                   const r = Math.max(
-                    isPrint ? 7 : compact ? 9 : 10,
-                    Math.min(isPrint ? 12 : compact ? 15 : 16, (cellW - (isPrint ? 8 : 6)) / 2),
+                    isPrint ? 7 : compact ? 9 : 12,
+                    Math.min(
+                      isPrint ? 12 : compact ? 15 : 20,
+                      (cellW - (isPrint ? 8 : compact ? 6 : 4)) / 2,
+                    ),
                   );
                   const circ = 2 * Math.PI * r;
                   const rawFrac = goal > 0 ? val / goal : 0;
@@ -240,7 +247,7 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
                   const dash = `${arcFrac * circ} ${circ}`;
                   const isHi = d.dateKey === highlightDateKey;
                   const centerTxt = fmtCenter(key, val);
-                  /** ~50% smaller than prior sizes so values fit inside small rings. */
+                  /** Center value inside ring; default density sized for readability (~30%+ vs prior). */
                   const fs = isPrint
                     ? centerTxt.length > 4
                       ? 2.75
@@ -254,10 +261,10 @@ export function WeekNutrientStrips({ days, goals, highlightDateKey, showTitle = 
                           ? 4
                           : 4.5
                       : centerTxt.length > 4
-                        ? 3.75
+                        ? 5
                         : centerTxt.length > 3
-                          ? 4.25
-                          : 5;
+                          ? 5.75
+                          : 6.5;
                   return (
                     <g key={`${key}-${d.dateKey}`}>
                       <circle
