@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, FileText, Flame, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, FileText, Flame, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, X, Star } from 'lucide-react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toJpeg } from 'html-to-image';
 import { BodyMapFigure } from './components/BodyMapFigure';
@@ -1702,7 +1702,10 @@ export default function App() {
             {/* MY PLANS */}
             <section className="home-section" aria-label="My Plans">
               <div className="home-section-header" onClick={() => toggleSection('my-plans')} style={{ cursor: 'pointer' }}>
-                <span className="home-section-label">MY PLANS {collapsedSections['my-plans'] ? '▼' : '▲'}</span>
+                <span className="home-section-label">
+                  MY PLANS
+                  {collapsedSections['my-plans'] ? <ChevronDown size={14} style={{ marginLeft: '4px' }} /> : <ChevronUp size={14} style={{ marginLeft: '4px' }} />}
+                </span>
                 <button className="icon-add-btn" onClick={(e) => { e.stopPropagation(); startCreatePlan(); }} aria-label="New plan">+</button>
               </div>
 
@@ -1763,7 +1766,10 @@ export default function App() {
               <section key={category.title} className="home-section" aria-label={category.title}>
                 <div className="home-section-header" onClick={() => toggleSection(category.title)} style={{ cursor: 'pointer' }}>
                   <div className="home-section-title">
-                    <span className="home-section-label">{category.title.toUpperCase()} {collapsedSections[category.title] ? '▼' : '▲'}</span>
+                    <span className="home-section-label">
+                      {category.title.toUpperCase()}
+                      {collapsedSections[category.title] ? <ChevronDown size={14} style={{ marginLeft: '4px' }} /> : <ChevronUp size={14} style={{ marginLeft: '4px' }} />}
+                    </span>
                     {PRESET_CATEGORY_META[category.title]?.description && (
                       <span className="home-section-desc">{PRESET_CATEGORY_META[category.title].description}</span>
                     )}
@@ -1841,7 +1847,7 @@ export default function App() {
           <div className="subview muscle-plan-suggestions">
             <div className="view-header">
               <button type="button" className="view-back" onClick={exitMusclePlanSuggestions}>
-                ← Back
+                <ArrowLeft size={16} strokeWidth={2.5} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Back
               </button>
               <h1 className="view-title">{muscleSuggestionsGroup}</h1>
               <span className="view-badge">
@@ -1947,9 +1953,9 @@ export default function App() {
         {view === 'create-focus' && (
           <div className="subview">
             <div className="view-header">
-              <button className="view-back" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); setView('home'); }}>← Back</button>
+              <button className="view-back" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); setView('home'); }}><ArrowLeft size={16} strokeWidth={2.5} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Back</button>
               <h1 className="view-title">{editingSavedPlanId ? 'Edit Plan' : 'New Plan'}</h1>
-              <button className="view-next" onClick={() => setView('create-moves')}>Next →</button>
+              <button className="view-next" onClick={() => setView('create-moves')}>Next <ArrowRight size={16} strokeWidth={2.5} style={{ marginLeft: '6px', verticalAlign: 'text-bottom' }} /></button>
             </div>
             <p className="view-hint">Tap a muscle to focus the exercise list, or skip.</p>
             <BodyMapFigure
@@ -1962,7 +1968,7 @@ export default function App() {
               <div className="selected-chips-row">
                 {selectedGroups.map((g) => (
                   <button key={g} type="button" className="chip chip-active" onClick={() => toggleGroup(g)}>
-                    {g} ✕
+                    {g} <X size={14} style={{ marginLeft: '4px', verticalAlign: 'text-bottom' }} />
                   </button>
                 ))}
                 <button type="button" className="text-button" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); }}>
@@ -1977,7 +1983,7 @@ export default function App() {
         {view === 'create-moves' && (
           <div className="subview">
             <div className="view-header">
-              <button className="view-back" onClick={() => setView('create-focus')}>← Back</button>
+              <button className="view-back" onClick={() => setView('create-focus')}><ArrowLeft size={16} strokeWidth={2.5} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Back</button>
               <h1 className="view-title">Pick Moves</h1>
               <span className="view-badge">{selectedExerciseIds.length} added</span>
             </div>
@@ -1995,7 +2001,7 @@ export default function App() {
                         <div style={{ display: 'flex', gap: '0.35rem' }}>
                           <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, -1)} disabled={index === 0}>↑</button>
                           <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, 1)} disabled={index === selectedExerciseIds.length - 1}>↓</button>
-                          <button type="button" className="text-button" onClick={() => toggleExerciseInPlan(id)} aria-label="Remove" style={{ marginLeft: '0.25rem', padding: '0.1rem 0.3rem' }}>✕</button>
+                          <button type="button" className="text-button" onClick={() => toggleExerciseInPlan(id)} aria-label="Remove" style={{ marginLeft: '0.25rem', padding: '0.1rem 0.3rem', display: 'inline-flex', alignItems: 'center' }}><X size={14}/></button>
                         </div>
                       </div>
                     );
@@ -2106,7 +2112,7 @@ export default function App() {
         {view === 'log' && (
           <div className="subview">
             <div className="view-header">
-              <button className="view-back" onClick={() => { setSelectedExerciseIds([]); setExerciseDrafts({}); setActiveRoutineName(null); setView('home'); }}>← Back</button>
+              <button className="view-back" onClick={() => { setSelectedExerciseIds([]); setExerciseDrafts({}); setActiveRoutineName(null); setView('home'); }}><ArrowLeft size={16} strokeWidth={2.5} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Back</button>
               <h1 className="view-title">{activeRoutineName ?? 'Quick Log'}</h1>
             </div>
             <p className="view-hint">Check the moves you complete, then save.</p>
@@ -2491,7 +2497,7 @@ export default function App() {
                         aria-pressed={favoriteCodeSet.has(item.code)}
                         onClick={() => toggleNutritionFavorite(item)}
                       >
-                        {favoriteCodeSet.has(item.code) ? '★' : '☆'}
+                        {favoriteCodeSet.has(item.code) ? <Star size={16} fill="currentColor" color="#fbbf24" style={{ verticalAlign: 'text-bottom' }} /> : <Star size={16} color="#94a3b8" style={{ verticalAlign: 'text-bottom' }} />}
                       </button>
                     </li>
                   ))}
@@ -2510,7 +2516,9 @@ export default function App() {
                       aria-pressed={favoriteCodeSet.has(selectedFood.code)}
                       onClick={() => toggleNutritionFavorite(selectedFood)}
                     >
-                      {favoriteCodeSet.has(selectedFood.code) ? '★ Favorited' : '☆ Favorite'}
+                      {favoriteCodeSet.has(selectedFood.code) ? 
+                        <><Star size={16} fill="currentColor" color="#fbbf24" style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Favorited</> : 
+                        <><Star size={16} color="currentColor" style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Favorite</>}
                     </button>
                   </div>
                   {servingHint && <p className="panel-subtle nutrition-serving-hint">{servingHint}</p>}
@@ -2688,7 +2696,7 @@ export default function App() {
               >
                 <h2 className="panel-heading panel-heading--plain">My foods</h2>
                 <span className="nutrition-collapse-chevron" aria-hidden>
-                  {collapsedSections['nutrition-my-foods'] ? '▼' : '▲'}
+                  {collapsedSections['nutrition-my-foods'] ? <ChevronDown size={14} style={{ marginLeft: '4px' }} /> : <ChevronUp size={14} style={{ marginLeft: '4px' }} />}
                 </span>
               </div>
               {!collapsedSections['nutrition-my-foods'] ? (
@@ -2796,7 +2804,7 @@ export default function App() {
                   <span className="panel-subtle">{dailyNutritionLogs.length} items</span>
                 </div>
                 <span className="nutrition-collapse-chevron" aria-hidden>
-                  {collapsedSections['nutrition-logged-foods'] ? '▼' : '▲'}
+                  {collapsedSections['nutrition-logged-foods'] ? <ChevronDown size={14} style={{ marginLeft: '4px' }} /> : <ChevronUp size={14} style={{ marginLeft: '4px' }} />}
                 </span>
               </div>
               {!collapsedSections['nutrition-logged-foods'] ? (
@@ -2844,7 +2852,7 @@ export default function App() {
                                   })
                                 }
                               >
-                                {favoriteCodeSet.has(log.code) ? '★' : '☆'}
+                                {favoriteCodeSet.has(log.code) ? <Star size={16} fill="currentColor" color="#fbbf24" style={{ verticalAlign: 'text-bottom' }} /> : <Star size={16} color="#94a3b8" style={{ verticalAlign: 'text-bottom' }} />}
                               </button>
                               <button type="button" className="button button-muted button-small" onClick={() => startEditNutritionLog(log)}>
                                 Edit
@@ -2877,7 +2885,7 @@ export default function App() {
               >
                 <h2 className="panel-heading panel-heading--plain">Goals</h2>
                 <span className="nutrition-collapse-chevron" aria-hidden>
-                  {collapsedSections['nutrition-goals'] ? '▼' : '▲'}
+                  {collapsedSections['nutrition-goals'] ? <ChevronDown size={14} style={{ marginLeft: '4px' }} /> : <ChevronUp size={14} style={{ marginLeft: '4px' }} />}
                 </span>
               </div>
               {!collapsedSections['nutrition-goals'] ? (
