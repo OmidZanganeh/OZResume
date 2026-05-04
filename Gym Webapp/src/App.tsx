@@ -135,9 +135,29 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString();
 }
 
+/** Whole calendar days from `earlierKey` to `laterKey` (YYYY-MM-DD), UTC date math — no DST drift. */
+function calendarDaysFromTo(earlierKey: string, laterKey: string): number {
+  const a = earlierKey.split('-').map(Number);
+  const b = laterKey.split('-').map(Number);
+  if (a.length !== 3 || b.length !== 3 || a.some(Number.isNaN) || b.some(Number.isNaN)) return NaN;
+  const [y1, m1, d1] = a;
+  const [y2, m2, d2] = b;
+  const t1 = Date.UTC(y1, m1 - 1, d1);
+  const t2 = Date.UTC(y2, m2 - 1, d2);
+  return Math.floor((t2 - t1) / 86_400_000);
+}
+
+/**
+ * Relative label vs local "today" (same idea as the workout calendar).
+ * Previously used raw ms / 86.4M so a workout "yesterday evening" could still read "Today" the next morning.
+ */
 function daysAgo(dateStr: string | null): string {
   if (!dateStr) return '';
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+  const sessionKey = nutritionLogDateKey(dateStr);
+  const todayKey = localTodayDateKey();
+  const diff = calendarDaysFromTo(sessionKey, todayKey);
+  if (!Number.isFinite(diff)) return '';
+  if (diff < 0) return '';
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   return `${diff} days ago`;
