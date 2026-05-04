@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, FileText, Flame, AlertTriangle } from 'lucide-react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toJpeg } from 'html-to-image';
 import { BodyMapFigure } from './components/BodyMapFigure';
@@ -1650,7 +1651,7 @@ export default function App() {
                   style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
                   onClick={handleDownloadImage}
                 >
-                  🖼️ Save as Image
+                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Save as Image
                 </button>
                 <button
                   type="button"
@@ -1658,7 +1659,7 @@ export default function App() {
                   style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', fontWeight: 700 }}
                   onClick={() => window.print()}
                 >
-                  📄 Print PDF
+                  <FileText size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Print PDF
                 </button>
               </div>
             </section>
@@ -2172,7 +2173,7 @@ export default function App() {
               <div className="stats-grid">
                 <article className="stat-card"><h3>{totalWorkoutCount}</h3><p>Workouts</p></article>
                 <article className="stat-card"><h3>{totalTrackedSets}</h3><p>Total Sets</p></article>
-                <article className="stat-card stat-card--accent"><h3>{streak.current}</h3><p>🔥 Streak</p></article>
+                <article className="stat-card stat-card--accent"><h3>{streak.current}</h3><p><Flame size={16} strokeWidth={2} style={{ marginRight: '4px', verticalAlign: 'text-bottom', color: '#fb923c' }} /> Streak</p></article>
                 <article className="stat-card"><h3>{streak.longest}</h3><p>Best Streak</p></article>
                 <article className="stat-card"><h3>{consistency}%</h3><p>Consistency ({analysisDays}d)</p></article>
                 <article className="stat-card"><h3>{trainedGroupsCountAnalysis}</h3><p>Muscles Hit ({analysisDays}d)</p></article>
@@ -2257,7 +2258,7 @@ export default function App() {
               {imbalanceWarnings.length > 0 && (
                 <div className="imbalance-warnings">
                   {imbalanceWarnings.map((w, i) => (
-                    <div key={i} className="imbalance-warning-item">⚠️ {w}</div>
+                    <div key={i} className="imbalance-warning-item"><AlertTriangle size={16} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom', color: '#facc15' }} /> {w}</div>
                   ))}
                 </div>
               )}
@@ -3166,11 +3167,11 @@ export default function App() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
                 <button type="button" className="button" style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
                   onClick={handleDownloadImage}>
-                  🖼️ Save as Image
+                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Save as Image
                 </button>
                 <button type="button" className="button" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', fontWeight: 700 }}
                   onClick={() => window.print()}>
-                  📄 Print PDF
+                  <FileText size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Print PDF
                 </button>
               </div>
             </section>
@@ -3234,23 +3235,23 @@ export default function App() {
       {isMainView && (
         <nav className="bottom-nav" aria-label="Main navigation">
           <button className={`bnav-btn ${view === 'summary' ? 'bnav-btn--active' : ''}`} onClick={() => setView('summary')}>
-            <span className="bnav-icon">📋</span>
+            <LayoutDashboard className="bnav-icon-svg" size={24} strokeWidth={1.5} />
             <span className="bnav-label">Summary</span>
           </button>
           <button className={`bnav-btn ${view === 'home' ? 'bnav-btn--active' : ''}`} onClick={() => setView('home')}>
-            <span className="bnav-icon">🏋️</span>
+            <Dumbbell className="bnav-icon-svg" size={24} strokeWidth={1.5} />
             <span className="bnav-label">Plans</span>
           </button>
           <button className={`bnav-btn ${view === 'activity' ? 'bnav-btn--active' : ''}`} onClick={() => setView('activity')}>
-            <span className="bnav-icon">📊</span>
+            <Activity className="bnav-icon-svg" size={24} strokeWidth={1.5} />
             <span className="bnav-label">Activity</span>
           </button>
           <button className={`bnav-btn ${view === 'nutrition' ? 'bnav-btn--active' : ''}`} onClick={() => setView('nutrition')}>
-            <span className="bnav-icon">🥗</span>
+            <Utensils className="bnav-icon-svg" size={24} strokeWidth={1.5} />
             <span className="bnav-label">Nutrition</span>
           </button>
           <button className={`bnav-btn ${view === 'library' ? 'bnav-btn--active' : ''}`} onClick={() => setView('library')}>
-            <span className="bnav-icon">⚙️</span>
+            <Settings className="bnav-icon-svg" size={24} strokeWidth={1.5} />
             <span className="bnav-label">Settings</span>
           </button>
         </nav>

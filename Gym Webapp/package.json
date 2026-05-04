@@ -21,6 +21,7 @@
     "body-muscles": "^1.0.0",
     "html-to-image": "^1.11.13",
     "html2pdf.js": "^0.14.0",
+    "lucide-react": "^1.14.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "resume-site": "file:.."

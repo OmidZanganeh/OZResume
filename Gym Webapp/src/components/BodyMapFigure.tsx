@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BodyChart, ViewSide, INTENSITY_COLORS } from 'body-muscles';
+import { Wind, HeartPulse, Zap } from 'lucide-react';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import {
   buildBodyMusclesStateForTenDayGaps,
@@ -43,9 +44,9 @@ type Props = {
   allowRegionToggle?: boolean;
 };
 
-const ORPHAN_ICONS: Record<string, string> = {
-  Cardio: '🏃',
-  Mobility: '🧘',
+const ORPHAN_ICONS: Record<string, React.ReactNode> = {
+  Cardio: <HeartPulse size={16} strokeWidth={1.8} />,
+  Mobility: <Wind size={16} strokeWidth={1.8} />,
 };
 
 function OrphanPills({
@@ -72,7 +73,7 @@ function OrphanPills({
         const title = `${g}: ${n} session(s) last ${practiceWindowDays} days`;
         const inner = (
           <>
-            <span className="orphan-pill-icon">{ORPHAN_ICONS[g] ?? '⚡'}</span>
+            <span className="orphan-pill-icon-svg">{ORPHAN_ICONS[g] ?? <Zap size={16} strokeWidth={1.8} />}</span>
             <span className="orphan-pill-name">{g}</span>
             <span className="orphan-pill-count">{n === 0 ? '0×' : `${n}×`}</span>
           </>

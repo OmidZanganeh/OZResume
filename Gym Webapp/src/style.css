@@ -2715,12 +2715,13 @@ body {
   color: rgba(148, 163, 184, 0.5);
   cursor: pointer;
   font-family: inherit;
-  transition: color 0.15s ease;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .bnav-btn:hover { color: var(--gf-text-muted); }
 .bnav-btn--active { color: var(--gf-accent); }
 .bnav-icon { font-size: 1.25rem; line-height: 1; }
+.bnav-icon-svg { margin-bottom: 2px; }
 .bnav-label { font-size: 0.63rem; font-weight: 700; letter-spacing: 0.05em; }
 
 .app-shell { padding-bottom: 5.5rem; }
@@ -5364,3 +5365,4 @@ select.text-input.day-modal-select {
     font-size: 16px !important;
   }
 }
+.orphan-pill-icon-svg { display: flex; align-items: center; justify-content: center; margin-right: 4px; }
