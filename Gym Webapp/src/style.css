@@ -5908,3 +5908,104 @@ select.text-input.day-modal-select {
   }
   .tab-frame--plans .plan-card-home:hover { transform: none; }
 }
+
+/* ── Polish round 2 — global a11y/interaction hardening ── */
+
+/* Universal focus ring — accessible keyboard nav across every clickable. */
+.button:focus-visible,
+.button-muted:focus-visible,
+.button-danger:focus-visible,
+.button-small:focus-visible,
+.chip:focus-visible,
+.icon-add-btn:focus-visible,
+.bnav-btn:focus-visible,
+.btn-start:focus-visible,
+.plan-action-btn:focus-visible,
+.segmented__btn:focus-visible,
+.list-row:focus-visible,
+.home-section-header:focus-visible,
+.nutrition-collapse-header:focus-visible,
+.nutrition-quick-tab:focus-visible,
+.nutrition-entry-toggle-btn:focus-visible {
+  outline: 2px solid var(--gf-accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Buttons disabled — clear, no fake hover. */
+.button:disabled,
+.button-muted:disabled,
+.button-danger:disabled,
+.button-small:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  filter: grayscale(0.2);
+  box-shadow: none;
+}
+
+/* Chips: ensure hover lift uses colour only, never layout. */
+.chip:hover:not(.chip-active) {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: var(--gf-accent);
+}
+.chip-active:hover { box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.35); }
+
+/* Plan card list — visual scroll cue so users know more is offscreen. */
+.plan-card-list {
+  scroll-padding-inline: 1rem;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 1.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 1.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+}
+@supports not (mask-image: linear-gradient(90deg, transparent, #000)) {
+  .plan-card-list { -webkit-mask-image: none; mask-image: none; }
+}
+
+/* Tab-frame children get clearer top spacing under the title row. */
+.tab-frame > .panel:first-of-type,
+.tab-frame > section:first-of-type:not(.tab-title-row) {
+  margin-top: 0.1rem;
+}
+
+/* Section dividers between flattened panels — subtle and consistent. */
+.tab-frame--activity .panel + .panel,
+.tab-frame--settings .panel + .panel,
+.tab-frame--summary .panel + .panel {
+  margin-top: 0.85rem;
+}
+
+/* Stat cards — flatten edges to match new low-weight panels. */
+.tab-frame--activity .stat-card,
+.tab-frame--summary .stat-card {
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  box-shadow: none;
+}
+
+/* Empty states — calmer than red errors. */
+.empty-text {
+  color: var(--gf-text-muted);
+  font-style: normal;
+  padding: 1rem 0.5rem;
+  text-align: center;
+}
+
+/* Make sure inputs inside flattened panels stay legible. */
+.tab-frame .text-input {
+  background: rgba(2, 6, 23, 0.55);
+  border-color: rgba(71, 85, 105, 0.45);
+}
+.tab-frame .text-input:focus {
+  border-color: var(--gf-accent);
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.18);
+  outline: none;
+}
+
+/* Make any clickable-looking row default to pointer cursor. */
+.list-row,
+.home-section-header,
+.nutrition-collapse-header,
+.nutrition-quick-tab,
+.nutrition-entry-toggle-btn {
+  cursor: pointer;
+}
