@@ -258,6 +258,7 @@ export default function App() {
     'Classic Splits': true,
     'Targeted Growth': true,
     'Targeted Isolation (Single Muscle)': true,
+    'nutrition-quick-add': false,
     'nutrition-my-foods': true,
     'nutrition-logged-foods': true,
     'nutrition-goals': true,
@@ -2607,168 +2608,194 @@ export default function App() {
                 </p>
               )}
               <div className="nutrition-recent-picks-block nutrition-quick-hub">
-                <div className="nutrition-quick-hub-top">
-                  <p className="nutrition-recent-picks-label">Quick add</p>
-                  <div className="nutrition-quick-tabs" role="tablist" aria-label="Quick add groups">
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={nutritionQuickTab === 'meals'}
-                      className={`nutrition-quick-tab ${nutritionQuickTab === 'meals' ? 'is-active' : ''}`}
-                      onClick={() => setNutritionQuickTab('meals')}
-                    >
-                      Meals ({nutritionMealTemplates.length})
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={nutritionQuickTab === 'favorites'}
-                      className={`nutrition-quick-tab ${nutritionQuickTab === 'favorites' ? 'is-active' : ''}`}
-                      onClick={() => setNutritionQuickTab('favorites')}
-                    >
-                      Favorites ({favoriteFoodMatchesForPicker.length})
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={nutritionQuickTab === 'recent'}
-                      className={`nutrition-quick-tab ${nutritionQuickTab === 'recent' ? 'is-active' : ''}`}
-                      onClick={() => setNutritionQuickTab('recent')}
-                    >
-                      Recent ({recentFoodMatchesForPicker.length})
-                    </button>
+                <div
+                  className="nutrition-collapse-header nutrition-quick-hub-collapse"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleSection('nutrition-quick-add')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleSection('nutrition-quick-add');
+                    }
+                  }}
+                >
+                  <div className="nutrition-collapse-header-titles">
+                    <h3 className="nutrition-quick-hub-title">Quick add</h3>
+                    <span className="panel-subtle">Meals, favorites, recent</span>
                   </div>
+                  <span className="nutrition-collapse-chevron" aria-hidden>
+                    {collapsedSections['nutrition-quick-add'] ? <ChevronDown size={14} style={{ marginLeft: '4px' }} /> : <ChevronUp size={14} style={{ marginLeft: '4px' }} />}
+                  </span>
                 </div>
-
-                {nutritionQuickTab === 'meals' ? (
+                {!collapsedSections['nutrition-quick-add'] ? (
                   <>
-                    <div className="nutrition-meal-scale-row">
-                      <label className="nutrition-meal-scale">
-                        <span>Meal scale</span>
-                        <input
-                          className="text-input"
-                          type="number"
-                          min="0.1"
-                          step="0.1"
-                          value={mealBuilderScale}
-                          onChange={(e) => setMealBuilderScale(e.target.value)}
-                        />
-                      </label>
-                      <p className="panel-subtle nutrition-recent-picks-hint" style={{ margin: 0 }}>
-                        1 = usual meal, 0.5 = half, 1.5 = bigger portion.
+                    <div className="nutrition-quick-hub-top">
+                      <p className="panel-subtle nutrition-recent-picks-hint">
+                        Tip: build meal in <strong>Logged foods</strong> using foods you logged today, then reuse from Meals.
                       </p>
+                      <div className="nutrition-quick-tabs" role="tablist" aria-label="Quick add groups">
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={nutritionQuickTab === 'meals'}
+                          className={`nutrition-quick-tab ${nutritionQuickTab === 'meals' ? 'is-active' : ''}`}
+                          onClick={() => setNutritionQuickTab('meals')}
+                        >
+                          Meals ({nutritionMealTemplates.length})
+                        </button>
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={nutritionQuickTab === 'favorites'}
+                          className={`nutrition-quick-tab ${nutritionQuickTab === 'favorites' ? 'is-active' : ''}`}
+                          onClick={() => setNutritionQuickTab('favorites')}
+                        >
+                          Favorites ({favoriteFoodMatchesForPicker.length})
+                        </button>
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={nutritionQuickTab === 'recent'}
+                          className={`nutrition-quick-tab ${nutritionQuickTab === 'recent' ? 'is-active' : ''}`}
+                          onClick={() => setNutritionQuickTab('recent')}
+                        >
+                          Recent ({recentFoodMatchesForPicker.length})
+                        </button>
+                      </div>
                     </div>
-                    {mealTemplateMatchesForPicker.length > 0 ? (
-                      <div className="nutrition-meal-template-grid" role="list">
-                        {mealTemplateMatchesForPicker.map((meal) => {
-                          const totals = meal.items.reduce(
-                            (acc, item) => {
-                              const factor = item.servingGrams / 100;
-                              return {
-                                calories: acc.calories + item.caloriesPer100g * factor,
-                                protein: acc.protein + item.proteinPer100g * factor,
-                                carbs: acc.carbs + item.carbsPer100g * factor,
-                                fat: acc.fat + item.fatPer100g * factor,
-                              };
-                            },
-                            { calories: 0, protein: 0, carbs: 0, fat: 0 },
-                          );
-                          return (
-                            <article key={meal.id} className="nutrition-meal-template-card" role="listitem">
-                              <div className="nutrition-meal-template-head">
-                                <strong>{meal.name}</strong>
-                                <span>{meal.items.length} items</span>
-                              </div>
-                              <p className="nutrition-meal-template-macros">
-                                {formatMacro(totals.calories)} kcal · P {formatMacro(totals.protein)} · C {formatMacro(totals.carbs)} · F{' '}
-                                {formatMacro(totals.fat)}
-                              </p>
-                              <p className="nutrition-meal-template-items">
-                                {meal.items.map((item) => item.name).join(' + ')}
-                              </p>
-                              <div className="nutrition-meal-template-actions">
-                                <button type="button" className="button button-small" onClick={() => addMealTemplateToLog(meal)}>
-                                  Add meal
+
+                    {nutritionQuickTab === 'meals' ? (
+                      <>
+                        <div className="nutrition-meal-scale-row">
+                          <label className="nutrition-meal-scale">
+                            <span>Meal scale</span>
+                            <input
+                              className="text-input"
+                              type="number"
+                              min="0.1"
+                              step="0.1"
+                              value={mealBuilderScale}
+                              onChange={(e) => setMealBuilderScale(e.target.value)}
+                            />
+                          </label>
+                          <p className="panel-subtle nutrition-recent-picks-hint" style={{ margin: 0 }}>
+                            1 = usual meal, 0.5 = half, 1.5 = bigger portion.
+                          </p>
+                        </div>
+                        {mealTemplateMatchesForPicker.length > 0 ? (
+                          <div className="nutrition-meal-template-grid" role="list">
+                            {mealTemplateMatchesForPicker.map((meal) => {
+                              const totals = meal.items.reduce(
+                                (acc, item) => {
+                                  const factor = item.servingGrams / 100;
+                                  return {
+                                    calories: acc.calories + item.caloriesPer100g * factor,
+                                    protein: acc.protein + item.proteinPer100g * factor,
+                                    carbs: acc.carbs + item.carbsPer100g * factor,
+                                    fat: acc.fat + item.fatPer100g * factor,
+                                  };
+                                },
+                                { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                              );
+                              return (
+                                <article key={meal.id} className="nutrition-meal-template-card" role="listitem">
+                                  <div className="nutrition-meal-template-head">
+                                    <strong>{meal.name}</strong>
+                                    <span>{meal.items.length} items</span>
+                                  </div>
+                                  <p className="nutrition-meal-template-macros">
+                                    {formatMacro(totals.calories)} kcal · P {formatMacro(totals.protein)} · C {formatMacro(totals.carbs)} · F{' '}
+                                    {formatMacro(totals.fat)}
+                                  </p>
+                                  <p className="nutrition-meal-template-items">
+                                    {meal.items.map((item) => item.name).join(' + ')}
+                                  </p>
+                                  <div className="nutrition-meal-template-actions">
+                                    <button type="button" className="button button-small" onClick={() => addMealTemplateToLog(meal)}>
+                                      Add meal
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="button button-muted button-small"
+                                      onClick={() => deleteNutritionMealTemplate(meal.id)}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </article>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="panel-subtle nutrition-recent-picks-hint">
+                            No meals yet. Build one from today&apos;s logged items below.
+                          </p>
+                        )}
+                      </>
+                    ) : null}
+
+                    {nutritionQuickTab === 'favorites' ? (
+                      favoriteFoodMatchesForPicker.length > 0 ? (
+                        <>
+                          <p className="panel-subtle nutrition-recent-picks-hint">
+                            Tap to pick. × removes from favorites (past logs stay intact).
+                          </p>
+                          <div className="nutrition-recent-picks nutrition-favorites-picks" role="list">
+                            {favoriteFoodMatchesForPicker.map((item) => (
+                              <div key={item.code} className="nutrition-fav-chip-wrap" role="listitem">
+                                <button
+                                  type="button"
+                                  className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
+                                  onClick={() => setSelectedFood(item)}
+                                >
+                                  <span className="nutrition-recent-chip-name">{item.name}</span>
                                 </button>
                                 <button
                                   type="button"
-                                  className="button button-muted button-small"
-                                  onClick={() => deleteNutritionMealTemplate(meal.id)}
+                                  className="nutrition-fav-remove"
+                                  aria-label={`Remove ${item.name} from favorites`}
+                                  onClick={() => toggleNutritionFavorite(item)}
                                 >
-                                  Delete
+                                  ×
                                 </button>
                               </div>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="panel-subtle nutrition-recent-picks-hint">
-                        No meals yet. Build one from today&apos;s logged items below.
-                      </p>
-                    )}
-                  </>
-                ) : null}
-
-                {nutritionQuickTab === 'favorites' ? (
-                  favoriteFoodMatchesForPicker.length > 0 ? (
-                    <>
-                      <p className="panel-subtle nutrition-recent-picks-hint">
-                        Tap to pick. × removes from favorites (past logs stay intact).
-                      </p>
-                      <div className="nutrition-recent-picks nutrition-favorites-picks" role="list">
-                        {favoriteFoodMatchesForPicker.map((item) => (
-                          <div key={item.code} className="nutrition-fav-chip-wrap" role="listitem">
-                            <button
-                              type="button"
-                              className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
-                              onClick={() => setSelectedFood(item)}
-                            >
-                              <span className="nutrition-recent-chip-name">{item.name}</span>
-                            </button>
-                            <button
-                              type="button"
-                              className="nutrition-fav-remove"
-                              aria-label={`Remove ${item.name} from favorites`}
-                              onClick={() => toggleNutritionFavorite(item)}
-                            >
-                              ×
-                            </button>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="panel-subtle nutrition-recent-picks-hint">
-                      No favorites yet. Star foods from search results or your daily log.
-                    </p>
-                  )
-                ) : null}
+                        </>
+                      ) : (
+                        <p className="panel-subtle nutrition-recent-picks-hint">
+                          No favorites yet. Star foods from search results or your daily log.
+                        </p>
+                      )
+                    ) : null}
 
-                {nutritionQuickTab === 'recent' ? (
-                  recentFoodMatchesForPicker.length > 0 ? (
-                    <>
-                      <p className="panel-subtle nutrition-recent-picks-hint">Tap a food to add it again, no search needed.</p>
-                      <div className="nutrition-recent-picks" role="list">
-                        {recentFoodMatchesForPicker.map((item) => (
-                          <button
-                            key={item.code}
-                            type="button"
-                            role="listitem"
-                            className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
-                            onClick={() => setSelectedFood(item)}
-                          >
-                            <span className="nutrition-recent-chip-name">{item.name}</span>
-                            {item.quantity ? (
-                              <span className="nutrition-recent-chip-meta">{item.quantity}</span>
-                            ) : null}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="panel-subtle nutrition-recent-picks-hint">No recent foods yet for this account.</p>
-                  )
+                    {nutritionQuickTab === 'recent' ? (
+                      recentFoodMatchesForPicker.length > 0 ? (
+                        <>
+                          <p className="panel-subtle nutrition-recent-picks-hint">Tap food to add again, no search needed.</p>
+                          <div className="nutrition-recent-picks" role="list">
+                            {recentFoodMatchesForPicker.map((item) => (
+                              <button
+                                key={item.code}
+                                type="button"
+                                role="listitem"
+                                className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
+                                onClick={() => setSelectedFood(item)}
+                              >
+                                <span className="nutrition-recent-chip-name">{item.name}</span>
+                                {item.quantity ? (
+                                  <span className="nutrition-recent-chip-meta">{item.quantity}</span>
+                                ) : null}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="panel-subtle nutrition-recent-picks-hint">No recent foods yet for this account.</p>
+                      )
+                    ) : null}
+                  </>
                 ) : null}
               </div>
               {displayNutritionResults.length > 0 && (
@@ -3117,7 +3144,7 @@ export default function App() {
                       <span>{mealBuilderSelectedLogs.length} selected</span>
                     </div>
                     <p className="panel-subtle nutrition-meal-builder-hint">
-                      Select logged items and save them as one reusable meal combo.
+                      Select foods logged today and save as reusable meal combo for Quick add.
                     </p>
                     <div className="nutrition-meal-builder-form">
                       <input
