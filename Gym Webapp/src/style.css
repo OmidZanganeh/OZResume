@@ -5549,3 +5549,219 @@ select.text-input.day-modal-select {
 
 /* Added per ui-ux-pro-max standard requirements */
 .button:focus-visible, .text-button:focus-visible { outline: 2px solid var(--gf-accent); outline-offset: 2px; }
+
+/* ───────────────────────────────────────────────────────────────────
+   v2 layout primitives — opt-in via .tab-frame wrappers.
+   Goal: replace card-soup with a clear page hierarchy:
+     tab title row → hero / primary surface → flat content sections.
+   These styles only apply inside .tab-frame, so other views stay intact.
+   ─────────────────────────────────────────────────────────────────── */
+
+.tab-frame {
+  display: flex;
+  flex-direction: column;
+  /* No extra padding — app-shell already handles outer rhythm. */
+}
+
+.tab-title-row {
+  order: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.1rem 0 1rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.28);
+  flex-wrap: wrap;
+}
+.tab-title-row__lead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+.tab-title {
+  font-family: var(--gf-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: clamp(1.55rem, 4vw, 2rem);
+  line-height: 1.05;
+  color: var(--gf-text);
+  margin: 0;
+}
+.tab-subtitle {
+  font-size: 0.82rem;
+  color: var(--gf-text-muted);
+  letter-spacing: 0.01em;
+}
+.tab-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+/* Section block — low-weight container used in place of repeated panels. */
+.section-block { margin: 0.4rem 0 1.1rem; }
+.section-block__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.section-block__title {
+  margin: 0;
+  font-family: var(--gf-display);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  color: var(--gf-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.section-block__title::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 0.95rem;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--gf-accent), rgba(56, 189, 248, 0.6));
+}
+.section-block__meta {
+  font-size: 0.78rem;
+  color: var(--gf-text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* Surface levels — explicit elevation tokens for new components. */
+.surface {
+  background: var(--gf-surface);
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-lg);
+}
+.surface--raised { box-shadow: var(--gf-shadow); }
+.surface--flat { background: transparent; border: none; box-shadow: none; }
+
+/* List rows — replace card grids for plan/log style lists. */
+.list-rows { display: flex; flex-direction: column; gap: 0.4rem; }
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(71, 85, 105, 0.25);
+}
+.list-row__lead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+.list-row__title { font-weight: 700; color: var(--gf-text); letter-spacing: -0.005em; }
+.list-row__meta { font-size: 0.78rem; color: var(--gf-text-muted); }
+
+/* Segmented control — alternative to chip-list for binary/period pickers. */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(71, 85, 105, 0.35);
+  border-radius: 999px;
+}
+.segmented__btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--gf-text-muted);
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+.segmented__btn[aria-pressed="true"],
+.segmented__btn.is-active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(45, 212, 191, 0.22));
+  color: var(--gf-text);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45);
+}
+.segmented__btn:hover { color: var(--gf-text); }
+
+/* ── Nutrition tab v2 — flatten secondary panels, raise hero/log card ──
+   Inside .tab-frame--nutrition, .panel becomes a low-weight section so
+   the hero rings + Log food card stand out as the two real surfaces. */
+.tab-frame--nutrition .panel {
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(71, 85, 105, 0.22);
+  border-radius: 14px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 1rem 1.05rem;
+  margin-bottom: 0.85rem;
+}
+.tab-frame--nutrition .panel.nutrition-panel-lead,
+.tab-frame--nutrition .panel.nutrition-log-food-panel {
+  background: var(--gf-surface);
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-lg);
+  box-shadow: var(--gf-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 1.15rem 1.2rem;
+}
+.tab-frame--nutrition .panel.nutrition-signin-nudge {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(45, 212, 191, 0.04));
+  border-color: rgba(56, 189, 248, 0.3);
+}
+.tab-frame--nutrition .panel-heading { font-size: 1rem; font-weight: 700; }
+.tab-frame--nutrition .nutrition-panel-lead .panel-heading,
+.tab-frame--nutrition .nutrition-log-food-panel .panel-heading { font-size: 1.15rem; }
+
+/* Reorder so hero comes first regardless of source order. Source order
+   is: signin-nudge, log-food, hero, my-foods, logged-foods, goals…
+   Visual order: title row → nudge → hero → log-food → others.
+   NB: rules are specificity-equal, so order them last-wins. */
+.tab-frame--nutrition > * { order: 6; } /* default: anything unrecognised falls to bottom */
+.tab-frame--nutrition > .panel { order: 4; }
+.tab-frame--nutrition > .nutrition-log-food-panel { order: 3; }
+.tab-frame--nutrition > .nutrition-panel-lead { order: 2; }
+.tab-frame--nutrition > .nutrition-signin-nudge { order: 1; }
+.tab-frame--nutrition > .tab-title-row { order: 0; }
+
+/* Hero controls row — single-line period segmented above the rings. */
+.nutrition-hero-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+/* Tab title row — keep the date input compact and aligned. */
+.tab-title-row .nutrition-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--gf-text-muted);
+  margin: 0;
+}
+.tab-title-row .nutrition-date input {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.55rem;
+  min-width: 9rem;
+}
+
+@media (max-width: 540px) {
+  .tab-title-row { align-items: flex-start; }
+  .tab-title-row .nutrition-date input { min-width: 7.5rem; }
+  .tab-title { font-size: 1.45rem; }
+}

@@ -1723,7 +1723,13 @@ export default function App() {
 
         {/* ── SUMMARY (calendar + nutrition overview + radar + heatmap) ── */}
         {view === 'summary' && (
-          <>
+          <div className="tab-frame">
+            <header className="tab-title-row">
+              <div className="tab-title-row__lead">
+                <h1 className="tab-title">Summary</h1>
+                <p className="tab-subtitle">Calendar, nutrition, and training overview.</p>
+              </div>
+            </header>
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Workout Calendar</h2>
               <WorkoutCalendar
@@ -1852,12 +1858,12 @@ export default function App() {
                 </button>
               </div>
             </section>
-          </>
+          </div>
         )}
 
         {/* ── HOME ──────────────────────────────────────────────────── */}
         {view === 'home' && (
-          <div className="home-view">
+          <div className="home-view tab-frame tab-frame--plans">
             <div className="home-wordmark">Gym Flow</div>
             <div className="home-cloud-row">
               {cloudSignedIn ? (
@@ -2357,7 +2363,13 @@ export default function App() {
 
         {/* ── ACTIVITY ──────────────────────────────────────────────── */}
         {view === 'activity' && (
-          <>
+          <div className="tab-frame">
+            <header className="tab-title-row">
+              <div className="tab-title-row__lead">
+                <h1 className="tab-title">Activity</h1>
+                <p className="tab-subtitle">History, streaks, and training analysis.</p>
+              </div>
+            </header>
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Training history</h2>
               <HistoryBackfillPanel allExercises={allExercises} sessions={data.sessions} savedPlans={data.savedPlans} onPersist={({ sessions: s, stats: st }) => persist({ ...data, sessions: s, stats: st })} />
@@ -2541,12 +2553,41 @@ export default function App() {
                 </div>
               </section>
             )}
-          </>
+          </div>
         )}
 
         {/* ── NUTRITION ─────────────────────────────────────────────── */}
         {view === 'nutrition' && (
-          <>
+          <div className="tab-frame tab-frame--nutrition">
+            <header className="tab-title-row">
+              <div className="tab-title-row__lead">
+                <h1 className="tab-title">Nutrition</h1>
+                <p className="tab-subtitle">
+                  {nutritionDate === localTodayDateKey()
+                    ? `Today · ${nutritionDate}`
+                    : nutritionDate}
+                </p>
+              </div>
+              <div className="tab-actions">
+                <label className="nutrition-date">
+                  <span>Day</span>
+                  <input
+                    className="text-input"
+                    type="date"
+                    value={nutritionDate}
+                    onChange={(e) => setNutritionDate(e.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className={`chip chip-compact ${nutritionDate === localTodayDateKey() ? 'chip-active' : ''}`}
+                  onClick={() => setNutritionDate(localTodayDateKey())}
+                >
+                  Today
+                </button>
+              </div>
+            </header>
+
             {!cloudSignedIn && (
               <section className="panel panel--compact nutrition-signin-nudge">
                 <p className="panel-subtle" style={{ margin: 0 }}>
@@ -2948,40 +2989,19 @@ export default function App() {
             </section>
 
             <section className="panel nutrition-panel-lead">
-              <div className="nutrition-panel-title-top">
-                <div>
-                  <h2 className="panel-heading panel-heading--plain nutrition-hero-heading">Nutrition</h2>
-                </div>
-                <div className="nutrition-panel-controls">
-                  <label className="nutrition-date">
-                    <span>Day</span>
-                    <input
-                      className="text-input"
-                      type="date"
-                      value={nutritionDate}
-                      onChange={(e) => setNutritionDate(e.target.value)}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className={`chip chip-compact ${nutritionDate === localTodayDateKey() ? 'chip-active' : ''}`}
-                    onClick={() => setNutritionDate(localTodayDateKey())}
-                  >
-                    Today
-                  </button>
-                  <div className="nutrition-trend-window" role="group" aria-label="Overview period (days ending on selected day)">
-                    <span className="nutrition-trend-window-label">Period</span>
-                    {[1, 7, 10, 30, 90].map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        className={`chip chip-compact ${nutritionTrendDays === d ? 'chip-active' : ''}`}
-                        onClick={() => setNutritionTrendDays(d)}
-                      >
-                        {d}d
-                      </button>
-                    ))}
-                  </div>
+              <div className="nutrition-hero-controls">
+                <div className="segmented" role="group" aria-label="Overview period (days ending on selected day)">
+                  {[1, 7, 10, 30, 90].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className="segmented__btn"
+                      aria-pressed={nutritionTrendDays === d}
+                      onClick={() => setNutritionTrendDays(d)}
+                    >
+                      {d === 1 ? 'Today' : `${d}d`}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -3390,12 +3410,18 @@ export default function App() {
                 />
               </Suspense>
             ) : null}
-          </>
+          </div>
         )}
 
         {/* ── SETTINGS ──────────────────────────────────────────────── */}
         {view === 'library' && (
-          <>
+          <div className="tab-frame">
+            <header className="tab-title-row">
+              <div className="tab-title-row__lead">
+                <h1 className="tab-title">Settings</h1>
+                <p className="tab-subtitle">Profile, goals, units, backup, and reset.</p>
+              </div>
+            </header>
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Your Profile</h2>
               <p className="panel-subtle">
@@ -3614,7 +3640,7 @@ export default function App() {
               <p className="prose-lead">Removes all workouts, stats, custom exercises, and saved plans. This cannot be undone.</p>
               <button type="button" className="button button-danger" onClick={clearAllUserData}>Clear all my data</button>
             </section>
-          </>
+          </div>
         )}
 
       </main>

@@ -100,6 +100,7 @@
 | Nutrition barcode | `Gym Webapp/src/components/NutritionBarcodeScanner.tsx` (lazy): camera → Open Food Facts lookup → instant log on Nutrition tab. |
 | Nutrition meals | `Gym Webapp/src/App.tsx` + `Gym Webapp/src/data/gymFlowStorage.ts`: quick-add hub (Meals/Favorites/Recent), meal templates built from logged items, one-tap multi-item logging with scale. |
 | Plans muscle tap | `App.tsx` — heatmap on **Plans** (`view === 'home'`) opens `muscle-plan-suggestions`: saved + preset plans whose `muscleGroups` include that muscle, **Build a new plan** → `create-focus`. |
+| Tab shell v2 | `style.css` `.tab-frame`, `.tab-title-row`, `.tab-title`, `.section-block`, `.surface`, `.list-row(s)`, `.segmented` — page-level scaffolding used in Summary, Activity, Nutrition, Settings, Plans. Nutrition is fully migrated: secondary `.panel` blocks flatten to low-weight sections inside `.tab-frame--nutrition`, and CSS `order` floats hero rings above the Log food card regardless of source order. |
 
 **Edit flow:** change files in `Gym Webapp/src/` → run build → commit `public/gym-flow/` → deploy to Vercel.
 
