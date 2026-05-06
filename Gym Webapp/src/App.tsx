@@ -2610,36 +2610,69 @@ export default function App() {
               {recentSessions.length === 0 ? (
                 <p className="empty-text">No sessions yet.</p>
               ) : (
-                <div className="small-list">
-                  {recentSessions.map((session) => (
-                    <div key={session.date} className="small-list-row">
-                      <span>
-                        {formatDate(session.date)}{' '}
-                        <small>
-                          {session.entries} moves
-                        </small>
-                      </span>
-                      <small>{session.groups.join(', ')}</small>
-                    </div>
-                  ))}
-                </div>
+                <ul className="recent-sessions-list">
+                  {recentSessions.map((session) => {
+                    const ago = daysAgo(session.date);
+                    return (
+                      <li key={session.date} className="recent-session-row">
+                        <div className="recent-session-date">
+                          <span className="recent-session-date-main">{formatDate(session.date)}</span>
+                          {ago ? <span className="recent-session-date-ago">{ago}</span> : null}
+                        </div>
+                        <span className="recent-session-pill" title="Movements logged">
+                          {session.entries} {session.entries === 1 ? 'move' : 'moves'}
+                        </span>
+                        <div className="recent-session-groups">
+                          {session.groups.map((g) => (
+                            <span key={g} className="recent-session-chip">{g}</span>
+                          ))}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </section>
 
-            {topExercises.length > 0 && (
-              <section className="panel panel--compact">
-                <h2 className="panel-heading panel-heading--plain">Top Exercises (All Time)</h2>
-                <div className="top-exercises-list">
-                  {topExercises.map((ex, i) => (
-                    <div key={i} className="top-exercise-row">
-                      <span className="top-exercise-rank">#{i + 1}</span>
-                      <span className="top-exercise-name">{ex.name}</span>
-                      <span className="top-exercise-stats">{ex.count} sessions · {ex.sets} sets</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+            {topExercises.length > 0 && (() => {
+              const maxCount = Math.max(...topExercises.map((e) => e.count), 1);
+              return (
+                <section className="panel panel--compact">
+                  <h2 className="panel-heading panel-heading--plain">Top exercises · all time</h2>
+                  <p className="panel-subtle" style={{ marginTop: '-0.25rem' }}>
+                    Your most-trained moves, ranked by completed sessions.
+                  </p>
+                  <ol className="top-exercises-list">
+                    {topExercises.map((ex, i) => {
+                      const pct = Math.max(8, Math.round((ex.count / maxCount) * 100));
+                      return (
+                        <li key={i} className={`top-exercise-row top-exercise-row--rank-${i + 1}`}>
+                          <span className="top-exercise-rank" aria-label={`Rank ${i + 1}`}>
+                            {i + 1}
+                          </span>
+                          <div className="top-exercise-body">
+                            <div className="top-exercise-head">
+                              <span className="top-exercise-name">{ex.name}</span>
+                              <span className="top-exercise-count">
+                                <strong>{ex.count}</strong> {ex.count === 1 ? 'session' : 'sessions'}
+                              </span>
+                            </div>
+                            <div className="top-exercise-bar" aria-hidden="true">
+                              <span style={{ width: `${pct}%` }} />
+                            </div>
+                            <div className="top-exercise-meta">
+                              <span>{ex.sets} {ex.sets === 1 ? 'set' : 'sets'} total</span>
+                              <span>·</span>
+                              <span>{Math.round(ex.sets / Math.max(1, ex.count))} per session</span>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              );
+            })()}
             </>
             )}
           </div>
@@ -3144,24 +3177,7 @@ export default function App() {
 
             {nutritionSubTab === 'foods' && (
             <section className="panel panel--compact">
-              <div
-                className="nutrition-collapse-header"
-                role="button"
-                tabIndex={0}
-                onClick={() => toggleSection('nutrition-my-foods')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleSection('nutrition-my-foods');
-                  }
-                }}
-              >
-                <h2 className="panel-heading panel-heading--plain">My foods</h2>
-                <span className="nutrition-collapse-chevron" aria-hidden>
-                  {collapsedSections['nutrition-my-foods'] ? <ChevronDown size={14} style={{ marginLeft: '4px' }} /> : <ChevronUp size={14} style={{ marginLeft: '4px' }} />}
-                </span>
-              </div>
-              {!collapsedSections['nutrition-my-foods'] ? (
+              <h2 className="panel-heading panel-heading--plain">My foods</h2>
                 <>
                   <div className="nutrition-entry-toggle" role="tablist" aria-label="How to enter nutrition">
                     <button
@@ -3245,7 +3261,6 @@ export default function App() {
                     Save to My foods
                   </button>
                 </>
-              ) : null}
             </section>
             )}
 
@@ -3388,24 +3403,7 @@ export default function App() {
 
             {nutritionSubTab === 'goals' && (
             <section className="panel panel--compact">
-              <div
-                className="nutrition-collapse-header"
-                role="button"
-                tabIndex={0}
-                onClick={() => toggleSection('nutrition-goals')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleSection('nutrition-goals');
-                  }
-                }}
-              >
-                <h2 className="panel-heading panel-heading--plain">Goals</h2>
-                <span className="nutrition-collapse-chevron" aria-hidden>
-                  {collapsedSections['nutrition-goals'] ? <ChevronDown size={14} style={{ marginLeft: '4px' }} /> : <ChevronUp size={14} style={{ marginLeft: '4px' }} />}
-                </span>
-              </div>
-              {!collapsedSections['nutrition-goals'] ? (
+              <h2 className="panel-heading panel-heading--plain">Goals</h2>
                 <>
                   <p className="panel-subtle nutrition-goals-hint">
                     {suggestedNutritionGoals ? (
@@ -3502,7 +3500,6 @@ export default function App() {
                     </label>
                   </div>
                 </>
-              ) : null}
             </section>
             )}
 
