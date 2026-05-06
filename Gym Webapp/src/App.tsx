@@ -39,6 +39,7 @@ import {
   type NutritionFavoriteFood,
   type NutritionGoals,
   type NutritionLog,
+  type NutritionMealTemplate,
   type SavedPlan,
   type UserProfile,
 } from './data/gymFlowStorage';
@@ -112,6 +113,8 @@ type NutritionItemDetail = NutritionSearchItem & {
   per100g: NutritionGoals;
   suggestedServingGrams?: number | null;
 };
+
+type NutritionQuickPanelTab = 'meals' | 'favorites' | 'recent';
 
 function exerciseMatchesGroups(exercise: Exercise, selectedGroups: MuscleGroup[]) {
   if (selectedGroups.length === 0) return true;
@@ -290,6 +293,10 @@ export default function App() {
   const nutritionSearchAbortRef = useRef<AbortController | null>(null);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editingGrams, setEditingGrams] = useState('');
+  const [nutritionQuickTab, setNutritionQuickTab] = useState<NutritionQuickPanelTab>('meals');
+  const [newMealName, setNewMealName] = useState('');
+  const [mealBuilderLogIds, setMealBuilderLogIds] = useState<string[]>([]);
+  const [mealBuilderScale, setMealBuilderScale] = useState('1');
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -355,6 +362,7 @@ export default function App() {
   const nutritionLogs = data.nutritionLogs ?? [];
   const nutritionGoals = { ...DEFAULT_NUTRITION_GOALS, ...data.nutritionGoals };
   const customFoods = data.customFoods ?? [];
+  const nutritionMealTemplates = data.nutritionMealTemplates ?? [];
 
   const suggestedNutritionGoals = useMemo(
     () => computeSuggestedNutritionGoals(reportProfile),
@@ -549,6 +557,20 @@ export default function App() {
     );
   }, [nutritionQuery, favoriteFoodItemsForPicker]);
 
+  const mealTemplateMatchesForPicker = useMemo(() => {
+    const q = nutritionQuery.trim().toLowerCase();
+    const templates = [...nutritionMealTemplates].sort((a, b) => {
+      const ta = new Date(a.updatedAt || a.createdAt).getTime();
+      const tb = new Date(b.updatedAt || b.createdAt).getTime();
+      return tb - ta;
+    });
+    if (q.length < 2) return templates.slice(0, 24);
+    return templates.filter((m) => {
+      if (m.name.toLowerCase().includes(q)) return true;
+      return m.items.some((item) => item.name.toLowerCase().includes(q));
+    });
+  }, [nutritionMealTemplates, nutritionQuery]);
+
   const favoritePickerCodes = useMemo(
     () => new Set(favoriteFoodMatchesForPicker.map((x) => x.code)),
     [favoriteFoodMatchesForPicker],
@@ -628,6 +650,24 @@ export default function App() {
     [nutritionDate, nutritionLogs],
   );
 
+  const mealBuilderSelectedLogs = useMemo(
+    () => dailyNutritionLogs.filter((l) => mealBuilderLogIds.includes(l.id)),
+    [dailyNutritionLogs, mealBuilderLogIds],
+  );
+
+  const mealBuilderTotals = useMemo(() => {
+    return mealBuilderSelectedLogs.reduce(
+      (acc, log) => ({
+        calories: acc.calories + log.calories,
+        protein: acc.protein + log.protein,
+        carbs: acc.carbs + log.carbs,
+        fat: acc.fat + log.fat,
+        fiber: acc.fiber + (log.fiber ?? 0),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+    );
+  }, [mealBuilderSelectedLogs]);
+
   const nutritionTotals = useMemo(() => {
     return dailyNutritionLogs.reduce(
       (acc, log) => ({
@@ -690,6 +730,11 @@ export default function App() {
     const t = setTimeout(() => setMessage(''), 4000);
     return () => clearTimeout(t);
   }, [message]);
+
+  useEffect(() => {
+    const valid = new Set(dailyNutritionLogs.map((l) => l.id));
+    setMealBuilderLogIds((prev) => prev.filter((id) => valid.has(id)));
+  }, [dailyNutritionLogs]);
 
 
 
@@ -918,6 +963,129 @@ export default function App() {
       ];
     }
     persist({ ...base, nutritionFavorites: next });
+  }
+
+  function toggleMealBuilderLog(logId: string) {
+    setMealBuilderLogIds((prev) =>
+      prev.includes(logId) ? prev.filter((id) => id !== logId) : [...prev, logId],
+    );
+  }
+
+  function saveMealTemplateFromSelection() {
+    const name = newMealName.trim();
+    if (!name) {
+      setMessage('Name your meal first.');
+      return;
+    }
+    if (mealBuilderSelectedLogs.length < 2) {
+      setMessage('Pick at least 2 logged foods to save a meal combo.');
+      return;
+    }
+    const now = new Date().toISOString();
+    const items = mealBuilderSelectedLogs.map((log) => ({
+      code: log.code,
+      name: log.name,
+      servingGrams: log.servingGrams,
+      caloriesPer100g: log.caloriesPer100g,
+      proteinPer100g: log.proteinPer100g,
+      carbsPer100g: log.carbsPer100g,
+      fatPer100g: log.fatPer100g,
+      fiberPer100g: log.fiberPer100g ?? 0,
+    }));
+
+    const base = dataRef.current;
+    const templates = base.nutritionMealTemplates ?? [];
+    const existingIdx = templates.findIndex((m) => m.name.trim().toLowerCase() === name.toLowerCase());
+    let nextTemplates: NutritionMealTemplate[];
+    if (existingIdx >= 0) {
+      const existing = templates[existingIdx];
+      const updated: NutritionMealTemplate = {
+        ...existing,
+        name,
+        updatedAt: now,
+        items,
+      };
+      nextTemplates = [updated, ...templates.filter((_, i) => i !== existingIdx)];
+      setMessage(`Updated meal "${name}".`);
+    } else {
+      const created: NutritionMealTemplate = {
+        id: `meal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name,
+        createdAt: now,
+        updatedAt: now,
+        items,
+      };
+      nextTemplates = [created, ...templates];
+      setMessage(`Saved meal "${name}".`);
+    }
+    persist({ ...base, nutritionMealTemplates: nextTemplates });
+    setNewMealName('');
+    setMealBuilderLogIds([]);
+    setNutritionQuickTab('meals');
+  }
+
+  function deleteNutritionMealTemplate(id: string) {
+    const base = dataRef.current;
+    const current = base.nutritionMealTemplates ?? [];
+    const target = current.find((m) => m.id === id);
+    persist({
+      ...base,
+      nutritionMealTemplates: current.filter((m) => m.id !== id),
+    });
+    if (target) {
+      setMessage(`Removed meal "${target.name}".`);
+    }
+  }
+
+  function addMealTemplateToLog(template: NutritionMealTemplate) {
+    const scale = Number.parseFloat(mealBuilderScale);
+    if (!Number.isFinite(scale) || scale <= 0) {
+      setMessage('Use a valid meal scale (e.g. 1, 0.5, 1.5).');
+      return;
+    }
+    const now = new Date().toISOString();
+    const logs: NutritionLog[] = template.items.map((item, idx) => {
+      const grams = Math.max(1, formatMacro(item.servingGrams * scale));
+      const macros = computeMacros(
+        {
+          calories: item.caloriesPer100g,
+          protein: item.proteinPer100g,
+          carbs: item.carbsPer100g,
+          fat: item.fatPer100g,
+          fiber: item.fiberPer100g ?? 0,
+        },
+        grams,
+      );
+      return {
+        id: createNutritionLogId(),
+        date: nutritionDate,
+        code: item.code,
+        name: item.name,
+        servingGrams: grams,
+        calories: macros.calories,
+        protein: macros.protein,
+        carbs: macros.carbs,
+        fat: macros.fat,
+        fiber: macros.fiber,
+        caloriesPer100g: item.caloriesPer100g,
+        proteinPer100g: item.proteinPer100g,
+        carbsPer100g: item.carbsPer100g,
+        fatPer100g: item.fatPer100g,
+        fiberPer100g: item.fiberPer100g ?? 0,
+        createdAt: new Date(new Date(now).getTime() + idx).toISOString(),
+      };
+    });
+    if (logs.length === 0) {
+      setMessage('This meal has no items to log.');
+      return;
+    }
+    const base = dataRef.current;
+    persist({
+      ...base,
+      nutritionLogs: [...logs, ...(base.nutritionLogs ?? [])],
+      nutritionGoals: { ...DEFAULT_NUTRITION_GOALS, ...(base.nutritionGoals ?? {}) },
+    });
+    setMessage(`Added meal "${template.name}" (${logs.length} items).`);
   }
 
   async function fetchNutritionItem(code: string, silent = false): Promise<NutritionItemDetail | null> {
@@ -2438,57 +2606,171 @@ export default function App() {
                   {nutritionError}
                 </p>
               )}
-              {favoriteFoodMatchesForPicker.length > 0 ? (
-                <div className="nutrition-recent-picks-block nutrition-favorites-picks-block">
-                  <p className="nutrition-recent-picks-label">Favorites</p>
-                  <p className="panel-subtle nutrition-recent-picks-hint">
-                    Tap to log again. × removes from favorites (does not delete past log entries).
-                  </p>
-                  <div className="nutrition-recent-picks nutrition-favorites-picks" role="list">
-                    {favoriteFoodMatchesForPicker.map((item) => (
-                      <div key={item.code} className="nutrition-fav-chip-wrap" role="listitem">
-                        <button
-                          type="button"
-                          className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
-                          onClick={() => setSelectedFood(item)}
-                        >
-                          <span className="nutrition-recent-chip-name">{item.name}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="nutrition-fav-remove"
-                          aria-label={`Remove ${item.name} from favorites`}
-                          onClick={() => toggleNutritionFavorite(item)}
-                        >
-                          ×
-                        </button>
+              <div className="nutrition-recent-picks-block nutrition-quick-hub">
+                <div className="nutrition-quick-hub-top">
+                  <p className="nutrition-recent-picks-label">Quick add</p>
+                  <div className="nutrition-quick-tabs" role="tablist" aria-label="Quick add groups">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={nutritionQuickTab === 'meals'}
+                      className={`nutrition-quick-tab ${nutritionQuickTab === 'meals' ? 'is-active' : ''}`}
+                      onClick={() => setNutritionQuickTab('meals')}
+                    >
+                      Meals ({nutritionMealTemplates.length})
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={nutritionQuickTab === 'favorites'}
+                      className={`nutrition-quick-tab ${nutritionQuickTab === 'favorites' ? 'is-active' : ''}`}
+                      onClick={() => setNutritionQuickTab('favorites')}
+                    >
+                      Favorites ({favoriteFoodMatchesForPicker.length})
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={nutritionQuickTab === 'recent'}
+                      className={`nutrition-quick-tab ${nutritionQuickTab === 'recent' ? 'is-active' : ''}`}
+                      onClick={() => setNutritionQuickTab('recent')}
+                    >
+                      Recent ({recentFoodMatchesForPicker.length})
+                    </button>
+                  </div>
+                </div>
+
+                {nutritionQuickTab === 'meals' ? (
+                  <>
+                    <div className="nutrition-meal-scale-row">
+                      <label className="nutrition-meal-scale">
+                        <span>Meal scale</span>
+                        <input
+                          className="text-input"
+                          type="number"
+                          min="0.1"
+                          step="0.1"
+                          value={mealBuilderScale}
+                          onChange={(e) => setMealBuilderScale(e.target.value)}
+                        />
+                      </label>
+                      <p className="panel-subtle nutrition-recent-picks-hint" style={{ margin: 0 }}>
+                        1 = usual meal, 0.5 = half, 1.5 = bigger portion.
+                      </p>
+                    </div>
+                    {mealTemplateMatchesForPicker.length > 0 ? (
+                      <div className="nutrition-meal-template-grid" role="list">
+                        {mealTemplateMatchesForPicker.map((meal) => {
+                          const totals = meal.items.reduce(
+                            (acc, item) => {
+                              const factor = item.servingGrams / 100;
+                              return {
+                                calories: acc.calories + item.caloriesPer100g * factor,
+                                protein: acc.protein + item.proteinPer100g * factor,
+                                carbs: acc.carbs + item.carbsPer100g * factor,
+                                fat: acc.fat + item.fatPer100g * factor,
+                              };
+                            },
+                            { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                          );
+                          return (
+                            <article key={meal.id} className="nutrition-meal-template-card" role="listitem">
+                              <div className="nutrition-meal-template-head">
+                                <strong>{meal.name}</strong>
+                                <span>{meal.items.length} items</span>
+                              </div>
+                              <p className="nutrition-meal-template-macros">
+                                {formatMacro(totals.calories)} kcal · P {formatMacro(totals.protein)} · C {formatMacro(totals.carbs)} · F{' '}
+                                {formatMacro(totals.fat)}
+                              </p>
+                              <p className="nutrition-meal-template-items">
+                                {meal.items.map((item) => item.name).join(' + ')}
+                              </p>
+                              <div className="nutrition-meal-template-actions">
+                                <button type="button" className="button button-small" onClick={() => addMealTemplateToLog(meal)}>
+                                  Add meal
+                                </button>
+                                <button
+                                  type="button"
+                                  className="button button-muted button-small"
+                                  onClick={() => deleteNutritionMealTemplate(meal.id)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              {recentFoodMatchesForPicker.length > 0 ? (
-                <div className="nutrition-recent-picks-block">
-                  <p className="nutrition-recent-picks-label">Recently logged</p>
-                  <p className="panel-subtle nutrition-recent-picks-hint">Tap a food to add it again — no search needed.</p>
-                  <div className="nutrition-recent-picks" role="list">
-                    {recentFoodMatchesForPicker.map((item) => (
-                      <button
-                        key={item.code}
-                        type="button"
-                        role="listitem"
-                        className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
-                        onClick={() => setSelectedFood(item)}
-                      >
-                        <span className="nutrition-recent-chip-name">{item.name}</span>
-                        {item.quantity ? (
-                          <span className="nutrition-recent-chip-meta">{item.quantity}</span>
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+                    ) : (
+                      <p className="panel-subtle nutrition-recent-picks-hint">
+                        No meals yet. Build one from today&apos;s logged items below.
+                      </p>
+                    )}
+                  </>
+                ) : null}
+
+                {nutritionQuickTab === 'favorites' ? (
+                  favoriteFoodMatchesForPicker.length > 0 ? (
+                    <>
+                      <p className="panel-subtle nutrition-recent-picks-hint">
+                        Tap to pick. × removes from favorites (past logs stay intact).
+                      </p>
+                      <div className="nutrition-recent-picks nutrition-favorites-picks" role="list">
+                        {favoriteFoodMatchesForPicker.map((item) => (
+                          <div key={item.code} className="nutrition-fav-chip-wrap" role="listitem">
+                            <button
+                              type="button"
+                              className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
+                              onClick={() => setSelectedFood(item)}
+                            >
+                              <span className="nutrition-recent-chip-name">{item.name}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="nutrition-fav-remove"
+                              aria-label={`Remove ${item.name} from favorites`}
+                              onClick={() => toggleNutritionFavorite(item)}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="panel-subtle nutrition-recent-picks-hint">
+                      No favorites yet. Star foods from search results or your daily log.
+                    </p>
+                  )
+                ) : null}
+
+                {nutritionQuickTab === 'recent' ? (
+                  recentFoodMatchesForPicker.length > 0 ? (
+                    <>
+                      <p className="panel-subtle nutrition-recent-picks-hint">Tap a food to add it again, no search needed.</p>
+                      <div className="nutrition-recent-picks" role="list">
+                        {recentFoodMatchesForPicker.map((item) => (
+                          <button
+                            key={item.code}
+                            type="button"
+                            role="listitem"
+                            className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
+                            onClick={() => setSelectedFood(item)}
+                          >
+                            <span className="nutrition-recent-chip-name">{item.name}</span>
+                            {item.quantity ? (
+                              <span className="nutrition-recent-chip-meta">{item.quantity}</span>
+                            ) : null}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="panel-subtle nutrition-recent-picks-hint">No recent foods yet for this account.</p>
+                  )
+                ) : null}
+              </div>
               {displayNutritionResults.length > 0 && (
                 <ul className="nutrition-search-list">
                   {displayNutritionResults.map((item) => (
@@ -2828,65 +3110,116 @@ export default function App() {
                 </span>
               </div>
               {!collapsedSections['nutrition-logged-foods'] ? (
-                dailyNutritionLogs.length === 0 ? (
-                  <p className="empty-text">No foods logged for this day yet.</p>
-                ) : (
-                  <div className="nutrition-log-list">
-                    {dailyNutritionLogs.map((log) => (
-                      <div key={log.id} className="nutrition-log-row">
-                        <div className="nutrition-log-main">
-                          <strong>{log.name}</strong>
-                          <span className="nutrition-log-meta">{log.servingGrams}g · {formatMacro(log.calories)} kcal</span>
-                          <span className="nutrition-log-macros">
-                            P {formatMacro(log.protein)}g · C {formatMacro(log.carbs)}g · F {formatMacro(log.fat)}g · Fiber {formatMacro(log.fiber ?? 0)}g
-                          </span>
-                        </div>
-                        <div className="nutrition-log-actions">
-                          {editingLogId === log.id ? (
-                            <>
-                              <input
-                                className="text-input nutrition-edit-input"
-                                type="number"
-                                min="1"
-                                step="1"
-                                value={editingGrams}
-                                onChange={(e) => setEditingGrams(e.target.value)}
-                              />
-                              <button type="button" className="button button-small" onClick={() => saveEditedNutritionLog(log)}>
-                                Save
-                              </button>
-                              <button type="button" className="button button-muted button-small" onClick={() => { setEditingLogId(null); setEditingGrams(''); }}>
-                                Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                className={`button button-muted button-small ${favoriteCodeSet.has(log.code) ? 'is-active' : ''}`}
-                                aria-pressed={favoriteCodeSet.has(log.code)}
-                                onClick={() =>
-                                  toggleNutritionFavorite({
-                                    code: log.code,
-                                    name: log.name,
-                                  })
-                                }
-                              >
-                                {favoriteCodeSet.has(log.code) ? <Star size={16} fill="currentColor" color="#fbbf24" style={{ verticalAlign: 'text-bottom' }} /> : <Star size={16} color="#94a3b8" style={{ verticalAlign: 'text-bottom' }} />}
-                              </button>
-                              <button type="button" className="button button-muted button-small" onClick={() => startEditNutritionLog(log)}>
-                                Edit
-                              </button>
-                              <button type="button" className="button button-danger-muted button-small" onClick={() => deleteNutritionLog(log.id)}>
-                                Delete
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                <>
+                  <div className="nutrition-meal-builder">
+                    <div className="nutrition-meal-builder-head">
+                      <h3>Meal builder</h3>
+                      <span>{mealBuilderSelectedLogs.length} selected</span>
+                    </div>
+                    <p className="panel-subtle nutrition-meal-builder-hint">
+                      Select logged items and save them as one reusable meal combo.
+                    </p>
+                    <div className="nutrition-meal-builder-form">
+                      <input
+                        className="text-input"
+                        value={newMealName}
+                        onChange={(e) => setNewMealName(e.target.value)}
+                        placeholder="Meal name (e.g. Summit + milk)"
+                      />
+                      <button
+                        type="button"
+                        className="button button-small"
+                        disabled={mealBuilderSelectedLogs.length < 2 || newMealName.trim().length < 2}
+                        onClick={saveMealTemplateFromSelection}
+                      >
+                        Save meal
+                      </button>
+                      <button
+                        type="button"
+                        className="button button-muted button-small"
+                        disabled={mealBuilderLogIds.length === 0}
+                        onClick={() => setMealBuilderLogIds([])}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    {mealBuilderSelectedLogs.length > 0 ? (
+                      <p className="nutrition-meal-builder-summary">
+                        {formatMacro(mealBuilderTotals.calories)} kcal · P {formatMacro(mealBuilderTotals.protein)} · C{' '}
+                        {formatMacro(mealBuilderTotals.carbs)} · F {formatMacro(mealBuilderTotals.fat)} · Fiber{' '}
+                        {formatMacro(mealBuilderTotals.fiber)}
+                      </p>
+                    ) : null}
                   </div>
-                )
+
+                  {dailyNutritionLogs.length === 0 ? (
+                    <p className="empty-text">No foods logged for this day yet.</p>
+                  ) : (
+                    <div className="nutrition-log-list">
+                      {dailyNutritionLogs.map((log) => (
+                        <div key={log.id} className="nutrition-log-row">
+                          <div className="nutrition-log-main">
+                            <strong>{log.name}</strong>
+                            <span className="nutrition-log-meta">{log.servingGrams}g · {formatMacro(log.calories)} kcal</span>
+                            <span className="nutrition-log-macros">
+                              P {formatMacro(log.protein)}g · C {formatMacro(log.carbs)}g · F {formatMacro(log.fat)}g · Fiber {formatMacro(log.fiber ?? 0)}g
+                            </span>
+                          </div>
+                          <div className="nutrition-log-actions">
+                            {editingLogId === log.id ? (
+                              <>
+                                <input
+                                  className="text-input nutrition-edit-input"
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  value={editingGrams}
+                                  onChange={(e) => setEditingGrams(e.target.value)}
+                                />
+                                <button type="button" className="button button-small" onClick={() => saveEditedNutritionLog(log)}>
+                                  Save
+                                </button>
+                                <button type="button" className="button button-muted button-small" onClick={() => { setEditingLogId(null); setEditingGrams(''); }}>
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className={`button button-muted button-small ${mealBuilderLogIds.includes(log.id) ? 'is-active' : ''}`}
+                                  aria-pressed={mealBuilderLogIds.includes(log.id)}
+                                  onClick={() => toggleMealBuilderLog(log.id)}
+                                >
+                                  {mealBuilderLogIds.includes(log.id) ? 'In meal' : 'Add to meal'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`button button-muted button-small ${favoriteCodeSet.has(log.code) ? 'is-active' : ''}`}
+                                  aria-pressed={favoriteCodeSet.has(log.code)}
+                                  onClick={() =>
+                                    toggleNutritionFavorite({
+                                      code: log.code,
+                                      name: log.name,
+                                    })
+                                  }
+                                >
+                                  {favoriteCodeSet.has(log.code) ? <Star size={16} fill="currentColor" color="#fbbf24" style={{ verticalAlign: 'text-bottom' }} /> : <Star size={16} color="#94a3b8" style={{ verticalAlign: 'text-bottom' }} />}
+                                </button>
+                                <button type="button" className="button button-muted button-small" onClick={() => startEditNutritionLog(log)}>
+                                  Edit
+                                </button>
+                                <button type="button" className="button button-danger-muted button-small" onClick={() => deleteNutritionLog(log.id)}>
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : null}
             </section>
 

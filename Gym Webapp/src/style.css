@@ -4174,6 +4174,124 @@ select.text-input.day-modal-select {
   margin-top: 0.75rem;
 }
 
+.nutrition-quick-hub {
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-md);
+  background: linear-gradient(165deg, rgba(17, 24, 39, 0.62) 0%, rgba(15, 23, 42, 0.46) 100%);
+  padding: 0.7rem 0.75rem 0.75rem;
+}
+
+.nutrition-quick-hub-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem 0.7rem;
+}
+
+.nutrition-quick-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.nutrition-quick-tab {
+  border: 1px solid var(--gf-border);
+  background: rgba(15, 23, 42, 0.5);
+  color: var(--gf-text-muted);
+  border-radius: 999px;
+  padding: 0.26rem 0.62rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.nutrition-quick-tab:hover {
+  border-color: rgba(45, 212, 191, 0.45);
+  color: var(--gf-text);
+}
+
+.nutrition-quick-tab.is-active {
+  border-color: rgba(45, 212, 191, 0.6);
+  background: rgba(45, 212, 191, 0.16);
+  color: #99f6e4;
+}
+
+.nutrition-meal-scale-row {
+  margin-top: 0.45rem;
+  margin-bottom: 0.55rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 0.8rem;
+}
+
+.nutrition-meal-scale {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gf-text-dim);
+}
+
+.nutrition-meal-scale .text-input {
+  width: 90px;
+  padding: 0.35rem 0.5rem;
+}
+
+.nutrition-meal-template-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.nutrition-meal-template-card {
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-md);
+  background: rgba(15, 23, 42, 0.58);
+  padding: 0.6rem 0.65rem;
+}
+
+.nutrition-meal-template-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.nutrition-meal-template-head strong {
+  font-size: 0.87rem;
+}
+
+.nutrition-meal-template-head span {
+  font-size: 0.74rem;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-meal-template-macros {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: #d1fae5;
+  font-weight: 600;
+}
+
+.nutrition-meal-template-items {
+  margin: 0.3rem 0 0;
+  font-size: 0.77rem;
+  color: var(--gf-text-muted);
+  line-height: 1.35;
+}
+
+.nutrition-meal-template-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .nutrition-recent-picks-label {
   margin: 0 0 0.2rem;
   font-size: 0.72rem;
@@ -4564,6 +4682,53 @@ select.text-input.day-modal-select {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+}
+
+.nutrition-meal-builder {
+  margin: 0 0 0.75rem;
+  border: 1px dashed rgba(45, 212, 191, 0.4);
+  border-radius: var(--gf-radius-md);
+  padding: 0.6rem 0.7rem;
+  background: rgba(13, 29, 35, 0.35);
+}
+
+.nutrition-meal-builder-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.nutrition-meal-builder-head h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.nutrition-meal-builder-head span {
+  font-size: 0.76rem;
+  color: var(--gf-text-muted);
+}
+
+.nutrition-meal-builder-hint {
+  margin-bottom: 0.55rem !important;
+}
+
+.nutrition-meal-builder-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.nutrition-meal-builder-form .text-input {
+  flex: 1 1 220px;
+}
+
+.nutrition-meal-builder-summary {
+  margin: 0.55rem 0 0;
+  font-size: 0.79rem;
+  color: #99f6e4;
+  font-weight: 600;
 }
 
 .nutrition-log-row {

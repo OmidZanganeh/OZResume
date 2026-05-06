@@ -98,6 +98,7 @@
 | PWA listing | `app/web-apps/page.tsx` |
 | Summary tab | `Gym Webapp/src/App.tsx` — `view === 'summary'`: calendar, nutrition overview panel (3 cards), analysis-period chips, `MuscleSpider`, `BodyMapFigure`. Bottom nav: Summary → Plans → Activity → Nutrition → Settings. |
 | Nutrition barcode | `Gym Webapp/src/components/NutritionBarcodeScanner.tsx` (lazy): camera → Open Food Facts lookup → instant log on Nutrition tab. |
+| Nutrition meals | `Gym Webapp/src/App.tsx` + `Gym Webapp/src/data/gymFlowStorage.ts`: quick-add hub (Meals/Favorites/Recent), meal templates built from logged items, one-tap multi-item logging with scale. |
 | Plans muscle tap | `App.tsx` — heatmap on **Plans** (`view === 'home'`) opens `muscle-plan-suggestions`: saved + preset plans whose `muscleGroups` include that muscle, **Build a new plan** → `create-focus`. |
 
 **Edit flow:** change files in `Gym Webapp/src/` → run build → commit `public/gym-flow/` → deploy to Vercel.

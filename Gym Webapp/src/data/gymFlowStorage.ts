@@ -49,6 +49,27 @@ export type NutritionFavoriteFood = {
   image?: string;
 };
 
+/** One ingredient inside a saved meal template; macros are stored per 100 g for safe scaling. */
+export type NutritionMealTemplateItem = {
+  code: string;
+  name: string;
+  servingGrams: number;
+  caloriesPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
+  fiberPer100g: number;
+};
+
+/** Reusable multi-item meal (e.g. "Summit + milk", "Chicken + bread"). */
+export type NutritionMealTemplate = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  items: NutritionMealTemplateItem[];
+};
+
 export type NutritionLog = {
   id: string;
   /** Calendar day `YYYY-MM-DD` or ISO; normalized when aggregating. */
@@ -109,6 +130,8 @@ export type PersistedGymData = {
   customFoods?: CustomFood[];
   /** Starred foods for quick re-add (synced with cloud payload when signed in). */
   nutritionFavorites?: NutritionFavoriteFood[];
+  /** Reusable meal combos; each template can log multiple foods in one tap. */
+  nutritionMealTemplates?: NutritionMealTemplate[];
 };
 
 export const defaultGymData: PersistedGymData = {
@@ -118,6 +141,7 @@ export const defaultGymData: PersistedGymData = {
   savedPlans: [],
   nutritionLogs: [],
   nutritionFavorites: [],
+  nutritionMealTemplates: [],
   customFoods: [],
   nutritionGoals: {
     calories: 2000,
