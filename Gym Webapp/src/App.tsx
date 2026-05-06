@@ -3453,7 +3453,8 @@ export default function App() {
                 <p className="tab-subtitle">Profile, goals, units, backup, and reset.</p>
               </div>
             </header>
-            <section className="panel panel--compact">
+            <section className="panel settings-surface">
+            <section className="settings-block settings-block--profile">
               <h2 className="panel-heading panel-heading--plain">Your Profile</h2>
               <p className="panel-subtle">
                 Used for your PDF training report. When you are signed in, use <strong>Save profile online</strong> to
@@ -3605,7 +3606,7 @@ export default function App() {
               </div>
             </section>
 
-            <section className="panel panel--compact">
+            <section className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Export Report</h2>
               <p className="panel-subtle">Choose your preferred format. Save as Image downloads a JPEG (good for mobile sharing).</p>
               
@@ -3622,7 +3623,7 @@ export default function App() {
             </section>
 
 
-            <section className="panel panel--compact">
+            <section className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Custom moves</h2>
               <p className="panel-subtle">Add personal exercises to your library.</p>
               <form className="custom-form" onSubmit={handleAddCustomExercise}>
@@ -3644,7 +3645,7 @@ export default function App() {
               )}
             </section>
 
-            <section className="panel panel--compact">
+            <section className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Data Backup</h2>
               <p className="panel-subtle">Export or import your workouts and plans.</p>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
@@ -3658,7 +3659,7 @@ export default function App() {
               </div>
             </section>
 
-            <section className="panel panel--compact">
+            <section className="settings-block">
               <h2 className="panel-heading panel-heading--plain">App</h2>
               <p className="panel-subtle">Update to the latest version of Gym Flow.</p>
               <button type="button" className="button button-block" style={{ marginTop: '0.6rem' }} onClick={() => window.location.reload()}>
@@ -3666,10 +3667,11 @@ export default function App() {
               </button>
             </section>
 
-            <section className="panel panel--data-reset" aria-label="Reset data">
+            <section className="settings-block settings-block--danger" aria-label="Reset data">
               <h2 className="panel-heading panel-heading--plain">Danger Zone</h2>
               <p className="prose-lead">Removes all workouts, stats, custom exercises, and saved plans. This cannot be undone.</p>
               <button type="button" className="button button-danger" onClick={clearAllUserData}>Clear all my data</button>
+            </section>
             </section>
           </div>
         )}
