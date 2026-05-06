@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, FileText, Flame, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, X, Star } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, FileText, Flame, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, X, Star, ScanLine, Search, Plus, Check, Pencil, Trash2 } from 'lucide-react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toJpeg } from 'html-to-image';
 import { BodyMapFigure } from './components/BodyMapFigure';
@@ -2771,22 +2771,6 @@ export default function App() {
             {nutritionSubTab === 'today' && (
             <section className="panel nutrition-log-food-panel">
               <h2 className="panel-heading panel-heading--plain">Log food</h2>
-              <div className="nutrition-scan-primary">
-                <button
-                  type="button"
-                  className="button button-primary nutrition-scan-open-btn"
-                  disabled={!cloudSignedIn || nutritionBusy}
-                  onClick={() => setNutritionBarcodeScanOpen(true)}
-                >
-                  {nutritionBusy ? 'Working…' : 'Scan barcode'}
-                </button>
-                <p className="panel-subtle nutrition-scan-primary-hint">
-                  {cloudSignedIn
-                    ? 'Point the camera at a UPC or EAN — the search box fills and results load automatically (or type/paste 8–14 digits). Requires HTTPS or localhost and camera permission.'
-                    : 'Sign in to scan or search the food database.'}
-                </p>
-              </div>
-              <p className="panel-subtle nutrition-search-fallback-label">Or search by name</p>
               <div className="nutrition-search-row">
                 <input
                   className="text-input nutrition-search-input"
@@ -2803,13 +2787,28 @@ export default function App() {
                 />
                 <button
                   type="button"
-                  className="button button-primary nutrition-search-submit"
+                  className="nutrition-icon-action nutrition-icon-action--scan"
+                  disabled={!cloudSignedIn || nutritionBusy}
+                  aria-label={nutritionBusy ? 'Scanner busy' : 'Scan barcode'}
+                  title={nutritionBusy ? 'Scanner busy' : 'Scan barcode'}
+                  onClick={() => setNutritionBarcodeScanOpen(true)}
+                >
+                  <ScanLine size={17} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  className="nutrition-icon-action nutrition-icon-action--search"
                   disabled={nutritionLoading || !cloudSignedIn}
+                  aria-label={nutritionLoading ? 'Searching' : 'Search foods'}
+                  title={nutritionLoading ? 'Searching' : 'Search foods'}
                   onClick={() => runNutritionSearch()}
                 >
-                  {nutritionLoading ? 'Searching…' : 'Search'}
+                  <Search size={17} strokeWidth={2} />
                 </button>
               </div>
+              <p className="panel-subtle nutrition-search-inline-hint">
+                {cloudSignedIn ? 'Type a food or barcode, then tap search or press Enter.' : 'Sign in to scan and search the food database.'}
+              </p>
               {cloudSignedIn && nutritionLoading ? (
                 <p className="panel-subtle nutrition-loading-hint">Searching…</p>
               ) : null}
@@ -3392,16 +3391,20 @@ export default function App() {
                               <>
                                 <button
                                   type="button"
-                                  className={`button button-muted button-small ${mealBuilderLogIds.includes(log.id) ? 'is-active' : ''}`}
+                                  className={`nutrition-log-icon-btn nutrition-log-icon-btn--meal ${mealBuilderLogIds.includes(log.id) ? 'is-active' : ''}`}
                                   aria-pressed={mealBuilderLogIds.includes(log.id)}
+                                  aria-label={mealBuilderLogIds.includes(log.id) ? 'In meal' : 'Add to meal'}
+                                  title={mealBuilderLogIds.includes(log.id) ? 'In meal' : 'Add to meal'}
                                   onClick={() => toggleMealBuilderLog(log.id)}
                                 >
-                                  {mealBuilderLogIds.includes(log.id) ? 'In meal' : 'Add to meal'}
+                                  {mealBuilderLogIds.includes(log.id) ? <Check size={15} /> : <Plus size={15} />}
                                 </button>
                                 <button
                                   type="button"
-                                  className={`button button-muted button-small ${favoriteCodeSet.has(log.code) ? 'is-active' : ''}`}
+                                  className={`nutrition-log-icon-btn nutrition-log-icon-btn--favorite ${favoriteCodeSet.has(log.code) ? 'is-active' : ''}`}
                                   aria-pressed={favoriteCodeSet.has(log.code)}
+                                  aria-label={favoriteCodeSet.has(log.code) ? 'Remove favorite' : 'Add favorite'}
+                                  title={favoriteCodeSet.has(log.code) ? 'Remove favorite' : 'Add favorite'}
                                   onClick={() =>
                                     toggleNutritionFavorite({
                                       code: log.code,
@@ -3411,11 +3414,11 @@ export default function App() {
                                 >
                                   {favoriteCodeSet.has(log.code) ? <Star size={16} fill="currentColor" color="#fbbf24" style={{ verticalAlign: 'text-bottom' }} /> : <Star size={16} color="#94a3b8" style={{ verticalAlign: 'text-bottom' }} />}
                                 </button>
-                                <button type="button" className="button button-muted button-small" onClick={() => startEditNutritionLog(log)}>
-                                  Edit
+                                <button type="button" className="nutrition-log-icon-btn nutrition-log-icon-btn--edit" aria-label="Edit entry" title="Edit entry" onClick={() => startEditNutritionLog(log)}>
+                                  <Pencil size={14} />
                                 </button>
-                                <button type="button" className="button button-danger-muted button-small" onClick={() => deleteNutritionLog(log.id)}>
-                                  Delete
+                                <button type="button" className="nutrition-log-icon-btn nutrition-log-icon-btn--delete" aria-label="Delete entry" title="Delete entry" onClick={() => deleteNutritionLog(log.id)}>
+                                  <Trash2 size={14} />
                                 </button>
                               </>
                             )}

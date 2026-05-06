@@ -4080,35 +4080,6 @@ select.text-input.day-modal-select {
   width: 150px;
 }
 
-.nutrition-scan-primary {
-  margin: 0.35rem 0 0.65rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  align-items: stretch;
-}
-
-.nutrition-scan-open-btn {
-  width: 100%;
-  justify-content: center;
-  font-weight: 700;
-}
-
-.nutrition-scan-primary-hint {
-  margin: 0 !important;
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-
-.nutrition-search-fallback-label {
-  margin: 0 0 0.35rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--gf-text-dim);
-}
-
 .nutrition-scan-overlay {
   position: fixed;
   inset: 0;
@@ -4160,14 +4131,48 @@ select.text-input.day-modal-select {
 
 .nutrition-search-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.5rem;
   align-items: center;
 }
 
 .nutrition-search-row .nutrition-search-input {
   flex: 1;
   min-width: 0;
+}
+
+.nutrition-icon-action {
+  width: 2.35rem;
+  height: 2.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(30, 41, 59, 0.5);
+  color: var(--gf-text);
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, transform 160ms ease, color 180ms ease;
+}
+.nutrition-icon-action:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(15, 23, 42, 0.75);
+  color: #7dd3fc;
+}
+.nutrition-icon-action:active {
+  transform: translateY(1px);
+}
+.nutrition-icon-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.nutrition-icon-action--search {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.24), rgba(37, 99, 235, 0.24));
+  border-color: rgba(56, 189, 248, 0.45);
+}
+.nutrition-search-inline-hint {
+  margin: 0.42rem 0 0 !important;
+  font-size: 0.76rem;
+  line-height: 1.35;
 }
 
 .nutrition-recent-picks-block {
@@ -4780,6 +4785,51 @@ select.text-input.day-modal-select {
   flex-wrap: wrap;
   gap: 0.4rem;
   align-items: center;
+}
+
+.nutrition-log-icon-btn {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(30, 41, 59, 0.46);
+  color: var(--gf-text-muted);
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 120ms ease;
+}
+.nutrition-log-icon-btn:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(15, 23, 42, 0.74);
+  color: var(--gf-text);
+}
+.nutrition-log-icon-btn:active {
+  transform: translateY(1px);
+}
+.nutrition-log-icon-btn.is-active,
+.nutrition-log-icon-btn[aria-pressed="true"] {
+  border-color: rgba(45, 212, 191, 0.56);
+  background: rgba(45, 212, 191, 0.2);
+  color: #99f6e4;
+}
+.nutrition-log-icon-btn--meal.is-active,
+.nutrition-log-icon-btn--meal[aria-pressed="true"] {
+  border-color: rgba(34, 197, 94, 0.6);
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+.nutrition-log-icon-btn--favorite.is-active,
+.nutrition-log-icon-btn--favorite[aria-pressed="true"] {
+  border-color: rgba(251, 191, 36, 0.58);
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+.nutrition-log-icon-btn--delete:hover {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(127, 29, 29, 0.42);
+  color: #fca5a5;
 }
 
 .nutrition-edit-input {
