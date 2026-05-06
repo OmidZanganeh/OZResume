@@ -299,6 +299,8 @@ export default function App() {
   const [mealBuilderLogIds, setMealBuilderLogIds] = useState<string[]>([]);
   const [mealBuilderScale, setMealBuilderScale] = useState('1');
   const [settingsSearch, setSettingsSearch] = useState('');
+  const [activitySubTab, setActivitySubTab] = useState<'overview' | 'insights' | 'history'>('overview');
+  const [nutritionSubTab, setNutritionSubTab] = useState<'today' | 'foods' | 'goals'>('today');
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -2381,11 +2383,27 @@ export default function App() {
                 <p className="tab-subtitle">History, streaks, and training analysis.</p>
               </div>
             </header>
-            <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">Training history</h2>
-              <HistoryBackfillPanel allExercises={allExercises} sessions={data.sessions} savedPlans={data.savedPlans} onPersist={({ sessions: s, stats: st }) => persist({ ...data, sessions: s, stats: st })} />
-            </section>
 
+            <nav className="subtab-bar" role="tablist" aria-label="Activity sections">
+              {([
+                { id: 'overview', label: 'Overview' },
+                { id: 'insights', label: 'Insights' },
+                { id: 'history', label: 'History' },
+              ] as const).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activitySubTab === t.id}
+                  className={`subtab-btn ${activitySubTab === t.id ? 'is-active' : ''}`}
+                  onClick={() => setActivitySubTab(t.id)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+
+            {activitySubTab === 'overview' && (
             <section className="panel activity-overview-panel">
               <h2 className="panel-heading panel-heading--plain">Overview</h2>
               <div className="activity-overview-layout">
@@ -2428,7 +2446,10 @@ export default function App() {
                 </div>
               </div>
             </section>
+            )}
 
+            {activitySubTab === 'insights' && (
+            <>
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Efficiency Radar</h2>
               <p className="panel-subtle">Visual balance of your training for this period.</p>
@@ -2515,16 +2536,6 @@ export default function App() {
             </section>
 
             <section className="panel">
-              <h2 className="panel-heading panel-heading--plain">Workout Calendar</h2>
-              <WorkoutCalendar
-                sessions={data.sessions}
-                allExercises={allExercises}
-                mealDayCalories={mealDayCalories}
-                onDayClick={setSelectedCalendarDay}
-              />
-            </section>
-
-            <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Volume Analysis</h2>
               <div className="analysis-chart">
                 {MUSCLE_GROUPS
@@ -2560,7 +2571,30 @@ export default function App() {
                   })}
               </div>
             </section>
+            </>
+            )}
 
+            {activitySubTab === 'history' && (
+            <>
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Workout Calendar</h2>
+              <WorkoutCalendar
+                sessions={data.sessions}
+                allExercises={allExercises}
+                mealDayCalories={mealDayCalories}
+                onDayClick={setSelectedCalendarDay}
+              />
+            </section>
+
+            <section className="panel">
+              <h2 className="panel-heading panel-heading--plain">Training history</h2>
+              <HistoryBackfillPanel allExercises={allExercises} sessions={data.sessions} savedPlans={data.savedPlans} onPersist={({ sessions: s, stats: st }) => persist({ ...data, sessions: s, stats: st })} />
+            </section>
+            </>
+            )}
+
+            {activitySubTab === 'overview' && (
+            <>
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Recent sessions</h2>
               {recentSessions.length === 0 ? (
@@ -2595,6 +2629,8 @@ export default function App() {
                   ))}
                 </div>
               </section>
+            )}
+            </>
             )}
           </div>
         )}
@@ -2631,7 +2667,26 @@ export default function App() {
               </div>
             </header>
 
-            {!cloudSignedIn && (
+            <nav className="subtab-bar" role="tablist" aria-label="Nutrition sections">
+              {([
+                { id: 'today', label: 'Today' },
+                { id: 'foods', label: 'My Foods' },
+                { id: 'goals', label: 'Goals' },
+              ] as const).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={nutritionSubTab === t.id}
+                  className={`subtab-btn ${nutritionSubTab === t.id ? 'is-active' : ''}`}
+                  onClick={() => setNutritionSubTab(t.id)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+
+            {nutritionSubTab === 'today' && !cloudSignedIn && (
               <section className="panel panel--compact nutrition-signin-nudge">
                 <p className="panel-subtle" style={{ margin: 0 }}>
                   Sign in to search USDA and Open Food Facts and sync your log.
@@ -2642,6 +2697,7 @@ export default function App() {
               </section>
             )}
 
+            {nutritionSubTab === 'today' && (
             <section className="panel nutrition-log-food-panel">
               <h2 className="panel-heading panel-heading--plain">Log food</h2>
               <div className="nutrition-scan-primary">
@@ -3030,7 +3086,9 @@ export default function App() {
                 </div>
               )}
             </section>
+            )}
 
+            {nutritionSubTab === 'today' && (
             <section className="panel nutrition-panel-lead">
               <div className="nutrition-hero-controls">
                 <div className="segmented" role="group" aria-label="Overview period (days ending on selected day)">
@@ -3072,7 +3130,9 @@ export default function App() {
                 />
               </div>
             </section>
+            )}
 
+            {nutritionSubTab === 'foods' && (
             <section className="panel panel--compact">
               <div
                 className="nutrition-collapse-header"
@@ -3177,7 +3237,9 @@ export default function App() {
                 </>
               ) : null}
             </section>
+            )}
 
+            {nutritionSubTab === 'today' && (
             <section className="panel">
               <div
                 className="nutrition-collapse-header"
@@ -3312,7 +3374,9 @@ export default function App() {
                 </>
               ) : null}
             </section>
+            )}
 
+            {nutritionSubTab === 'goals' && (
             <section className="panel panel--compact">
               <div
                 className="nutrition-collapse-header"
@@ -3430,6 +3494,7 @@ export default function App() {
                 </>
               ) : null}
             </section>
+            )}
 
             {nutritionBarcodeScanOpen ? (
               <Suspense

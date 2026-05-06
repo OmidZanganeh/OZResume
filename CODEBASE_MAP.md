@@ -102,6 +102,7 @@
 | Plans muscle tap | `App.tsx` — heatmap on **Plans** (`view === 'home'`) opens `muscle-plan-suggestions`: saved + preset plans whose `muscleGroups` include that muscle, **Build a new plan** → `create-focus`. |
 | Tab shell v2 | `style.css` `.tab-frame`, `.tab-title-row`, `.tab-title`, `.section-block`, `.surface`, `.list-row(s)`, `.segmented` — page-level scaffolding used in Summary, Activity, Nutrition, Settings, Plans. Nutrition is fully migrated: secondary `.panel` blocks flatten to low-weight sections inside `.tab-frame--nutrition`, and CSS `order` floats hero rings above the Log food card regardless of source order. |
 | Settings grouped layout | `Gym Webapp/src/App.tsx` (`view === 'library'`) + `Gym Webapp/src/style.css` (`.settings-surface`, `.settings-block*`, `.settings-toolbar`): modern single-surface settings page with grouped sections, quick section nav, search filtering, and integrated danger zone styling. |
+| Sub-tab navigation | `Gym Webapp/src/App.tsx` `activitySubTab`/`nutritionSubTab` state + `style.css` `.subtab-bar`, `.subtab-btn`: sticky pill nav under each page title that splits Activity into Overview/Insights/History and Nutrition into Today/Foods/Goals. Replaces all-panels-open scroll with focused sections. |
 
 **Edit flow:** change files in `Gym Webapp/src/` → run build → commit `public/gym-flow/` → deploy to Vercel.
 
