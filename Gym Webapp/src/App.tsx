@@ -301,6 +301,8 @@ export default function App() {
   const [settingsSearch, setSettingsSearch] = useState('');
   const [activitySubTab, setActivitySubTab] = useState<'overview' | 'insights' | 'history'>('overview');
   const [nutritionSubTab, setNutritionSubTab] = useState<'today' | 'foods' | 'goals'>('today');
+  const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
+  const [reportImageBusy, setReportImageBusy] = useState(false);
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -1549,6 +1551,7 @@ export default function App() {
     const PRL_CAPTURE_H = 816;
 
     try {
+      setReportImageBusy(true);
       document.body.classList.add('screenshot-mode');
       await new Promise(r => setTimeout(r, 150)); // Wait for styles to settle
 
@@ -1567,16 +1570,22 @@ export default function App() {
         },
       });
 
-      const link = document.createElement('a');
-      link.download = `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.jpg`;
-      link.href = dataUrl;
-      link.click();
+      setReportImagePreview(dataUrl);
     } catch (err) {
       console.error('Failed to generate image:', err);
       alert('Could not generate image. Please use the Print option instead.');
     } finally {
       document.body.classList.remove('screenshot-mode');
+      setReportImageBusy(false);
     }
+  }
+
+  function saveReportImageFromPreview() {
+    if (!reportImagePreview) return;
+    const link = document.createElement('a');
+    link.download = `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.jpg`;
+    link.href = reportImagePreview;
+    link.click();
   }
 
   function clearAllUserData() {
@@ -1851,15 +1860,16 @@ export default function App() {
 
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Export Report</h2>
-              <p className="panel-subtle">Choose your preferred format. Save as Image downloads a JPEG (good for mobile sharing).</p>
+              <p className="panel-subtle">Preview as image, then save or share. Or print to PDF.</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
                 <button
                   type="button"
                   className="button"
                   style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
+                  disabled={reportImageBusy}
                   onClick={handleDownloadImage}
                 >
-                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Save as Image
+                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> {reportImageBusy ? 'Generating…' : 'Preview Image'}
                 </button>
                 <button
                   type="button"
@@ -3706,12 +3716,13 @@ export default function App() {
             {showSettingsReport ? (
             <section id="settings-report" className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Export Report</h2>
-              <p className="panel-subtle">Choose your preferred format. Save as Image downloads a JPEG (good for mobile sharing).</p>
+              <p className="panel-subtle">Preview as image, then save or share. Or print to PDF.</p>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
                 <button type="button" className="button" style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
+                  disabled={reportImageBusy}
                   onClick={handleDownloadImage}>
-                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Save as Image
+                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> {reportImageBusy ? 'Generating…' : 'Preview Image'}
                 </button>
                 <button type="button" className="button" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', fontWeight: 700 }}
                   onClick={() => window.print()}>
@@ -3846,6 +3857,62 @@ export default function App() {
           persist({ ...dataRef.current, ...patch });
         }}
       />
+    )}
+
+    {reportImagePreview && (
+      <div
+        className="report-preview-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Report image preview"
+        onClick={() => setReportImagePreview(null)}
+      >
+        <div className="report-preview-modal" onClick={(e) => e.stopPropagation()}>
+          <header className="report-preview-header">
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Image preview</h3>
+              <p className="panel-subtle" style={{ margin: '2px 0 0' }}>
+                Review your report. Save it if it looks right — or close to discard.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="button"
+              style={{ background: 'rgba(71,85,105,0.35)', border: '1px solid rgba(148,163,184,0.3)' }}
+              onClick={() => setReportImagePreview(null)}
+              aria-label="Close preview"
+            >
+              Close
+            </button>
+          </header>
+          <div className="report-preview-body">
+            <img src={reportImagePreview} alt="Generated report preview" />
+          </div>
+          <footer className="report-preview-footer">
+            <p className="panel-subtle" style={{ margin: 0, fontSize: '0.78rem' }}>
+              Tip: on mobile you can also long-press the image to save or share.
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="button"
+                style={{ background: 'rgba(71,85,105,0.35)', border: '1px solid rgba(148,163,184,0.3)' }}
+                onClick={() => setReportImagePreview(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="button"
+                style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
+                onClick={() => { saveReportImageFromPreview(); setReportImagePreview(null); }}
+              >
+                Save image
+              </button>
+            </div>
+          </footer>
+        </div>
+      </div>
     )}
     </>
   );
