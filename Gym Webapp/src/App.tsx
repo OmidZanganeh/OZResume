@@ -1723,7 +1723,7 @@ export default function App() {
 
         {/* ── SUMMARY (calendar + nutrition overview + radar + heatmap) ── */}
         {view === 'summary' && (
-          <div className="tab-frame">
+          <div className="tab-frame tab-frame--summary">
             <header className="tab-title-row">
               <div className="tab-title-row__lead">
                 <h1 className="tab-title">Summary</h1>
@@ -2363,7 +2363,7 @@ export default function App() {
 
         {/* ── ACTIVITY ──────────────────────────────────────────────── */}
         {view === 'activity' && (
-          <div className="tab-frame">
+          <div className="tab-frame tab-frame--activity">
             <header className="tab-title-row">
               <div className="tab-title-row__lead">
                 <h1 className="tab-title">Activity</h1>
@@ -3415,7 +3415,7 @@ export default function App() {
 
         {/* ── SETTINGS ──────────────────────────────────────────────── */}
         {view === 'library' && (
-          <div className="tab-frame">
+          <div className="tab-frame tab-frame--settings">
             <header className="tab-title-row">
               <div className="tab-title-row__lead">
                 <h1 className="tab-title">Settings</h1>

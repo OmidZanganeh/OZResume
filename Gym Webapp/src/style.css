@@ -5765,3 +5765,146 @@ select.text-input.day-modal-select {
   .tab-title-row .nutrition-date input { min-width: 7.5rem; }
   .tab-title { font-size: 1.45rem; }
 }
+
+/* ── Summary tab flatten — keep calendar + nutrition hero raised ── */
+.tab-frame--summary .panel {
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(71, 85, 105, 0.22);
+  border-radius: 14px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 1rem 1.05rem;
+  margin-bottom: 0.85rem;
+}
+.tab-frame--summary .panel.nutrition-panel-lead,
+.tab-frame--summary .panel:has(.workout-cal-grid) {
+  background: var(--gf-surface);
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-lg);
+  box-shadow: var(--gf-shadow);
+  padding: 1.15rem 1.2rem;
+}
+.tab-frame--summary .panel-heading { font-size: 1rem; font-weight: 700; }
+.tab-frame--summary .nutrition-panel-lead .panel-heading { font-size: 1.15rem; }
+
+/* ── Activity + Settings tab flatten ─────────────────────
+   Same treatment as Nutrition: secondary panels become
+   low-weight section blocks; the title row carries the
+   page identity. */
+.tab-frame--activity .panel,
+.tab-frame--settings .panel {
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(71, 85, 105, 0.22);
+  border-radius: 14px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 1rem 1.05rem;
+  margin-bottom: 0.85rem;
+}
+.tab-frame--activity .panel-heading,
+.tab-frame--settings .panel-heading { font-size: 1rem; font-weight: 700; }
+
+/* Keep destructive zone visually distinct in Settings even after flatten. */
+.tab-frame--settings .panel.panel--data-reset {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.08), rgba(248, 113, 113, 0.02));
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+/* ── Plans tab v2 ────────────────────────────────────────
+   Replace bare wordmark with a real header; treat home
+   sections as section-blocks with a coloured rail. */
+.tab-frame--plans { padding-top: 0.4rem; }
+.tab-frame--plans .home-wordmark {
+  font-size: 1.6rem;
+  margin-bottom: 0.1rem;
+  background: linear-gradient(135deg, var(--gf-accent), #38bdf8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.045em;
+}
+.tab-frame--plans .home-cloud-row { margin-bottom: 1.5rem; }
+.tab-frame--plans .home-section-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gf-text);
+  opacity: 0.92;
+}
+.tab-frame--plans .home-section-label::before {
+  content: "";
+  width: 4px;
+  height: 0.85rem;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--gf-accent), rgba(56, 189, 248, 0.5));
+}
+
+/* Plans cards — taller, breathable, clearer hover state. */
+.tab-frame--plans .plan-card-home {
+  flex: 0 0 calc(75% - 0.5rem);
+  max-width: 290px;
+  padding: 0.85rem 0.95rem 0.7rem;
+  border-radius: 14px;
+  border-left-width: 3px;
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.05), var(--gf-surface));
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  cursor: default;
+}
+.tab-frame--plans .plan-card-home:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -12px rgba(45, 212, 191, 0.45);
+  border-color: rgba(45, 212, 191, 0.4);
+}
+.tab-frame--plans .plan-card-home-name { font-size: 0.95rem; }
+.tab-frame--plans .plan-card-home-sub { font-size: 0.72rem; }
+.tab-frame--plans .plan-card-home-actions {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  gap: 1.4rem;
+}
+.tab-frame--plans .btn-start { padding: 0.55rem 1.15rem; font-size: 0.85rem; }
+
+/* ── Bottom nav v2 — active pill + better idle state ──── */
+.bottom-nav { padding-top: 0.25rem; }
+.bnav-btn {
+  position: relative;
+  color: rgba(148, 163, 184, 0.62);
+  padding: 0.55rem 0.4rem 0.65rem;
+  transition: color 200ms ease;
+}
+.bnav-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 28px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, var(--gf-accent), #38bdf8);
+  opacity: 0;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease;
+}
+.bnav-btn--active { color: var(--gf-accent); }
+.bnav-btn--active::before { transform: translateX(-50%) scaleX(1); opacity: 1; }
+.bnav-btn:focus-visible {
+  outline: 2px solid var(--gf-accent);
+  outline-offset: -4px;
+  border-radius: 6px;
+}
+
+/* Reduced motion — respect user pref site-wide. */
+@media (prefers-reduced-motion: reduce) {
+  .tab-frame--plans .plan-card-home,
+  .bnav-btn,
+  .bnav-btn::before,
+  .segmented__btn,
+  .list-row {
+    transition: none !important;
+  }
+  .tab-frame--plans .plan-card-home:hover { transform: none; }
+}
