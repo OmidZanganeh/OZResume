@@ -5816,6 +5816,33 @@ select.text-input.day-modal-select {
   overflow: hidden;
 }
 
+.tab-frame--settings .settings-toolbar {
+  position: sticky;
+  top: 0.4rem;
+  z-index: 6;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem;
+  border-radius: 14px;
+  display: grid;
+  gap: 0.55rem;
+  background: rgba(2, 6, 23, 0.92);
+  border-color: rgba(71, 85, 105, 0.45);
+}
+
+.tab-frame--settings .settings-quick-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tab-frame--settings .settings-quick-nav .chip {
+  text-decoration: none;
+}
+
+.tab-frame--settings .settings-search-input {
+  width: 100%;
+}
+
 .tab-frame--settings .settings-block {
   padding: 1rem 1.05rem;
   border-bottom: 1px solid rgba(71, 85, 105, 0.26);
@@ -5842,6 +5869,10 @@ select.text-input.day-modal-select {
   color: #fecaca;
 }
 
+.tab-frame--settings .settings-block[id] {
+  scroll-margin-top: 5rem;
+}
+
 .tab-frame--settings .settings-block--profile .profile-form {
   display: grid;
   gap: 0.65rem;
@@ -5861,6 +5892,10 @@ select.text-input.day-modal-select {
 .tab-frame--settings .settings-block .button + .button,
 .tab-frame--settings .settings-block .button + .button-muted {
   margin-left: 0;
+}
+
+.radar-period-segmented {
+  margin-left: auto;
 }
 
 /* ── Plans tab v2 ────────────────────────────────────────

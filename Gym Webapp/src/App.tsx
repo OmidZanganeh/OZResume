@@ -298,6 +298,7 @@ export default function App() {
   const [newMealName, setNewMealName] = useState('');
   const [mealBuilderLogIds, setMealBuilderLogIds] = useState<string[]>([]);
   const [mealBuilderScale, setMealBuilderScale] = useState('1');
+  const [settingsSearch, setSettingsSearch] = useState('');
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -364,6 +365,15 @@ export default function App() {
   const nutritionGoals = { ...DEFAULT_NUTRITION_GOALS, ...data.nutritionGoals };
   const customFoods = data.customFoods ?? [];
   const nutritionMealTemplates = data.nutritionMealTemplates ?? [];
+  const settingsQuery = settingsSearch.trim().toLowerCase();
+  const settingsMatches = (keywords: string[]) =>
+    settingsQuery.length === 0 || keywords.some((keyword) => keyword.toLowerCase().includes(settingsQuery));
+  const showSettingsProfile = settingsMatches(['profile', 'account', 'weight', 'height', 'age', 'sex']);
+  const showSettingsReport = settingsMatches(['report', 'image', 'pdf', 'export']);
+  const showSettingsCustomMoves = settingsMatches(['custom', 'exercise', 'moves', 'library']);
+  const showSettingsBackup = settingsMatches(['backup', 'import', 'export', 'data']);
+  const showSettingsApp = settingsMatches(['app', 'update', 'version', 'reload']);
+  const showSettingsDanger = settingsMatches(['danger', 'reset', 'clear', 'delete']);
 
   const suggestedNutritionGoals = useMemo(
     () => computeSuggestedNutritionGoals(reportProfile),
@@ -1808,12 +1818,13 @@ export default function App() {
               <p className="panel-subtle">Visual balance of your training for this period.</p>
               <div className="radar-period-row" role="group" aria-label="Analysis period">
                 <span className="radar-period-label">Period</span>
-                <div className="chip-list radar-period-chips">
+                <div className="segmented radar-period-segmented">
                   {[7, 10, 30, 90, 365].map((d) => (
                     <button
                       key={d}
                       type="button"
-                      className={`chip ${analysisDays === d ? 'chip-active' : ''}`}
+                      className={`segmented__btn ${analysisDays === d ? 'is-active' : ''}`}
+                      aria-pressed={analysisDays === d}
                       onClick={() => setAnalysisDays(d)}
                     >
                       {d}d
@@ -2423,12 +2434,13 @@ export default function App() {
               <p className="panel-subtle">Visual balance of your training for this period.</p>
               <div className="radar-period-row" role="group" aria-label="Analysis period">
                 <span className="radar-period-label">Period</span>
-                <div className="chip-list radar-period-chips">
+                <div className="segmented radar-period-segmented">
                   {[7, 10, 30, 90, 365].map((d) => (
                     <button
                       key={d}
                       type="button"
-                      className={`chip ${analysisDays === d ? 'chip-active' : ''}`}
+                      className={`segmented__btn ${analysisDays === d ? 'is-active' : ''}`}
+                      aria-pressed={analysisDays === d}
                       onClick={() => setAnalysisDays(d)}
                     >
                       {d}d
@@ -3453,8 +3465,27 @@ export default function App() {
                 <p className="tab-subtitle">Profile, goals, units, backup, and reset.</p>
               </div>
             </header>
+            <div className="settings-toolbar surface surface--raised">
+              <div className="settings-quick-nav" role="navigation" aria-label="Settings sections">
+                {showSettingsProfile ? <a href="#settings-profile" className="chip chip-compact">Profile</a> : null}
+                {showSettingsReport ? <a href="#settings-report" className="chip chip-compact">Report</a> : null}
+                {showSettingsCustomMoves ? <a href="#settings-custom-moves" className="chip chip-compact">Moves</a> : null}
+                {showSettingsBackup ? <a href="#settings-backup" className="chip chip-compact">Backup</a> : null}
+                {showSettingsApp ? <a href="#settings-app" className="chip chip-compact">App</a> : null}
+                {showSettingsDanger ? <a href="#settings-danger" className="chip chip-compact">Danger</a> : null}
+              </div>
+              <input
+                className="text-input settings-search-input"
+                type="search"
+                placeholder="Search settings..."
+                value={settingsSearch}
+                onChange={(e) => setSettingsSearch(e.target.value)}
+                aria-label="Search settings"
+              />
+            </div>
             <section className="panel settings-surface">
-            <section className="settings-block settings-block--profile">
+            {showSettingsProfile ? (
+            <section id="settings-profile" className="settings-block settings-block--profile">
               <h2 className="panel-heading panel-heading--plain">Your Profile</h2>
               <p className="panel-subtle">
                 Used for your PDF training report. When you are signed in, use <strong>Save profile online</strong> to
@@ -3605,8 +3636,10 @@ export default function App() {
                 )}
               </div>
             </section>
+            ) : null}
 
-            <section className="settings-block">
+            {showSettingsReport ? (
+            <section id="settings-report" className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Export Report</h2>
               <p className="panel-subtle">Choose your preferred format. Save as Image downloads a JPEG (good for mobile sharing).</p>
               
@@ -3621,9 +3654,11 @@ export default function App() {
                 </button>
               </div>
             </section>
+            ) : null}
 
 
-            <section className="settings-block">
+            {showSettingsCustomMoves ? (
+            <section id="settings-custom-moves" className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Custom moves</h2>
               <p className="panel-subtle">Add personal exercises to your library.</p>
               <form className="custom-form" onSubmit={handleAddCustomExercise}>
@@ -3644,8 +3679,10 @@ export default function App() {
                 </ul>
               )}
             </section>
+            ) : null}
 
-            <section className="settings-block">
+            {showSettingsBackup ? (
+            <section id="settings-backup" className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Data Backup</h2>
               <p className="panel-subtle">Export or import your workouts and plans.</p>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
@@ -3658,20 +3695,28 @@ export default function App() {
                 </label>
               </div>
             </section>
+            ) : null}
 
-            <section className="settings-block">
+            {showSettingsApp ? (
+            <section id="settings-app" className="settings-block">
               <h2 className="panel-heading panel-heading--plain">App</h2>
               <p className="panel-subtle">Update to the latest version of Gym Flow.</p>
               <button type="button" className="button button-block" style={{ marginTop: '0.6rem' }} onClick={() => window.location.reload()}>
                 Check for updates
               </button>
             </section>
+            ) : null}
 
-            <section className="settings-block settings-block--danger" aria-label="Reset data">
+            {showSettingsDanger ? (
+            <section id="settings-danger" className="settings-block settings-block--danger" aria-label="Reset data">
               <h2 className="panel-heading panel-heading--plain">Danger Zone</h2>
               <p className="prose-lead">Removes all workouts, stats, custom exercises, and saved plans. This cannot be undone.</p>
               <button type="button" className="button button-danger" onClick={clearAllUserData}>Clear all my data</button>
             </section>
+            ) : null}
+            {settingsQuery.length > 0 && !showSettingsProfile && !showSettingsReport && !showSettingsCustomMoves && !showSettingsBackup && !showSettingsApp && !showSettingsDanger ? (
+              <p className="empty-text">No settings match "{settingsSearch}".</p>
+            ) : null}
             </section>
           </div>
         )}
