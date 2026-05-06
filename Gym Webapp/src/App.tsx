@@ -301,6 +301,7 @@ export default function App() {
   const [settingsSearch, setSettingsSearch] = useState('');
   const [activitySubTab, setActivitySubTab] = useState<'overview' | 'insights' | 'history'>('overview');
   const [nutritionSubTab, setNutritionSubTab] = useState<'today' | 'foods' | 'goals'>('today');
+  const [plansSubTab, setPlansSubTab] = useState<'my' | 'browse' | 'bodymap'>('my');
   const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [reportImageBusy, setReportImageBusy] = useState(false);
 
@@ -1917,17 +1918,37 @@ export default function App() {
               )}
             </div>
 
+            <nav className="subtab-bar subtab-bar--plans" role="tablist" aria-label="Plans sections">
+              {([
+                { id: 'my', label: 'My Plans' },
+                { id: 'browse', label: 'Browse' },
+                { id: 'bodymap', label: 'Body Map' },
+              ] as const).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={plansSubTab === t.id}
+                  className={`subtab-btn ${plansSubTab === t.id ? 'is-active' : ''}`}
+                  onClick={() => setPlansSubTab(t.id)}
+                >
+                  {t.label}
+                  {t.id === 'my' && data.savedPlans.length > 0 ? (
+                    <span className="subtab-badge">{data.savedPlans.length}</span>
+                  ) : null}
+                </button>
+              ))}
+            </nav>
+
             {/* MY PLANS */}
+            {plansSubTab === 'my' && (
             <section className="home-section" aria-label="My Plans">
-              <div className="home-section-header" onClick={() => toggleSection('my-plans')} style={{ cursor: 'pointer' }}>
-                <span className="home-section-label">
-                  MY PLANS
-                  {collapsedSections['my-plans'] ? <ChevronDown size={14} style={{ marginLeft: '4px' }} /> : <ChevronUp size={14} style={{ marginLeft: '4px' }} />}
-                </span>
+              <div className="home-section-header" style={{ cursor: 'default' }}>
+                <span className="home-section-label">MY PLANS</span>
                 <button className="icon-add-btn" onClick={(e) => { e.stopPropagation(); startCreatePlan(); }} aria-label="New plan">+</button>
               </div>
 
-              {!collapsedSections['my-plans'] && (
+              {true && (
                 <>
                   {data.savedPlans.length === 0 ? (
                     <button className="create-plan-empty" onClick={() => startCreatePlan()}>
@@ -1979,8 +2000,9 @@ export default function App() {
                 </>
               )}
             </section>
+            )}
 
-            {presetCategoriesSorted.map((category) => (
+            {plansSubTab === 'browse' && presetCategoriesSorted.map((category) => (
               <section key={category.title} className="home-section" aria-label={category.title}>
                 <div className="home-section-header" onClick={() => toggleSection(category.title)} style={{ cursor: 'pointer' }}>
                   <div className="home-section-title">
@@ -2029,7 +2051,12 @@ export default function App() {
               </section>
             ))}
 
+            {plansSubTab === 'browse' && presetCategoriesSorted.length === 0 && (
+              <p className="empty-text" style={{ marginTop: '0.5rem' }}>No preset templates available right now.</p>
+            )}
+
             {/* 10-DAY REPORT */}
+            {plansSubTab === 'bodymap' && (
             <section className="home-section" aria-label={`Last ${reportDays} days report`}>
               <div className="home-section-header">
                 <span className="home-section-label">LAST {reportDays} DAYS</span>
@@ -2057,6 +2084,7 @@ export default function App() {
                 />
               </div>
             </section>
+            )}
           </div>
         )}
 

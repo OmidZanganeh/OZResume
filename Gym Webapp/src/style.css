@@ -5950,6 +5950,35 @@ select.text-input.day-modal-select {
   outline-offset: 2px;
 }
 
+/* Optional count badge inside a sub-tab button */
+.subtab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.4rem;
+  min-width: 1.25rem;
+  height: 1.1rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(71, 85, 105, 0.55);
+  color: var(--gf-text);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  line-height: 1;
+}
+.subtab-btn.is-active .subtab-badge,
+.subtab-btn[aria-selected="true"] .subtab-badge {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.55), rgba(45, 212, 191, 0.55));
+  border-color: rgba(56, 189, 248, 0.7);
+}
+
+/* Plans tab — subtab bar sits below the wordmark + cloud row */
+.subtab-bar--plans {
+  margin-top: 0.25rem;
+  margin-bottom: 0.85rem;
+}
+
 /* Remove old CSS-order trick for nutrition: sub-tabs now control flow. */
 .tab-frame--nutrition > * { order: initial; }
 .tab-frame--nutrition > .panel { order: initial; }
