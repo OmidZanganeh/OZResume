@@ -6009,3 +6009,93 @@ select.text-input.day-modal-select {
 .nutrition-entry-toggle-btn {
   cursor: pointer;
 }
+
+/* Activity overview v2 — compact, high-signal metrics. */
+.activity-overview-panel .panel-heading {
+  margin-bottom: 0.7rem;
+}
+
+.activity-overview-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.activity-overview-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.68rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.34);
+  background: rgba(2, 6, 23, 0.52);
+}
+
+.activity-overview-hero--streak {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.12), rgba(2, 6, 23, 0.55));
+  border-color: rgba(251, 146, 60, 0.35);
+}
+
+.activity-overview-hero-label {
+  font-size: 0.72rem;
+  color: var(--gf-text-muted);
+  letter-spacing: 0.01em;
+}
+
+.activity-overview-hero-value {
+  font-family: var(--gf-display);
+  font-size: clamp(1.25rem, 3.2vw, 1.6rem);
+  color: var(--gf-text);
+  line-height: 1;
+}
+
+.activity-overview-hero-sub {
+  font-size: 0.72rem;
+  color: var(--gf-text-dim);
+}
+
+.activity-overview-mini-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.activity-overview-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  padding: 0.52rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.28);
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.activity-overview-mini-label {
+  font-size: 0.67rem;
+  color: var(--gf-text-muted);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.activity-overview-mini-value {
+  font-size: 1rem;
+  line-height: 1.1;
+  color: var(--gf-text);
+  font-weight: 700;
+}
+
+.activity-overview-mini-sub {
+  font-size: 0.68rem;
+  color: var(--gf-text-dim);
+}
+
+@media (max-width: 760px) {
+  .activity-overview-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-overview-mini-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

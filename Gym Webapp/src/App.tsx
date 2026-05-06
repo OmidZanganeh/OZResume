@@ -2375,15 +2375,46 @@ export default function App() {
               <HistoryBackfillPanel allExercises={allExercises} sessions={data.sessions} savedPlans={data.savedPlans} onPersist={({ sessions: s, stats: st }) => persist({ ...data, sessions: s, stats: st })} />
             </section>
 
-            <section className="panel">
+            <section className="panel activity-overview-panel">
               <h2 className="panel-heading panel-heading--plain">Overview</h2>
-              <div className="stats-grid">
-                <article className="stat-card"><h3>{totalWorkoutCount}</h3><p>Workouts</p></article>
-                <article className="stat-card"><h3>{totalTrackedSets}</h3><p>Total Sets</p></article>
-                <article className="stat-card stat-card--accent"><h3>{streak.current}</h3><p><Flame size={16} strokeWidth={2} style={{ marginRight: '4px', verticalAlign: 'text-bottom', color: '#fb923c' }} /> Streak</p></article>
-                <article className="stat-card"><h3>{streak.longest}</h3><p>Best Streak</p></article>
-                <article className="stat-card"><h3>{consistency}%</h3><p>Consistency ({analysisDays}d)</p></article>
-                <article className="stat-card"><h3>{trainedGroupsCountAnalysis}</h3><p>Muscles Hit ({analysisDays}d)</p></article>
+              <div className="activity-overview-layout">
+                <article className="activity-overview-hero activity-overview-hero--streak" aria-label="Current streak">
+                  <span className="activity-overview-hero-label">
+                    <Flame size={14} strokeWidth={2} style={{ marginRight: '4px', verticalAlign: 'text-bottom', color: '#fb923c' }} />
+                    Current streak
+                  </span>
+                  <strong className="activity-overview-hero-value">{streak.current}</strong>
+                  <span className="activity-overview-hero-sub">Best: {streak.longest}</span>
+                </article>
+
+                <article className="activity-overview-hero" aria-label="Total workouts">
+                  <span className="activity-overview-hero-label">Total workouts</span>
+                  <strong className="activity-overview-hero-value">{totalWorkoutCount}</strong>
+                  <span className="activity-overview-hero-sub">{totalTrackedSets} sets logged</span>
+                </article>
+
+                <div className="activity-overview-mini-grid" role="list" aria-label="Overview metrics">
+                  <article className="activity-overview-mini" role="listitem">
+                    <span className="activity-overview-mini-label">Consistency</span>
+                    <strong className="activity-overview-mini-value">{consistency}%</strong>
+                    <span className="activity-overview-mini-sub">{analysisDays}d window</span>
+                  </article>
+                  <article className="activity-overview-mini" role="listitem">
+                    <span className="activity-overview-mini-label">Muscles hit</span>
+                    <strong className="activity-overview-mini-value">{trainedGroupsCountAnalysis}</strong>
+                    <span className="activity-overview-mini-sub">{MUSCLE_GROUPS.length} total groups</span>
+                  </article>
+                  <article className="activity-overview-mini" role="listitem">
+                    <span className="activity-overview-mini-label">Best streak</span>
+                    <strong className="activity-overview-mini-value">{streak.longest}</strong>
+                    <span className="activity-overview-mini-sub">All-time max</span>
+                  </article>
+                  <article className="activity-overview-mini" role="listitem">
+                    <span className="activity-overview-mini-label">Total sets</span>
+                    <strong className="activity-overview-mini-value">{totalTrackedSets}</strong>
+                    <span className="activity-overview-mini-sub">Across all sessions</span>
+                  </article>
+                </div>
               </div>
             </section>
 
