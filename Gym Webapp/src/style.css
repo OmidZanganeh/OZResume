@@ -4272,6 +4272,73 @@ select.text-input.day-modal-select {
   background: rgba(2, 6, 23, 0.28);
   padding: 0.6rem;
 }
+
+.nutrition-quick-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.nutrition-quick-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.56rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.28);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.nutrition-quick-item.is-selected {
+  border-color: rgba(56, 189, 248, 0.52);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.28);
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.nutrition-quick-item-main {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.nutrition-quick-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.nutrition-quick-item-head strong {
+  font-size: 0.84rem;
+  color: var(--gf-text);
+}
+
+.nutrition-quick-item-head span {
+  font-size: 0.72rem;
+  color: var(--gf-text-muted);
+  white-space: nowrap;
+}
+
+.nutrition-quick-item-meta,
+.nutrition-quick-item-sub {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--gf-text-muted);
+  line-height: 1.33;
+}
+
+.nutrition-quick-item-meta {
+  color: #d1fae5;
+  font-weight: 600;
+}
+
+.nutrition-quick-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 @media (max-width: 560px) {
   .nutrition-quick-picker-row { align-items: stretch; }
   .nutrition-quick-picker { width: 100%; }

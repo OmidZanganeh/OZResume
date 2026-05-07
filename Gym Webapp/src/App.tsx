@@ -2991,7 +2991,7 @@ export default function App() {
                           </p>
                         </div>
                         {mealTemplateMatchesForPicker.length > 0 ? (
-                          <div className="nutrition-meal-template-grid" role="list">
+                          <div className="nutrition-quick-list" role="list">
                             {mealTemplateMatchesForPicker.map((meal) => {
                               const totals = meal.items.reduce(
                                 (acc, item) => {
@@ -3006,21 +3006,21 @@ export default function App() {
                                 { calories: 0, protein: 0, carbs: 0, fat: 0 },
                               );
                               return (
-                                <article key={meal.id} className="nutrition-meal-template-card" role="listitem">
-                                  <div className="nutrition-meal-template-head">
-                                    <strong>{meal.name}</strong>
-                                    <span>{meal.items.length} items</span>
+                                <article key={meal.id} className="nutrition-quick-item nutrition-quick-item--meal" role="listitem">
+                                  <div className="nutrition-quick-item-main">
+                                    <div className="nutrition-quick-item-head">
+                                      <strong>{meal.name}</strong>
+                                      <span>{meal.items.length} items</span>
+                                    </div>
+                                    <p className="nutrition-quick-item-meta">
+                                      {formatMacro(totals.calories)} kcal · P {formatMacro(totals.protein)} · C {formatMacro(totals.carbs)} · F{' '}
+                                      {formatMacro(totals.fat)}
+                                    </p>
+                                    <p className="nutrition-quick-item-sub">{meal.items.map((item) => item.name).join(' + ')}</p>
                                   </div>
-                                  <p className="nutrition-meal-template-macros">
-                                    {formatMacro(totals.calories)} kcal · P {formatMacro(totals.protein)} · C {formatMacro(totals.carbs)} · F{' '}
-                                    {formatMacro(totals.fat)}
-                                  </p>
-                                  <p className="nutrition-meal-template-items">
-                                    {meal.items.map((item) => item.name).join(' + ')}
-                                  </p>
-                                  <div className="nutrition-meal-template-actions">
+                                  <div className="nutrition-quick-item-actions">
                                     <button type="button" className="button button-small" onClick={() => addMealTemplateToLog(meal)}>
-                                      Add meal
+                                      Add
                                     </button>
                                     <button
                                       type="button"
@@ -3046,27 +3046,35 @@ export default function App() {
                       favoriteFoodMatchesForPicker.length > 0 ? (
                         <>
                           <p className="panel-subtle nutrition-recent-picks-hint">
-                            Tap to pick. × removes from favorites (past logs stay intact).
+                            Tap select to reuse. Remove deletes from favorites only.
                           </p>
-                          <div className="nutrition-recent-picks nutrition-favorites-picks" role="list">
+                          <div className="nutrition-quick-list" role="list">
                             {favoriteFoodMatchesForPicker.map((item) => (
-                              <div key={item.code} className="nutrition-fav-chip-wrap" role="listitem">
-                                <button
-                                  type="button"
-                                  className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
-                                  onClick={() => setSelectedFood(item)}
-                                >
-                                  <span className="nutrition-recent-chip-name">{item.name}</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  className="nutrition-fav-remove"
-                                  aria-label={`Remove ${item.name} from favorites`}
-                                  onClick={() => toggleNutritionFavorite(item)}
-                                >
-                                  ×
-                                </button>
-                              </div>
+                              <article
+                                key={item.code}
+                                className={`nutrition-quick-item ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
+                                role="listitem"
+                              >
+                                <div className="nutrition-quick-item-main">
+                                  <div className="nutrition-quick-item-head">
+                                    <strong>{item.name}</strong>
+                                  </div>
+                                  <p className="nutrition-quick-item-sub">{item.brands || item.quantity || item.servingSize || 'Favorite food'}</p>
+                                </div>
+                                <div className="nutrition-quick-item-actions">
+                                  <button type="button" className="button button-small" onClick={() => setSelectedFood(item)}>
+                                    Select
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="button button-muted button-small"
+                                    aria-label={`Remove ${item.name} from favorites`}
+                                    onClick={() => toggleNutritionFavorite(item)}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </article>
                             ))}
                           </div>
                         </>
@@ -3080,21 +3088,26 @@ export default function App() {
                     {nutritionQuickTab === 'recent' ? (
                       recentFoodMatchesForPicker.length > 0 ? (
                         <>
-                          <p className="panel-subtle nutrition-recent-picks-hint">Tap food to add again, no search needed.</p>
-                          <div className="nutrition-recent-picks" role="list">
+                          <p className="panel-subtle nutrition-recent-picks-hint">Tap select to reuse without searching again.</p>
+                          <div className="nutrition-quick-list" role="list">
                             {recentFoodMatchesForPicker.map((item) => (
-                              <button
+                              <article
                                 key={item.code}
-                                type="button"
+                                className={`nutrition-quick-item ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
                                 role="listitem"
-                                className={`nutrition-recent-chip ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
-                                onClick={() => setSelectedFood(item)}
                               >
-                                <span className="nutrition-recent-chip-name">{item.name}</span>
-                                {item.quantity ? (
-                                  <span className="nutrition-recent-chip-meta">{item.quantity}</span>
-                                ) : null}
-                              </button>
+                                <div className="nutrition-quick-item-main">
+                                  <div className="nutrition-quick-item-head">
+                                    <strong>{item.name}</strong>
+                                  </div>
+                                  <p className="nutrition-quick-item-sub">{item.quantity || item.servingSize || 'Recent food'}</p>
+                                </div>
+                                <div className="nutrition-quick-item-actions">
+                                  <button type="button" className="button button-small" onClick={() => setSelectedFood(item)}>
+                                    Select
+                                  </button>
+                                </div>
+                              </article>
                             ))}
                           </div>
                         </>
