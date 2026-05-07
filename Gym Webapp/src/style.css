@@ -4183,10 +4183,13 @@ select.text-input.day-modal-select {
 }
 
 .nutrition-quick-hub {
-  border: 1px solid var(--gf-border);
-  border-radius: var(--gf-radius-md);
-  background: linear-gradient(165deg, rgba(17, 24, 39, 0.62) 0%, rgba(15, 23, 42, 0.46) 100%);
-  padding: 0.7rem 0.75rem 0.75rem;
+  border: 1px solid rgba(71, 85, 105, 0.35);
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0) 44%),
+    linear-gradient(170deg, rgba(15, 23, 42, 0.78) 0%, rgba(15, 23, 42, 0.58) 100%);
+  padding: 0.75rem 0.8rem 0.8rem;
+  box-shadow: 0 14px 30px -24px rgba(2, 6, 23, 0.8);
 }
 
 .nutrition-quick-hub-collapse {
@@ -4205,6 +4208,31 @@ select.text-input.day-modal-select {
 }
 
 .nutrition-quick-hub-top {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.nutrition-quick-meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.nutrition-quick-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 1.35rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.5);
+  color: #cbd5e1;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.nutrition-quick-picker-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -4216,6 +4244,7 @@ select.text-input.day-modal-select {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+  min-width: 210px;
 }
 
 .nutrition-quick-picker-label {
@@ -4230,11 +4259,23 @@ select.text-input.day-modal-select {
   min-width: 170px;
   font-size: 0.78rem;
   font-weight: 600;
-  border-radius: 10px;
+  border-radius: 9px;
   padding-top: 0.34rem;
   padding-bottom: 0.34rem;
-  background: rgba(15, 23, 42, 0.7);
-  border-color: rgba(71, 85, 105, 0.45);
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.nutrition-quick-content {
+  border: 1px solid rgba(71, 85, 105, 0.24);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.28);
+  padding: 0.6rem;
+}
+@media (max-width: 560px) {
+  .nutrition-quick-picker-row { align-items: stretch; }
+  .nutrition-quick-picker { width: 100%; }
+  .nutrition-quick-select { width: 100%; min-width: 0; }
 }
 
 .nutrition-meal-scale-row {

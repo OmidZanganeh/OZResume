@@ -2946,24 +2946,32 @@ export default function App() {
                 {!collapsedSections['nutrition-quick-add'] ? (
                   <>
                     <div className="nutrition-quick-hub-top">
-                      <p className="panel-subtle nutrition-recent-picks-hint">
-                        Tip: build meal in <strong>Logged foods</strong> using foods you logged today, then reuse from Meals.
-                      </p>
-                      <label className="nutrition-quick-picker">
-                        <span className="nutrition-quick-picker-label">Source</span>
-                        <select
-                          className="select-input nutrition-quick-select"
-                          aria-label="Quick add source"
-                          value={nutritionQuickTab}
-                          onChange={(e) => setNutritionQuickTab(e.target.value as 'meals' | 'favorites' | 'recent')}
-                        >
-                          <option value="meals">Meals ({nutritionMealTemplates.length})</option>
-                          <option value="favorites">Favorites ({favoriteFoodMatchesForPicker.length})</option>
-                          <option value="recent">Recent ({recentFoodMatchesForPicker.length})</option>
-                        </select>
-                      </label>
+                      <div className="nutrition-quick-meta-strip" aria-label="Quick add library counts">
+                        <span className="nutrition-quick-meta-pill">Meals {nutritionMealTemplates.length}</span>
+                        <span className="nutrition-quick-meta-pill">Favorites {favoriteFoodMatchesForPicker.length}</span>
+                        <span className="nutrition-quick-meta-pill">Recent {recentFoodMatchesForPicker.length}</span>
+                      </div>
+                      <div className="nutrition-quick-picker-row">
+                        <label className="nutrition-quick-picker">
+                          <span className="nutrition-quick-picker-label">Source</span>
+                          <select
+                            className="select-input nutrition-quick-select"
+                            aria-label="Quick add source"
+                            value={nutritionQuickTab}
+                            onChange={(e) => setNutritionQuickTab(e.target.value as 'meals' | 'favorites' | 'recent')}
+                          >
+                            <option value="meals">Meals</option>
+                            <option value="favorites">Favorites</option>
+                            <option value="recent">Recent</option>
+                          </select>
+                        </label>
+                        <p className="panel-subtle nutrition-recent-picks-hint">
+                          Tip: build a meal from <strong>Logged foods</strong> below, then reuse it here.
+                        </p>
+                      </div>
                     </div>
 
+                    <div className="nutrition-quick-content">
                     {nutritionQuickTab === 'meals' ? (
                       <>
                         <div className="nutrition-meal-scale-row">
@@ -3094,6 +3102,7 @@ export default function App() {
                         <p className="panel-subtle nutrition-recent-picks-hint">No recent foods yet for this account.</p>
                       )
                     ) : null}
+                    </div>
                   </>
                 ) : null}
               </div>
