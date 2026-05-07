@@ -15,6 +15,8 @@ export type UserProfile = {
   age?: string;
   /** Optional: improves estimated calorie / macro targets. */
   sex?: 'male' | 'female';
+  /** Optional activity multiplier selection for calorie estimation. */
+  activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active' | 'veryActive';
 };
 
 /** User-defined pantry item; macros are stored per 100 g (same as Open Food Facts) for one consistent scale. */

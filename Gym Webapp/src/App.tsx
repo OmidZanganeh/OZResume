@@ -374,16 +374,28 @@ export default function App() {
   const settingsQuery = settingsSearch.trim().toLowerCase();
   const settingsMatches = (keywords: string[]) =>
     settingsQuery.length === 0 || keywords.some((keyword) => keyword.toLowerCase().includes(settingsQuery));
-  const showSettingsProfile = settingsMatches(['profile', 'account', 'weight', 'height', 'age', 'sex']);
+  const showSettingsProfile = settingsMatches(['profile', 'account', 'weight', 'height', 'age', 'sex', 'activity']);
   const showSettingsReport = settingsMatches(['report', 'image', 'pdf', 'export']);
   const showSettingsCustomMoves = settingsMatches(['custom', 'exercise', 'moves', 'library']);
   const showSettingsBackup = settingsMatches(['backup', 'import', 'export', 'data']);
   const showSettingsApp = settingsMatches(['app', 'update', 'version', 'reload']);
   const showSettingsDanger = settingsMatches(['danger', 'reset', 'clear', 'delete']);
 
+  const avgWorkoutsPerWeek = useMemo(() => {
+    const now = Date.now();
+    const cutoff = now - 28 * 24 * 60 * 60 * 1000;
+    const dayKeys = new Set<string>();
+    for (const s of data.sessions) {
+      const d = new Date(s.date).getTime();
+      if (!Number.isFinite(d) || d < cutoff) continue;
+      dayKeys.add(nutritionLogDateKey(s.date));
+    }
+    return dayKeys.size / 4;
+  }, [data.sessions]);
+
   const suggestedNutritionGoals = useMemo(
-    () => computeSuggestedNutritionGoals(reportProfile),
-    [reportProfile.weight, reportProfile.weightUnit, reportProfile.height, reportProfile.heightUnit, reportProfile.age, reportProfile.sex],
+    () => computeSuggestedNutritionGoals(reportProfile, { avgWorkoutsPerWeek }),
+    [reportProfile.weight, reportProfile.weightUnit, reportProfile.height, reportProfile.heightUnit, reportProfile.age, reportProfile.sex, reportProfile.activityLevel, avgWorkoutsPerWeek],
   );
 
   /** Weight-loss presets: same profile as maintenance, minus kcal/day (floored to a rough safe minimum). */
@@ -392,7 +404,7 @@ export default function App() {
     const maintCal = suggestedNutritionGoals.calories;
     const out: { label: string; deficit: number; goals: NutritionGoals }[] = [];
     for (const deficit of [300, 500, 750] as const) {
-      const g = computeSuggestedNutritionGoalsWithDeficit(reportProfile, deficit);
+      const g = computeSuggestedNutritionGoalsWithDeficit(reportProfile, deficit, { avgWorkoutsPerWeek });
       if (g && g.calories < maintCal - 25) {
         out.push({
           label:
@@ -414,6 +426,8 @@ export default function App() {
     reportProfile.heightUnit,
     reportProfile.age,
     reportProfile.sex,
+    reportProfile.activityLevel,
+    avgWorkoutsPerWeek,
     suggestedNutritionGoals,
   ]);
 
@@ -1409,6 +1423,7 @@ export default function App() {
       heightUnit: reportProfile.heightUnit === 'ft' ? 'ft' : 'cm',
       age: reportProfile.age || '',
       sex: reportProfile.sex,
+      activityLevel: reportProfile.activityLevel,
     };
     const res = await saveUserProfileCloud(userProfile);
     setProfileCloudBusy(false);
@@ -3833,6 +3848,32 @@ export default function App() {
                     <option value="">Prefer not to say (uses male formula)</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
+                  </select>
+                </label>
+                <label className="profile-field">
+                  <span>Activity level (for calorie estimate)</span>
+                  <select
+                    className="select-input"
+                    value={reportProfile.activityLevel ?? ''}
+                    onChange={(e) =>
+                      patchReportProfile({
+                        activityLevel:
+                          e.target.value === 'sedentary' ||
+                          e.target.value === 'light' ||
+                          e.target.value === 'moderate' ||
+                          e.target.value === 'active' ||
+                          e.target.value === 'veryActive'
+                            ? e.target.value
+                            : undefined,
+                      })
+                    }
+                  >
+                    <option value="">Auto (from recent workouts)</option>
+                    <option value="sedentary">Sedentary (desk-heavy)</option>
+                    <option value="light">Light (1-2 workouts/week)</option>
+                    <option value="moderate">Moderate (3-4 workouts/week)</option>
+                    <option value="active">Active (5-6 workouts/week)</option>
+                    <option value="veryActive">Very active (daily hard training)</option>
                   </select>
                 </label>
                 <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>

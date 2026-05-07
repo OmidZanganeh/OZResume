@@ -1,5 +1,23 @@
 import type { NutritionGoals, UserProfile } from '../data/gymFlowStorage';
 
+const ACTIVITY_FACTOR_BY_LEVEL: Record<NonNullable<UserProfile['activityLevel']>, number> = {
+  sedentary: 1.2,
+  light: 1.375,
+  moderate: 1.55,
+  active: 1.725,
+  veryActive: 1.9,
+};
+
+function inferActivityFactor(avgWorkoutsPerWeek: number | undefined): number {
+  if (!Number.isFinite(avgWorkoutsPerWeek)) return ACTIVITY_FACTOR_BY_LEVEL.moderate;
+  const n = avgWorkoutsPerWeek as number;
+  if (n < 1.5) return ACTIVITY_FACTOR_BY_LEVEL.sedentary;
+  if (n < 3) return ACTIVITY_FACTOR_BY_LEVEL.light;
+  if (n < 5) return ACTIVITY_FACTOR_BY_LEVEL.moderate;
+  if (n < 6.5) return ACTIVITY_FACTOR_BY_LEVEL.active;
+  return ACTIVITY_FACTOR_BY_LEVEL.veryActive;
+}
+
 function parseWeightKg(weight: string | undefined, unit: 'kg' | 'lbs' | undefined): number | null {
   if (!weight?.trim()) return null;
   const n = Number.parseFloat(weight.replace(/,/g, '.'));
@@ -27,7 +45,10 @@ function parseHeightCm(height: string | undefined, unit: 'cm' | 'ft' | undefined
  * Mifflin–St Jeor BMR × activity factor, then macro split suited to training.
  * Returns null if profile numbers are incomplete or implausible.
  */
-export function computeSuggestedNutritionGoals(profile: UserProfile | undefined): NutritionGoals | null {
+export function computeSuggestedNutritionGoals(
+  profile: UserProfile | undefined,
+  opts?: { avgWorkoutsPerWeek?: number },
+): NutritionGoals | null {
   if (!profile) return null;
   const weightKg = parseWeightKg(profile.weight, profile.weightUnit);
   const heightCm = parseHeightCm(profile.height, profile.heightUnit);
@@ -44,7 +65,9 @@ export function computeSuggestedNutritionGoals(profile: UserProfile | undefined)
   }
   if (!Number.isFinite(bmr) || bmr < 800) return null;
 
-  const activity = 1.55;
+  const activity = profile.activityLevel
+    ? ACTIVITY_FACTOR_BY_LEVEL[profile.activityLevel]
+    : inferActivityFactor(opts?.avgWorkoutsPerWeek);
   const calories = Math.round(bmr * activity);
 
   const protein = Math.round(Math.max(weightKg * 1.8, 70));
@@ -82,8 +105,9 @@ function minimumSafeDailyCalories(profile: UserProfile, bmr: number): number {
 export function computeSuggestedNutritionGoalsWithDeficit(
   profile: UserProfile | undefined,
   dailyDeficitKcal: number,
+  opts?: { avgWorkoutsPerWeek?: number },
 ): NutritionGoals | null {
-  const maintenance = computeSuggestedNutritionGoals(profile);
+  const maintenance = computeSuggestedNutritionGoals(profile, opts);
   if (!maintenance || !profile || dailyDeficitKcal <= 0) return null;
 
   const weightKg = parseWeightKg(profile.weight, profile.weightUnit);

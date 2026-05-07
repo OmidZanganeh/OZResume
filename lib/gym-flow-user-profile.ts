@@ -6,6 +6,7 @@ export type GymFlowUserProfile = {
   heightUnit?: 'cm' | 'ft';
   age?: string;
   sex?: 'male' | 'female';
+  activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active' | 'veryActive';
 };
 
 export function isValidUserProfileField(o: unknown): boolean {
@@ -18,6 +19,14 @@ export function isValidUserProfileField(o: unknown): boolean {
   if (p.weightUnit != null && p.weightUnit !== 'kg' && p.weightUnit !== 'lbs') return false;
   if (p.heightUnit != null && p.heightUnit !== 'cm' && p.heightUnit !== 'ft') return false;
   if (p.sex != null && p.sex !== 'male' && p.sex !== 'female') return false;
+  if (
+    p.activityLevel != null &&
+    p.activityLevel !== 'sedentary' &&
+    p.activityLevel !== 'light' &&
+    p.activityLevel !== 'moderate' &&
+    p.activityLevel !== 'active' &&
+    p.activityLevel !== 'veryActive'
+  ) return false;
   return true;
 }
 
@@ -31,6 +40,14 @@ export function sanitizeUserProfile(body: unknown): GymFlowUserProfile | null {
     o.heightUnit === 'ft' || o.heightUnit === 'cm' ? o.heightUnit : undefined;
   const sex =
     o.sex === 'male' || o.sex === 'female' ? o.sex : undefined;
+  const activityLevel =
+    o.activityLevel === 'sedentary' ||
+    o.activityLevel === 'light' ||
+    o.activityLevel === 'moderate' ||
+    o.activityLevel === 'active' ||
+    o.activityLevel === 'veryActive'
+      ? o.activityLevel
+      : undefined;
   const profile: GymFlowUserProfile = {
     ...(pick('name') ? { name: pick('name') } : {}),
     ...(pick('weight') ? { weight: pick('weight') } : {}),
@@ -39,6 +56,7 @@ export function sanitizeUserProfile(body: unknown): GymFlowUserProfile | null {
     ...(heightUnit ? { heightUnit } : {}),
     ...(pick('age') ? { age: pick('age') } : {}),
     ...(sex ? { sex } : {}),
+    ...(activityLevel ? { activityLevel } : {}),
   };
   if (!isValidUserProfileField(profile)) return null;
   return profile;
