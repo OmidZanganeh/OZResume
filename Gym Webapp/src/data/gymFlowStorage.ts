@@ -116,6 +116,8 @@ export type SavedPlan = {
   exerciseIds: string[];
   muscleGroups: MuscleGroup[];
   equipment: string[];
+  /** Optional per-exercise body-map targets chosen in plan editor. */
+  exerciseMuscleTargets?: Record<string, MuscleGroup[]>;
 };
 
 export type PersistedGymData = {

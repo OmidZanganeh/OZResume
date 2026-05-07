@@ -1,6 +1,6 @@
 import type { Exercise, MuscleGroup } from './exerciseTypes';
 import { mapV1ExerciseIdToV2 } from './legacyV1Stock';
-import { EXERCISE_LIBRARY } from './exerciseLibrary';
+import { EXERCISE_LIBRARY, MUSCLE_GROUPS } from './exerciseLibrary';
 
 type ExerciseStat = {
   timesCompleted: number;
@@ -25,6 +25,7 @@ type SavedPlan = {
   exerciseIds: string[];
   muscleGroups: MuscleGroup[];
   equipment: string[];
+  exerciseMuscleTargets?: Record<string, MuscleGroup[]>;
 };
 
 type PersistedIn = {
@@ -77,10 +78,22 @@ export function resolvePlanExerciseIdsToCatalog(exerciseIds: string[], catalog: 
 
 export function normalizeSavedPlansExerciseIds(plans: SavedPlan[], customExercises: Exercise[]): SavedPlan[] {
   const catalog = [...EXERCISE_LIBRARY, ...customExercises];
-  return plans.map((plan) => ({
-    ...plan,
-    exerciseIds: resolvePlanExerciseIdsToCatalog(plan.exerciseIds, catalog),
-  }));
+  return plans.map((plan) => {
+    const normalizedExerciseIds = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, catalog);
+    const allowed = new Set(normalizedExerciseIds);
+    const normalizedTargets = plan.exerciseMuscleTargets
+      ? Object.fromEntries(
+          Object.entries(plan.exerciseMuscleTargets)
+            .filter(([id]) => allowed.has(id))
+            .map(([id, groups]) => [id, (groups ?? []).filter((g) => MUSCLE_GROUPS.includes(g))]),
+        )
+      : undefined;
+    return {
+      ...plan,
+      exerciseIds: normalizedExerciseIds,
+      ...(normalizedTargets ? { exerciseMuscleTargets: normalizedTargets } : {}),
+    };
+  });
 }
 
 /**
