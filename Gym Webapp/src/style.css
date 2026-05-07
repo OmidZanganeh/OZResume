@@ -5931,6 +5931,39 @@ select.text-input.day-modal-select {
   gap: 0.65rem;
 }
 
+.tab-frame--settings .settings-account-panel {
+  margin-bottom: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid rgba(71, 85, 105, 0.34);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.tab-frame--settings .settings-account-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.tab-frame--settings .settings-account-status {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--gf-text-muted);
+}
+
+.tab-frame--settings .settings-account-status a {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.tab-frame--settings .settings-account-status a:hover {
+  text-decoration: underline;
+}
+
+.tab-frame--settings .settings-account-status--signed-in span {
+  color: #86efac;
+  font-weight: 600;
+}
+
 .tab-frame--settings .settings-block--profile .profile-field {
   display: grid;
   gap: 0.28rem;

@@ -3684,6 +3684,34 @@ export default function App() {
                 Used for your PDF training report. When you are signed in, use <strong>Save profile online</strong> to
                 update your account.
               </p>
+              <div className="settings-account-panel">
+                {cloudSignedIn ? (
+                  <p className="settings-account-status settings-account-status--signed-in">
+                    <span>Cloud backup on</span>
+                    {' · '}
+                    <a href="/gym-flow-account/">Account</a>
+                  </p>
+                ) : (
+                  <div className="settings-account-actions">
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={() => {
+                        openGymFlowSignIn();
+                      }}
+                    >
+                      Sign in
+                    </button>
+                    <p className="settings-account-status settings-account-status--signed-out">
+                      <a href={getGymFlowSignInPopupUrl()} target="_blank" rel="opener">
+                        Open sign-in in new tab
+                      </a>
+                      {' · '}
+                      <a href="/gym-flow-account/">Full account page</a>
+                    </p>
+                  </div>
+                )}
+              </div>
               <div className="profile-form">
                 <label className="profile-field">
                   <span>Name</span>
@@ -3818,7 +3846,7 @@ export default function App() {
                   </button>
                   {!cloudSignedIn && (
                     <span className="panel-subtle" style={{ margin: 0 }}>
-                      Sign in from Home to enable online save.
+                      Sign in above to enable online save.
                     </span>
                   )}
                 </div>
