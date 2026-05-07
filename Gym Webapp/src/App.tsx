@@ -1652,12 +1652,26 @@ export default function App() {
       }
     }
 
+    // Persist plan muscle groups from per-exercise body-map selections.
+    // This makes Edit Plan "Count for body map" toggles actually affect the saved plan.
+    const inferredGroupSet = new Set<MuscleGroup>();
+    for (const id of selectedExerciseIds) {
+      const ex = exerciseById.get(id);
+      if (!ex) continue;
+      const candidates = candidateMuscleGroupsForExercise(ex);
+      const picked = exerciseDrafts[id]?.trainedMuscleGroups?.filter((g) => candidates.includes(g)) ?? [];
+      const effective = picked.length > 0 ? picked : candidates;
+      for (const g of effective) inferredGroupSet.add(g);
+    }
+    const persistedMuscleGroups = MUSCLE_GROUPS.filter((g) => inferredGroupSet.has(g));
+    const nextPlanMuscleGroups = persistedMuscleGroups.length > 0 ? persistedMuscleGroups : [...selectedGroups];
+
     if (editingSavedPlanId) {
       persist({
         ...data,
         savedPlans: data.savedPlans.map((p) =>
           p.id === editingSavedPlanId
-            ? { ...p, exerciseIds: [...selectedExerciseIds], muscleGroups: [...selectedGroups], equipment: [...selectedEquipment] }
+            ? { ...p, exerciseIds: [...selectedExerciseIds], muscleGroups: nextPlanMuscleGroups, equipment: [...selectedEquipment] }
             : p,
         ),
       });
@@ -1665,7 +1679,7 @@ export default function App() {
     } else {
       const plan: SavedPlan = {
         id: `tpl-${Date.now()}`, name, createdAt: new Date().toISOString(),
-        exerciseIds: [...selectedExerciseIds], muscleGroups: [...selectedGroups], equipment: [...selectedEquipment],
+        exerciseIds: [...selectedExerciseIds], muscleGroups: nextPlanMuscleGroups, equipment: [...selectedEquipment],
       };
       persist({ ...data, savedPlans: [plan, ...data.savedPlans] });
       setMessage(`"${name}" saved.`);
