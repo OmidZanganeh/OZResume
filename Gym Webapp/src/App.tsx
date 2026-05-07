@@ -2529,8 +2529,8 @@ export default function App() {
 
             <nav className="subtab-bar" role="tablist" aria-label="Activity sections">
               {([
-                { id: 'overview', label: 'Overview' },
                 { id: 'insights', label: 'Insights' },
+                { id: 'overview', label: 'Overview' },
                 { id: 'history', label: 'History' },
               ] as const).map((t) => (
                 <button
@@ -3689,30 +3689,33 @@ export default function App() {
             <header className="tab-title-row">
               <div className="tab-title-row__lead">
                 <h1 className="tab-title">Settings</h1>
-                <p className="tab-subtitle">Profile, goals, units, backup, and reset.</p>
+                <p className="tab-subtitle">Compact account, report, app, and data controls.</p>
               </div>
             </header>
             <div className="settings-toolbar surface surface--raised">
-              <div className="settings-quick-nav" role="navigation" aria-label="Settings sections">
-                {showSettingsProfile ? <a href="#settings-profile" className="chip chip-compact">Profile</a> : null}
-                {showSettingsReport ? <a href="#settings-report" className="chip chip-compact">Report</a> : null}
-                {showSettingsCustomMoves ? <a href="#settings-custom-moves" className="chip chip-compact">Moves</a> : null}
-                {showSettingsBackup ? <a href="#settings-backup" className="chip chip-compact">Backup</a> : null}
-                {showSettingsApp ? <a href="#settings-app" className="chip chip-compact">App</a> : null}
-                {showSettingsDanger ? <a href="#settings-danger" className="chip chip-compact">Danger</a> : null}
+              <div className="settings-toolbar-row">
+                <div className="settings-quick-nav" role="navigation" aria-label="Settings sections">
+                  {showSettingsProfile ? <a href="#settings-profile" className="chip chip-compact">Profile</a> : null}
+                  {showSettingsReport ? <a href="#settings-report" className="chip chip-compact">Report</a> : null}
+                  {showSettingsCustomMoves ? <a href="#settings-custom-moves" className="chip chip-compact">Moves</a> : null}
+                  {showSettingsBackup ? <a href="#settings-backup" className="chip chip-compact">Backup</a> : null}
+                  {showSettingsApp ? <a href="#settings-app" className="chip chip-compact">App</a> : null}
+                  {showSettingsDanger ? <a href="#settings-danger" className="chip chip-compact">Danger</a> : null}
+                </div>
+                <input
+                  className="text-input settings-search-input"
+                  type="search"
+                  placeholder="Search settings..."
+                  value={settingsSearch}
+                  onChange={(e) => setSettingsSearch(e.target.value)}
+                  aria-label="Search settings"
+                />
               </div>
-              <input
-                className="text-input settings-search-input"
-                type="search"
-                placeholder="Search settings..."
-                value={settingsSearch}
-                onChange={(e) => setSettingsSearch(e.target.value)}
-                aria-label="Search settings"
-              />
             </div>
             <section className="panel settings-surface">
+            <div className="settings-sections-grid">
             {showSettingsProfile ? (
-            <section id="settings-profile" className="settings-block settings-block--profile">
+            <section id="settings-profile" className="settings-block settings-block--profile settings-block--span-full">
               <h2 className="panel-heading panel-heading--plain">Your Profile</h2>
               <p className="panel-subtle">
                 Used for your PDF training report. When you are signed in, use <strong>Save profile online</strong> to
@@ -3757,15 +3760,14 @@ export default function App() {
                     onChange={(e) => patchReportProfile({ name: e.target.value })}
                   />
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div className="settings-two-col">
                   <label className="profile-field">
                     <span>Weight</span>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <div className="settings-inline-input">
                       <input
                         className="text-input"
                         type="text"
                         placeholder="75"
-                        style={{ flex: 1 }}
                         value={reportProfile.weight || ''}
                         onChange={(e) => patchReportProfile({ weight: e.target.value })}
                       />
@@ -3786,14 +3788,13 @@ export default function App() {
                   </label>
                   <label className="profile-field">
                     <span>Height</span>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <div className="settings-inline-input">
                       {reportProfile.heightUnit === 'ft' ? (
                         <>
                           <input
                             className="text-input"
                             type="number"
                             placeholder="5"
-                            style={{ flex: 1 }}
                             value={(reportProfile.height || '').split("'")[0] || ''}
                             onChange={(e) => {
                               const i = (reportProfile.height || '').split("'")[1] || '';
@@ -3804,7 +3805,6 @@ export default function App() {
                             className="text-input"
                             type="number"
                             placeholder="11"
-                            style={{ flex: 1 }}
                             value={(reportProfile.height || '').split("'")[1] || ''}
                             onChange={(e) => {
                               const f = (reportProfile.height || '').split("'")[0] || '';
@@ -3817,7 +3817,6 @@ export default function App() {
                           className="text-input"
                           type="text"
                           placeholder="175"
-                          style={{ flex: 1 }}
                           value={reportProfile.height || ''}
                           onChange={(e) => patchReportProfile({ height: e.target.value })}
                         />
@@ -3895,7 +3894,7 @@ export default function App() {
                     <option value="veryActive">Very active (daily hard training)</option>
                   </select>
                 </label>
-                <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                <div className="settings-actions-row">
                   <button
                     type="button"
                     className="button"
@@ -3911,7 +3910,7 @@ export default function App() {
                   )}
                 </div>
                 {profileCloudError && (
-                  <p className="panel-subtle" style={{ margin: '0.5rem 0 0', color: '#fca5a5' }} role="alert">
+                  <p className="panel-subtle settings-error-text" role="alert">
                     {profileCloudError}
                   </p>
                 )}
@@ -3923,14 +3922,14 @@ export default function App() {
             <section id="settings-report" className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Export Report</h2>
               <p className="panel-subtle">Preview as image, then save or share. Or print to PDF.</p>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
-                <button type="button" className="button" style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
+
+              <div className="settings-action-grid">
+                <button type="button" className="button settings-cta settings-cta--image"
                   disabled={reportImageBusy}
                   onClick={handleDownloadImage}>
                   <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> {reportImageBusy ? 'Generating…' : 'Preview Image'}
                 </button>
-                <button type="button" className="button" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', fontWeight: 700 }}
+                <button type="button" className="button settings-cta settings-cta--pdf"
                   onClick={() => window.print()}>
                   <FileText size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Print PDF
                 </button>
@@ -3967,11 +3966,11 @@ export default function App() {
             <section id="settings-backup" className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Data Backup</h2>
               <p className="panel-subtle">Export or import your workouts and plans.</p>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
-                <button type="button" className="button" style={{ flex: 1 }} onClick={handleExportData}>
+              <div className="settings-actions-row">
+                <button type="button" className="button button-block" onClick={handleExportData}>
                   Export File
                 </button>
-                <label className="button button-muted" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
+                <label className="button button-muted button-block settings-import-btn">
                   Import File
                   <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportData} />
                 </label>
@@ -3983,7 +3982,7 @@ export default function App() {
             <section id="settings-app" className="settings-block">
               <h2 className="panel-heading panel-heading--plain">App</h2>
               <p className="panel-subtle">Update to the latest version of Gym Flow.</p>
-              <button type="button" className="button button-block" style={{ marginTop: '0.6rem' }} onClick={() => window.location.reload()}>
+              <button type="button" className="button button-block" onClick={() => window.location.reload()}>
                 Check for updates
               </button>
             </section>
@@ -3999,6 +3998,7 @@ export default function App() {
             {settingsQuery.length > 0 && !showSettingsProfile && !showSettingsReport && !showSettingsCustomMoves && !showSettingsBackup && !showSettingsApp && !showSettingsDanger ? (
               <p className="empty-text">No settings match "{settingsSearch}".</p>
             ) : null}
+            </div>
             </section>
           </div>
         )}
