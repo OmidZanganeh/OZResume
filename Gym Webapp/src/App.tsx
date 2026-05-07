@@ -2949,35 +2949,19 @@ export default function App() {
                       <p className="panel-subtle nutrition-recent-picks-hint">
                         Tip: build meal in <strong>Logged foods</strong> using foods you logged today, then reuse from Meals.
                       </p>
-                      <div className="nutrition-quick-tabs" role="tablist" aria-label="Quick add groups">
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={nutritionQuickTab === 'meals'}
-                          className={`nutrition-quick-tab ${nutritionQuickTab === 'meals' ? 'is-active' : ''}`}
-                          onClick={() => setNutritionQuickTab('meals')}
+                      <label className="nutrition-quick-picker">
+                        <span className="nutrition-quick-picker-label">Source</span>
+                        <select
+                          className="select-input nutrition-quick-select"
+                          aria-label="Quick add source"
+                          value={nutritionQuickTab}
+                          onChange={(e) => setNutritionQuickTab(e.target.value as 'meals' | 'favorites' | 'recent')}
                         >
-                          Meals ({nutritionMealTemplates.length})
-                        </button>
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={nutritionQuickTab === 'favorites'}
-                          className={`nutrition-quick-tab ${nutritionQuickTab === 'favorites' ? 'is-active' : ''}`}
-                          onClick={() => setNutritionQuickTab('favorites')}
-                        >
-                          Favorites ({favoriteFoodMatchesForPicker.length})
-                        </button>
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={nutritionQuickTab === 'recent'}
-                          className={`nutrition-quick-tab ${nutritionQuickTab === 'recent' ? 'is-active' : ''}`}
-                          onClick={() => setNutritionQuickTab('recent')}
-                        >
-                          Recent ({recentFoodMatchesForPicker.length})
-                        </button>
-                      </div>
+                          <option value="meals">Meals ({nutritionMealTemplates.length})</option>
+                          <option value="favorites">Favorites ({favoriteFoodMatchesForPicker.length})</option>
+                          <option value="recent">Recent ({recentFoodMatchesForPicker.length})</option>
+                        </select>
+                      </label>
                     </div>
 
                     {nutritionQuickTab === 'meals' ? (
