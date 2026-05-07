@@ -2249,25 +2249,70 @@ export default function App() {
             </div>
 
             {selectedExerciseIds.length > 0 && (
-              <div className="panel" style={{ marginBottom: '1.25rem', padding: '0.8rem' }}>
-                <h2 className="panel-heading panel-heading--plain" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Added Moves Order</h2>
-                <div className="small-list small-list--scroll">
-                  {selectedExerciseIds.map((id, index) => {
-                    const ex = exerciseById.get(id);
-                    if (!ex) return null;
-                    return (
-                      <div key={id} className="small-list-row" style={{ padding: '0.2rem 0' }}>
-                        <span style={{ fontSize: '0.85rem' }}>{index + 1}. {ex.name}</span>
-                        <div style={{ display: 'flex', gap: '0.35rem' }}>
-                          <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, -1)} disabled={index === 0}>↑</button>
-                          <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, 1)} disabled={index === selectedExerciseIds.length - 1}>↓</button>
-                          <button type="button" className="text-button" onClick={() => toggleExerciseInPlan(id)} aria-label="Remove" style={{ marginLeft: '0.25rem', padding: '0.1rem 0.3rem', display: 'inline-flex', alignItems: 'center' }}><X size={14}/></button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <>
+                {editingSavedPlanId && !planEditorShowCatalog ? (
+                  <section className="panel panel--compact" style={{ marginBottom: '1rem' }}>
+                    <h2 className="panel-heading panel-heading--plain">Selected moves</h2>
+                    <p className="panel-subtle" style={{ marginTop: '-0.2rem' }}>
+                      Showing only moves in this plan. Use “Add move” to open the full catalog.
+                    </p>
+                    <div className="exercise-grid">
+                      {selectedExerciseIds.map((id, index) => {
+                        const exercise = exerciseById.get(id);
+                        if (!exercise) return null;
+                        const trainedCount = data.stats[exercise.id]?.timesCompleted ?? 0;
+                        return (
+                          <article key={exercise.id} className="exercise-card">
+                            <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--image">
+                              {exerciseImages[exercise.name] ? (
+                                <img src={exerciseImages[exercise.name].url} alt={`${exercise.name} demo`} className="exercise-image" loading="lazy" />
+                              ) : (
+                                <div className="exercise-image-fallback">{exercise.primaryGroup}</div>
+                              )}
+                            </ExerciseYoutubeLink>
+                            <div>
+                              <h3>
+                                <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
+                                  {index + 1}. {exercise.name}
+                                </ExerciseYoutubeLink>
+                              </h3>
+                              <p className="meta">{exercise.primaryGroup}{exercise.secondaryGroups?.length ? ` + ${exercise.secondaryGroups.join(', ')}` : ''}</p>
+                              <p className="meta meta--dataset">{labelForFilterValue(getEffectiveCategory(exercise))} · {labelForFilterValue(getEffectiveEquipment(exercise))}</p>
+                              <p className="meta">Done: {trainedCount}×</p>
+                              <MuscleTargetPick exercise={exercise} draft={exerciseDrafts[exercise.id]} onPatch={(p) => updateDraft(exercise.id, p)} />
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                              <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, -1)} disabled={index === 0}>↑</button>
+                              <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, 1)} disabled={index === selectedExerciseIds.length - 1}>↓</button>
+                              <button type="button" className="button button-small button-muted" onClick={() => toggleExerciseInPlan(id)}>Remove</button>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ) : (
+                  <div className="panel" style={{ marginBottom: '1.25rem', padding: '0.8rem' }}>
+                    <h2 className="panel-heading panel-heading--plain" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Added Moves Order</h2>
+                    <div className="small-list small-list--scroll">
+                      {selectedExerciseIds.map((id, index) => {
+                        const ex = exerciseById.get(id);
+                        if (!ex) return null;
+                        return (
+                          <div key={id} className="small-list-row" style={{ padding: '0.2rem 0' }}>
+                            <span style={{ fontSize: '0.85rem' }}>{index + 1}. {ex.name}</span>
+                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                              <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, -1)} disabled={index === 0}>↑</button>
+                              <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, 1)} disabled={index === selectedExerciseIds.length - 1}>↓</button>
+                              <button type="button" className="text-button" onClick={() => toggleExerciseInPlan(id)} aria-label="Remove" style={{ marginLeft: '0.25rem', padding: '0.1rem 0.3rem', display: 'inline-flex', alignItems: 'center' }}><X size={14}/></button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {planEditorShowCatalog && (
