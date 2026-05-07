@@ -62,9 +62,9 @@ export async function POST(req: NextRequest) {
     if (addresses.length > 200)
       return NextResponse.json({ error: 'Max 200 rows per request' }, { status: 400 });
 
-    // Strip US Census place-type labels (e.g. "Darien city, IL" → "Darien, IL")
-    // These labels appear in Census TIGER data but Nominatim doesn't recognize them.
-    const PLACE_TYPE_RE = /\s+(city|town|village|CDP|borough|township|county)\b/gi;
+    // Strip trailing US Census place-type labels when present as suffix
+    // (e.g. "Darien city, IL" → "Darien, IL").
+    const PLACE_TYPE_SUFFIX_RE = /\s+(city|town|village|cdp|borough|township|county)\s*$/i;
 
     type NomResult = Array<{
       lat: string; lon: string; display_name: string;
@@ -81,11 +81,20 @@ export async function POST(req: NextRequest) {
       };
     }>;
 
-    // Parse "Name [type], ST" → { city, state } for structured fallback
+    function stripTrailingPlaceTypeLabel(input: string): string {
+      const m = input.match(/^(.+?),\s*([A-Z]{2})\s*$/i);
+      if (!m) return input;
+      const place = m[1].trim();
+      const normalizedPlace = place.replace(PLACE_TYPE_SUFFIX_RE, '').trim();
+      if (!normalizedPlace || normalizedPlace === place) return input;
+      return `${normalizedPlace}, ${m[2].toUpperCase()}`;
+    }
+
+    // Parse "Name, ST" → { city, state } for structured query fallback
     function parseUSCityState(input: string): { city: string; state: string } | null {
       const m = input.match(/^(.+?),\s*([A-Z]{2})\s*$/);
       if (!m) return null;
-      const city  = m[1].replace(PLACE_TYPE_RE, '').trim();
+      const city  = m[1].trim();
       const stMap: Record<string, string> = {
         AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',
         CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',
@@ -151,9 +160,9 @@ export async function POST(req: NextRequest) {
           `${NOMINATIM}/search?q=${encodeURIComponent(trimmed)}&format=json&limit=1&countrycodes=us`,
         );
 
-        // Pass 2: if no result, try stripping place-type label and retry
+        // Pass 2: if no result, try stripping a trailing place-type suffix and retry
         if (data.length === 0) {
-          const cleaned = trimmed.replace(PLACE_TYPE_RE, '');
+          const cleaned = stripTrailingPlaceTypeLabel(trimmed);
           if (cleaned !== trimmed) {
             data = await nominatimFetch(
               `${NOMINATIM}/search?q=${encodeURIComponent(cleaned)}&format=json&limit=1&countrycodes=us`,
@@ -162,7 +171,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Pass 3: structured city + state query (handles CDPs, unincorporated places)
+        // Pass 3: structured city + state query (exact place text first)
         if (data.length === 0) {
           const parsed = parseUSCityState(trimmed);
           if (parsed) {
@@ -170,6 +179,20 @@ export async function POST(req: NextRequest) {
               `${NOMINATIM}/search?city=${encodeURIComponent(parsed.city)}&state=${encodeURIComponent(parsed.state)}&format=json&limit=1&countrycodes=us`,
             );
             await new Promise(r => setTimeout(r, 1050));
+          }
+        }
+
+        // Pass 4: structured city + state query after stripping trailing place-type suffix
+        if (data.length === 0) {
+          const cleaned = stripTrailingPlaceTypeLabel(trimmed);
+          if (cleaned !== trimmed) {
+            const parsed = parseUSCityState(cleaned);
+            if (parsed) {
+              data = await nominatimFetch(
+                `${NOMINATIM}/search?city=${encodeURIComponent(parsed.city)}&state=${encodeURIComponent(parsed.state)}&format=json&limit=1&countrycodes=us`,
+              );
+              await new Promise(r => setTimeout(r, 1050));
+            }
           }
         }
 
