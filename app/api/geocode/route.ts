@@ -113,6 +113,56 @@ export async function POST(req: NextRequest) {
       return { city, state };
     }
 
+    function normalizePlaceName(input: string): string {
+      return input
+        .toLowerCase()
+        .replace(PLACE_TYPE_SUFFIX_RE, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function pickBestHit(
+      hits: NomResult,
+      parsed: { city: string; state: string } | null,
+    ): NomResult[0] | null {
+      if (hits.length === 0) return null;
+      if (!parsed) return hits[0];
+
+      const targetCity = normalizePlaceName(parsed.city);
+      const targetState = parsed.state.toLowerCase();
+      const localityTypes = new Set(['city', 'town', 'village', 'hamlet', 'municipality', 'borough', 'township', 'administrative', 'county']);
+
+      const ranked = hits
+        .map((h) => {
+          const a = h.address ?? {};
+          const state = (a.state ?? '').toLowerCase();
+          const locality = normalizePlaceName(a.city ?? a.town ?? a.village ?? '');
+          const display = (h.display_name ?? '').toLowerCase();
+          const type = (h.addresstype ?? '').toLowerCase();
+          const stateMatch = state === targetState;
+          const cityMatch = !!locality && locality === targetCity;
+
+          let score = (h.importance ?? 0) * 10;
+          if (a.country_code?.toLowerCase() === 'us') score += 4;
+          if (stateMatch) score += 40;
+          if (cityMatch) score += 36;
+          if (!cityMatch && targetCity && display.startsWith(targetCity)) score += 10;
+          if (localityTypes.has(type)) score += 8;
+          if (type === 'road' || type === 'street' || type === 'residential') score -= 24;
+          if (h.place_rank >= 12 && h.place_rank <= 21) score += 6;
+          if (h.place_rank >= 27) score -= 6;
+
+          return { h, score, stateMatch, cityMatch };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      // For city/state input, only trust a result from the expected state.
+      const bestStateMatch = ranked.find((r) => r.stateMatch);
+      if (bestStateMatch) return bestStateMatch.h;
+      return null;
+    }
+
     async function nominatimFetch(url: string): Promise<NomResult> {
       // Always request addressdetails + extratags so all enriched fields are available
       const enriched = url.includes('?')
@@ -155,55 +205,83 @@ export async function POST(req: NextRequest) {
       const trimmed = addr.trim();
       if (!trimmed) { results.push({ input: addr, lat: null, lon: null, display_name: null, confidence: null, place_rank: null, addresstype: null, osm_type: null, osm_id: null, road: null, suburb: null, city: null, county: null, state: null, postcode: null, country: null, country_code: null, population: null, website: null, wikidata: null, boundingbox: null, error: 'empty' }); continue; }
       try {
-        // Pass 1: free-text search with original input
-        let data = await nominatimFetch(
-          `${NOMINATIM}/search?q=${encodeURIComponent(trimmed)}&format=json&limit=1&countrycodes=us`,
-        );
+        const parsedOriginal = parseUSCityState(trimmed);
+        let bestHit: NomResult[0] | null = null;
 
-        // Pass 2: if no result, try stripping a trailing place-type suffix and retry
-        if (data.length === 0) {
-          const cleaned = stripTrailingPlaceTypeLabel(trimmed);
-          if (cleaned !== trimmed) {
-            data = await nominatimFetch(
-              `${NOMINATIM}/search?q=${encodeURIComponent(cleaned)}&format=json&limit=1&countrycodes=us`,
-            );
-            await new Promise(r => setTimeout(r, 1050));
-          }
+        // Pass 1: structured city + state query (exact place text first)
+        if (parsedOriginal) {
+          const data = await nominatimFetch(
+            `${NOMINATIM}/search?city=${encodeURIComponent(parsedOriginal.city)}&state=${encodeURIComponent(parsedOriginal.state)}&format=json&limit=5&countrycodes=us`,
+          );
+          bestHit = pickBestHit(data, parsedOriginal);
+          await new Promise(r => setTimeout(r, 1050));
         }
 
-        // Pass 3: structured city + state query (exact place text first)
-        if (data.length === 0) {
-          const parsed = parseUSCityState(trimmed);
-          if (parsed) {
-            data = await nominatimFetch(
-              `${NOMINATIM}/search?city=${encodeURIComponent(parsed.city)}&state=${encodeURIComponent(parsed.state)}&format=json&limit=1&countrycodes=us`,
-            );
-            await new Promise(r => setTimeout(r, 1050));
-          }
-        }
-
-        // Pass 4: structured city + state query after stripping trailing place-type suffix
-        if (data.length === 0) {
+        // Pass 2: structured query after stripping trailing place-type suffix
+        if (!bestHit) {
           const cleaned = stripTrailingPlaceTypeLabel(trimmed);
           if (cleaned !== trimmed) {
             const parsed = parseUSCityState(cleaned);
             if (parsed) {
-              data = await nominatimFetch(
-                `${NOMINATIM}/search?city=${encodeURIComponent(parsed.city)}&state=${encodeURIComponent(parsed.state)}&format=json&limit=1&countrycodes=us`,
+              const data = await nominatimFetch(
+                `${NOMINATIM}/search?city=${encodeURIComponent(parsed.city)}&state=${encodeURIComponent(parsed.state)}&format=json&limit=5&countrycodes=us`,
               );
+              bestHit = pickBestHit(data, parsed);
               await new Promise(r => setTimeout(r, 1050));
             }
           }
         }
 
-        if (data.length === 0) {
+        // Pass 3: free-text search with original input
+        if (!bestHit) {
+          const data = await nominatimFetch(
+            `${NOMINATIM}/search?q=${encodeURIComponent(trimmed)}&format=json&limit=5&countrycodes=us`,
+          );
+          bestHit = pickBestHit(data, parsedOriginal);
+        }
+
+        // Pass 4: if still no result, free-text with trailing place-type suffix stripped
+        if (!bestHit) {
+          const cleaned = stripTrailingPlaceTypeLabel(trimmed);
+          if (cleaned !== trimmed) {
+            const parsed = parseUSCityState(cleaned);
+            const data = await nominatimFetch(
+              `${NOMINATIM}/search?q=${encodeURIComponent(cleaned)}&format=json&limit=5&countrycodes=us`,
+            );
+            bestHit = pickBestHit(data, parsed ?? parsedOriginal);
+            await new Promise(r => setTimeout(r, 1050));
+          }
+        }
+
+        if (!bestHit && parsedOriginal) {
+          // Final safety: try structured once more from original (helps transient ordering issues).
+          const data = await nominatimFetch(
+            `${NOMINATIM}/search?city=${encodeURIComponent(parsedOriginal.city)}&state=${encodeURIComponent(parsedOriginal.state)}&format=json&limit=5&countrycodes=us`,
+          );
+          bestHit = pickBestHit(data, parsedOriginal);
+          await new Promise(r => setTimeout(r, 1050));
+        }
+
+        if (!bestHit) {
+          const parsed = parseUSCityState(trimmed);
+          if (parsed) {
+            // Fallback: accept best available structured result even if state was not explicit on hit.
+            const data = await nominatimFetch(
+              `${NOMINATIM}/search?city=${encodeURIComponent(parsed.city)}&state=${encodeURIComponent(parsed.state)}&format=json&limit=5&countrycodes=us`,
+            );
+            bestHit = data[0] ?? null;
+            await new Promise(r => setTimeout(r, 1050));
+          }
+        }
+
+        if (!bestHit) {
           results.push({ input: addr, lat: null, lon: null, display_name: null,
             confidence: null, place_rank: null, addresstype: null, osm_type: null, osm_id: null,
             road: null, suburb: null, city: null, county: null, state: null, postcode: null,
             country: null, country_code: null, population: null, website: null, wikidata: null,
             boundingbox: null, error: 'not found' });
         } else {
-          results.push(rowFromHit(addr, data[0]));
+          results.push(rowFromHit(addr, bestHit));
         }
       } catch (e) {
         results.push({ input: addr, lat: null, lon: null, display_name: null, confidence: null, place_rank: null, addresstype: null, osm_type: null, osm_id: null, road: null, suburb: null, city: null, county: null, state: null, postcode: null, country: null, country_code: null, population: null, website: null, wikidata: null, boundingbox: null, error: e instanceof Error ? e.message : 'unknown' });
