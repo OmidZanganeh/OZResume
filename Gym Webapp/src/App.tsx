@@ -302,6 +302,7 @@ export default function App() {
   const [activitySubTab, setActivitySubTab] = useState<'overview' | 'insights' | 'history'>('overview');
   const [nutritionSubTab, setNutritionSubTab] = useState<'today' | 'foods' | 'goals'>('today');
   const [plansSubTab, setPlansSubTab] = useState<'my' | 'browse' | 'bodymap'>('my');
+  const [planEditorShowCatalog, setPlanEditorShowCatalog] = useState(true);
   const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [reportImageBusy, setReportImageBusy] = useState(false);
 
@@ -1509,6 +1510,7 @@ export default function App() {
     setSavePlanNameInput('');
     setSearchTerm('');
     setVisibleExerciseCount(24);
+    setPlanEditorShowCatalog(true);
     setView('create-focus');
   }
 
@@ -1697,6 +1699,7 @@ export default function App() {
     setSavePlanNameInput(plan.name);
     setSearchTerm('');
     setVisibleExerciseCount(24);
+    setPlanEditorShowCatalog(false);
     setActiveRoutineName(null);
     setView('create-moves');
   }
@@ -2231,7 +2234,18 @@ export default function App() {
             <div className="view-header">
               <button className="view-back" onClick={() => setView('create-focus')}><ArrowLeft size={16} strokeWidth={2.5} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Back</button>
               <h1 className="view-title">Pick Moves</h1>
-              <span className="view-badge">{selectedExerciseIds.length} added</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <span className="view-badge">{selectedExerciseIds.length} added</span>
+                {editingSavedPlanId ? (
+                  <button
+                    type="button"
+                    className="button button-small button-muted"
+                    onClick={() => setPlanEditorShowCatalog((v) => !v)}
+                  >
+                    {planEditorShowCatalog ? 'Hide move list' : 'Add move'}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             {selectedExerciseIds.length > 0 && (
@@ -2256,6 +2270,7 @@ export default function App() {
               </div>
             )}
 
+            {planEditorShowCatalog && (
             <div className="moves-toolbar">
               <input
                 className="search-input"
@@ -2295,7 +2310,9 @@ export default function App() {
                 </select>
               </div>
             </div>
+            )}
 
+            {planEditorShowCatalog && (
             <div className="exercise-grid">
               {visibleExercises.map((exercise) => {
                 const selected = selectedExerciseIds.includes(exercise.id);
@@ -2327,8 +2344,9 @@ export default function App() {
                 );
               })}
             </div>
+            )}
 
-            {visibleExerciseCount < catalogMatches.length && (
+            {planEditorShowCatalog && visibleExerciseCount < catalogMatches.length && (
               <button type="button" className="button button-block" style={{ margin: '0 1rem 1rem' }} onClick={() => setVisibleExerciseCount((v) => v + 24)}>
                 Show more
               </button>
