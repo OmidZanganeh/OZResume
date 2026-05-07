@@ -258,7 +258,7 @@ export default function App() {
     'Classic Splits': true,
     'Targeted Growth': true,
     'Targeted Isolation (Single Muscle)': true,
-    'nutrition-quick-add': false,
+    'nutrition-quick-add': true,
     'nutrition-my-foods': true,
     'nutrition-logged-foods': true,
     'nutrition-goals': true,
