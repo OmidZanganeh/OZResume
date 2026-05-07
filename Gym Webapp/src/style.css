@@ -1873,6 +1873,8 @@ body {
   overflow: hidden;
   max-width: 320px;
   margin: 0 auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .body-muscles-host .body-muscles-inner {
@@ -1888,6 +1890,7 @@ body {
   width: auto; /* Crucial: let width adjust to height to prevent vertical clipping */
   max-width: 100%;
   display: block;
+  touch-action: manipulation;
 }
 
 .body-map-legend--heat {

@@ -142,6 +142,7 @@ export function BodyMapFigure({
       onMuscleClick,
       onMuscleHover: () => {},
       showViewLabel: false,
+      enableTransitions: false,
       className: 'body-muscles-inner',
     } as const;
 
