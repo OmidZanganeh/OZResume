@@ -16,8 +16,8 @@ const HEAT_ONCE = 5;
 /** Slot 99: unhit regions in rainbow legend mode. */
 const LEGEND_INACTIVE_SLOT = 99;
 
-/** Default / not-hit regions — neutral gray baseline. */
-(INTENSITY_COLORS as Record<number, string>)[HEAT_GAP] = '#64748b';
+/** Default / not-hit regions — light gray baseline. */
+(INTENSITY_COLORS as Record<number, string>)[HEAT_GAP] = '#94a3b8';
 /** Hit once — warm amber, clearly between gap and “on track”. */
 (INTENSITY_COLORS as Record<number, string>)[HEAT_ONCE] = '#fbbf24';
 /** 2+ sessions — clear “on track” green (distinct from brand accent teal). */
@@ -32,8 +32,8 @@ Object.keys(MUSCLE_GROUP_CALENDAR_COLOR).forEach((g, i) => {
   (INTENSITY_COLORS as Record<number, string>)[slot] = MUSCLE_GROUP_CALENDAR_COLOR[g as MuscleGroup];
 });
 
-/** Unhit muscle silhouettes in rainbow mode — cool slate, not flat black. */
-(INTENSITY_COLORS as Record<number, string>)[LEGEND_INACTIVE_SLOT] = '#475569';
+/** Unhit muscle silhouettes in rainbow mode — light gray to match heatmap default. */
+(INTENSITY_COLORS as Record<number, string>)[LEGEND_INACTIVE_SLOT] = '#94a3b8';
 
 type Props = {
   practiceCounts: Map<MuscleGroup, number>;
