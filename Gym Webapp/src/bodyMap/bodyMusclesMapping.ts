@@ -153,20 +153,26 @@ export const HEAT_INTENSITY = {
   x5Plus: 6,
 } as const;
 
+/** Weighted-score thresholds for the 3-color heatmap. */
+const HEAT_WEIGHTED_THRESHOLDS = {
+  orangeMin: 0.35,
+  greenMin: 1.1,
+} as const;
+
 /** Tier 0…5 for CSS (orphan pills / legend). Distinct from heatmap: map uses 3 body colors only. */
 export function heatTierFromCount(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
   if (count <= 0) return 0;
-  if (count === 1) return 1;
-  if (count === 2) return 2;
-  if (count === 3) return 3;
-  if (count === 4) return 4;
+  if (count < HEAT_WEIGHTED_THRESHOLDS.orangeMin) return 1;
+  if (count < HEAT_WEIGHTED_THRESHOLDS.greenMin) return 2;
+  if (count < HEAT_WEIGHTED_THRESHOLDS.greenMin + 0.5) return 3;
+  if (count < HEAT_WEIGHTED_THRESHOLDS.greenMin + 1.0) return 4;
   return 5;
 }
 
-/** 3-color heatmap: gap → once → on track (2+). Slots 3/4/6 were unstyled library defaults (orange etc.). */
+/** 3-color weighted heatmap: low recency score → orange range → high recency score. */
 export function practiceCountToHeatIntensity(count: number): number {
   if (count <= 0) return HEAT_INTENSITY.gap;
-  if (count === 1) return HEAT_INTENSITY.x1;
+  if (count < HEAT_WEIGHTED_THRESHOLDS.greenMin) return HEAT_INTENSITY.x1;
   return HEAT_INTENSITY.x2;
 }
 

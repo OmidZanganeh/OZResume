@@ -68,7 +68,7 @@ function OrphanPills({
       {orphans.map((g) => {
         const n = practiceCounts.get(g) ?? 0;
         const colorClass =
-          n >= 2 ? 'orphan-pill--green' : n === 1 ? 'orphan-pill--orange' : 'orphan-pill--red';
+          n >= 1.1 ? 'orphan-pill--green' : n >= 0.35 ? 'orphan-pill--orange' : 'orphan-pill--red';
         const selected = interactive && selectedGroups.includes(g);
         const title = `${g}: ${n} session(s) last ${practiceWindowDays} days`;
         const inner = (
