@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BodyChart, ViewSide, INTENSITY_COLORS } from 'body-muscles';
 import { Wind, HeartPulse, Zap } from 'lucide-react';
-import type { MuscleGroup } from '../data/exerciseLibrary';
+import { MUSCLE_GROUPS, type MuscleGroup } from '../data/exerciseLibrary';
 import {
   buildBodyMusclesStateForTenDayGaps,
   getGroupForBodyMuscleId,
@@ -117,6 +117,17 @@ export function BodyMapFigure({
   const frontChartRef = useRef<BodyChart | null>(null);
   const backChartRef = useRef<BodyChart | null>(null);
   const [activeSide, setActiveSide] = useState<'front' | 'back'>('front');
+  const muscleScores = useMemo(
+    () =>
+      MUSCLE_GROUPS.map((group) => ({
+        group,
+        score: practiceCounts.get(group) ?? 0,
+      })).sort((a, b) => {
+        if (a.score === b.score) return a.group.localeCompare(b.group);
+        return b.score - a.score;
+      }),
+    [practiceCounts],
+  );
 
   // Keep onToggleGroup stable in the click handler so we never recreate charts
   const toggleRef = useRef(onToggleGroup);
@@ -258,6 +269,15 @@ export function BodyMapFigure({
             interactive={allowRegionToggle}
           />
         )}
+      </div>
+
+      <div className="body-map-score-list" aria-label={`Muscle score breakdown for last ${practiceWindowDays} days`}>
+        {muscleScores.map(({ group, score }) => (
+          <div key={group} className="body-map-score-row">
+            <span className="body-map-score-label">{group}</span>
+            <span className="body-map-score-value">{score.toFixed(2)}</span>
+          </div>
+        ))}
       </div>
 
       <p className="body-map-credit">
