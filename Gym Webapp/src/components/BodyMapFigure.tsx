@@ -16,8 +16,8 @@ const HEAT_ONCE = 5;
 /** Slot 99: unhit regions in rainbow legend mode. */
 const LEGEND_INACTIVE_SLOT = 99;
 
-/** Needs work — rose, readable on dark without harsh pure red. */
-(INTENSITY_COLORS as Record<number, string>)[HEAT_GAP] = '#f43f5e';
+/** Default / not-hit regions — neutral gray baseline. */
+(INTENSITY_COLORS as Record<number, string>)[HEAT_GAP] = '#64748b';
 /** Hit once — warm amber, clearly between gap and “on track”. */
 (INTENSITY_COLORS as Record<number, string>)[HEAT_ONCE] = '#fbbf24';
 /** 2+ sessions — clear “on track” green (distinct from brand accent teal). */
@@ -240,7 +240,7 @@ export function BodyMapFigure({
       <div className="report-footer-meta">
         <div className="footer-meta-left">
           <div className="report-legend">
-            <span className="legend-item"><span className="legend-dot legend-dot--red"></span> Needs work</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--gray"></span> Not hit yet</span>
             <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
             <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
           </div>

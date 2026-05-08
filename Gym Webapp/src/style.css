@@ -3112,6 +3112,7 @@ body {
   flex-shrink: 0;
 }
 
+.legend-dot--gray   { background: #64748b; }
 .legend-dot--red    { background: #f43f5e; }
 .legend-dot--orange { background: #fbbf24; }
 .legend-dot--green  { background: #22c55e; }
