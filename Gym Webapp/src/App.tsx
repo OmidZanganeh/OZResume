@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, FileText, Flame, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, X, Star, ScanLine, Search, Plus, Check, Pencil, Trash2 } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, Flame, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, X, Star, ScanLine, Search, Plus, Check, Pencil, Trash2 } from 'lucide-react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toJpeg } from 'html-to-image';
 import { BodyMapFigure } from './components/BodyMapFigure';
@@ -1906,8 +1906,8 @@ export default function App() {
 
             <section className="panel panel--compact">
               <h2 className="panel-heading panel-heading--plain">Export Report</h2>
-              <p className="panel-subtle">Preview as image, then save or share. Or print to PDF.</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+              <p className="panel-subtle">Preview as image, then save or share.</p>
+              <div style={{ marginTop: '0.75rem' }}>
                 <button
                   type="button"
                   className="button"
@@ -1916,14 +1916,6 @@ export default function App() {
                   onClick={handleDownloadImage}
                 >
                   <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> {reportImageBusy ? 'Generating…' : 'Preview Image'}
-                </button>
-                <button
-                  type="button"
-                  className="button"
-                  style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', fontWeight: 700 }}
-                  onClick={() => window.print()}
-                >
-                  <FileText size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Print PDF
                 </button>
               </div>
             </section>
@@ -3921,17 +3913,13 @@ export default function App() {
             {showSettingsReport ? (
             <section id="settings-report" className="settings-block">
               <h2 className="panel-heading panel-heading--plain">Export Report</h2>
-              <p className="panel-subtle">Preview as image, then save or share. Or print to PDF.</p>
+              <p className="panel-subtle">Preview as image, then save or share.</p>
 
-              <div className="settings-action-grid">
+              <div className="settings-actions-row">
                 <button type="button" className="button settings-cta settings-cta--image"
                   disabled={reportImageBusy}
                   onClick={handleDownloadImage}>
                   <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> {reportImageBusy ? 'Generating…' : 'Preview Image'}
-                </button>
-                <button type="button" className="button settings-cta settings-cta--pdf"
-                  onClick={() => window.print()}>
-                  <FileText size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Print PDF
                 </button>
               </div>
             </section>

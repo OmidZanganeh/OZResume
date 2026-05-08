@@ -6117,12 +6117,6 @@ select.text-input.day-modal-select {
   align-items: center;
 }
 
-.tab-frame--settings .settings-action-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
-}
-
 .tab-frame--settings .settings-cta {
   border: none;
   font-weight: 700;
@@ -6130,10 +6124,6 @@ select.text-input.day-modal-select {
 
 .tab-frame--settings .settings-cta--image {
   background: linear-gradient(135deg, #0ea5e9, #2563eb);
-}
-
-.tab-frame--settings .settings-cta--pdf {
-  background: linear-gradient(135deg, #10b981, #059669);
 }
 
 .tab-frame--settings .settings-import-btn {
@@ -6151,8 +6141,7 @@ select.text-input.day-modal-select {
     grid-template-columns: 1fr;
   }
 
-  .tab-frame--settings .settings-two-col,
-  .tab-frame--settings .settings-action-grid {
+  .tab-frame--settings .settings-two-col {
     grid-template-columns: 1fr;
   }
 }
