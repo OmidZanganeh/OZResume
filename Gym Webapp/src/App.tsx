@@ -75,9 +75,6 @@ import {
 } from './utils/workoutLogDraft';
 
 const DEFAULT_REPORT_DAYS = 10;
-const BODY_MAP_GREEN_THRESHOLD_MIN = 0.6;
-const BODY_MAP_GREEN_THRESHOLD_MAX = 2.2;
-const DEFAULT_BODY_MAP_GREEN_THRESHOLD = 0.8;
 const DEFAULT_NUTRITION_GOALS: NutritionGoals = {
   calories: 2000,
   protein: 150,
@@ -139,12 +136,6 @@ function createExerciseId(name: string) {
 function formatDate(d: string | null) {
   if (!d) return 'Never';
   return new Date(d).toLocaleDateString();
-}
-
-function normalizeBodyMapGreenThreshold(raw: number | undefined): number {
-  if (typeof raw !== 'number' || !Number.isFinite(raw)) return DEFAULT_BODY_MAP_GREEN_THRESHOLD;
-  const clamped = Math.max(BODY_MAP_GREEN_THRESHOLD_MIN, Math.min(BODY_MAP_GREEN_THRESHOLD_MAX, raw));
-  return Number(clamped.toFixed(2));
 }
 
 /** Whole calendar days from `earlierKey` to `laterKey` (YYYY-MM-DD), UTC date math — no DST drift. */
@@ -314,10 +305,6 @@ export default function App() {
   const [planEditorShowCatalog, setPlanEditorShowCatalog] = useState(true);
   const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [reportImageBusy, setReportImageBusy] = useState(false);
-  const bodyMapGreenThreshold = useMemo(
-    () => normalizeBodyMapGreenThreshold(reportProfile.bodyMapGreenThreshold),
-    [reportProfile.bodyMapGreenThreshold],
-  );
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
@@ -1421,19 +1408,6 @@ export default function App() {
     }));
   }
 
-  function patchBodyMapGreenThreshold(next: number) {
-    const normalized = normalizeBodyMapGreenThreshold(next);
-    setProfileCloudError(null);
-    setReportProfile((prev) => ({ ...prev, bodyMapGreenThreshold: normalized }));
-    persist({
-      ...dataRef.current,
-      userProfile: {
-        ...dataRef.current.userProfile,
-        bodyMapGreenThreshold: normalized,
-      },
-    });
-  }
-
   async function saveProfileOnline() {
     if (!cloudSignedIn) {
       setMessage('Sign in to save your profile online.');
@@ -1450,7 +1424,6 @@ export default function App() {
       age: reportProfile.age || '',
       sex: reportProfile.sex,
       activityLevel: reportProfile.activityLevel,
-      bodyMapGreenThreshold: normalizeBodyMapGreenThreshold(reportProfile.bodyMapGreenThreshold),
     };
     const res = await saveUserProfileCloud(userProfile);
     setProfileCloudBusy(false);
@@ -1929,7 +1902,6 @@ export default function App() {
                 practiceWindowDays={analysisDays}
                 selectedGroups={[]}
                 onToggleGroup={() => {}}
-                greenThreshold={bodyMapGreenThreshold}
                 allowRegionToggle={false}
               />
             </section>
@@ -2147,8 +2119,6 @@ export default function App() {
                   practiceWindowDays={reportDays}
                   selectedGroups={[]}
                   onToggleGroup={(group) => openMusclePlanSuggestions(group)}
-                  greenThreshold={bodyMapGreenThreshold}
-                  onGreenThresholdChange={patchBodyMapGreenThreshold}
                   allowRegionToggle
                 />
               </div>
@@ -2278,8 +2248,6 @@ export default function App() {
               practiceWindowDays={reportDays}
               selectedGroups={selectedGroups}
               onToggleGroup={toggleGroup}
-              greenThreshold={bodyMapGreenThreshold}
-              onGreenThresholdChange={patchBodyMapGreenThreshold}
             />
             {selectedGroups.length > 0 && (
               <div className="selected-chips-row">
@@ -2662,7 +2630,6 @@ export default function App() {
                 practiceWindowDays={analysisDays}
                 selectedGroups={[]}
                 onToggleGroup={() => {}}
-                greenThreshold={bodyMapGreenThreshold}
                 allowRegionToggle={false}
               />
             </section>
@@ -4057,15 +4024,7 @@ export default function App() {
 
     {/* Hidden print report — shown only via @media print */}
     <PrintReport data={{
-      profile: {
-        name: reportProfile.name || '',
-        weight: reportProfile.weight || '',
-        weightUnit: reportProfile.weightUnit || 'kg',
-        height: reportProfile.height || '',
-        heightUnit: reportProfile.heightUnit || 'cm',
-        age: reportProfile.age || '',
-        bodyMapGreenThreshold,
-      },
+      profile: { name: reportProfile.name || '', weight: reportProfile.weight || '', weightUnit: reportProfile.weightUnit || 'kg', height: reportProfile.height || '', heightUnit: reportProfile.heightUnit || 'cm', age: reportProfile.age || '' },
       totalWorkouts: totalWorkoutCount,
       totalSets: totalTrackedSets,
       totalCompletions: totalExerciseCompletions,

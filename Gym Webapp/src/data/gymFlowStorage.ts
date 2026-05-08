@@ -17,8 +17,6 @@ export type UserProfile = {
   sex?: 'male' | 'female';
   /** Optional activity multiplier selection for calorie estimation. */
   activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active' | 'veryActive';
-  /** User-selected green threshold for the weighted body-map heat colors. */
-  bodyMapGreenThreshold?: number;
 };
 
 /** User-defined pantry item; macros are stored per 100 g (same as Open Food Facts) for one consistent scale. */
