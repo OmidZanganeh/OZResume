@@ -10,6 +10,17 @@ function toDayKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Whole calendar days between two `YYYY-MM-DD` keys (stable vs mixing UTC parse + local midnight). */
+function calendarGapDays(earlierKey: string, laterKey: string): number {
+  const p = earlierKey.split('-').map(Number);
+  const q = laterKey.split('-').map(Number);
+  if (p.length !== 3 || q.length !== 3) return NaN;
+  const [y1, m1, d1] = p;
+  const [y2, m2, d2] = q;
+  if (![y1, m1, d1, y2, m2, d2].every((n) => Number.isFinite(n))) return NaN;
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
+}
+
 /** Builds an array of weekly workout counts for the last N weeks */
 export function getWeeklyWorkoutCounts(sessions: WorkoutSession[], weeks: number): { label: string; count: number; real: number }[] {
   const now = new Date();
@@ -51,11 +62,8 @@ export function computeStreak(sessions: WorkoutSession[]): { current: number; lo
     if (i === 0) {
       currentChain = 1;
     } else {
-      const prev = new Date(sortedDays[i - 1]);
-      const curr = new Date(sortedDays[i]);
-      const diff = Math.round((curr.getTime() - prev.getTime()) / 86400000);
-      
-      if (diff <= 3) {
+      const diff = calendarGapDays(sortedDays[i - 1], sortedDays[i]);
+      if (Number.isFinite(diff) && diff <= 3) {
         currentChain++;
       } else {
         streaks.push(currentChain);
@@ -66,16 +74,12 @@ export function computeStreak(sessions: WorkoutSession[]): { current: number; lo
   streaks.push(currentChain);
   longest = Math.max(...streaks, 0);
 
-  // Current streak
-  const lastWorkoutDate = new Date(sortedDays[sortedDays.length - 1]);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  lastWorkoutDate.setHours(0, 0, 0, 0);
-  
-  const daysSinceLast = Math.round((today.getTime() - lastWorkoutDate.getTime()) / 86400000);
-  
+  // Current streak — compare last workout *calendar day* to today’s local calendar day only.
+  const lastKey = sortedDays[sortedDays.length - 1];
+  const todayKey = toDayKey(new Date());
+  const daysSinceLast = calendarGapDays(lastKey, todayKey);
   // If we haven't missed 3 days in a row from the last workout
-  const current = daysSinceLast < 3 ? currentChain : 0;
+  const current = Number.isFinite(daysSinceLast) && daysSinceLast < 3 ? currentChain : 0;
 
   return { current, longest };
 }

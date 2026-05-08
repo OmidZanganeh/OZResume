@@ -78,7 +78,8 @@ const DEFAULT_REPORT_DAYS = 10;
 const BODY_MAP_GREEN_THRESHOLD_MIN = 0.6;
 const BODY_MAP_GREEN_THRESHOLD_MAX = 2.2;
 const DEFAULT_BODY_MAP_GREEN_THRESHOLD = 0.8;
-const BODY_MAP_THRESHOLD_SAVE_DEBOUNCE_MS = 1200;
+/** Debounced full `persist` after profile / body-map UI edits (avoids tight cloud push + ref snapshot races). */
+const DEBOUNCED_FULL_PERSIST_MS = 1200;
 const DEFAULT_NUTRITION_GOALS: NutritionGoals = {
   calories: 2000,
   protein: 150,
@@ -315,7 +316,7 @@ export default function App() {
   const [planEditorShowCatalog, setPlanEditorShowCatalog] = useState(true);
   const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [reportImageBusy, setReportImageBusy] = useState(false);
-  const bodyMapThresholdPersistTimerRef = useRef<number | null>(null);
+  const fullPersistTimerRef = useRef<number | null>(null);
   const bodyMapGreenThreshold = useMemo(
     () => normalizeBodyMapGreenThreshold(reportProfile.bodyMapGreenThreshold),
     [reportProfile.bodyMapGreenThreshold],
@@ -1419,17 +1420,24 @@ export default function App() {
     }));
   }
 
+  function scheduleDebouncedFullPersist() {
+    if (fullPersistTimerRef.current !== null) {
+      window.clearTimeout(fullPersistTimerRef.current);
+    }
+    fullPersistTimerRef.current = window.setTimeout(() => {
+      fullPersistTimerRef.current = null;
+      persist({ ...dataRef.current });
+    }, DEBOUNCED_FULL_PERSIST_MS);
+  }
+
   function patchReportProfile(patch: Partial<UserProfile>) {
     setProfileCloudError(null);
-    const nextProfile = {
-      ...dataRef.current.userProfile,
-      ...patch,
-    };
     setReportProfile((prev) => ({ ...prev, ...patch }));
-    persist({
-      ...dataRef.current,
-      userProfile: nextProfile,
-    });
+    setData((d) => ({
+      ...d,
+      userProfile: { ...d.userProfile, ...patch },
+    }));
+    scheduleDebouncedFullPersist();
   }
 
   function patchBodyMapGreenThreshold(next: number) {
@@ -1443,25 +1451,13 @@ export default function App() {
         bodyMapGreenThreshold: normalized,
       },
     }));
-    if (bodyMapThresholdPersistTimerRef.current !== null) {
-      window.clearTimeout(bodyMapThresholdPersistTimerRef.current);
-    }
-    bodyMapThresholdPersistTimerRef.current = window.setTimeout(() => {
-      bodyMapThresholdPersistTimerRef.current = null;
-      persist({
-        ...dataRef.current,
-        userProfile: {
-          ...dataRef.current.userProfile,
-          bodyMapGreenThreshold: normalized,
-        },
-      });
-    }, BODY_MAP_THRESHOLD_SAVE_DEBOUNCE_MS);
+    scheduleDebouncedFullPersist();
   }
 
   useEffect(() => {
     return () => {
-      if (bodyMapThresholdPersistTimerRef.current !== null) {
-        window.clearTimeout(bodyMapThresholdPersistTimerRef.current);
+      if (fullPersistTimerRef.current !== null) {
+        window.clearTimeout(fullPersistTimerRef.current);
       }
     };
   }, []);
