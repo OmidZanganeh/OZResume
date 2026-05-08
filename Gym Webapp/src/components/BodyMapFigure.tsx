@@ -3,6 +3,8 @@ import { BodyChart, ViewSide, INTENSITY_COLORS } from 'body-muscles';
 import { Wind, HeartPulse, Zap } from 'lucide-react';
 import { MUSCLE_GROUPS, type MuscleGroup } from '../data/exerciseLibrary';
 import {
+  DEFAULT_HEAT_WEIGHTED_THRESHOLDS,
+  type HeatWeightedThresholds,
   buildBodyMusclesStateForTenDayGaps,
   getGroupForBodyMuscleId,
   MOTIVATION_GREEN_INTENSITY_SLOT,
@@ -52,12 +54,14 @@ const ORPHAN_ICONS: Record<string, React.ReactNode> = {
 function OrphanPills({
   practiceCounts,
   practiceWindowDays,
+  thresholds,
   selectedGroups,
   onToggleGroup,
   interactive,
 }: {
   practiceCounts: Map<MuscleGroup, number>;
   practiceWindowDays: number;
+  thresholds: HeatWeightedThresholds;
   selectedGroups: MuscleGroup[];
   onToggleGroup: (group: MuscleGroup) => void;
   interactive: boolean;
@@ -68,7 +72,7 @@ function OrphanPills({
       {orphans.map((g) => {
         const n = practiceCounts.get(g) ?? 0;
         const colorClass =
-          n >= 1.1 ? 'orphan-pill--green' : n >= 0.35 ? 'orphan-pill--orange' : 'orphan-pill--red';
+          n >= thresholds.greenMin ? 'orphan-pill--green' : n >= thresholds.orangeMin ? 'orphan-pill--orange' : 'orphan-pill--red';
         const selected = interactive && selectedGroups.includes(g);
         const title = `${g}: ${n} session(s) last ${practiceWindowDays} days`;
         const inner = (
@@ -117,6 +121,14 @@ export function BodyMapFigure({
   const frontChartRef = useRef<BodyChart | null>(null);
   const backChartRef = useRef<BodyChart | null>(null);
   const [activeSide, setActiveSide] = useState<'front' | 'back'>('front');
+  const [greenThreshold, setGreenThreshold] = useState<number>(DEFAULT_HEAT_WEIGHTED_THRESHOLDS.greenMin);
+  const heatThresholds = useMemo<HeatWeightedThresholds>(
+    () => ({
+      greenMin: greenThreshold,
+      orangeMin: Math.max(0.15, Number((greenThreshold * 0.32).toFixed(2))),
+    }),
+    [greenThreshold],
+  );
   const muscleScores = useMemo(
     () =>
       MUSCLE_GROUPS.map((group) => ({
@@ -147,7 +159,7 @@ export function BodyMapFigure({
     const backEl = backHostRef.current;
     if (!frontEl || !backEl) return;
 
-    const state = buildBodyMusclesStateForTenDayGaps(practiceCounts, selectedGroups);
+    const state = buildBodyMusclesStateForTenDayGaps(practiceCounts, selectedGroups, heatThresholds);
     const common = {
       bodyState: state,
       onMuscleClick,
@@ -198,11 +210,11 @@ export function BodyMapFigure({
         }
       }
     } else {
-      state = buildBodyMusclesStateForTenDayGaps(practiceCounts, selectedGroups);
+      state = buildBodyMusclesStateForTenDayGaps(practiceCounts, selectedGroups, heatThresholds);
     }
     frontChartRef.current?.update({ bodyState: state });
     backChartRef.current?.update({ bodyState: state });
-  }, [practiceCounts, selectedGroups, mode]);
+  }, [practiceCounts, selectedGroups, mode, heatThresholds]);
 
   return (
     <div className="body-map">
@@ -211,6 +223,7 @@ export function BodyMapFigure({
           <OrphanPills
             practiceCounts={practiceCounts}
             practiceWindowDays={practiceWindowDays}
+            thresholds={heatThresholds}
             selectedGroups={selectedGroups}
             onToggleGroup={onToggleGroup}
             interactive={allowRegionToggle}
@@ -251,9 +264,9 @@ export function BodyMapFigure({
       <div className="report-footer-meta">
         <div className="footer-meta-left">
           <div className="report-legend">
-            <span className="legend-item"><span className="legend-dot legend-dot--gray"></span> Not hit yet</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--gray"></span> &lt; {heatThresholds.orangeMin.toFixed(2)}</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> {heatThresholds.orangeMin.toFixed(2)} - {heatThresholds.greenMin.toFixed(2)}</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--green"></span> ≥ {heatThresholds.greenMin.toFixed(2)}</span>
           </div>
           {orphansPlacement === 'bottom' && allowRegionToggle ? (
             <p className="report-hint">Tap a region to plan that muscle group</p>
@@ -264,6 +277,7 @@ export function BodyMapFigure({
           <OrphanPills
             practiceCounts={practiceCounts}
             practiceWindowDays={practiceWindowDays}
+            thresholds={heatThresholds}
             selectedGroups={selectedGroups}
             onToggleGroup={onToggleGroup}
             interactive={allowRegionToggle}
@@ -271,13 +285,33 @@ export function BodyMapFigure({
         )}
       </div>
 
-      <div className="body-map-score-list" aria-label={`Muscle score breakdown for last ${practiceWindowDays} days`}>
-        {muscleScores.map(({ group, score }) => (
-          <div key={group} className="body-map-score-row">
-            <span className="body-map-score-label">{group}</span>
-            <span className="body-map-score-value">{score.toFixed(2)}</span>
+      <div className={`body-map-score-tools ${allowRegionToggle ? '' : 'body-map-score-tools--no-control'}`.trim()}>
+        <div className="body-map-score-list" aria-label={`Muscle score breakdown for last ${practiceWindowDays} days`}>
+          {muscleScores.map(({ group, score }) => (
+            <div key={group} className="body-map-score-row">
+              <span className="body-map-score-label">{group}</span>
+              <span className="body-map-score-value">{score.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+        {allowRegionToggle ? (
+          <div className="body-map-threshold-control" aria-label="Heatmap threshold control">
+            <span className="body-map-threshold-title">Threshold</span>
+            <input
+              type="range"
+              min={0.6}
+              max={2.2}
+              step={0.05}
+              value={greenThreshold}
+              onChange={(e) => setGreenThreshold(Number(e.target.value))}
+              className="body-map-threshold-slider"
+              aria-label="Adjust green threshold"
+            />
+            <span className="body-map-threshold-value">{greenThreshold.toFixed(2)}</span>
+            <span className="body-map-threshold-hint">up=stricter</span>
+            <span className="body-map-threshold-hint">down=softer</span>
           </div>
-        ))}
+        ) : null}
       </div>
 
       <p className="body-map-credit">

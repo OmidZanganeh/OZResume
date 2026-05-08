@@ -154,25 +154,36 @@ export const HEAT_INTENSITY = {
 } as const;
 
 /** Weighted-score thresholds for the 3-color heatmap. */
-const HEAT_WEIGHTED_THRESHOLDS = {
+export type HeatWeightedThresholds = {
+  orangeMin: number;
+  greenMin: number;
+};
+
+export const DEFAULT_HEAT_WEIGHTED_THRESHOLDS: HeatWeightedThresholds = {
   orangeMin: 0.35,
   greenMin: 1.1,
-} as const;
+};
 
 /** Tier 0…5 for CSS (orphan pills / legend). Distinct from heatmap: map uses 3 body colors only. */
-export function heatTierFromCount(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
+export function heatTierFromCount(
+  count: number,
+  thresholds: HeatWeightedThresholds = DEFAULT_HEAT_WEIGHTED_THRESHOLDS,
+): 0 | 1 | 2 | 3 | 4 | 5 {
   if (count <= 0) return 0;
-  if (count < HEAT_WEIGHTED_THRESHOLDS.orangeMin) return 1;
-  if (count < HEAT_WEIGHTED_THRESHOLDS.greenMin) return 2;
-  if (count < HEAT_WEIGHTED_THRESHOLDS.greenMin + 0.5) return 3;
-  if (count < HEAT_WEIGHTED_THRESHOLDS.greenMin + 1.0) return 4;
+  if (count < thresholds.orangeMin) return 1;
+  if (count < thresholds.greenMin) return 2;
+  if (count < thresholds.greenMin + 0.5) return 3;
+  if (count < thresholds.greenMin + 1.0) return 4;
   return 5;
 }
 
 /** 3-color weighted heatmap: low recency score → orange range → high recency score. */
-export function practiceCountToHeatIntensity(count: number): number {
+export function practiceCountToHeatIntensity(
+  count: number,
+  thresholds: HeatWeightedThresholds = DEFAULT_HEAT_WEIGHTED_THRESHOLDS,
+): number {
   if (count <= 0) return HEAT_INTENSITY.gap;
-  if (count < HEAT_WEIGHTED_THRESHOLDS.greenMin) return HEAT_INTENSITY.x1;
+  if (count < thresholds.greenMin) return HEAT_INTENSITY.x1;
   return HEAT_INTENSITY.x2;
 }
 
@@ -187,13 +198,14 @@ export const MOTIVATION_GREEN_INTENSITY_SLOT = HEAT_INTENSITY.x2;
 export function buildBodyMusclesStateForTenDayGaps(
   practiceCounts: Map<MuscleGroup, number>,
   selectedGroups: MuscleGroup[],
+  thresholds: HeatWeightedThresholds = DEFAULT_HEAT_WEIGHTED_THRESHOLDS,
 ): BodyState {
   const state: BodyState = {};
   for (const g of MUSCLE_GROUPS) {
     const ids = GROUP_TO_MUSCLE_IDS[g];
     if (!ids) continue;
     const count = practiceCounts.get(g) ?? 0;
-    const intensity = practiceCountToHeatIntensity(count);
+    const intensity = practiceCountToHeatIntensity(count, thresholds);
     const selected = selectedGroups.includes(g);
     for (const id of ids) {
       state[id] = { intensity, selected };
