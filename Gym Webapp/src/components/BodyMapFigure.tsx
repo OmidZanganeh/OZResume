@@ -308,7 +308,7 @@ export function BodyMapFigure({
       <div className={`body-map-score-tools ${allowRegionToggle ? '' : 'body-map-score-tools--no-control'}`.trim()}>
         {allowRegionToggle ? (
           <div className="body-map-threshold-control" aria-label="Heatmap threshold control">
-            <span className="body-map-threshold-title">Threshold</span>
+            <span className="body-map-threshold-title">Heat Threshold</span>
             <input
               type="range"
               min={0.6}
