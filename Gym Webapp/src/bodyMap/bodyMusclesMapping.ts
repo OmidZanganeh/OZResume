@@ -47,7 +47,13 @@ export const GROUP_TO_MUSCLE_IDS: Record<MuscleGroup, readonly string[] | null> 
     'triceps-long-right',
     'triceps-lateral-right',
   ],
-  Quads: ['quads-left', 'quads-right'],
+  Quads: [
+    'quads-left',
+    'quads-right',
+    // Front inner-thigh area in body-muscles.
+    'adductors-left',
+    'adductors-right',
+  ],
   Hamstrings: [
     'hamstrings-medial-left',
     'hamstrings-lateral-left',
