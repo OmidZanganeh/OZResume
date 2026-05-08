@@ -43,7 +43,7 @@ import {
   type SavedPlan,
   type UserProfile,
 } from './data/gymFlowStorage';
-import { resolvePlanExerciseIdsToCatalog } from './data/migrateStorage';
+import { normalizeMuscleGroupsForPersistedData, resolvePlanExerciseIdsToCatalog } from './data/migrateStorage';
 import {
   type CatalogSortMode,
   collectSortedUnique,
@@ -1439,8 +1439,9 @@ export default function App() {
     if (cloudHydratedRef.current) return;
     cloudHydratedRef.current = true;
     void hydrateFromCloudIfSignedIn(() => dataRef.current, (merged) => {
-      setData(merged);
-      syncReportProfileFromMerged(merged);
+      const normalized = normalizeMuscleGroupsForPersistedData(merged);
+      setData(normalized);
+      syncReportProfileFromMerged(normalized);
     });
   }, []);
 
@@ -1455,8 +1456,9 @@ export default function App() {
       setCloudSignedIn(true);
       resetCloudHydrationCursor();
       void hydrateFromCloudIfSignedIn(() => dataRef.current, (merged) => {
-        setData(merged);
-        syncReportProfileFromMerged(merged);
+        const normalized = normalizeMuscleGroupsForPersistedData(merged);
+        setData(normalized);
+        syncReportProfileFromMerged(normalized);
       });
       setMessage('Signed in — cloud backup on.');
     }
@@ -1641,7 +1643,7 @@ export default function App() {
         const d = JSON.parse(event.target?.result as string);
         if (d.savedPlans && d.sessions) {
           if (window.confirm('Restore this backup? Current data will be overwritten.')) {
-            persist(d);
+            persist(normalizeMuscleGroupsForPersistedData(d as PersistedGymData));
             setMessage('Data restored successfully!');
           }
         } else {

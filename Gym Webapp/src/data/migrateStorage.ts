@@ -1,6 +1,7 @@
 import type { Exercise, MuscleGroup } from './exerciseTypes';
 import { mapV1ExerciseIdToV2 } from './legacyV1Stock';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS } from './exerciseLibrary';
+import type { PersistedGymData } from './gymFlowStorage';
 
 type ExerciseStat = {
   timesCompleted: number;
@@ -94,6 +95,70 @@ export function normalizeSavedPlansExerciseIds(plans: SavedPlan[], customExercis
       ...(normalizedTargets ? { exerciseMuscleTargets: normalizedTargets } : {}),
     };
   });
+}
+
+function sortValidMuscleGroups(groups: Iterable<unknown>): MuscleGroup[] {
+  const set = new Set<MuscleGroup>();
+  for (const g of groups) {
+    if (typeof g === 'string' && MUSCLE_GROUPS.includes(g as MuscleGroup)) {
+      set.add(g as MuscleGroup);
+    }
+  }
+  return MUSCLE_GROUPS.filter((g) => set.has(g));
+}
+
+export function normalizeMuscleGroupsForPersistedData(data: PersistedGymData): PersistedGymData {
+  const catalog = [...EXERCISE_LIBRARY, ...data.customExercises];
+  const exerciseById = new Map(catalog.map((e) => [e.id, e]));
+  const groupsForExercise = (exerciseId: string): MuscleGroup[] => {
+    const ex = exerciseById.get(exerciseId);
+    if (!ex) return [];
+    return sortValidMuscleGroups([ex.primaryGroup, ...(ex.secondaryGroups ?? [])]);
+  };
+
+  const savedPlans = (data.savedPlans ?? []).map((plan) => {
+    const validTargets = plan.exerciseMuscleTargets
+      ? Object.fromEntries(
+          Object.entries(plan.exerciseMuscleTargets).map(([id, groups]) => [id, sortValidMuscleGroups(groups ?? [])]),
+        )
+      : undefined;
+
+    const inferred = new Set<MuscleGroup>();
+    for (const exerciseId of plan.exerciseIds ?? []) {
+      const picked = validTargets?.[exerciseId] ?? [];
+      const source = picked.length > 0 ? picked : groupsForExercise(exerciseId);
+      for (const g of source) inferred.add(g);
+    }
+    return {
+      ...plan,
+      muscleGroups: sortValidMuscleGroups(inferred),
+      ...(validTargets ? { exerciseMuscleTargets: validTargets } : {}),
+    };
+  });
+
+  const sessions = (data.sessions ?? []).map((session) => {
+    const nextEntries = (session.entries ?? []).map((entry) => {
+      const validTrained = sortValidMuscleGroups(entry.trainedMuscleGroups ?? []);
+      return validTrained.length > 0 ? { ...entry, trainedMuscleGroups: validTrained } : { ...entry, trainedMuscleGroups: undefined };
+    });
+
+    const inferred = new Set<MuscleGroup>();
+    for (const entry of nextEntries) {
+      const source = entry.trainedMuscleGroups?.length ? entry.trainedMuscleGroups : groupsForExercise(entry.exerciseId);
+      for (const g of source) inferred.add(g);
+    }
+    return {
+      ...session,
+      entries: nextEntries,
+      groups: sortValidMuscleGroups(inferred),
+    };
+  });
+
+  return {
+    ...data,
+    savedPlans,
+    sessions,
+  };
 }
 
 /**
