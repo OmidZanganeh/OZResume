@@ -97,12 +97,27 @@ export function normalizeSavedPlansExerciseIds(plans: SavedPlan[], customExercis
   });
 }
 
+const LEGACY_GROUP_ALIAS: Record<string, MuscleGroup> = {
+  Adductors: 'Quads',
+  Abductors: 'Glutes',
+  Tibialis: 'Calves',
+  Obliques: 'Core',
+  'Hip Flexors': 'Quads',
+  Neck: 'Shoulders',
+};
+
+function normalizeGroup(value: unknown): MuscleGroup | null {
+  if (typeof value !== 'string') return null;
+  const direct = value as MuscleGroup;
+  if (MUSCLE_GROUPS.includes(direct)) return direct;
+  return LEGACY_GROUP_ALIAS[value] ?? null;
+}
+
 function sortValidMuscleGroups(groups: Iterable<unknown>): MuscleGroup[] {
   const set = new Set<MuscleGroup>();
   for (const g of groups) {
-    if (typeof g === 'string' && MUSCLE_GROUPS.includes(g as MuscleGroup)) {
-      set.add(g as MuscleGroup);
-    }
+    const normalized = normalizeGroup(g);
+    if (normalized) set.add(normalized);
   }
   return MUSCLE_GROUPS.filter((g) => set.has(g));
 }
@@ -131,7 +146,7 @@ export function normalizeMuscleGroupsForPersistedData(data: PersistedGymData): P
     }
     return {
       ...plan,
-      muscleGroups: sortValidMuscleGroups(inferred),
+      muscleGroups: sortValidMuscleGroups([...plan.muscleGroups, ...inferred]),
       ...(validTargets ? { exerciseMuscleTargets: validTargets } : {}),
     };
   });
@@ -150,7 +165,7 @@ export function normalizeMuscleGroupsForPersistedData(data: PersistedGymData): P
     return {
       ...session,
       entries: nextEntries,
-      groups: sortValidMuscleGroups(inferred),
+      groups: sortValidMuscleGroups([...session.groups, ...inferred]),
     };
   });
 
