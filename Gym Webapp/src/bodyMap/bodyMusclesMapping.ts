@@ -1,6 +1,7 @@
 import type { BodyState } from 'body-muscles';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
+import type { MuscleMapSignal, MuscleSignalStatus } from '../utils/practiceWindow';
 
 /**
  * Maps Gym Flow muscle groups to `body-muscles` (npm) muscle region IDs.
@@ -153,6 +154,34 @@ export const HEAT_INTENSITY = {
   x5Plus: 6,
 } as const;
 
+/** Recovery/recency state slots (100+ reserved for rainbow group colors). */
+export const RECOVERY_STATUS_INTENSITY = {
+  noData: 0,
+  fresh: 210,
+  recovering: 211,
+  trainNext: 212,
+  undertrained: 213,
+  balanced: 214,
+} as const;
+
+function statusToIntensity(status: MuscleSignalStatus): number {
+  switch (status) {
+    case 'fresh':
+      return RECOVERY_STATUS_INTENSITY.fresh;
+    case 'recovering':
+      return RECOVERY_STATUS_INTENSITY.recovering;
+    case 'train_next':
+      return RECOVERY_STATUS_INTENSITY.trainNext;
+    case 'undertrained':
+      return RECOVERY_STATUS_INTENSITY.undertrained;
+    case 'balanced':
+      return RECOVERY_STATUS_INTENSITY.balanced;
+    case 'no_data':
+    default:
+      return RECOVERY_STATUS_INTENSITY.noData;
+  }
+}
+
 /** Tier 0…5 for CSS (orphan pills / legend). Distinct from heatmap: map uses 3 body colors only. */
 export function heatTierFromCount(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
   if (count <= 0) return 0;
@@ -188,6 +217,24 @@ export function buildBodyMusclesStateForTenDayGaps(
     if (!ids) continue;
     const count = practiceCounts.get(g) ?? 0;
     const intensity = practiceCountToHeatIntensity(count);
+    const selected = selectedGroups.includes(g);
+    for (const id of ids) {
+      state[id] = { intensity, selected };
+    }
+  }
+  return state;
+}
+
+export function buildBodyMusclesStateFromSignals(
+  signals: Map<MuscleGroup, MuscleMapSignal>,
+  selectedGroups: MuscleGroup[],
+): BodyState {
+  const state: BodyState = {};
+  for (const g of MUSCLE_GROUPS) {
+    const ids = GROUP_TO_MUSCLE_IDS[g];
+    if (!ids) continue;
+    const signal = signals.get(g);
+    const intensity = signal ? statusToIntensity(signal.status) : RECOVERY_STATUS_INTENSITY.noData;
     const selected = selectedGroups.includes(g);
     for (const id of ids) {
       state[id] = { intensity, selected };

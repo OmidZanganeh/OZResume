@@ -4,6 +4,7 @@ import { WeekNutrientStrips, type NutritionDayRollup } from './NutritionDashboar
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
+import type { MuscleMapSignal } from '../utils/practiceWindow';
 
 export type ReportData = {
   profile: { name: string; weight: string; weightUnit: 'kg' | 'lbs'; height: string; heightUnit: 'cm' | 'ft'; age: string };
@@ -14,6 +15,7 @@ export type ReportData = {
   consistency: number;
   analysisDays: number;
   analysisCounts: Map<MuscleGroup, number>;
+  analysisSignals: Map<MuscleGroup, MuscleMapSignal>;
   topExercises: { name: string; count: number; sets: number }[];
   neglectedMuscles: MuscleGroup[];
   recentSessions: { date: string; groups: MuscleGroup[]; entries: number }[];
@@ -164,6 +166,7 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
               <BodyMapFigure
                 practiceCounts={data.analysisCounts}
                 practiceWindowDays={data.analysisDays}
+                signals={data.analysisSignals}
                 selectedGroups={selectedGroups}
                 onToggleGroup={() => {}}
                 allowRegionToggle={false}

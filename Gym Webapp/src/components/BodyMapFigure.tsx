@@ -3,12 +3,16 @@ import { BodyChart, ViewSide, INTENSITY_COLORS } from 'body-muscles';
 import { Wind, HeartPulse, Zap } from 'lucide-react';
 import type { MuscleGroup } from '../data/exerciseLibrary';
 import {
+  buildBodyMusclesStateFromSignals,
   buildBodyMusclesStateForTenDayGaps,
   getGroupForBodyMuscleId,
   MOTIVATION_GREEN_INTENSITY_SLOT,
+  RECOVERY_STATUS_INTENSITY,
   GROUP_TO_MUSCLE_IDS,
 } from '../bodyMap/bodyMusclesMapping';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
+import type { MuscleMapSignal, MuscleSignalStatus } from '../utils/practiceWindow';
+import { getNextToHitGroups } from '../utils/practiceWindow';
 
 /** Gym Flow heatmap slots (body-muscles intensity indices). */
 const HEAT_GAP = 0;
@@ -22,6 +26,13 @@ const LEGEND_INACTIVE_SLOT = 99;
 (INTENSITY_COLORS as Record<number, string>)[HEAT_ONCE] = '#fbbf24';
 /** 2+ sessions — clear “on track” green (distinct from brand accent teal). */
 (INTENSITY_COLORS as Record<number, string>)[MOTIVATION_GREEN_INTENSITY_SLOT] = '#22c55e';
+
+/** Recovery model colors (actionable status map). */
+(INTENSITY_COLORS as Record<number, string>)[RECOVERY_STATUS_INTENSITY.fresh] = '#38bdf8';
+(INTENSITY_COLORS as Record<number, string>)[RECOVERY_STATUS_INTENSITY.recovering] = '#f59e0b';
+(INTENSITY_COLORS as Record<number, string>)[RECOVERY_STATUS_INTENSITY.trainNext] = '#22c55e';
+(INTENSITY_COLORS as Record<number, string>)[RECOVERY_STATUS_INTENSITY.undertrained] = '#ef4444';
+(INTENSITY_COLORS as Record<number, string>)[RECOVERY_STATUS_INTENSITY.balanced] = '#a78bfa';
 
 // Initialize Rainbow Slots (100+) to avoid library defaults
 const RAINBOW_START_SLOT = 100;
@@ -38,6 +49,7 @@ Object.keys(MUSCLE_GROUP_CALENDAR_COLOR).forEach((g, i) => {
 type Props = {
   practiceCounts: Map<MuscleGroup, number>;
   practiceWindowDays: number;
+  signals?: Map<MuscleGroup, MuscleMapSignal>;
   selectedGroups: MuscleGroup[];
   onToggleGroup: (group: MuscleGroup) => void;
   /** When false, body regions and Cardio/Mobility pills are view-only (no tap-to-toggle). */
@@ -52,23 +64,32 @@ const ORPHAN_ICONS: Record<string, React.ReactNode> = {
 function OrphanPills({
   practiceCounts,
   practiceWindowDays,
+  signals,
   selectedGroups,
   onToggleGroup,
   interactive,
 }: {
   practiceCounts: Map<MuscleGroup, number>;
   practiceWindowDays: number;
+  signals?: Map<MuscleGroup, MuscleMapSignal>;
   selectedGroups: MuscleGroup[];
   onToggleGroup: (group: MuscleGroup) => void;
   interactive: boolean;
 }) {
   const orphans: MuscleGroup[] = ['Cardio', 'Mobility'];
+  const statusToPillClass = (status: MuscleSignalStatus | undefined): string => {
+    if (!status || status === 'no_data') return 'orphan-pill--gray';
+    if (status === 'train_next') return 'orphan-pill--green';
+    if (status === 'recovering') return 'orphan-pill--orange';
+    if (status === 'fresh') return 'orphan-pill--blue';
+    if (status === 'undertrained') return 'orphan-pill--red';
+    return 'orphan-pill--purple';
+  };
   return (
     <div className="orphan-pills" role="group" aria-label="Cardio and mobility">
       {orphans.map((g) => {
         const n = practiceCounts.get(g) ?? 0;
-        const colorClass =
-          n >= 2 ? 'orphan-pill--green' : n === 1 ? 'orphan-pill--orange' : 'orphan-pill--red';
+        const colorClass = statusToPillClass(signals?.get(g)?.status);
         const selected = interactive && selectedGroups.includes(g);
         const title = `${g}: ${n} session(s) last ${practiceWindowDays} days`;
         const inner = (
@@ -106,12 +127,13 @@ function OrphanPills({
 export function BodyMapFigure({
   practiceCounts,
   practiceWindowDays,
+  signals,
   selectedGroups,
   onToggleGroup,
   allowRegionToggle = true,
-  mode = 'heatmap',
+  mode = 'recovery',
   orphansPlacement = 'bottom',
-}: Props & { mode?: 'heatmap' | 'rainbow'; orphansPlacement?: 'top' | 'bottom' | 'none' }) {
+}: Props & { mode?: 'recovery' | 'heatmap' | 'rainbow'; orphansPlacement?: 'top' | 'bottom' | 'none' }) {
   const frontHostRef = useRef<HTMLDivElement>(null);
   const backHostRef = useRef<HTMLDivElement>(null);
   const frontChartRef = useRef<BodyChart | null>(null);
@@ -123,6 +145,7 @@ export function BodyMapFigure({
   toggleRef.current = onToggleGroup;
   const allowToggleRef = useRef(allowRegionToggle);
   allowToggleRef.current = allowRegionToggle;
+  const nextToHit = signals ? getNextToHitGroups(signals, 3) : [];
 
   const onMuscleClick = useCallback((muscleId: string) => {
     if (!allowToggleRef.current) return;
@@ -186,12 +209,14 @@ export function BodyMapFigure({
           state[id] = { intensity, selected: false };
         }
       }
+    } else if (mode === 'recovery' && signals) {
+      state = buildBodyMusclesStateFromSignals(signals, selectedGroups);
     } else {
       state = buildBodyMusclesStateForTenDayGaps(practiceCounts, selectedGroups);
     }
     frontChartRef.current?.update({ bodyState: state });
     backChartRef.current?.update({ bodyState: state });
-  }, [practiceCounts, selectedGroups, mode]);
+  }, [practiceCounts, selectedGroups, mode, signals]);
 
   return (
     <div className="body-map">
@@ -200,12 +225,24 @@ export function BodyMapFigure({
           <OrphanPills
             practiceCounts={practiceCounts}
             practiceWindowDays={practiceWindowDays}
+            signals={signals}
             selectedGroups={selectedGroups}
             onToggleGroup={onToggleGroup}
             interactive={allowRegionToggle}
           />
         </div>
       )}
+
+      {mode === 'recovery' && nextToHit.length > 0 ? (
+        <div className="body-map-next-strip" aria-label="Next muscles to train">
+          <span className="body-map-next-label">Next to hit:</span>
+          {nextToHit.map((g) => (
+            <span key={g} className="body-map-next-chip">
+              {g}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       <div className="body-map-toggle" role="group" aria-label="Body map view">
         <button
@@ -240,9 +277,21 @@ export function BodyMapFigure({
       <div className="report-footer-meta">
         <div className="footer-meta-left">
           <div className="report-legend">
-            <span className="legend-item"><span className="legend-dot legend-dot--gray"></span> Not hit yet</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
+            {mode === 'recovery' ? (
+              <>
+                <span className="legend-item"><span className="legend-dot legend-dot--green"></span> Train next</span>
+                <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Recovering</span>
+                <span className="legend-item"><span className="legend-dot legend-dot--blue"></span> Freshly hit</span>
+                <span className="legend-item"><span className="legend-dot legend-dot--red"></span> Undertrained</span>
+                <span className="legend-item"><span className="legend-dot legend-dot--gray"></span> No data</span>
+              </>
+            ) : (
+              <>
+                <span className="legend-item"><span className="legend-dot legend-dot--gray"></span> Not hit yet</span>
+                <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> Once</span>
+                <span className="legend-item"><span className="legend-dot legend-dot--green"></span> 2+ sessions</span>
+              </>
+            )}
           </div>
           {orphansPlacement === 'bottom' && allowRegionToggle ? (
             <p className="report-hint">Tap a region to plan that muscle group</p>
@@ -253,6 +302,7 @@ export function BodyMapFigure({
           <OrphanPills
             practiceCounts={practiceCounts}
             practiceWindowDays={practiceWindowDays}
+            signals={signals}
             selectedGroups={selectedGroups}
             onToggleGroup={onToggleGroup}
             interactive={allowRegionToggle}
