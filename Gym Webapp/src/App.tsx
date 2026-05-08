@@ -10,7 +10,7 @@ import { WorkoutCalendar } from './components/WorkoutCalendar';
 import { MuscleTargetPick } from './components/MuscleTargetPick';
 import { ExerciseYoutubeLink } from './components/ExerciseYoutubeLink';
 import { getExerciseImageMap, type ExerciseImageMeta } from './services/exerciseImages';
-import { getMuscleSignals, getPracticeCountsInWindow } from './utils/practiceWindow';
+import { getPracticeCountsInWindow } from './utils/practiceWindow';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './components/calendarMuscleColors';
 import { PrintReport } from './components/PrintReport';
 import { DayActivityModal } from './components/DayActivityModal';
@@ -729,14 +729,6 @@ export default function App() {
   const analysisCounts = useMemo(
     () => getPracticeCountsInWindow(data.sessions, exerciseById, analysisDays),
     [data.sessions, exerciseById, analysisDays],
-  );
-  const practiceSignals = useMemo(
-    () => getMuscleSignals(data.sessions, exerciseById, reportDays, { freshDays: reportProfile.bodyMapFreshDays }),
-    [data.sessions, exerciseById, reportDays, reportProfile.bodyMapFreshDays],
-  );
-  const analysisSignals = useMemo(
-    () => getMuscleSignals(data.sessions, exerciseById, analysisDays, { freshDays: reportProfile.bodyMapFreshDays }),
-    [data.sessions, exerciseById, analysisDays, reportProfile.bodyMapFreshDays],
   );
 
   // ── Advanced analytics ──────────────────────────────────────────────
@@ -1909,7 +1901,6 @@ export default function App() {
               <BodyMapFigure
                 practiceCounts={analysisCounts}
                 practiceWindowDays={analysisDays}
-                signals={analysisSignals}
                 selectedGroups={[]}
                 onToggleGroup={() => {}}
                 allowRegionToggle={false}
@@ -2127,7 +2118,6 @@ export default function App() {
                 <BodyMapFigure
                   practiceCounts={practiceCounts}
                   practiceWindowDays={reportDays}
-                  signals={practiceSignals}
                   selectedGroups={[]}
                   onToggleGroup={(group) => openMusclePlanSuggestions(group)}
                   allowRegionToggle
@@ -2257,7 +2247,6 @@ export default function App() {
             <BodyMapFigure
               practiceCounts={practiceCounts}
               practiceWindowDays={reportDays}
-              signals={practiceSignals}
               selectedGroups={selectedGroups}
               onToggleGroup={toggleGroup}
             />
@@ -2640,7 +2629,6 @@ export default function App() {
               <BodyMapFigure
                 practiceCounts={analysisCounts}
                 practiceWindowDays={analysisDays}
-                signals={analysisSignals}
                 selectedGroups={[]}
                 onToggleGroup={() => {}}
                 allowRegionToggle={false}
@@ -4065,7 +4053,6 @@ export default function App() {
       consistency,
       analysisDays,
       analysisCounts,
-      analysisSignals,
       topExercises,
       neglectedMuscles,
       recentSessions: groupedSessions.slice(0, 12).map(s => ({ date: s.date, groups: s.groups, entries: s.entries })),
