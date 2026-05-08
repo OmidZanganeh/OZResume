@@ -320,8 +320,8 @@ export function BodyMapFigure({
               aria-label="Adjust green threshold"
             />
             <span className="body-map-threshold-value">{effectiveGreenThreshold.toFixed(2)}</span>
-            <span className="body-map-threshold-hint">up=stricter</span>
-            <span className="body-map-threshold-hint">down=softer</span>
+            <span className="body-map-threshold-hint">Up = stricter</span>
+            <span className="body-map-threshold-hint">Down = softer</span>
           </div>
         ) : null}
         <div className="body-map-score-list" aria-label={`Muscle score breakdown for last ${practiceWindowDays} days`}>
