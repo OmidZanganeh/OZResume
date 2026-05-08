@@ -44,6 +44,10 @@ type Props = {
   onToggleGroup: (group: MuscleGroup) => void;
   /** When false, body regions and Cardio/Mobility pills are view-only (no tap-to-toggle). */
   allowRegionToggle?: boolean;
+  /** Optional controlled green threshold for weighted heat coloring. */
+  greenThreshold?: number;
+  /** Optional setter for a controlled green threshold. */
+  onGreenThresholdChange?: (value: number) => void;
 };
 
 const ORPHAN_ICONS: Record<string, React.ReactNode> = {
@@ -113,6 +117,8 @@ export function BodyMapFigure({
   selectedGroups,
   onToggleGroup,
   allowRegionToggle = true,
+  greenThreshold,
+  onGreenThresholdChange,
   mode = 'heatmap',
   orphansPlacement = 'bottom',
 }: Props & { mode?: 'heatmap' | 'rainbow'; orphansPlacement?: 'top' | 'bottom' | 'none' }) {
@@ -121,13 +127,27 @@ export function BodyMapFigure({
   const frontChartRef = useRef<BodyChart | null>(null);
   const backChartRef = useRef<BodyChart | null>(null);
   const [activeSide, setActiveSide] = useState<'front' | 'back'>('front');
-  const [greenThreshold, setGreenThreshold] = useState<number>(DEFAULT_HEAT_WEIGHTED_THRESHOLDS.greenMin);
+  const [localGreenThreshold, setLocalGreenThreshold] = useState<number>(DEFAULT_HEAT_WEIGHTED_THRESHOLDS.greenMin);
+  const effectiveGreenThreshold = useMemo(() => {
+    if (typeof greenThreshold !== 'number' || !Number.isFinite(greenThreshold)) {
+      return localGreenThreshold;
+    }
+    return Math.max(0.6, Math.min(2.2, Number(greenThreshold.toFixed(2))));
+  }, [greenThreshold, localGreenThreshold]);
+  const handleThresholdChange = useCallback((raw: number) => {
+    const next = Math.max(0.6, Math.min(2.2, Number(raw.toFixed(2))));
+    if (onGreenThresholdChange) {
+      onGreenThresholdChange(next);
+      return;
+    }
+    setLocalGreenThreshold(next);
+  }, [onGreenThresholdChange]);
   const heatThresholds = useMemo<HeatWeightedThresholds>(
     () => ({
-      greenMin: greenThreshold,
-      orangeMin: Math.max(0.15, Number((greenThreshold * 0.32).toFixed(2))),
+      greenMin: effectiveGreenThreshold,
+      orangeMin: Math.max(0.15, Number((effectiveGreenThreshold * 0.32).toFixed(2))),
     }),
-    [greenThreshold],
+    [effectiveGreenThreshold],
   );
   const muscleScores = useMemo(
     () =>
@@ -296,12 +316,12 @@ export function BodyMapFigure({
               min={0.6}
               max={2.2}
               step={0.05}
-              value={greenThreshold}
-              onChange={(e) => setGreenThreshold(Number(e.target.value))}
+              value={effectiveGreenThreshold}
+              onChange={(e) => handleThresholdChange(Number(e.target.value))}
               className="body-map-threshold-slider"
               aria-label="Adjust green threshold"
             />
-            <span className="body-map-threshold-value">{greenThreshold.toFixed(2)}</span>
+            <span className="body-map-threshold-value">{effectiveGreenThreshold.toFixed(2)}</span>
             <span className="body-map-threshold-hint">right=stricter</span>
             <span className="body-map-threshold-hint">left=softer</span>
           </div>
