@@ -56,10 +56,15 @@ function classifySignal(
 ): MuscleSignalStatus {
   const target = RECOVERY_TARGET_DAYS[group] ?? 2;
 
-  if (daysSinceLast === null) return group === 'Cardio' || group === 'Mobility' ? 'no_data' : 'undertrained';
+  if (daysSinceLast === null) return 'no_data';
   if (daysSinceLast <= 1) return 'fresh';
   if (daysSinceLast < target) return 'recovering';
-  if (group !== 'Cardio' && group !== 'Mobility' && (daysSinceLast >= Math.max(10, target + 5) || sessionsLast14 === 0)) {
+  if (
+    group !== 'Cardio' &&
+    group !== 'Mobility' &&
+    sessionsLast14 === 0 &&
+    daysSinceLast >= Math.max(21, target + 10)
+  ) {
     return 'undertrained';
   }
   if (daysSinceLast >= target + 1 && sessionsLast14 <= 2) return 'train_next';
