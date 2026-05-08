@@ -374,7 +374,7 @@ export default function App() {
   const settingsQuery = settingsSearch.trim().toLowerCase();
   const settingsMatches = (keywords: string[]) =>
     settingsQuery.length === 0 || keywords.some((keyword) => keyword.toLowerCase().includes(settingsQuery));
-  const showSettingsProfile = settingsMatches(['profile', 'account', 'weight', 'height', 'age', 'sex', 'activity']);
+  const showSettingsProfile = settingsMatches(['profile', 'account', 'weight', 'height', 'age', 'sex', 'activity', 'body map', 'threshold', 'fresh']);
   const showSettingsReport = settingsMatches(['report', 'image', 'pdf', 'export']);
   const showSettingsCustomMoves = settingsMatches(['custom', 'exercise', 'moves', 'library']);
   const showSettingsBackup = settingsMatches(['backup', 'import', 'export', 'data']);
@@ -731,12 +731,12 @@ export default function App() {
     [data.sessions, exerciseById, analysisDays],
   );
   const practiceSignals = useMemo(
-    () => getMuscleSignals(data.sessions, exerciseById, reportDays),
-    [data.sessions, exerciseById, reportDays],
+    () => getMuscleSignals(data.sessions, exerciseById, reportDays, { freshDays: reportProfile.bodyMapFreshDays }),
+    [data.sessions, exerciseById, reportDays, reportProfile.bodyMapFreshDays],
   );
   const analysisSignals = useMemo(
-    () => getMuscleSignals(data.sessions, exerciseById, analysisDays),
-    [data.sessions, exerciseById, analysisDays],
+    () => getMuscleSignals(data.sessions, exerciseById, analysisDays, { freshDays: reportProfile.bodyMapFreshDays }),
+    [data.sessions, exerciseById, analysisDays, reportProfile.bodyMapFreshDays],
   );
 
   // ── Advanced analytics ──────────────────────────────────────────────
@@ -1432,6 +1432,7 @@ export default function App() {
       age: reportProfile.age || '',
       sex: reportProfile.sex,
       activityLevel: reportProfile.activityLevel,
+      bodyMapFreshDays: reportProfile.bodyMapFreshDays,
     };
     const res = await saveUserProfileCloud(userProfile);
     setProfileCloudBusy(false);
@@ -3899,6 +3900,26 @@ export default function App() {
                     <option value="active">Active (5-6 workouts/week)</option>
                     <option value="veryActive">Very active (daily hard training)</option>
                   </select>
+                </label>
+                <label className="profile-field">
+                  <span>Body map freshness threshold ({reportProfile.bodyMapFreshDays ?? 3} day{(reportProfile.bodyMapFreshDays ?? 3) === 1 ? '' : 's'})</span>
+                  <input
+                    className="settings-range-input"
+                    type="range"
+                    min={1}
+                    max={7}
+                    step={1}
+                    value={reportProfile.bodyMapFreshDays ?? 3}
+                    onChange={(e) =>
+                      patchReportProfile({
+                        bodyMapFreshDays: Math.max(1, Math.min(7, Number(e.target.value) || 3)),
+                      })
+                    }
+                    aria-label="Body map freshness threshold in days"
+                  />
+                  <span className="panel-subtle" style={{ margin: 0 }}>
+                    Lower = stricter (switches from fresh sooner). Higher = softer map.
+                  </span>
                 </label>
                 <div className="settings-actions-row">
                   <button

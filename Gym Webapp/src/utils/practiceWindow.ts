@@ -20,6 +20,11 @@ export type MuscleMapSignal = {
   nextScore: number;
 };
 
+type MuscleSignalThresholdConfig = {
+  /** Fresh window (days) chosen by user profile slider. */
+  freshDays?: number;
+};
+
 const RECOVERY_TARGET_DAYS: Partial<Record<MuscleGroup, number>> = {
   Chest: 2,
   Back: 2,
@@ -53,9 +58,10 @@ function classifySignal(
   group: MuscleGroup,
   daysSinceLast: number | null,
   sessionsLast14: number,
+  cfg?: MuscleSignalThresholdConfig,
 ): MuscleSignalStatus {
   const target = RECOVERY_TARGET_DAYS[group] ?? 2;
-  const freshDays = 3;
+  const freshDays = Math.min(7, Math.max(1, Math.round(cfg?.freshDays ?? 3)));
   const recoveringUntil = Math.max(freshDays + 2, target + 2);
 
   if (daysSinceLast === null) return 'no_data';
@@ -65,11 +71,11 @@ function classifySignal(
     group !== 'Cardio' &&
     group !== 'Mobility' &&
     sessionsLast14 === 0 &&
-    daysSinceLast >= Math.max(30, target + 18)
+    daysSinceLast >= Math.max(30, target + 18, freshDays + 20)
   ) {
     return 'undertrained';
   }
-  if (daysSinceLast >= Math.max(7, target + 4) && sessionsLast14 <= 2) return 'train_next';
+  if (daysSinceLast >= Math.max(7, target + 4, freshDays + 3) && sessionsLast14 <= 2) return 'train_next';
   return 'balanced';
 }
 
@@ -149,6 +155,7 @@ export function getMuscleSignals(
   sessions: WorkoutSession[],
   exerciseById: Map<string, Exercise>,
   withinDays: number,
+  cfg?: MuscleSignalThresholdConfig,
 ): Map<MuscleGroup, MuscleMapSignal> {
   const todayMs = startOfLocalDayMs(new Date());
   const daySetsWindow = new Map<MuscleGroup, Set<string>>();
@@ -201,7 +208,7 @@ export function getMuscleSignals(
     const sessionsLast7 = daySets7.get(group)?.size ?? 0;
     const sessionsLast14 = daySets14.get(group)?.size ?? 0;
     const recoveryTargetDays = RECOVERY_TARGET_DAYS[group] ?? 2;
-    const status = classifySignal(group, daysSinceLast, sessionsLast14);
+    const status = classifySignal(group, daysSinceLast, sessionsLast14, cfg);
     const nextScore = scoreForNextTarget(status, daysSinceLast, sessionsLast7, sessionsLast14);
 
     signals.set(group, {

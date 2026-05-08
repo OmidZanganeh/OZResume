@@ -6141,6 +6141,13 @@ select.text-input.day-modal-select {
   flex: 1;
 }
 
+.tab-frame--settings .settings-range-input {
+  width: 100%;
+  margin: 0.1rem 0 0;
+  accent-color: #22c55e;
+  cursor: pointer;
+}
+
 .tab-frame--settings .settings-actions-row {
   margin-top: 0.56rem;
   display: flex;
