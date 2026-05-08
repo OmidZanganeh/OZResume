@@ -6,7 +6,15 @@ import { MUSCLE_GROUPS } from '../data/exerciseLibrary';
 import { MUSCLE_GROUP_CALENDAR_COLOR } from './calendarMuscleColors';
 
 export type ReportData = {
-  profile: { name: string; weight: string; weightUnit: 'kg' | 'lbs'; height: string; heightUnit: 'cm' | 'ft'; age: string };
+  profile: {
+    name: string;
+    weight: string;
+    weightUnit: 'kg' | 'lbs';
+    height: string;
+    heightUnit: 'cm' | 'ft';
+    age: string;
+    bodyMapGreenThreshold?: number;
+  };
   totalWorkouts: number;
   totalSets: number;
   totalCompletions: number;
@@ -166,6 +174,7 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
                 practiceWindowDays={data.analysisDays}
                 selectedGroups={selectedGroups}
                 onToggleGroup={() => {}}
+                greenThreshold={data.profile.bodyMapGreenThreshold}
                 allowRegionToggle={false}
                 orphansPlacement="top"
               />

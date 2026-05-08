@@ -160,8 +160,8 @@ export type HeatWeightedThresholds = {
 };
 
 export const DEFAULT_HEAT_WEIGHTED_THRESHOLDS: HeatWeightedThresholds = {
-  orangeMin: 0.35,
-  greenMin: 1.1,
+  orangeMin: 0.26,
+  greenMin: 0.8,
 };
 
 /** Tier 0…5 for CSS (orphan pills / legend). Distinct from heatmap: map uses 3 body colors only. */
