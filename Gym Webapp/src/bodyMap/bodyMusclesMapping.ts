@@ -48,6 +48,10 @@ export const GROUP_TO_MUSCLE_IDS: Record<MuscleGroup, readonly string[] | null> 
     'triceps-lateral-right',
   ],
   Quads: ['quads-left', 'quads-right'],
+  /** Front inner-thigh region in body-muscles. */
+  Adductors: ['adductors-left', 'adductors-right'],
+  /** No dedicated region in the current body-muscles map; tracked in charts/calculations only. */
+  Abductors: null,
   Hamstrings: [
     'hamstrings-medial-left',
     'hamstrings-lateral-left',
@@ -67,6 +71,8 @@ export const GROUP_TO_MUSCLE_IDS: Record<MuscleGroup, readonly string[] | null> 
     'calves-gastroc-medial-right',
     'calves-gastroc-lateral-right',
     'calves-soleus-right',
+  ],
+  Tibialis: [
     'tibialis-anterior-left',
     'tibialis-anterior-right',
   ],
@@ -75,13 +81,19 @@ export const GROUP_TO_MUSCLE_IDS: Record<MuscleGroup, readonly string[] | null> 
     'abs-upper-right',
     'abs-lower-left',
     'abs-lower-right',
-    'obliques-left',
-    'obliques-right',
     'serratus-anterior-left',
     'serratus-anterior-right',
+  ],
+  Obliques: [
+    'obliques-left',
+    'obliques-right',
+  ],
+  'Hip Flexors': [
     'hip-flexor-left',
     'hip-flexor-right',
   ],
+  /** No reliable dedicated neck IDs in this chart package version. */
+  Neck: null,
   Forearms: [
     'forearm-left',
     'forearm-right',

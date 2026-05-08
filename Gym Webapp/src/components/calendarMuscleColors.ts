@@ -8,19 +8,25 @@ export const MUSCLE_GROUP_CALENDAR_COLOR: Record<MuscleGroup, string> = {
   Biceps: '#4ade80',
   Triceps: '#10b981',
   Quads: '#facc15',
+  Adductors: '#f59e0b',
+  Abductors: '#fb7185',
   Hamstrings: '#e879f9',
   Glutes: '#f472b6',
   Calves: '#22d3ee',
+  Tibialis: '#06b6d4',
   Core: '#a3e635',
+  Obliques: '#84cc16',
+  'Hip Flexors': '#f97316',
   Forearms: '#94a3b8',
+  Neck: '#c084fc',
   Cardio: '#f87171',
   Mobility: '#818cf8',
 };
 
 export const PUSH_MUSCLES: MuscleGroup[] = ['Chest', 'Shoulders', 'Triceps'];
 export const PULL_MUSCLES: MuscleGroup[] = ['Back', 'Biceps', 'Forearms'];
-export const LEGS_MUSCLES: MuscleGroup[] = ['Quads', 'Hamstrings', 'Glutes', 'Calves'];
-export const CORE_MUSCLES: MuscleGroup[] = ['Core'];
+export const LEGS_MUSCLES: MuscleGroup[] = ['Quads', 'Adductors', 'Abductors', 'Hamstrings', 'Glutes', 'Calves', 'Tibialis', 'Hip Flexors'];
+export const CORE_MUSCLES: MuscleGroup[] = ['Core', 'Obliques'];
 
 export function sortMuscleGroupsForDisplay(groups: Iterable<MuscleGroup>): MuscleGroup[] {
   const set = new Set(groups);
