@@ -57,26 +57,21 @@ function toDayKey(date: Date): string {
 function classifySignal(
   group: MuscleGroup,
   daysSinceLast: number | null,
-  sessionsLast14: number,
+  _sessionsLast14: number,
   cfg?: MuscleSignalThresholdConfig,
 ): MuscleSignalStatus {
-  const target = RECOVERY_TARGET_DAYS[group] ?? 2;
   const freshDays = Math.min(7, Math.max(1, Math.round(cfg?.freshDays ?? 3)));
-  const recoveringUntil = Math.max(freshDays + 2, target + 2);
+  const recoveringUntil = freshDays + 2;
+  const trainNextUntil = freshDays + 10;
+  const balancedUntil = freshDays + 45;
 
   if (daysSinceLast === null) return 'no_data';
   if (daysSinceLast <= freshDays) return 'fresh';
   if (daysSinceLast <= recoveringUntil) return 'recovering';
-  if (
-    group !== 'Cardio' &&
-    group !== 'Mobility' &&
-    sessionsLast14 === 0 &&
-    daysSinceLast >= Math.max(30, target + 18, freshDays + 20)
-  ) {
-    return 'undertrained';
-  }
-  if (daysSinceLast >= Math.max(7, target + 4, freshDays + 3) && sessionsLast14 <= 2) return 'train_next';
-  return 'balanced';
+  if (daysSinceLast <= trainNextUntil) return 'train_next';
+  // Keep a wide neutral/balanced range so users do not see "all red" after short breaks.
+  if (daysSinceLast <= balancedUntil || group === 'Cardio' || group === 'Mobility') return 'balanced';
+  return 'undertrained';
 }
 
 function scoreForNextTarget(
