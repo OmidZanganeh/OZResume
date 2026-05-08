@@ -44,6 +44,10 @@ type Props = {
   onToggleGroup: (group: MuscleGroup) => void;
   /** When false, body regions and Cardio/Mobility pills are view-only (no tap-to-toggle). */
   allowRegionToggle?: boolean;
+  /** Optional controlled green threshold for weighted heat coloring. */
+  greenThreshold?: number;
+  /** Optional setter for a controlled green threshold. */
+  onGreenThresholdChange?: (value: number) => void;
 };
 
 const ORPHAN_ICONS: Record<string, React.ReactNode> = {
@@ -113,6 +117,8 @@ export function BodyMapFigure({
   selectedGroups,
   onToggleGroup,
   allowRegionToggle = true,
+  greenThreshold,
+  onGreenThresholdChange,
   mode = 'heatmap',
   orphansPlacement = 'bottom',
 }: Props & { mode?: 'heatmap' | 'rainbow'; orphansPlacement?: 'top' | 'bottom' | 'none' }) {
@@ -121,14 +127,28 @@ export function BodyMapFigure({
   const frontChartRef = useRef<BodyChart | null>(null);
   const backChartRef = useRef<BodyChart | null>(null);
   const [activeSide, setActiveSide] = useState<'front' | 'back'>('front');
-  const [greenThreshold, setGreenThreshold] = useState<number>(DEFAULT_HEAT_WEIGHTED_THRESHOLDS.greenMin);
+  const [localGreenThreshold, setLocalGreenThreshold] = useState<number>(DEFAULT_HEAT_WEIGHTED_THRESHOLDS.greenMin);
+  const effectiveGreenThreshold = useMemo(() => {
+    if (typeof greenThreshold !== 'number' || !Number.isFinite(greenThreshold)) {
+      return localGreenThreshold;
+    }
+    return Math.max(0.6, Math.min(2.2, Number(greenThreshold.toFixed(2))));
+  }, [greenThreshold, localGreenThreshold]);
   const heatThresholds = useMemo<HeatWeightedThresholds>(
     () => ({
-      greenMin: greenThreshold,
-      orangeMin: Math.max(0.15, Number((greenThreshold * 0.32).toFixed(2))),
+      greenMin: effectiveGreenThreshold,
+      orangeMin: Math.max(0.15, Number((effectiveGreenThreshold * 0.32).toFixed(2))),
     }),
-    [greenThreshold],
+    [effectiveGreenThreshold],
   );
+  const handleThresholdChange = useCallback((raw: number) => {
+    const next = Math.max(0.6, Math.min(2.2, Number(raw.toFixed(2))));
+    if (onGreenThresholdChange) {
+      onGreenThresholdChange(next);
+      return;
+    }
+    setLocalGreenThreshold(next);
+  }, [onGreenThresholdChange]);
   const muscleScores = useMemo(
     () =>
       MUSCLE_GROUPS.map((group) => ({
@@ -262,17 +282,6 @@ export function BodyMapFigure({
       </div>
 
       <div className="report-footer-meta">
-        <div className="footer-meta-left">
-          <div className="report-legend">
-            <span className="legend-item"><span className="legend-dot legend-dot--gray"></span> &lt; {heatThresholds.orangeMin.toFixed(2)}</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> {heatThresholds.orangeMin.toFixed(2)} - {heatThresholds.greenMin.toFixed(2)}</span>
-            <span className="legend-item"><span className="legend-dot legend-dot--green"></span> ≥ {heatThresholds.greenMin.toFixed(2)}</span>
-          </div>
-          {orphansPlacement === 'bottom' && allowRegionToggle ? (
-            <p className="report-hint">Tap a region to plan that muscle group</p>
-          ) : null}
-        </div>
-
         {orphansPlacement === 'bottom' && (
           <OrphanPills
             practiceCounts={practiceCounts}
@@ -283,9 +292,38 @@ export function BodyMapFigure({
             interactive={allowRegionToggle}
           />
         )}
+
+        <div className="footer-meta-left">
+          <div className="report-legend">
+            <span className="legend-item"><span className="legend-dot legend-dot--gray"></span> &lt; {heatThresholds.orangeMin.toFixed(2)}</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--orange"></span> {heatThresholds.orangeMin.toFixed(2)} - {heatThresholds.greenMin.toFixed(2)}</span>
+            <span className="legend-item"><span className="legend-dot legend-dot--green"></span> ≥ {heatThresholds.greenMin.toFixed(2)}</span>
+          </div>
+          {orphansPlacement === 'bottom' && allowRegionToggle ? (
+            <p className="report-hint">Tap a region to plan that muscle group</p>
+          ) : null}
+        </div>
       </div>
 
       <div className={`body-map-score-tools ${allowRegionToggle ? '' : 'body-map-score-tools--no-control'}`.trim()}>
+        {allowRegionToggle ? (
+          <div className="body-map-threshold-control" aria-label="Heatmap threshold control">
+            <span className="body-map-threshold-title">Heat Threshold</span>
+            <input
+              type="range"
+              min={0.6}
+              max={2.2}
+              step={0.05}
+            value={effectiveGreenThreshold}
+            onChange={(e) => handleThresholdChange(Number(e.target.value))}
+              className="body-map-threshold-slider"
+              aria-label="Adjust green threshold"
+            />
+            <span className="body-map-threshold-value">{effectiveGreenThreshold.toFixed(2)}</span>
+            <span className="body-map-threshold-hint">Up = stricter</span>
+            <span className="body-map-threshold-hint">Down = softer</span>
+          </div>
+        ) : null}
         <div className="body-map-score-list" aria-label={`Muscle score breakdown for last ${practiceWindowDays} days`}>
           {muscleScores.map(({ group, score }) => (
             <div key={group} className="body-map-score-row">
@@ -294,24 +332,6 @@ export function BodyMapFigure({
             </div>
           ))}
         </div>
-        {allowRegionToggle ? (
-          <div className="body-map-threshold-control" aria-label="Heatmap threshold control">
-            <span className="body-map-threshold-title">Threshold</span>
-            <input
-              type="range"
-              min={0.6}
-              max={2.2}
-              step={0.05}
-              value={greenThreshold}
-              onChange={(e) => setGreenThreshold(Number(e.target.value))}
-              className="body-map-threshold-slider"
-              aria-label="Adjust green threshold"
-            />
-            <span className="body-map-threshold-value">{greenThreshold.toFixed(2)}</span>
-            <span className="body-map-threshold-hint">up=stricter</span>
-            <span className="body-map-threshold-hint">down=softer</span>
-          </div>
-        ) : null}
       </div>
 
       <p className="body-map-credit">

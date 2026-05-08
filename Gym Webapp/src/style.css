@@ -3167,14 +3167,14 @@ body {
 
 .body-map-score-tools {
   margin-top: 0.5rem;
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: 0.55rem;
   align-items: stretch;
 }
 
 .body-map-score-tools--no-control {
-  grid-template-columns: 1fr;
+  display: block;
 }
 
 .body-map-score-list {
@@ -3212,6 +3212,8 @@ body {
   align-content: start;
   justify-items: center;
   gap: 0.22rem;
+  width: fit-content;
+  margin: 0 auto;
   min-width: 58px;
   padding: 0.35rem 0.35rem 0.25rem;
   border-radius: 10px;
@@ -3251,29 +3253,8 @@ body {
 }
 
 @media (max-width: 760px) {
-  .body-map-score-tools {
-    grid-template-columns: 1fr;
-  }
-
   .body-map-score-list {
     grid-template-columns: 1fr;
-  }
-
-  .body-map-threshold-control {
-    grid-template-columns: auto auto auto auto auto;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.45rem;
-    min-width: 0;
-  }
-
-  .body-map-threshold-slider {
-    writing-mode: horizontal-tb;
-    -webkit-appearance: auto;
-    width: 110px;
-    height: auto;
-    margin: 0;
-    cursor: ew-resize;
   }
 }
 
