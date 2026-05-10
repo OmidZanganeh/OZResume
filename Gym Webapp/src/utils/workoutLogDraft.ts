@@ -40,10 +40,28 @@ export function getDefaultDraft(): ExerciseLogDraft {
   };
 }
 
-export function getDefaultDraftForExercise(exercise: Exercise | undefined): ExerciseLogDraft {
-  if (!exercise) return getDefaultDraft();
+/**
+ * Initial body-map muscle picks for logging: plan-saved targets when present,
+ * otherwise empty for multi-muscle moves (user must choose) — never “all selected”.
+ * Single-candidate moves still resolve to that one group.
+ */
+export function getInitialTrainedMuscleGroups(
+  exercise: Exercise,
+  planPick?: MuscleGroup[] | null,
+): MuscleGroup[] {
   const c = candidateMuscleGroupsForExercise(exercise);
-  const initial = [...c];
+  if (c.length <= 1) return [...c];
+  const filtered = (planPick ?? []).filter((g) => c.includes(g));
+  if (filtered.length > 0) return filtered;
+  return [];
+}
+
+export function getDefaultDraftForExercise(
+  exercise: Exercise | undefined,
+  planPick?: MuscleGroup[] | null,
+): ExerciseLogDraft {
+  if (!exercise) return getDefaultDraft();
+  const initial = getInitialTrainedMuscleGroups(exercise, planPick);
   if (getEffectiveCategory(exercise) === 'cardio') {
     return { completed: false, sets: 1, reps: '20', weight: '', notes: '', trainedMuscleGroups: initial };
   }

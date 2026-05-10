@@ -1542,7 +1542,10 @@ export default function App() {
       setExerciseDrafts((d) => { const n = { ...d }; delete n[exerciseId]; return n; });
     } else {
       const ex = exerciseById.get(exerciseId);
-      setExerciseDrafts((d) => ({ ...d, [exerciseId]: d[exerciseId] ?? getDefaultDraftForExercise(ex) }));
+      setExerciseDrafts((d) => ({
+        ...d,
+        [exerciseId]: d[exerciseId] ?? getDefaultDraftForExercise(ex, undefined),
+      }));
     }
   }
 
@@ -1561,7 +1564,12 @@ export default function App() {
   function updateDraft(exerciseId: string, patch: Partial<ExerciseLogDraft>) {
     setExerciseDrafts((current) => {
       const ex = exerciseById.get(exerciseId);
-      const merged: ExerciseLogDraft = { ...getDefaultDraft(), ...getDefaultDraftForExercise(ex), ...current[exerciseId], ...patch };
+      const merged: ExerciseLogDraft = {
+        ...getDefaultDraft(),
+        ...getDefaultDraftForExercise(ex, undefined),
+        ...current[exerciseId],
+        ...patch,
+      };
       if (ex) {
         const c = candidateMuscleGroupsForExercise(ex);
         let t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
@@ -1781,14 +1789,12 @@ export default function App() {
     const drafts: Record<string, ExerciseLogDraft> = {};
     for (const id of validIds) {
       const ex = exerciseById.get(id);
-      const m: ExerciseLogDraft = { ...getDefaultDraftForExercise(ex), ...exerciseDrafts[id] };
+      const base = getDefaultDraftForExercise(ex, savedTargets[id]);
+      const m: ExerciseLogDraft = { ...base, ...exerciseDrafts[id] };
       if (ex) {
         const c = candidateMuscleGroupsForExercise(ex);
-        const storedForExercise = (savedTargets[id] ?? []).filter((g) => c.includes(g));
-        let t = storedForExercise.length > 0
-          ? storedForExercise
-          : (m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []);
-        if (t.length === 0) t = [...c];
+        let t = (m.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? []);
+        if (c.length === 1 && t.length === 0) t = [...c];
         m.trainedMuscleGroups = t;
       }
       drafts[id] = m;

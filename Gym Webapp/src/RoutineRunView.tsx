@@ -28,6 +28,10 @@ type Props = { planId: string };
 
 const AUTO_ADVANCE_KEY = 'gf-routine-auto-advance';
 
+function routineDraftStorageKey(planId: string) {
+  return `gf-routine-draft:${planId}`;
+}
+
 function readAutoAdvancePref(): boolean {
   try {
     const v = sessionStorage.getItem(AUTO_ADVANCE_KEY);
@@ -94,19 +98,38 @@ export function RoutineRunView({ planId }: Props) {
     });
   }, []);
 
-  /** Add defaults for new ids only; keep in-progress drafts when the routine list changes slightly. */
+  /** Init drafts: restore in-progress session from sessionStorage, else plan muscle targets + last history. */
   useEffect(() => {
-    if (exercises.length === 0) return;
-    const fresh = data;
+    if (exercises.length === 0 || !plan) return;
+    const fresh = dataRef.current;
+    let restoredDrafts: Record<string, ExerciseLogDraft> | null = null;
+    let restoredIndex: number | null = null;
+    try {
+      const raw = sessionStorage.getItem(routineDraftStorageKey(plan.id));
+      if (raw) {
+        const p = JSON.parse(raw) as {
+          exerciseIdsKey?: string;
+          drafts?: Record<string, ExerciseLogDraft>;
+          currentIndex?: number;
+        };
+        if (p.exerciseIdsKey === exerciseIdsKey && p.drafts && typeof p.drafts === 'object') {
+          restoredDrafts = p.drafts;
+          if (typeof p.currentIndex === 'number') restoredIndex = p.currentIndex;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
     setExerciseDrafts((prev) => {
-      const next = { ...prev };
+      const next: Record<string, ExerciseLogDraft> = restoredDrafts ? { ...restoredDrafts } : { ...prev };
       const keep = new Set(exercises.map((e) => e.id));
       for (const id of Object.keys(next)) {
         if (!keep.has(id)) delete next[id];
       }
       for (const ex of exercises) {
         if (next[ex.id]) continue;
-        const d = getDefaultDraftForExercise(ex);
+        const d = getDefaultDraftForExercise(ex, plan.exerciseMuscleTargets?.[ex.id]);
         const hist = getRecentLogsForExercise(fresh.sessions, ex.id, 1)[0];
         if (hist) {
           if (hist.weight.trim()) d.weight = hist.weight;
@@ -118,9 +141,31 @@ export function RoutineRunView({ planId }: Props) {
       }
       return next;
     });
+    if (restoredIndex !== null && restoredIndex >= 0 && restoredIndex < exercises.length) {
+      setCurrentIndex(restoredIndex);
+    } else {
+      setCurrentIndex(0);
+    }
     setSaveMessage('');
-    setCurrentIndex(0);
-  }, [exerciseIdsKey, data.sessions]);
+  }, [exerciseIdsKey, plan?.id]);
+
+  /** Persist log fields + position while the routine tab is open (debounced). */
+  useEffect(() => {
+    if (!plan || exercises.length === 0) return;
+    const gotAll = exercises.every((e) => exerciseDrafts[e.id] != null);
+    if (!gotAll) return;
+    const t = window.setTimeout(() => {
+      try {
+        sessionStorage.setItem(
+          routineDraftStorageKey(plan.id),
+          JSON.stringify({ exerciseIdsKey, drafts: exerciseDrafts, currentIndex }),
+        );
+      } catch {
+        /* quota / private mode */
+      }
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [plan?.id, exerciseIdsKey, exerciseDrafts, currentIndex, exercises]);
 
   useEffect(() => {
     const ex = exercises[currentIndex];
@@ -173,7 +218,7 @@ export function RoutineRunView({ planId }: Props) {
       const ex = exerciseById.get(exerciseId);
       const merged: ExerciseLogDraft = {
         ...getDefaultDraft(),
-        ...getDefaultDraftForExercise(ex),
+        ...getDefaultDraftForExercise(ex, plan ? plan.exerciseMuscleTargets?.[exerciseId] : undefined),
         ...current[exerciseId],
         ...patch,
       };
@@ -223,6 +268,11 @@ export function RoutineRunView({ planId }: Props) {
       return;
     }
     persist(result.nextData);
+    try {
+      sessionStorage.removeItem(routineDraftStorageKey(planId));
+    } catch {
+      /* ignore */
+    }
     setSaveMessage(
       `Saved ${result.completedCount} move${result.completedCount === 1 ? '' : 's'}. History below will update.`,
     );
@@ -230,7 +280,7 @@ export function RoutineRunView({ planId }: Props) {
     setExerciseDrafts((prev) => {
       const next: Record<string, ExerciseLogDraft> = { ...prev };
       for (const ex of exercises) {
-        const d = getDefaultDraftForExercise(ex);
+        const d = getDefaultDraftForExercise(ex, plan.exerciseMuscleTargets?.[ex.id]);
         const hist = getRecentLogsForExercise(fresh.sessions, ex.id, 1)[0];
         if (hist) {
           if (hist.weight.trim()) d.weight = hist.weight;

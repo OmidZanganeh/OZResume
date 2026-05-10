@@ -3835,6 +3835,41 @@ body {
   margin: 0.5rem 0;
 }
 
+/* Body map + score list grew tall — keep inside landscape capture / print frame */
+#print-report .prl-body-map-wrap,
+.screenshot-mode #print-report .prl-body-map-wrap {
+  transform: scale(0.78);
+  transform-origin: center top;
+  max-height: 340px;
+  margin: 0.2rem 0 0.35rem;
+  overflow: hidden;
+}
+
+#print-report .prl-body-map-wrap .body-map,
+.screenshot-mode #print-report .prl-body-map-wrap .body-map {
+  gap: 0.35rem;
+}
+
+#print-report .prl-body-map-wrap .body-map-score-tools,
+.screenshot-mode #print-report .prl-body-map-wrap .body-map-score-tools {
+  max-height: 140px;
+  overflow: hidden;
+}
+
+#print-report .prl-body-map-wrap .body-map-score-list,
+.screenshot-mode #print-report .prl-body-map-wrap .body-map-score-list {
+  max-height: 120px;
+  overflow-y: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.22rem 0.35rem;
+  font-size: 0.62rem;
+}
+
+#print-report .prl-body-map-wrap .body-map-score-row,
+.screenshot-mode #print-report .prl-body-map-wrap .body-map-score-row {
+  padding: 0.18rem 0.35rem;
+}
+
 .prl-body-map-wrap .body-map-row {
   flex-wrap: nowrap !important;
   gap: 0.75rem !important;
