@@ -169,6 +169,7 @@ export function PrintReport({ data, selectedGroups }: { data: ReportData, select
                 greenThreshold={data.profile.bodyMapGreenThreshold}
                 allowRegionToggle={false}
                 orphansPlacement="top"
+                showMuscleScores={false}
               />
             </div>
           </div>

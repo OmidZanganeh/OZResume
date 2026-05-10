@@ -3815,6 +3815,20 @@ body {
   flex-direction: column;
 }
 .prl-card--full { flex: 1; }
+
+/* Print report: Focus Heatmap column should hug content — no flex-grow like interactive cards */
+#print-report .prl-grid > .prl-col:first-child {
+  align-self: start;
+}
+#print-report .prl-grid > .prl-col:first-child .prl-card.prl-card--full {
+  flex: 0 1 auto;
+  width: 100%;
+}
+#print-report .prl-grid > .prl-col:first-child .prl-card.prl-card--full > .prl-card-body.prl-body-map-wrap {
+  flex: 0 1 auto;
+  justify-content: flex-start;
+  min-height: 0;
+}
 .prl-card--alerts { background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.15); }
 
 .prl-card-head { margin-bottom: 0.4rem; }
@@ -3835,14 +3849,14 @@ body {
   margin: 0.5rem 0;
 }
 
-/* Body map + score list grew tall — keep inside landscape capture / print frame */
+/* Print body map — compact when scores hidden; no reserve height from old score grid */
 #print-report .prl-body-map-wrap,
 .screenshot-mode #print-report .prl-body-map-wrap {
-  transform: scale(0.78);
+  transform: scale(0.88);
   transform-origin: center top;
-  max-height: 340px;
+  max-height: none;
   margin: 0.2rem 0 0.35rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 #print-report .prl-body-map-wrap .body-map,

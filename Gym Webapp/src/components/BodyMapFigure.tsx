@@ -48,6 +48,8 @@ type Props = {
   greenThreshold?: number;
   /** Optional setter for a controlled green threshold. */
   onGreenThresholdChange?: (value: number) => void;
+  /** When false, hide the per-muscle score grid (print report stays compact). */
+  showMuscleScores?: boolean;
 };
 
 const ORPHAN_ICONS: Record<string, React.ReactNode> = {
@@ -121,6 +123,7 @@ export function BodyMapFigure({
   onGreenThresholdChange,
   mode = 'heatmap',
   orphansPlacement = 'bottom',
+  showMuscleScores = true,
 }: Props & { mode?: 'heatmap' | 'rainbow'; orphansPlacement?: 'top' | 'bottom' | 'none' }) {
   const frontHostRef = useRef<HTMLDivElement>(null);
   const backHostRef = useRef<HTMLDivElement>(null);
@@ -307,34 +310,36 @@ export function BodyMapFigure({
         </div>
       </div>
 
-      <div className={`body-map-score-tools ${allowRegionToggle ? '' : 'body-map-score-tools--no-control'}`.trim()}>
-        {allowRegionToggle ? (
-          <div className="body-map-threshold-control" aria-label="Heatmap threshold control">
-            <span className="body-map-threshold-title">Threshold</span>
-            <input
-              type="range"
-              min={0.6}
-              max={2.2}
-              step={0.05}
-              value={effectiveGreenThreshold}
-              onChange={(e) => handleThresholdChange(Number(e.target.value))}
-              className="body-map-threshold-slider"
-              aria-label="Adjust green threshold"
-            />
-            <span className="body-map-threshold-value">{effectiveGreenThreshold.toFixed(2)}</span>
-            <span className="body-map-threshold-hint">right=stricter</span>
-            <span className="body-map-threshold-hint">left=softer</span>
-          </div>
-        ) : null}
-        <div className="body-map-score-list" aria-label={`Muscle score breakdown for last ${practiceWindowDays} days`}>
-          {muscleScores.map(({ group, score }) => (
-            <div key={group} className="body-map-score-row">
-              <span className="body-map-score-label">{group}</span>
-              <span className="body-map-score-value">{score.toFixed(2)}</span>
+      {showMuscleScores ? (
+        <div className={`body-map-score-tools ${allowRegionToggle ? '' : 'body-map-score-tools--no-control'}`.trim()}>
+          {allowRegionToggle ? (
+            <div className="body-map-threshold-control" aria-label="Heatmap threshold control">
+              <span className="body-map-threshold-title">Threshold</span>
+              <input
+                type="range"
+                min={0.6}
+                max={2.2}
+                step={0.05}
+                value={effectiveGreenThreshold}
+                onChange={(e) => handleThresholdChange(Number(e.target.value))}
+                className="body-map-threshold-slider"
+                aria-label="Adjust green threshold"
+              />
+              <span className="body-map-threshold-value">{effectiveGreenThreshold.toFixed(2)}</span>
+              <span className="body-map-threshold-hint">right=stricter</span>
+              <span className="body-map-threshold-hint">left=softer</span>
             </div>
-          ))}
+          ) : null}
+          <div className="body-map-score-list" aria-label={`Muscle score breakdown for last ${practiceWindowDays} days`}>
+            {muscleScores.map(({ group, score }) => (
+              <div key={group} className="body-map-score-row">
+                <span className="body-map-score-label">{group}</span>
+                <span className="body-map-score-value">{score.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <p className="body-map-credit">
         Anatomy: <a href="https://github.com/vulovix/body-muscles" target="_blank" rel="noreferrer">body-muscles</a>
