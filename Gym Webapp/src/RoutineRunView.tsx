@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Dumbbell, History, Layers } from 'lucide-react';
 import { EXERCISE_LIBRARY } from './data/exerciseLibrary';
 import type { Exercise } from './data/exerciseLibrary';
 import {
@@ -367,18 +368,28 @@ export function RoutineRunView({ planId }: Props) {
       ) : null}
 
       <div className="routine-run-progress" role="group" aria-label="Workout progress">
-        <span className="routine-run-progress-label">Move {currentIndex + 1} of {exercises.length}</span>
-        <span className="routine-run-progress-meta">
-          <strong>
-            {includedCount}/{exercises.length} included
-          </strong>
-          {' · '}
-          {remainingNotIncluded} not in save yet
-          {' · '}
-          {cardsLeftInRoutine} left in routine
-        </span>
+        <div className="routine-run-progress-top">
+          <span className="routine-run-progress-label">Session progress</span>
+          <span className="routine-run-progress-step">
+            Move <strong>{currentIndex + 1}</strong> of <strong>{exercises.length}</strong>
+          </span>
+        </div>
         <div className="routine-run-progress-bar" aria-hidden="true">
           <div className="routine-run-progress-fill" style={{ width: `${progressPct}%` }} />
+        </div>
+        <div className="routine-run-progress-stats" aria-label="Summary counts">
+          <span className="routine-run-stat-pill routine-run-stat-pill--accent">
+            <strong>{includedCount}</strong>
+            <span>included</span>
+          </span>
+          <span className="routine-run-stat-pill">
+            <strong>{remainingNotIncluded}</strong>
+            <span>not saved yet</span>
+          </span>
+          <span className="routine-run-stat-pill">
+            <strong>{cardsLeftInRoutine}</strong>
+            <span>left in routine</span>
+          </span>
         </div>
         <label className="routine-run-auto-advance">
           <input
@@ -391,7 +402,7 @@ export function RoutineRunView({ planId }: Props) {
         <div className="routine-run-progress-actions">
           <button
             type="button"
-            className="button button-muted"
+            className="button button-muted routine-run-nav-btn"
             onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
             disabled={currentIndex === 0}
           >
@@ -399,7 +410,7 @@ export function RoutineRunView({ planId }: Props) {
           </button>
           <button
             type="button"
-            className="button"
+            className="button routine-run-nav-btn"
             onClick={() => setCurrentIndex((i) => Math.min(exercises.length - 1, i + 1))}
             disabled={currentIndex === exercises.length - 1}
           >
@@ -420,22 +431,31 @@ export function RoutineRunView({ planId }: Props) {
         const imgMeta = images[ex.name];
 
         return (
-          <div className="routine-run-card">
-            <div className="routine-run-card-head routine-run-card-head--with-pill">
-              <span className="routine-run-num">{currentIndex + 1}</span>
-              <div className="routine-run-card-title-block">
-                <h2 className="routine-run-move-title">
-                  <ExerciseYoutubeLink exerciseName={ex.name} className="exercise-youtube exercise-youtube--title">
-                    {ex.name}
-                  </ExerciseYoutubeLink>
-                </h2>
-                <p className="routine-run-meta routine-run-meta--inline">
-                  {muscleMeta}
-                  <span className="routine-run-meta-sep" aria-hidden="true">
-                    {' · '}
-                  </span>
-                  Logged <strong>{stat?.timesCompleted ?? 0}</strong>× · Last {formatShortDate(stat?.lastPerformed ?? null)}
-                </p>
+          <div
+            className={`routine-run-card routine-run-card--session ${draft?.completed ? 'routine-run-card--included' : ''}`.trim()}
+          >
+            <header className="routine-run-card-head routine-run-card-head--with-pill">
+              <div className="routine-run-card-head-main">
+                <span className="routine-run-step-badge" aria-hidden="true">
+                  <span className="routine-run-step-badge-num">{String(currentIndex + 1).padStart(2, '0')}</span>
+                  <span className="routine-run-step-badge-div">/</span>
+                  <span className="routine-run-step-badge-total">{String(exercises.length).padStart(2, '0')}</span>
+                </span>
+                <div className="routine-run-card-title-block">
+                  <h2 className="routine-run-move-title">
+                    <ExerciseYoutubeLink exerciseName={ex.name} className="exercise-youtube exercise-youtube--title">
+                      {ex.name}
+                    </ExerciseYoutubeLink>
+                  </h2>
+                  <p className="routine-run-meta routine-run-meta--inline">
+                    <span className="routine-run-meta-muscles">{muscleMeta}</span>
+                    <span className="routine-run-meta-sep" aria-hidden="true">
+                      {' · '}
+                    </span>
+                    Logged <strong>{stat?.timesCompleted ?? 0}</strong>× · Last{' '}
+                    {formatShortDate(stat?.lastPerformed ?? null)}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -449,11 +469,23 @@ export function RoutineRunView({ planId }: Props) {
                   }
                 }}
               >
-                {draft?.completed ? 'Included' : 'Include'}
+                {draft?.completed ? (
+                  <>
+                    <Check className="routine-run-pill-icon" size={18} strokeWidth={2.25} aria-hidden />
+                    Included
+                  </>
+                ) : (
+                  'Include'
+                )}
               </button>
-            </div>
+            </header>
 
-            <div className={`routine-run-media-wrap ${mediaExpanded ? 'routine-run-media-wrap--expanded' : ''}`.trim()}>
+            <section className="routine-run-card__section" aria-label="Exercise reference">
+              <h3 className="routine-run-card__section-label">
+                <Dumbbell className="routine-run-card__section-icon" size={14} strokeWidth={2} aria-hidden />
+                Reference
+              </h3>
+              <div className={`routine-run-media-wrap ${mediaExpanded ? 'routine-run-media-wrap--expanded' : ''}`.trim()}>
               {imgMeta ? (
                 <>
                   <button
@@ -494,9 +526,15 @@ export function RoutineRunView({ planId }: Props) {
                   <span className="routine-run-media-fallback-text">{ex.primaryGroup}</span>
                 </div>
               )}
-            </div>
-            {imgMeta?.credit && mediaExpanded ? <p className="image-credit">{imgMeta.credit}</p> : null}
+              </div>
+              {imgMeta?.credit && mediaExpanded ? <p className="image-credit">{imgMeta.credit}</p> : null}
+            </section>
 
+            <section className="routine-run-card__section routine-run-card__section--context" aria-label="History and alternatives">
+              <h3 className="routine-run-card__section-label">
+                <History className="routine-run-card__section-icon" size={14} strokeWidth={2} aria-hidden />
+                History &amp; swaps
+              </h3>
             {history.length > 0 ? (
               <details className="routine-run-history-details">
                 <summary>Recent sessions ({history.length})</summary>
@@ -563,6 +601,7 @@ export function RoutineRunView({ planId }: Props) {
                 </p>
               </details>
             ) : null}
+            </section>
 
             {!isLast ? (
               <div className="routine-run-card-actions routine-run-card-actions--skip-only">
@@ -576,8 +615,18 @@ export function RoutineRunView({ planId }: Props) {
               </div>
             ) : null}
 
-            <MuscleTargetPick exercise={ex} draft={draft} onPatch={(patch) => updateDraft(ex.id, patch)} />
+            {candidateMuscleGroupsForExercise(ex).length > 1 ? (
+              <div className="routine-run-card__section routine-run-card__section--targets">
+                <h3 className="routine-run-card__section-label">
+                  <Layers className="routine-run-card__section-icon" size={14} strokeWidth={2} aria-hidden />
+                  Body map
+                </h3>
+                <MuscleTargetPick exercise={ex} draft={draft} onPatch={(patch) => updateDraft(ex.id, patch)} />
+              </div>
+            ) : null}
 
+            <section className="routine-run-card__section routine-run-card__section--log" aria-label="Log this set">
+              <h3 className="routine-run-card__section-label">Today&apos;s numbers</h3>
             {lastLog ? (
               <p className="routine-run-last-session" role="status">
                 <span className="routine-run-last-session-label">Last session</span>
@@ -666,6 +715,7 @@ export function RoutineRunView({ planId }: Props) {
                 </label>
               )}
             </div>
+            </section>
             {isLast ? (
               <p className="routine-run-last-hint">
                 Last move — tap <strong>Save workout</strong> in the header or in the bar at the bottom when you are done.
