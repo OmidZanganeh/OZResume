@@ -14,9 +14,14 @@ export function candidateMuscleGroupsForExercise(ex: Exercise): MuscleGroup[] {
   return [ex.primaryGroup, ...(ex.secondaryGroups ?? [])];
 }
 
+/** Keep only muscle groups that are valid targets for this exercise (catalog primary/secondary). */
+export function trainedGroupsValidForExercise(ex: Exercise, groups: MuscleGroup[] | null | undefined): MuscleGroup[] {
+  const allowed = new Set(candidateMuscleGroupsForExercise(ex));
+  return (groups ?? []).filter((g) => allowed.has(g));
+}
+
 export function effectiveTrainedMuscles(draft: ExerciseLogDraft | undefined, ex: Exercise): MuscleGroup[] {
-  const c = candidateMuscleGroupsForExercise(ex);
-  return draft?.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+  return trainedGroupsValidForExercise(ex, draft?.trainedMuscleGroups);
 }
 
 export function nextTrainedMusclesAfterToggle(
@@ -24,8 +29,7 @@ export function nextTrainedMusclesAfterToggle(
   ex: Exercise,
   group: MuscleGroup,
 ): MuscleGroup[] {
-  const candidates = candidateMuscleGroupsForExercise(ex);
-  const cur = draft?.trainedMuscleGroups?.filter((g) => candidates.includes(g)) ?? [];
+  const cur = trainedGroupsValidForExercise(ex, draft?.trainedMuscleGroups);
   const on = cur.includes(group);
   return on ? cur.filter((g) => g !== group) : [...cur, group];
 }

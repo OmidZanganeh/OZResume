@@ -20,6 +20,7 @@ import {
   candidateMuscleGroupsForExercise,
   getDefaultDraft,
   getDefaultDraftForExercise,
+  trainedGroupsValidForExercise,
   type ExerciseLogDraft,
 } from './utils/workoutLogDraft';
 import { buildPresetPlans } from './data/presetPlans';
@@ -42,6 +43,17 @@ function readAutoAdvancePref(): boolean {
   } catch {
     return true;
   }
+}
+
+function isStoredRoutineDraft(d: unknown): d is ExerciseLogDraft {
+  return typeof d === 'object' && d !== null && 'completed' in d && 'sets' in d && 'reps' in d;
+}
+
+function closeOpenRoutineDetails() {
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('.routine-run-card details[open]').forEach((el) => {
+    el.removeAttribute('open');
+  });
 }
 
 function formatShortDate(iso: string | null) {
@@ -186,14 +198,15 @@ export function RoutineRunView({ planId }: Props) {
         if (!keep.has(id)) delete next[id];
       }
       for (const ex of exercises) {
-        if (next[ex.id]) continue;
+        if (isStoredRoutineDraft(next[ex.id])) continue;
         const d = getDefaultDraftForExercise(ex, plan.exerciseMuscleTargets?.[ex.id]);
         const hist = getRecentLogsForExercise(fresh.sessions, ex.id, 1)[0];
         if (hist) {
           if (hist.weight.trim()) d.weight = hist.weight;
           if (hist.reps.trim()) d.reps = hist.reps;
           d.sets = hist.sets >= 1 ? hist.sets : d.sets;
-          if (hist.trainedMuscleGroups?.length) d.trainedMuscleGroups = [...hist.trainedMuscleGroups];
+          const validM = trainedGroupsValidForExercise(ex, hist.trainedMuscleGroups);
+          if (validM.length) d.trainedMuscleGroups = validM;
         }
         next[ex.id] = d;
       }
@@ -289,7 +302,7 @@ export function RoutineRunView({ planId }: Props) {
       };
       if (ex) {
         const c = candidateMuscleGroupsForExercise(ex);
-        let t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        let t = trainedGroupsValidForExercise(ex, merged.trainedMuscleGroups);
         if (c.length === 1 && t.length === 0) t = [...c];
         merged.trainedMuscleGroups = t;
       }
@@ -307,6 +320,7 @@ export function RoutineRunView({ planId }: Props) {
     const oldId = row[currentIndex];
     const nextRow = [...row];
     nextRow[currentIndex] = alt.id;
+    closeOpenRoutineDetails();
     setSessionOrderIds(nextRow);
     setMediaExpanded(false);
     setExerciseDrafts((drafts) => {
@@ -318,7 +332,8 @@ export function RoutineRunView({ planId }: Props) {
         if (hist.weight.trim()) d.weight = hist.weight;
         if (hist.reps.trim()) d.reps = hist.reps;
         d.sets = hist.sets >= 1 ? hist.sets : d.sets;
-        if (hist.trainedMuscleGroups?.length) d.trainedMuscleGroups = [...hist.trainedMuscleGroups];
+        const validM = trainedGroupsValidForExercise(alt, hist.trainedMuscleGroups);
+        if (validM.length) d.trainedMuscleGroups = validM;
       }
       out[alt.id] = d;
       return out;
@@ -466,7 +481,8 @@ export function RoutineRunView({ planId }: Props) {
           if (hist.weight.trim()) d.weight = hist.weight;
           if (hist.reps.trim()) d.reps = hist.reps;
           d.sets = hist.sets >= 1 ? hist.sets : d.sets;
-          if (hist.trainedMuscleGroups?.length) d.trainedMuscleGroups = [...hist.trainedMuscleGroups];
+          const validM = trainedGroupsValidForExercise(ex, hist.trainedMuscleGroups);
+          if (validM.length) d.trainedMuscleGroups = validM;
         }
         next[ex.id] = d;
       }
@@ -825,7 +841,12 @@ export function RoutineRunView({ planId }: Props) {
                   <Layers className="routine-run-card__section-icon" size={14} strokeWidth={2} aria-hidden />
                   Body map
                 </h3>
-                <MuscleTargetPick exercise={ex} draft={draft} onPatch={(patch) => updateDraft(ex.id, patch)} />
+                <MuscleTargetPick
+                  key={ex.id}
+                  exercise={ex}
+                  draft={draft}
+                  onPatch={(patch) => updateDraft(ex.id, patch)}
+                />
               </div>
             ) : null}
 

@@ -71,6 +71,7 @@ import {
   candidateMuscleGroupsForExercise,
   getDefaultDraft,
   getDefaultDraftForExercise,
+  trainedGroupsValidForExercise,
   type ExerciseLogDraft,
 } from './utils/workoutLogDraft';
 
@@ -1572,7 +1573,7 @@ export default function App() {
       };
       if (ex) {
         const c = candidateMuscleGroupsForExercise(ex);
-        let t = merged.trainedMuscleGroups?.filter((g) => c.includes(g)) ?? [];
+        let t = trainedGroupsValidForExercise(ex, merged.trainedMuscleGroups);
         if (c.length === 1 && t.length === 0) t = [...c];
         merged.trainedMuscleGroups = t;
       }
