@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Dumbbell, History, Layers } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRightLeft, Check, Dumbbell, History, Layers, Library } from 'lucide-react';
 import { EXERCISE_LIBRARY } from './data/exerciseLibrary';
 import type { Exercise } from './data/exerciseLibrary';
 import {
   loadPersistedGymData,
   savePersistedGymData,
   type PersistedGymData,
+  type SavedPlan,
 } from './data/gymFlowStorage';
 import { resolvePlanExerciseIdsToCatalog } from './data/migrateStorage';
 import { MuscleTargetPick } from './components/MuscleTargetPick';
@@ -59,6 +60,9 @@ export function RoutineRunView({ planId }: Props) {
   const [showNotes, setShowNotes] = useState(false);
   const [mediaExpanded, setMediaExpanded] = useState(false);
   const [autoAdvanceOnInclude, setAutoAdvanceOnInclude] = useState(readAutoAdvancePref);
+  /** When set, same length as base plan order — replaces catalog order for this session only. */
+  const [sessionOrderIds, setSessionOrderIds] = useState<string[] | null>(null);
+  const prevPlanIdForInitRef = useRef<string | null>(null);
 
   const allExercises = useMemo(
     () => [...EXERCISE_LIBRARY, ...data.customExercises],
@@ -70,14 +74,64 @@ export function RoutineRunView({ planId }: Props) {
 
   const plan = data.savedPlans.find((p) => p.id === planId) || allPresets.find((p) => p.id === planId);
 
-  const exercises = useMemo((): Exercise[] => {
+  const baseResolvedIds = useMemo(() => {
     if (!plan) return [];
-    const ids = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
-    const map = new Map(allExercises.map((e) => [e.id, e]));
-    return ids.map((id) => map.get(id)).filter((e): e is Exercise => !!e);
+    return resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
   }, [plan, allExercises]);
 
+  const effectiveOrderIds = useMemo(() => {
+    if (!plan || baseResolvedIds.length === 0) return [];
+    if (
+      !sessionOrderIds ||
+      sessionOrderIds.length !== baseResolvedIds.length ||
+      !sessionOrderIds.every((id) => exerciseById.has(id))
+    ) {
+      return baseResolvedIds;
+    }
+    return sessionOrderIds;
+  }, [plan, baseResolvedIds, sessionOrderIds, exerciseById]);
+
+  const exercises = useMemo((): Exercise[] => {
+    const map = new Map(allExercises.map((e) => [e.id, e]));
+    return effectiveOrderIds.map((id) => map.get(id)).filter((e): e is Exercise => !!e);
+  }, [allExercises, effectiveOrderIds]);
+
   const exerciseIdsKey = exercises.map((e) => e.id).join(',');
+
+  const isUserSavedPlan = useMemo(() => data.savedPlans.some((p) => p.id === planId), [data.savedPlans, planId]);
+
+  const prevPlanIdForSessionOverrideRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!plan) return;
+    if (prevPlanIdForSessionOverrideRef.current !== null && prevPlanIdForSessionOverrideRef.current !== plan.id) {
+      setSessionOrderIds(null);
+    }
+    prevPlanIdForSessionOverrideRef.current = plan.id;
+  }, [plan?.id]);
+
+  useLayoutEffect(() => {
+    if (!plan || baseResolvedIds.length === 0) return;
+    try {
+      const raw = sessionStorage.getItem(routineDraftStorageKey(plan.id));
+      if (!raw) return;
+      const p = JSON.parse(raw) as {
+        sessionOrderIds?: string[];
+        exerciseIdsKey?: string;
+      };
+      if (!Array.isArray(p.sessionOrderIds) || p.sessionOrderIds.length !== baseResolvedIds.length) return;
+      const catalog = [...EXERCISE_LIBRARY, ...dataRef.current.customExercises];
+      const allowed = new Set(catalog.map((e) => e.id));
+      if (!p.sessionOrderIds.every((id) => allowed.has(id))) return;
+      if (p.exerciseIdsKey !== p.sessionOrderIds.join(',')) return;
+      if (p.sessionOrderIds.join(',') === baseResolvedIds.join(',')) return;
+      setSessionOrderIds((prev) => {
+        if (prev && prev.join(',') === p.sessionOrderIds!.join(',')) return prev;
+        return [...p.sessionOrderIds!];
+      });
+    } catch {
+      /* ignore */
+    }
+  }, [plan?.id, baseResolvedIds.join(',')]);
 
   const exerciseAlternatives = useMemo(() => {
     const ex = exercises[currentIndex];
@@ -103,6 +157,9 @@ export function RoutineRunView({ planId }: Props) {
   useEffect(() => {
     if (exercises.length === 0 || !plan) return;
     const fresh = dataRef.current;
+    const planChanged = prevPlanIdForInitRef.current !== plan.id;
+    prevPlanIdForInitRef.current = plan.id;
+
     let restoredDrafts: Record<string, ExerciseLogDraft> | null = null;
     let restoredIndex: number | null = null;
     try {
@@ -144,10 +201,12 @@ export function RoutineRunView({ planId }: Props) {
     });
     if (restoredIndex !== null && restoredIndex >= 0 && restoredIndex < exercises.length) {
       setCurrentIndex(restoredIndex);
-    } else {
+    } else if (planChanged) {
       setCurrentIndex(0);
+    } else {
+      setCurrentIndex((i) => Math.min(Math.max(0, i), exercises.length - 1));
     }
-    setSaveMessage('');
+    if (planChanged) setSaveMessage('');
   }, [exerciseIdsKey, plan?.id]);
 
   /** Persist log fields + position while the routine tab is open (debounced). */
@@ -159,14 +218,19 @@ export function RoutineRunView({ planId }: Props) {
       try {
         sessionStorage.setItem(
           routineDraftStorageKey(plan.id),
-          JSON.stringify({ exerciseIdsKey, drafts: exerciseDrafts, currentIndex }),
+          JSON.stringify({
+            exerciseIdsKey,
+            sessionOrderIds: sessionOrderIds ?? undefined,
+            drafts: exerciseDrafts,
+            currentIndex,
+          }),
         );
       } catch {
         /* quota / private mode */
       }
     }, 400);
     return () => window.clearTimeout(t);
-  }, [plan?.id, exerciseIdsKey, exerciseDrafts, currentIndex, exercises]);
+  }, [plan?.id, exerciseIdsKey, exerciseDrafts, currentIndex, exercises, sessionOrderIds]);
 
   useEffect(() => {
     const ex = exercises[currentIndex];
@@ -231,6 +295,121 @@ export function RoutineRunView({ planId }: Props) {
       }
       return { ...current, [exerciseId]: merged };
     });
+  }
+
+  function swapExerciseForToday(alt: Exercise) {
+    if (!plan || exercises.length === 0) return;
+    const cur = exercises[currentIndex];
+    if (!cur || cur.id === alt.id) return;
+    if (baseResolvedIds.length !== exercises.length) return;
+    const row = sessionOrderIds ?? [...baseResolvedIds];
+    if (currentIndex < 0 || currentIndex >= row.length) return;
+    const oldId = row[currentIndex];
+    const nextRow = [...row];
+    nextRow[currentIndex] = alt.id;
+    setSessionOrderIds(nextRow);
+    setMediaExpanded(false);
+    setExerciseDrafts((drafts) => {
+      const out = { ...drafts };
+      delete out[oldId];
+      const d = getDefaultDraftForExercise(alt, plan.exerciseMuscleTargets?.[alt.id]);
+      const hist = getRecentLogsForExercise(dataRef.current.sessions, alt.id, 1)[0];
+      if (hist) {
+        if (hist.weight.trim()) d.weight = hist.weight;
+        if (hist.reps.trim()) d.reps = hist.reps;
+        d.sets = hist.sets >= 1 ? hist.sets : d.sets;
+        if (hist.trainedMuscleGroups?.length) d.trainedMuscleGroups = [...hist.trainedMuscleGroups];
+      }
+      out[alt.id] = d;
+      return out;
+    });
+    setSaveMessage(`This slot is now “${alt.name}” for the rest of this session.`);
+  }
+
+  function replaceExerciseInPlanPermanently(alt: Exercise) {
+    if (!plan || exercises.length === 0) return;
+    const cur = exercises[currentIndex];
+    if (!cur || cur.id === alt.id) return;
+
+    if (isUserSavedPlan) {
+      if (
+        !window.confirm(
+          `Replace “${cur.name}” with “${alt.name}” in “${plan.name}” for all future workouts?`,
+        )
+      ) {
+        return;
+      }
+      const idx = data.savedPlans.findIndex((p) => p.id === planId);
+      if (idx < 0) return;
+      const saved = data.savedPlans[idx];
+      const resolved = resolvePlanExerciseIdsToCatalog(saved.exerciseIds, allExercises);
+      if (currentIndex < 0 || currentIndex >= resolved.length) return;
+      const oldId = resolved[currentIndex];
+      const nextIds = resolvePlanExerciseIdsToCatalog(
+        resolved.map((id, i) => (i === currentIndex ? alt.id : id)),
+        allExercises,
+      );
+      const nextTargets = { ...saved.exerciseMuscleTargets };
+      delete nextTargets[oldId];
+      const cleanedTargets = Object.fromEntries(
+        Object.entries(nextTargets).filter(([id]) => nextIds.includes(id)),
+      );
+      const nextPlans = [...data.savedPlans];
+      const updated: SavedPlan = { ...saved, exerciseIds: nextIds };
+      if (Object.keys(cleanedTargets).length > 0) {
+        updated.exerciseMuscleTargets = cleanedTargets;
+      } else {
+        delete updated.exerciseMuscleTargets;
+      }
+      nextPlans[idx] = updated;
+      persist({ ...data, savedPlans: nextPlans });
+      setSessionOrderIds(null);
+      setSaveMessage(`Updated “${plan.name}”: this slot will use “${alt.name}” from now on.`);
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Preset routines cannot be edited in place. Add “${plan.name} · adapted” to My plans with “${alt.name}” instead of “${cur.name}”? You will switch to that new routine.`,
+      )
+    ) {
+      return;
+    }
+    const base = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
+    if (currentIndex < 0 || currentIndex >= base.length) return;
+    const nextIds = resolvePlanExerciseIdsToCatalog(
+      base.map((id, i) => (i === currentIndex ? alt.id : id)),
+      allExercises,
+    );
+    const forkedTargets = { ...plan.exerciseMuscleTargets };
+    delete forkedTargets[cur.id];
+    const cleanedForkTargets = Object.fromEntries(
+      Object.entries(forkedTargets).filter(([id]) => nextIds.includes(id)),
+    );
+    const newId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `plan-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const newPlan: SavedPlan = {
+      id: newId,
+      name: `${plan.name} · adapted`,
+      createdAt: new Date().toISOString(),
+      exerciseIds: nextIds,
+      muscleGroups: plan.muscleGroups,
+      equipment: plan.equipment,
+    };
+    if (Object.keys(cleanedForkTargets).length > 0) {
+      newPlan.exerciseMuscleTargets = cleanedForkTargets;
+    }
+    persist({ ...data, savedPlans: [...data.savedPlans, newPlan] });
+    try {
+      sessionStorage.removeItem(routineDraftStorageKey(planId));
+    } catch {
+      /* ignore */
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('routine', newId);
+    window.location.replace(`${url.pathname}${url.search}`);
   }
 
   function handleSaveWorkout() {
@@ -348,6 +527,11 @@ export function RoutineRunView({ planId }: Props) {
             One move at a time. Use <strong>Include</strong> for moves you log today, then <strong>Save workout</strong>.
             Same history and body map as the Plan tab.
           </p>
+          {sessionOrderIds ? (
+            <p className="routine-run-session-override" role="status">
+              You reordered or swapped moves for this session only. Save workout logs what you see on each card.
+            </p>
+          ) : null}
         </div>
         <div className="routine-run-header-actions">
           {canSave ? (
@@ -591,13 +775,33 @@ export function RoutineRunView({ planId }: Props) {
                             {alt.primaryGroup}
                             {alt.secondaryGroups?.length ? ` · ${alt.secondaryGroups.join(', ')}` : ''}
                           </span>
+                          <div className="routine-run-alt-actions">
+                            <button
+                              type="button"
+                              className="routine-run-alt-btn routine-run-alt-btn--today"
+                              onClick={() => swapExerciseForToday(alt)}
+                            >
+                              <ArrowRightLeft size={14} strokeWidth={2} aria-hidden />
+                              Use today
+                            </button>
+                            <button
+                              type="button"
+                              className="routine-run-alt-btn routine-run-alt-btn--plan"
+                              onClick={() => replaceExerciseInPlanPermanently(alt)}
+                            >
+                              <Library size={14} strokeWidth={2} aria-hidden />
+                              {isUserSavedPlan ? 'Update plan' : 'Save to My plans'}
+                            </button>
+                          </div>
                         </div>
                       </li>
                     );
                   })}
                 </ul>
                 <p className="routine-run-alts-hint">
-                  For this routine, log the move you actually do under this card — the plan order stays the same.
+                  <strong>Use today</strong> replaces only this session&apos;s card.{' '}
+                  <strong>{isUserSavedPlan ? 'Update plan' : 'Save to My plans'}</strong> changes the routine in your library
+                  {isUserSavedPlan ? ' (this plan)' : ' (adds an adapted copy; you switch to it)'}.
                 </p>
               </details>
             ) : null}
