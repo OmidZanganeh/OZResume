@@ -24,6 +24,16 @@
   --gf-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
   --gf-shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.45);
   --gf-ring: 0 0 0 2px var(--gf-bg1), 0 0 0 4px var(--gf-accent);
+  /* Type scale (rem) — shared rhythm; prefer over one-off sizes in new rules */
+  --gf-text-2xs: 0.65rem;
+  --gf-text-xs: 0.72rem;
+  --gf-text-sm: 0.78rem;
+  --gf-text-nudge: 0.82rem;
+  --gf-text-base: 0.88rem;
+  --gf-text-md: 0.94rem;
+  --gf-text-lg: 1rem;
+  --gf-text-xl: 1.15rem;
+  --gf-text-display: 1.35rem;
 
   font-family: var(--gf-font);
   color: var(--gf-text);
@@ -102,7 +112,7 @@ body {
 .app-title {
   margin: 0;
   font-family: var(--gf-display);
-  font-size: 1.35rem;
+  font-size: var(--gf-text-display);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -111,7 +121,7 @@ body {
 
 .app-subtitle {
   margin: 0.15rem 0 0;
-  font-size: 0.78rem;
+  font-size: var(--gf-text-sm);
   color: var(--gf-text-dim);
   font-weight: 500;
 }
@@ -129,7 +139,7 @@ body {
   border: 1px solid rgba(45, 212, 191, 0.35);
   background: var(--gf-accent-dim);
   color: #ccfbf1;
-  font-size: 0.88rem;
+  font-size: var(--gf-text-base);
   font-weight: 500;
 }
 
@@ -153,7 +163,7 @@ body {
   background: transparent;
   color: var(--gf-text-muted);
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: var(--gf-text-base);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.18s ease, color 0.18s ease;
@@ -192,7 +202,7 @@ body {
   background: rgba(15, 23, 42, 0.45);
   color: var(--gf-text-muted);
   font-family: inherit;
-  font-size: 0.82rem;
+  font-size: var(--gf-text-nudge);
   font-weight: 600;
   cursor: pointer;
   transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
@@ -470,7 +480,7 @@ body {
 
 .routine-run-nav-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--gf-accent-dim);
+  box-shadow: var(--gf-ring);
 }
 
 .routine-run-list {
@@ -664,7 +674,7 @@ body {
 .routine-run-media-expand:focus-visible {
   outline: none;
   border-color: rgba(45, 212, 191, 0.55);
-  box-shadow: 0 0 0 3px var(--gf-accent-dim);
+  box-shadow: var(--gf-ring);
 }
 
 .routine-run-media-expand:hover {
@@ -958,7 +968,7 @@ body {
 
 .routine-run-alt-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--gf-accent-dim);
+  box-shadow: var(--gf-ring);
 }
 
 .routine-run-alt-btn--today:hover {
@@ -1034,7 +1044,7 @@ body {
 
 .routine-run-pill:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--gf-accent-dim);
+  box-shadow: var(--gf-ring);
 }
 
 .routine-run-pill--head {
@@ -1086,7 +1096,7 @@ body {
 .routine-run-skip:focus-visible {
   outline: none;
   color: #e2e8f0;
-  box-shadow: 0 0 0 3px var(--gf-accent-dim);
+  box-shadow: var(--gf-ring);
 }
 
 .routine-run-skip:disabled {
@@ -1170,7 +1180,7 @@ body {
 .routine-run-log-field input:focus-visible {
   outline: none;
   border-color: rgba(45, 212, 191, 0.5);
-  box-shadow: 0 0 0 3px var(--gf-accent-dim);
+  box-shadow: var(--gf-ring);
 }
 
 .routine-run-note-row {
@@ -1196,7 +1206,7 @@ body {
 
 .routine-run-note-toggle:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--gf-accent-dim);
+  box-shadow: var(--gf-ring);
 }
 
 .routine-run-finish {
@@ -1557,7 +1567,7 @@ body {
   background: transparent;
   color: var(--gf-accent);
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: var(--gf-text-base);
   cursor: pointer;
   border-radius: var(--gf-radius-sm);
   padding: 0.2rem 0.35rem;
@@ -1593,7 +1603,7 @@ body {
   border-radius: 999px;
   padding: 0.42rem 0.78rem;
   cursor: pointer;
-  font-size: 0.84rem;
+  font-size: var(--gf-text-nudge);
   font-weight: 500;
   transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
@@ -1642,7 +1652,7 @@ body {
 }
 
 .filter-field-label {
-  font-size: 0.78rem;
+  font-size: var(--gf-text-sm);
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1779,8 +1789,9 @@ body {
 }
 
 .exercise-youtube:focus-visible {
-  outline: 2px solid var(--gf-accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--gf-ring);
+  border-radius: 4px;
 }
 
 .exercise-youtube--image {
@@ -1918,14 +1929,14 @@ body {
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.search-input:focus,
-.text-input:focus,
-.select-input:focus,
-.plan-grid input:focus,
-.plan-card input:focus {
+.search-input:focus-visible,
+.text-input:focus-visible,
+.select-input:focus-visible,
+.plan-grid input:focus-visible,
+.plan-card input:focus-visible {
   outline: none;
   border-color: rgba(45, 212, 191, 0.45);
-  box-shadow: 0 0 0 3px var(--gf-accent-dim);
+  box-shadow: var(--gf-ring);
 }
 
 .search-input {
@@ -1941,7 +1952,7 @@ body {
   cursor: pointer;
   font-family: inherit;
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: var(--gf-text-base);
   transition: filter 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -1950,15 +1961,21 @@ body {
   box-shadow: 0 4px 16px rgba(45, 212, 191, 0.22);
 }
 
-.button:focus-visible {
+.button:focus-visible,
+.button-muted:focus-visible,
+.button-danger:focus-visible,
+.button-small:focus-visible {
   outline: none;
   box-shadow: var(--gf-ring);
 }
 
-.button:disabled {
+.button:disabled,
+.button-muted:disabled,
+.button-danger:disabled,
+.button-small:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-  filter: none;
+  filter: grayscale(0.2);
   box-shadow: none;
 }
 
@@ -1991,7 +2008,7 @@ body {
 
 .button-small {
   padding: 0.3rem 0.55rem;
-  font-size: 0.82rem;
+  font-size: var(--gf-text-nudge);
 }
 
 .custom-form {
@@ -2441,8 +2458,8 @@ body {
 }
 
 .orphan-pill:focus-visible {
-  outline: 2px solid var(--gf-accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--gf-ring);
 }
 
 .orphan-pill--red {
@@ -3031,6 +3048,68 @@ body {
 
 .app-shell { padding-bottom: 5.5rem; }
 
+/* Global cloud / sign-in — all main tabs (Summary, Plans, Activity, Nutrition, Settings) */
+.gf-cloud-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.45);
+  background: rgba(12, 17, 28, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  position: sticky;
+  top: 0;
+  z-index: 25;
+}
+
+.gf-cloud-strip__status {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--gf-text-muted);
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.gf-cloud-strip__status--on {
+  color: #a5f3fc;
+  font-weight: 600;
+}
+
+.gf-cloud-strip__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.gf-cloud-strip__actions .button-small {
+  flex-shrink: 0;
+}
+
+.gf-cloud-strip__actions a {
+  color: var(--gf-accent);
+  font-weight: 600;
+  font-size: 0.74rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.gf-cloud-strip__actions a:hover {
+  text-decoration: underline;
+}
+
+.gf-cloud-strip__sep {
+  color: #64748b;
+  font-size: 0.72rem;
+  user-select: none;
+}
+
 /* ── Home View ───────────────────────────────────────── */
 
 .home-view { padding: 1.4rem 1rem 1rem; }
@@ -3041,70 +3120,7 @@ body {
   font-weight: 800;
   color: var(--gf-accent);
   letter-spacing: -0.04em;
-  margin-bottom: 0.35rem;
-}
-
-.home-cloud-link {
-  margin: 0 0 1.25rem;
-  font-size: 0.82rem;
-}
-
-.home-cloud-link a {
-  color: var(--gf-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.home-cloud-link a:hover {
-  text-decoration: underline;
-}
-
-.home-cloud-row {
-  margin: 0 0 1.25rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.45rem;
-}
-
-.home-signin-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  border-radius: 10px;
-  border: 1px solid #0f766e;
-  background: #14b8a6;
-  color: #042f2e;
-  font-family: var(--gf-ui, system-ui, sans-serif);
-  font-weight: 700;
-  font-size: 0.88rem;
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(15, 118, 110, 0.2);
-}
-
-.home-signin-btn:hover {
-  filter: brightness(1.04);
-}
-
-.home-signin-btn:active {
-  transform: translateY(1px);
-}
-
-.home-cloud-link--secondary {
-  margin: 0;
-  font-size: 0.78rem;
-  opacity: 0.92;
-}
-
-.home-cloud-link--signed-in {
-  margin: 0;
-}
-
-.home-cloud-link--signed-in span {
-  color: var(--gf-text-muted, #64748b);
-  font-weight: 500;
+  margin-bottom: 0.65rem;
 }
 
 .home-section { margin-bottom: 2.25rem; }
@@ -3114,6 +3130,12 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.8rem;
+}
+
+.home-section-header:focus-visible {
+  outline: none;
+  box-shadow: var(--gf-ring);
+  border-radius: var(--gf-radius-sm);
 }
 
 .home-section-title {
@@ -3189,6 +3211,11 @@ body {
   border-color: var(--gf-accent);
 }
 
+.icon-add-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--gf-ring);
+}
+
 .create-plan-empty {
   display: flex;
   align-items: center;
@@ -3211,6 +3238,11 @@ body {
   border-color: var(--gf-accent);
   background: rgba(45, 212, 191, 0.07);
   color: var(--gf-accent);
+}
+
+.create-plan-empty:focus-visible {
+  outline: none;
+  box-shadow: var(--gf-ring);
 }
 
 .create-plan-empty-icon {
@@ -3310,18 +3342,29 @@ body {
   flex-shrink: 0;
   padding: 0.5rem 1.05rem;
   border-radius: 999px;
-  border: none;
-  background: var(--gf-accent);
-  color: #0d1117;
-  font-family: var(--gf-font);
-  font-size: 0.82rem;
-  font-weight: 800;
+  border: 1px solid rgba(45, 212, 191, 0.45);
+  background: linear-gradient(180deg, var(--gf-accent-hover) 0%, var(--gf-accent-press) 100%);
+  color: #042f2e;
+  font-family: inherit;
+  font-size: var(--gf-text-base);
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: filter 0.18s ease, box-shadow 0.18s ease, transform 0.1s ease;
 }
 
-.btn-start:hover { background: hsl(175, 70%, 52%); }
-.btn-start:active { transform: scale(0.95); }
+.btn-start:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 4px 16px rgba(45, 212, 191, 0.22);
+}
+
+.btn-start:active {
+  transform: scale(0.97);
+}
+
+.btn-start:focus-visible {
+  outline: none;
+  box-shadow: var(--gf-ring);
+}
 
 .plan-card-home-actions {
   display: flex;
@@ -3345,6 +3388,12 @@ body {
 
 .plan-action-btn:hover { color: var(--gf-text-muted); }
 .plan-action-btn--danger:hover { color: #fca5a5; }
+
+.plan-action-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--gf-ring);
+  border-radius: 4px;
+}
 
 /* ── 10-Day Report ───────────────────────────────────── */
 
@@ -4366,12 +4415,17 @@ body {
   cursor: pointer;
   transition: transform 0.2s, background-color 0.2s, border-color 0.2s;
 }
-.workout-cal-cell--clickable:hover,
-.workout-cal-cell--clickable:focus {
+.workout-cal-cell--clickable:hover {
   transform: translateY(-2px);
   border-color: var(--gf-accent);
   background-color: var(--gf-surface-2);
+}
+
+.workout-cal-cell--clickable:focus-visible {
   outline: none;
+  box-shadow: var(--gf-ring);
+  border-color: var(--gf-accent);
+  background-color: var(--gf-surface-2);
 }
 
 .day-modal-content {
@@ -4426,8 +4480,9 @@ select.text-input.day-modal-select {
 }
 
 .day-modal-collapse-trigger:focus-visible {
-  outline: 2px solid var(--gf-accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--gf-ring);
+  border-radius: var(--gf-radius-md);
 }
 
 .day-modal-collapse-trigger--spaced {
@@ -4742,13 +4797,18 @@ select.text-input.day-modal-select {
 
 .nutrition-quick-select {
   min-width: 170px;
-  font-size: 0.78rem;
+  font-size: var(--gf-text-sm);
   font-weight: 600;
   border-radius: 9px;
   padding-top: 0.34rem;
   padding-bottom: 0.34rem;
   background: rgba(15, 23, 42, 0.82);
   border-color: rgba(56, 189, 248, 0.28);
+}
+
+.nutrition-quick-select:focus-visible {
+  outline: none;
+  box-shadow: var(--gf-ring);
 }
 
 .nutrition-quick-content {
@@ -5232,6 +5292,11 @@ select.text-input.day-modal-select {
   color: #5eead4;
 }
 
+.nutrition-entry-toggle-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--gf-ring);
+}
+
 .nutrition-search-thumb {
   width: 48px;
   height: 48px;
@@ -5690,8 +5755,8 @@ select.text-input.day-modal-select {
 }
 
 .nutrition-collapse-header:focus-visible {
-  outline: 2px solid var(--gf-accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--gf-ring);
   border-radius: 4px;
 }
 
@@ -6189,9 +6254,6 @@ select.text-input.day-modal-select {
 }
 .orphan-pill-icon-svg { display: flex; align-items: center; justify-content: center; margin-right: 4px; }
 
-/* Added per ui-ux-pro-max standard requirements */
-.button:focus-visible, .text-button:focus-visible { outline: 2px solid var(--gf-accent); outline-offset: 2px; }
-
 /* ───────────────────────────────────────────────────────────────────
    v2 layout primitives — opt-in via .tab-frame wrappers.
    Goal: replace card-soup with a clear page hierarchy:
@@ -6232,7 +6294,7 @@ select.text-input.day-modal-select {
   margin: 0;
 }
 .tab-subtitle {
-  font-size: 0.82rem;
+  font-size: var(--gf-text-nudge);
   color: var(--gf-text-muted);
   letter-spacing: 0.01em;
 }
@@ -6272,7 +6334,7 @@ select.text-input.day-modal-select {
   background: linear-gradient(180deg, var(--gf-accent), rgba(56, 189, 248, 0.6));
 }
 .section-block__meta {
-  font-size: 0.78rem;
+  font-size: var(--gf-text-sm);
   color: var(--gf-text-muted);
   letter-spacing: 0.02em;
 }
@@ -6298,6 +6360,12 @@ select.text-input.day-modal-select {
   background: rgba(15, 23, 42, 0.55);
   border: 1px solid rgba(71, 85, 105, 0.25);
 }
+
+.list-row:focus-visible {
+  outline: none;
+  box-shadow: var(--gf-ring);
+}
+
 .list-row__lead {
   display: flex;
   flex-direction: column;
@@ -6306,7 +6374,7 @@ select.text-input.day-modal-select {
   flex: 1;
 }
 .list-row__title { font-weight: 700; color: var(--gf-text); letter-spacing: -0.005em; }
-.list-row__meta { font-size: 0.78rem; color: var(--gf-text-muted); }
+.list-row__meta { font-size: var(--gf-text-sm); color: var(--gf-text-muted); }
 
 /* Segmented control — alternative to chip-list for binary/period pickers. */
 .segmented {
@@ -6323,7 +6391,7 @@ select.text-input.day-modal-select {
   color: var(--gf-text-muted);
   padding: 0.32rem 0.7rem;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: var(--gf-text-sm);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 200ms ease, color 200ms ease;
@@ -6335,6 +6403,11 @@ select.text-input.day-modal-select {
   box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45);
 }
 .segmented__btn:hover { color: var(--gf-text); }
+
+.segmented__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--gf-ring);
+}
 
 /* ── Nutrition tab v2 — flatten secondary panels, raise hero/log card ──
    Inside .tab-frame--nutrition, .panel becomes a low-weight section so
@@ -6666,7 +6739,7 @@ select.text-input.day-modal-select {
   padding: 0.55rem 0.75rem;
   border-radius: 999px;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: var(--gf-text-nudge);
   font-weight: 600;
   letter-spacing: -0.005em;
   cursor: pointer;
@@ -6683,8 +6756,8 @@ select.text-input.day-modal-select {
 }
 
 .subtab-btn:focus-visible {
-  outline: 2px solid var(--gf-accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--gf-ring);
 }
 
 /* Optional count badge inside a sub-tab button */
@@ -6746,7 +6819,6 @@ select.text-input.day-modal-select {
   -webkit-text-fill-color: transparent;
   letter-spacing: -0.045em;
 }
-.tab-frame--plans .home-cloud-row { margin-bottom: 1.5rem; }
 .tab-frame--plans .home-section-label {
   font-size: 0.72rem;
   letter-spacing: 0.14em;
@@ -6787,7 +6859,7 @@ select.text-input.day-modal-select {
   padding-top: 0.55rem;
   gap: 1.4rem;
 }
-.tab-frame--plans .btn-start { padding: 0.55rem 1.15rem; font-size: 0.85rem; }
+.tab-frame--plans .btn-start { padding: 0.55rem 1.15rem; font-size: var(--gf-text-nudge); }
 
 /* ── Bottom nav v2 — active pill + better idle state ──── */
 .bottom-nav { padding-top: 0.25rem; }
@@ -6813,9 +6885,9 @@ select.text-input.day-modal-select {
 .bnav-btn--active { color: var(--gf-accent); }
 .bnav-btn--active::before { transform: translateX(-50%) scaleX(1); opacity: 1; }
 .bnav-btn:focus-visible {
-  outline: 2px solid var(--gf-accent);
-  outline-offset: -4px;
-  border-radius: 6px;
+  outline: none;
+  box-shadow: var(--gf-ring);
+  border-radius: 8px;
 }
 
 /* Reduced motion — respect user pref site-wide. */
@@ -6830,41 +6902,9 @@ select.text-input.day-modal-select {
   .tab-frame--plans .plan-card-home:hover { transform: none; }
 }
 
-/* ── Polish round 2 — global a11y/interaction hardening ── */
+/* ── Polish round 2 — chips + plan list affordances ─── */
 
-/* Universal focus ring — accessible keyboard nav across every clickable. */
-.button:focus-visible,
-.button-muted:focus-visible,
-.button-danger:focus-visible,
-.button-small:focus-visible,
-.chip:focus-visible,
-.icon-add-btn:focus-visible,
-.bnav-btn:focus-visible,
-.btn-start:focus-visible,
-.plan-action-btn:focus-visible,
-.segmented__btn:focus-visible,
-.list-row:focus-visible,
-.home-section-header:focus-visible,
-.nutrition-collapse-header:focus-visible,
-.nutrition-quick-select:focus-visible,
-.nutrition-entry-toggle-btn:focus-visible {
-  outline: 2px solid var(--gf-accent);
-  outline-offset: 2px;
-  border-radius: 8px;
-}
-
-/* Buttons disabled — clear, no fake hover. */
-.button:disabled,
-.button-muted:disabled,
-.button-danger:disabled,
-.button-small:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-  filter: grayscale(0.2);
-  box-shadow: none;
-}
-
-/* Chips: ensure hover lift uses colour only, never layout. */
+/* Chips: ensure hover uses colour only, never layout. */
 .chip:hover:not(.chip-active) {
   background: rgba(30, 41, 59, 0.7);
   border-color: var(--gf-accent);
@@ -6916,9 +6956,9 @@ select.text-input.day-modal-select {
   background: rgba(2, 6, 23, 0.55);
   border-color: rgba(71, 85, 105, 0.45);
 }
-.tab-frame .text-input:focus {
+.tab-frame .text-input:focus-visible {
   border-color: var(--gf-accent);
-  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.18);
+  box-shadow: var(--gf-ring);
   outline: none;
 }
 

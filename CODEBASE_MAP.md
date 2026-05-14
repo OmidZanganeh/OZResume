@@ -94,6 +94,7 @@
 | Output | `public/gym-flow/` ← Vite writes directly here (see `vite.config.ts`) |
 | Served at | `/gym-flow/` (Next.js treats `public/` as static) |
 | Cloud backup | Signed-in users: in-memory app state + `GET/PUT /api/gym-flow/data` (no localStorage for workout data). Optional profile step `/gym-flow-profile-setup` · `PATCH /api/gym-flow/profile`. Unsigned: data is session-only until sign-in. |
+| Shell cloud strip | `App.tsx` — `gf-cloud-strip` inside `.app-shell` on every main tab; `style.css` `.gf-cloud-strip*`. Sign-in / account links; Plans no longer repeats the old `home-cloud-row`. |
 | Env | `.env.example` — `DATABASE_URL` **or** `POSTGRES_URL` (Vercel template), `AUTH_SECRET`, `AUTH_GOOGLE_*` · helper `lib/db/database-url.ts` |
 | PWA listing | `app/web-apps/page.tsx` |
 | Summary tab | `Gym Webapp/src/App.tsx` — `view === 'summary'`: calendar, nutrition overview panel (3 cards), analysis-period chips, `MuscleSpider`, `BodyMapFigure`. Bottom nav: Summary → Plans → Activity → Nutrition → Settings. |
@@ -102,6 +103,7 @@
 | Plans muscle tap | `App.tsx` — heatmap on **Plans** (`view === 'home'`) opens `muscle-plan-suggestions`: saved + preset plans whose `muscleGroups` include that muscle, **Build a new plan** → `create-focus`. |
 | Routine run exercise swap | `RoutineRunView.tsx` + `style.css`: **Use today** = `sessionOrderIds` (session + `sessionStorage`); **Update plan** = mutate `savedPlans[].exerciseIds`; preset **Save to My plans** = fork `SavedPlan` + `location.replace` `?routine=newId`. |
 | Tab shell v2 | `style.css` `.tab-frame`, `.tab-title-row`, `.tab-title`, `.section-block`, `.surface`, `.list-row(s)`, `.segmented` — page-level scaffolding used in Summary, Activity, Nutrition, Settings, Plans. Nutrition is fully migrated: secondary `.panel` blocks flatten to low-weight sections inside `.tab-frame--nutrition`, and CSS `order` floats hero rings above the Log food card regardless of source order. |
+| Type + focus | `style.css` `:root` — `--gf-text-2xs` … `--gf-text-display` for shared type rhythm; keyboard focus uses `box-shadow: var(--gf-ring)` + `:focus-visible` on controls, inputs, list rows, nav, and routine run. |
 | Settings grouped layout | `Gym Webapp/src/App.tsx` (`view === 'library'`) + `Gym Webapp/src/style.css` (`.settings-surface`, `.settings-block*`, `.settings-toolbar`): modern single-surface settings page with grouped sections, quick section nav, search filtering, and integrated danger zone styling. |
 | Sub-tab navigation | `Gym Webapp/src/App.tsx` `activitySubTab`/`nutritionSubTab` state + `style.css` `.subtab-bar`, `.subtab-btn`: sticky pill nav under each page title that splits Activity into Overview/Insights/History and Nutrition into Today/Foods/Goals. Replaces all-panels-open scroll with focused sections. |
 

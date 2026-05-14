@@ -1851,6 +1851,36 @@ export default function App() {
       )}
 
       <main id="app-main" className="app-shell">
+        {isMainView && (
+          <div className="gf-cloud-strip" role="region" aria-label="Cloud backup and account">
+            {cloudSignedIn ? (
+              <>
+                <p className="gf-cloud-strip__status gf-cloud-strip__status--on">
+                  <span>Cloud backup on</span>
+                </p>
+                <div className="gf-cloud-strip__actions">
+                  <a href="/gym-flow-account/">Account</a>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="gf-cloud-strip__status">Sign in to sync workouts and nutrition to the cloud.</p>
+                <div className="gf-cloud-strip__actions">
+                  <button type="button" className="button button-small" onClick={() => openGymFlowSignIn()}>
+                    Sign in
+                  </button>
+                  <a href={getGymFlowSignInPopupUrl()} target="_blank" rel="opener">
+                    New tab
+                  </a>
+                  <span className="gf-cloud-strip__sep" aria-hidden="true">
+                    ·
+                  </span>
+                  <a href="/gym-flow-account/">Account page</a>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* ── SUMMARY (calendar + nutrition overview + radar + heatmap) ── */}
         {view === 'summary' && (
@@ -1991,34 +2021,6 @@ export default function App() {
         {view === 'home' && (
           <div className="home-view tab-frame tab-frame--plans">
             <div className="home-wordmark">Gym Flow</div>
-            <div className="home-cloud-row">
-              {cloudSignedIn ? (
-                <p className="home-cloud-link home-cloud-link--signed-in">
-                  <span>Cloud backup on</span>
-                  {' · '}
-                  <a href="/gym-flow-account/">Account</a>
-                </p>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="home-signin-btn"
-                    onClick={() => {
-                      openGymFlowSignIn();
-                    }}
-                  >
-                    Sign in
-                  </button>
-                  <p className="home-cloud-link home-cloud-link--secondary">
-                    <a href={getGymFlowSignInPopupUrl()} target="_blank" rel="opener">
-                      Open sign-in in new tab
-                    </a>
-                    {' · '}
-                    <a href="/gym-flow-account/">Full account page</a>
-                  </p>
-                </>
-              )}
-            </div>
 
             <nav className="subtab-bar subtab-bar--plans" role="tablist" aria-label="Plans sections">
               {([
