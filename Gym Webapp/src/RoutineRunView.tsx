@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRightLeft, Check, Dumbbell, History, Layers, Library } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Dumbbell,
+  History,
+  Layers,
+  Library,
+} from 'lucide-react';
 import { EXERCISE_LIBRARY } from './data/exerciseLibrary';
 import type { Exercise } from './data/exerciseLibrary';
 import {
@@ -521,8 +530,6 @@ export function RoutineRunView({ planId }: Props) {
   const currentExercise = exercises[currentIndex];
   const progressPct = exercises.length > 0 ? Math.round(((currentIndex + 1) / exercises.length) * 100) : 0;
   const includedCount = exercises.filter((e) => exerciseDrafts[e.id]?.completed).length;
-  const remainingNotIncluded = exercises.length - includedCount;
-  const cardsLeftInRoutine = exercises.length - currentIndex - 1;
   const canSave = includedCount > 0;
 
   function setAutoAdvance(next: boolean) {
@@ -536,29 +543,34 @@ export function RoutineRunView({ planId }: Props) {
 
   return (
     <div className="routine-run">
-      <header className="routine-run-header">
-        <div>
-          <h1 className="routine-run-title">{plan.name}</h1>
-          <p className="routine-run-sub">
-            One move at a time. Use <strong>Include</strong> for moves you log today, then <strong>Save workout</strong>.
-            Same history and body map as the Plan tab.
-          </p>
-          {sessionOrderIds ? (
-            <p className="routine-run-session-override" role="status">
-              You reordered or swapped moves for this session only. Save workout logs what you see on each card.
-            </p>
-          ) : null}
-        </div>
-        <div className="routine-run-header-actions">
-          {canSave ? (
-            <button type="button" className="button" onClick={handleSaveWorkout}>
-              Save workout
-            </button>
-          ) : null}
-          <a className="button button-muted routine-run-planner-link" href={plannerHref}>
-            Open full planner
+      <header className="routine-run-topbar">
+        <div className="routine-run-topbar__row">
+          <a className="routine-run-topbar__back" href={plannerHref}>
+            <ChevronLeft size={20} strokeWidth={2.25} aria-hidden />
+            Planner
           </a>
+          <div className="routine-run-topbar__meta">
+            <p className="routine-run-topbar__eyebrow">Active workout</p>
+            <h1 className="routine-run-topbar__title">{plan.name}</h1>
+          </div>
+          {canSave ? (
+            <button type="button" className="button button-small routine-run-topbar__save" onClick={handleSaveWorkout}>
+              Save
+            </button>
+          ) : (
+            <span className="routine-run-topbar__save-spacer" aria-hidden />
+          )}
         </div>
+        <div className="routine-run-topbar__progress" aria-hidden="true">
+          <div className="routine-run-topbar__progress-fill" style={{ width: `${progressPct}%` }} />
+        </div>
+        <p className="routine-run-topbar__step">
+          Exercise <strong>{currentIndex + 1}</strong> of <strong>{exercises.length}</strong>
+          <span className="routine-run-topbar__step-dot" aria-hidden>
+            ·
+          </span>
+          <span className="routine-run-topbar__step-included">{includedCount} logged</span>
+        </p>
       </header>
 
       {saveMessage ? (
@@ -567,57 +579,40 @@ export function RoutineRunView({ planId }: Props) {
         </div>
       ) : null}
 
-      <div className="routine-run-progress" role="group" aria-label="Workout progress">
-        <div className="routine-run-progress-top">
-          <span className="routine-run-progress-label">Session progress</span>
-          <span className="routine-run-progress-step">
-            Move <strong>{currentIndex + 1}</strong> of <strong>{exercises.length}</strong>
-          </span>
-        </div>
-        <div className="routine-run-progress-bar" aria-hidden="true">
-          <div className="routine-run-progress-fill" style={{ width: `${progressPct}%` }} />
-        </div>
-        <div className="routine-run-progress-stats" aria-label="Summary counts">
-          <span className="routine-run-stat-pill routine-run-stat-pill--accent">
-            <strong>{includedCount}</strong>
-            <span>included</span>
-          </span>
-          <span className="routine-run-stat-pill">
-            <strong>{remainingNotIncluded}</strong>
-            <span>not saved yet</span>
-          </span>
-          <span className="routine-run-stat-pill">
-            <strong>{cardsLeftInRoutine}</strong>
-            <span>left in routine</span>
-          </span>
-        </div>
-        <label className="routine-run-auto-advance">
-          <input
-            type="checkbox"
-            checked={autoAdvanceOnInclude}
-            onChange={(e) => setAutoAdvance(e.target.checked)}
-          />
-          <span>Auto-advance after Include</span>
-        </label>
-        <div className="routine-run-progress-actions">
-          <button
-            type="button"
-            className="button button-muted routine-run-nav-btn"
-            onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-            disabled={currentIndex === 0}
-          >
-            ← Back
-          </button>
-          <button
-            type="button"
-            className="button routine-run-nav-btn"
-            onClick={() => setCurrentIndex((i) => Math.min(exercises.length - 1, i + 1))}
-            disabled={currentIndex === exercises.length - 1}
-          >
-            Next →
-          </button>
-        </div>
+      {sessionOrderIds ? (
+        <p className="routine-run-session-override" role="status">
+          Session-only order — swaps apply until you save this workout.
+        </p>
+      ) : null}
+
+      <div className="routine-run-track" role="tablist" aria-label="Exercises in this workout">
+        {exercises.map((e, i) => {
+          const done = !!exerciseDrafts[e.id]?.completed;
+          const isCurrent = i === currentIndex;
+          return (
+            <button
+              key={e.id}
+              type="button"
+              role="tab"
+              aria-selected={isCurrent}
+              aria-label={`${e.name}, ${i + 1} of ${exercises.length}${done ? ', included' : ''}`}
+              className={['routine-run-track__seg', isCurrent ? 'is-current' : '', done ? 'is-done' : '']
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => setCurrentIndex(i)}
+            />
+          );
+        })}
       </div>
+
+      <label className="routine-run-auto-advance routine-run-auto-advance--bar">
+        <input
+          type="checkbox"
+          checked={autoAdvanceOnInclude}
+          onChange={(e) => setAutoAdvance(e.target.checked)}
+        />
+        <span>Auto-advance after logging each exercise</span>
+      </label>
 
       {currentExercise ? (() => {
         const ex = currentExercise;
@@ -631,6 +626,7 @@ export function RoutineRunView({ planId }: Props) {
         const imgMeta = images[ex.name];
 
         return (
+          <>
           <div
             className={`routine-run-card routine-run-card--session ${draft?.completed ? 'routine-run-card--included' : ''}`.trim()}
           >
@@ -672,10 +668,10 @@ export function RoutineRunView({ planId }: Props) {
                 {draft?.completed ? (
                   <>
                     <Check className="routine-run-pill-icon" size={18} strokeWidth={2.25} aria-hidden />
-                    Included
+                    Logged for today
                   </>
                 ) : (
-                  'Include'
+                  'Log this exercise'
                 )}
               </button>
             </header>
@@ -683,7 +679,7 @@ export function RoutineRunView({ planId }: Props) {
             <section className="routine-run-card__section" aria-label="Exercise reference">
               <h3 className="routine-run-card__section-label">
                 <Dumbbell className="routine-run-card__section-icon" size={14} strokeWidth={2} aria-hidden />
-                Reference
+                Form check
               </h3>
               <div className={`routine-run-media-wrap ${mediaExpanded ? 'routine-run-media-wrap--expanded' : ''}`.trim()}>
               {imgMeta ? (
@@ -823,18 +819,6 @@ export function RoutineRunView({ planId }: Props) {
             ) : null}
             </section>
 
-            {!isLast ? (
-              <div className="routine-run-card-actions routine-run-card-actions--skip-only">
-                <button
-                  type="button"
-                  className="routine-run-skip"
-                  onClick={() => setCurrentIndex((i) => Math.min(exercises.length - 1, i + 1))}
-                >
-                  Skip → next move
-                </button>
-              </div>
-            ) : null}
-
             {candidateMuscleGroupsForExercise(ex).length > 1 ? (
               <div className="routine-run-card__section routine-run-card__section--targets">
                 <h3 className="routine-run-card__section-label">
@@ -851,7 +835,7 @@ export function RoutineRunView({ planId }: Props) {
             ) : null}
 
             <section className="routine-run-card__section routine-run-card__section--log" aria-label="Log this set">
-              <h3 className="routine-run-card__section-label">Today&apos;s numbers</h3>
+              <h3 className="routine-run-card__section-label">Working sets</h3>
             {lastLog ? (
               <p className="routine-run-last-session" role="status">
                 <span className="routine-run-last-session-label">Last session</span>
@@ -943,10 +927,42 @@ export function RoutineRunView({ planId }: Props) {
             </section>
             {isLast ? (
               <p className="routine-run-last-hint">
-                Last move — tap <strong>Save workout</strong> in the header or in the bar at the bottom when you are done.
+                Last exercise — save your workout when you are finished.
               </p>
             ) : null}
           </div>
+
+          <nav className="routine-run-footer" aria-label="Exercise navigation">
+            <button
+              type="button"
+              className="routine-run-footer__btn"
+              onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+              disabled={currentIndex === 0}
+            >
+              <ChevronLeft size={20} strokeWidth={2.25} aria-hidden />
+              Previous
+            </button>
+            {!isLast ? (
+              <button
+                type="button"
+                className="routine-run-footer__btn routine-run-footer__btn--primary"
+                onClick={() => setCurrentIndex((i) => Math.min(exercises.length - 1, i + 1))}
+              >
+                Next exercise
+                <ChevronRight size={20} strokeWidth={2.25} aria-hidden />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="routine-run-footer__btn routine-run-footer__btn--primary"
+                onClick={handleSaveWorkout}
+                disabled={!canSave}
+              >
+                Finish &amp; save
+              </button>
+            )}
+          </nav>
+          </>
         );
       })() : null}
 
