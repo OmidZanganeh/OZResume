@@ -5041,68 +5041,14 @@ select.text-input.day-modal-select {
   color: var(--gf-text);
 }
 
-.nutrition-quick-hub-top {
-  display: grid;
-  gap: 0.5rem;
-  margin-bottom: 0.55rem;
+.nutrition-quick-hub .subtab-bar--quick-add {
+  position: static;
+  margin: 0 0 0.55rem;
+  z-index: 0;
 }
 
-.nutrition-quick-meta-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.nutrition-quick-meta-pill {
-  display: inline-flex;
-  align-items: center;
-  height: 1.35rem;
-  padding: 0 0.5rem;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: rgba(15, 23, 42, 0.5);
-  color: #cbd5e1;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.nutrition-quick-picker-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem 0.7rem;
-}
-
-.nutrition-quick-picker {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-width: 210px;
-}
-
-.nutrition-quick-picker-label {
-  font-size: 0.72rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--gf-text-dim);
-  font-weight: 700;
-}
-
-.nutrition-quick-select {
-  min-width: 170px;
-  font-size: var(--gf-text-sm);
-  font-weight: 600;
-  border-radius: 9px;
-  padding-top: 0.34rem;
-  padding-bottom: 0.34rem;
-  background: rgba(15, 23, 42, 0.82);
-  border-color: rgba(56, 189, 248, 0.28);
-}
-
-.nutrition-quick-select:focus-visible {
-  outline: none;
-  box-shadow: var(--gf-ring);
+.nutrition-quick-hub-hint {
+  margin: 0 0 0.55rem;
 }
 
 .nutrition-quick-content {
@@ -5177,11 +5123,6 @@ select.text-input.day-modal-select {
   gap: 0.35rem;
   flex-wrap: wrap;
   justify-content: flex-end;
-}
-@media (max-width: 560px) {
-  .nutrition-quick-picker-row { align-items: stretch; }
-  .nutrition-quick-picker { width: 100%; }
-  .nutrition-quick-select { width: 100%; min-width: 0; }
 }
 
 .nutrition-meal-scale-row {
@@ -7260,7 +7201,6 @@ select.text-input.day-modal-select {
 .list-row,
 .home-section-header,
 .nutrition-collapse-header,
-.nutrition-quick-picker,
 .nutrition-entry-toggle-btn {
   cursor: pointer;
 }

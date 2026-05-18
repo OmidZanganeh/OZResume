@@ -3022,32 +3022,32 @@ export default function App() {
                 </div>
                 {!collapsedSections['nutrition-quick-add'] ? (
                   <>
-                    <div className="nutrition-quick-hub-top">
-                      <div className="nutrition-quick-meta-strip" aria-label="Quick add library counts">
-                        <span className="nutrition-quick-meta-pill">Meals {nutritionMealTemplates.length}</span>
-                        <span className="nutrition-quick-meta-pill">Favorites {favoriteFoodMatchesForPicker.length}</span>
-                        <span className="nutrition-quick-meta-pill">Recent {recentFoodMatchesForPicker.length}</span>
-                      </div>
-                      <div className="nutrition-quick-picker-row">
-                        <label className="nutrition-quick-picker">
-                          <span className="nutrition-quick-picker-label">Source</span>
-                          <select
-                            className="select-input nutrition-quick-select"
-                            aria-label="Quick add source"
-                            value={nutritionQuickTab}
-                            onChange={(e) => setNutritionQuickTab(e.target.value as 'meals' | 'favorites' | 'recent')}
-                          >
-                            <option value="meals">Meals</option>
-                            <option value="favorites">Favorites</option>
-                            <option value="recent">Recent</option>
-                          </select>
-                        </label>
-                        <p className="panel-subtle nutrition-recent-picks-hint">
-                          Tip: build a meal from <strong>Logged foods</strong> below, then reuse it here.
-                        </p>
-                      </div>
-                    </div>
-
+                    <nav className="subtab-bar subtab-bar--quick-add" role="tablist" aria-label="Quick add sources">
+                      {(
+                        [
+                          { id: 'meals' as const, label: 'Meals', count: nutritionMealTemplates.length },
+                          { id: 'favorites' as const, label: 'Favorites', count: favoriteFoodMatchesForPicker.length },
+                          { id: 'recent' as const, label: 'Recent', count: recentFoodMatchesForPicker.length },
+                        ] as const
+                      ).map((tab) => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={nutritionQuickTab === tab.id}
+                          className={`subtab-btn ${nutritionQuickTab === tab.id ? 'is-active' : ''}`}
+                          onClick={() => setNutritionQuickTab(tab.id)}
+                        >
+                          {tab.label}
+                          {tab.count > 0 ? <span className="subtab-badge">{tab.count}</span> : null}
+                        </button>
+                      ))}
+                    </nav>
+                    {nutritionQuickTab === 'meals' ? (
+                      <p className="panel-subtle nutrition-recent-picks-hint nutrition-quick-hub-hint">
+                        Tip: build a meal from <strong>Logged foods</strong> below, then reuse it here.
+                      </p>
+                    ) : null}
                     <div className="nutrition-quick-content">
                     {nutritionQuickTab === 'meals' ? (
                       <>
