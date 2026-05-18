@@ -66,6 +66,7 @@ import {
   nutritionLogDateKey,
 } from './utils/nutritionGoalsFromProfile';
 import { portionMacrosToPer100g } from './utils/nutritionServing';
+import { parseCompoundFoodQuery, type ParsedFoodPart } from './utils/nutritionQueryParser';
 
 import {
   candidateMuscleGroupsForExercise,
@@ -284,6 +285,16 @@ export default function App() {
   const [nutritionTrendDays, setNutritionTrendDays] = useState(1);
   const [nutritionQuery, setNutritionQuery] = useState('');
   const [nutritionResults, setNutritionResults] = useState<NutritionSearchItem[]>([]);
+  /** Per-part results when the query is a compound like "chicken and rice". */
+  const [nutritionCompoundGroups, setNutritionCompoundGroups] = useState<
+    Array<{
+      key: string;
+      part: ParsedFoodPart;
+      items: NutritionSearchItem[];
+      loading: boolean;
+      error: string | null;
+    }>
+  >([]);
   const [nutritionLoading, setNutritionLoading] = useState(false);
   const [nutritionError, setNutritionError] = useState<string | null>(null);
   const [selectedFood, setSelectedFood] = useState<NutritionSearchItem | null>(null);
@@ -800,6 +811,7 @@ export default function App() {
       nutritionSearchAbortRef.current?.abort();
       nutritionSearchAbortRef.current = null;
       setNutritionResults([]);
+      setNutritionCompoundGroups([]);
       setNutritionLoading(false);
       setNutritionError(null);
       return;
@@ -810,6 +822,7 @@ export default function App() {
       nutritionSearchAbortRef.current?.abort();
       nutritionSearchAbortRef.current = null;
       setNutritionResults([]);
+      setNutritionCompoundGroups([]);
       setNutritionError(null);
       setNutritionLoading(false);
       return;
@@ -825,6 +838,7 @@ export default function App() {
     nutritionSearchAbortRef.current?.abort();
     nutritionSearchAbortRef.current = null;
     setNutritionResults([]);
+    setNutritionCompoundGroups([]);
     setNutritionError(null);
     setNutritionLoading(false);
   }, [nutritionQuery, cloudSignedIn]);
@@ -935,6 +949,69 @@ export default function App() {
     nutritionSearchAbortRef.current?.abort();
     const controller = new AbortController();
     nutritionSearchAbortRef.current = controller;
+
+    const compoundParts = parseCompoundFoodQuery(term);
+
+    if (compoundParts && compoundParts.length >= 2) {
+      // Fan out: one search per part, in parallel.
+      setNutritionResults([]);
+      setNutritionError(null);
+      setNutritionLoading(true);
+      const initial = compoundParts.map((part, i) => ({
+        key: `${i}:${part.name.toLowerCase()}`,
+        part,
+        items: [] as NutritionSearchItem[],
+        loading: true,
+        error: null as string | null,
+      }));
+      setNutritionCompoundGroups(initial);
+
+      Promise.all(
+        compoundParts.map((part) =>
+          fetch(`/api/gym-flow/nutrition/search?query=${encodeURIComponent(part.name)}`, {
+            credentials: 'include',
+            signal: controller.signal,
+          })
+            .then(async (r) => {
+              let json: unknown = {};
+              try {
+                json = await r.json();
+              } catch {
+                json = {};
+              }
+              if (!r.ok) {
+                return { items: [] as NutritionSearchItem[], error: formatNutritionApiError(json, 'Search failed') };
+              }
+              const payload = json as { items?: NutritionSearchItem[] };
+              return { items: Array.isArray(payload.items) ? payload.items : [], error: null as string | null };
+            })
+            .catch((err) => {
+              if (err?.name === 'AbortError') throw err;
+              return { items: [] as NutritionSearchItem[], error: 'Search failed' };
+            }),
+        ),
+      )
+        .then((perPart) => {
+          setNutritionCompoundGroups((prev) =>
+            prev.map((g, i) => ({ ...g, items: perPart[i]?.items ?? [], error: perPart[i]?.error ?? null, loading: false })),
+          );
+        })
+        .catch((err) => {
+          if (err?.name === 'AbortError') return;
+          setNutritionError('Search failed');
+          setNutritionCompoundGroups((prev) => prev.map((g) => ({ ...g, loading: false })));
+        })
+        .finally(() => {
+          if (nutritionSearchAbortRef.current === controller) {
+            nutritionSearchAbortRef.current = null;
+          }
+          setNutritionLoading(false);
+        });
+      return;
+    }
+
+    // Single-phrase path (unchanged behaviour).
+    setNutritionCompoundGroups([]);
     setNutritionLoading(true);
     setNutritionError(null);
     fetch(`/api/gym-flow/nutrition/search?query=${encodeURIComponent(term)}`, {
@@ -1197,6 +1274,7 @@ export default function App() {
     setServingGrams('100');
     setNutritionQuery('');
     setNutritionResults([]);
+    setNutritionCompoundGroups([]);
     setOffNutritionLookup(null);
   }
 
@@ -3196,7 +3274,85 @@ export default function App() {
                   </>
                 ) : null}
               </div>
-              {displayNutritionResults.length > 0 && (
+              {nutritionCompoundGroups.length > 0 && (
+                <div className="nutrition-compound-results" aria-label="Compound search results">
+                  <p className="nutrition-compound-hint">
+                    Looks like a few foods — pick one from each group.
+                  </p>
+                  {nutritionCompoundGroups.map((group) => {
+                    const portionLabel = group.part.grams
+                      ? `${Math.round(group.part.grams)} g`
+                      : group.part.count
+                        ? `${group.part.count}${group.part.unit ? ' ' + group.part.unit : ''}`
+                        : null;
+                    return (
+                      <section key={group.key} className="nutrition-compound-group">
+                        <header className="nutrition-compound-group__head">
+                          <span className="nutrition-compound-group__name">{group.part.name}</span>
+                          {portionLabel && (
+                            <span className="nutrition-compound-group__portion">{portionLabel}</span>
+                          )}
+                          {group.loading && <span className="nutrition-compound-group__state">Searching…</span>}
+                          {!group.loading && group.error && (
+                            <span className="nutrition-compound-group__state nutrition-compound-group__state--err">
+                              {group.error}
+                            </span>
+                          )}
+                          {!group.loading && !group.error && group.items.length === 0 && (
+                            <span className="nutrition-compound-group__state">No matches</span>
+                          )}
+                        </header>
+                        {group.items.length > 0 && (
+                          <ul className="nutrition-search-list nutrition-compound-list">
+                            {group.items.slice(0, 5).map((item) => (
+                              <li key={item.code} className="nutrition-search-item nutrition-search-item--with-fav">
+                                <button
+                                  type="button"
+                                  className={`nutrition-search-btn ${selectedFood?.code === item.code ? 'is-selected' : ''}`}
+                                  onClick={() => {
+                                    setSelectedFood(item);
+                                    if (group.part.grams && Number.isFinite(group.part.grams)) {
+                                      setServingGrams(String(Math.max(1, Math.round(group.part.grams))));
+                                    }
+                                  }}
+                                >
+                                  {item.image && (
+                                    <img src={item.image} alt="" className="nutrition-search-thumb" />
+                                  )}
+                                  <div className="nutrition-search-text">
+                                    <span className="nutrition-search-name">{item.name}</span>
+                                    <span className="nutrition-search-meta">
+                                      {item.brands || item.quantity || item.servingSize || 'Database'}
+                                    </span>
+                                  </div>
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`nutrition-fav-star ${favoriteCodeSet.has(item.code) ? 'is-on' : ''}`}
+                                  aria-label={
+                                    favoriteCodeSet.has(item.code)
+                                      ? `Remove ${item.name} from favorites`
+                                      : `Add ${item.name} to favorites`
+                                  }
+                                  aria-pressed={favoriteCodeSet.has(item.code)}
+                                  onClick={() => toggleNutritionFavorite(item)}
+                                >
+                                  {favoriteCodeSet.has(item.code) ? (
+                                    <Star size={16} fill="currentColor" color="#fbbf24" style={{ verticalAlign: 'text-bottom' }} />
+                                  ) : (
+                                    <Star size={16} color="#94a3b8" style={{ verticalAlign: 'text-bottom' }} />
+                                  )}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
+              {nutritionCompoundGroups.length === 0 && displayNutritionResults.length > 0 && (
                 <ul className="nutrition-search-list">
                   {displayNutritionResults.map((item) => (
                     <li key={item.code} className="nutrition-search-item nutrition-search-item--with-fav">

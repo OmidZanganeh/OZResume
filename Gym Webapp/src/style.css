@@ -5269,6 +5269,57 @@ select.text-input.day-modal-select {
   color: #99f6e4;
 }
 
+.nutrition-compound-results {
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.nutrition-compound-hint {
+  margin: 0;
+  font-size: var(--gf-text-xs);
+  color: var(--muted);
+}
+.nutrition-compound-group {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem 0.65rem;
+}
+.nutrition-compound-group__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+.nutrition-compound-group__name {
+  font-size: var(--gf-text-sm);
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.01em;
+}
+.nutrition-compound-group__portion {
+  font-size: var(--gf-text-2xs);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+  font-variant-numeric: tabular-nums;
+}
+.nutrition-compound-group__state {
+  font-size: var(--gf-text-2xs);
+  color: var(--muted);
+  margin-left: auto;
+}
+.nutrition-compound-group__state--err {
+  color: #fca5a5;
+}
+.nutrition-compound-list {
+  max-height: none;
+  margin: 0;
+}
+
 .nutrition-search-list {
   list-style: none;
   margin: 0.6rem 0 0;
