@@ -238,7 +238,7 @@ function buildRoutineRunUrl(planId: string): string {
 }
 
 function openRoutineWorkoutTab(planId: string) {
-  window.open(buildRoutineRunUrl(planId), '_blank', 'noopener,noreferrer');
+  window.location.href = buildRoutineRunUrl(planId);
 }
 
 export default function App() {
@@ -261,7 +261,12 @@ export default function App() {
   const [ninjasLoading, setNinjasLoading] = useState(false);
   const [ninjasError, setNinjasError] = useState<string | null>(null);
   const ninjasAbortRef = useRef<AbortController | null>(null);
+  const [expandedNinjaIdx, setExpandedNinjaIdx] = useState<number | null>(null);
   const [message, setMessage] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  function showConfirm(msg: string, onConfirm: () => void) {
+    setConfirmDialog({ message: msg, onConfirm });
+  }
   const [analysisDays, setAnalysisDays] = useState(10);
   const [reportDays, setReportDays] = useState(DEFAULT_REPORT_DAYS);
   const [reportProfile, setReportProfile] = useState<UserProfile>(() => ({}));
@@ -336,7 +341,20 @@ export default function App() {
   /** Muscle groups selected on the Quick Workout body map. */
   const [quickMuscles, setQuickMuscles] = useState<MuscleGroup[]>([]);
   /** Exercise IDs the user checked for the Quick Workout. */
-  const [quickPickedIds, setQuickPickedIds] = useState<Set<string>>(new Set());
+  const [quickPickedIds, setQuickPickedIdsRaw] = useState<Set<string>>(() => {
+    try {
+      const saved = sessionStorage.getItem('gf-quick-picks');
+      if (saved) return new Set(JSON.parse(saved) as string[]);
+    } catch { /* ignore */ }
+    return new Set();
+  });
+  function setQuickPickedIds(updater: Set<string> | ((prev: Set<string>) => Set<string>)) {
+    setQuickPickedIdsRaw((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try { sessionStorage.setItem('gf-quick-picks', JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  }
   const [quickSearch, setQuickSearch] = useState('');
   const [planEditorShowCatalog, setPlanEditorShowCatalog] = useState(true);
   const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
@@ -377,9 +395,16 @@ export default function App() {
   const equipmentFilterOptions = useMemo(() => collectSortedUnique(allExercises.map((e) => getEffectiveEquipment(e))), [allExercises]);
   const presetCategories = useMemo(() => buildPresetPlans(allExercises), [allExercises]);
 
+  const QUICK_ACTIVE_ID = 'gf-quick-active';
   const sortedSavedPlans = useMemo(
-    () => [...data.savedPlans].sort((a, b) => comparePlansByLastUsed(a, b, data.sessions)),
+    () => [...data.savedPlans]
+      .filter((p) => p.id !== QUICK_ACTIVE_ID)
+      .sort((a, b) => comparePlansByLastUsed(a, b, data.sessions)),
     [data.savedPlans, data.sessions],
+  );
+  const lastQuickPlan = useMemo(
+    () => data.savedPlans.find((p) => p.id === QUICK_ACTIVE_ID) ?? null,
+    [data.savedPlans],
   );
 
   const presetCategoriesSorted = useMemo(
@@ -837,7 +862,13 @@ export default function App() {
     setMealBuilderLogIds((prev) => prev.filter((id) => valid.has(id)));
   }, [dailyNutritionLogs]);
 
-
+  useEffect(() => {
+    setNinjasQuery('');
+    setNinjasResults([]);
+    setNinjasError(null);
+    if (ninjasAbortRef.current) { ninjasAbortRef.current.abort(); ninjasAbortRef.current = null; }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, plansSubTab]);
 
   useEffect(() => {
     if (selectedGroups.length === 0) setSelectedEquipment([]);
@@ -1715,11 +1746,6 @@ export default function App() {
     setView('create-focus');
   }
 
-  function openMusclePlanSuggestions(group: MuscleGroup) {
-    setMuscleSuggestionsGroup(group);
-    setView('muscle-plan-suggestions');
-  }
-
   function exitMusclePlanSuggestions() {
     setMuscleSuggestionsGroup(null);
     setView('home');
@@ -1878,13 +1904,14 @@ export default function App() {
   }
 
   function clearAllUserData() {
-    if (!window.confirm('Remove all workouts, stats, custom exercises, and saved plans? This cannot be undone.')) return;
-    setReportProfile({});
-    persist(defaultGymData);
-    setSelectedGroups([]); setSelectedEquipment([]); setSelectedExerciseIds([]); setExerciseDrafts({});
-    setSearchTerm(''); setVisibleExerciseCount(24); setNewExerciseName(''); setSavePlanNameInput('');
-    setView('home'); setActiveRoutineName(null); setEditingSavedPlanId(null);
-    setMessage('All data cleared.');
+    showConfirm('Remove all workouts, stats, custom exercises, and saved plans? This cannot be undone.', () => {
+      setReportProfile({});
+      persist(defaultGymData);
+      setSelectedGroups([]); setSelectedEquipment([]); setSelectedExerciseIds([]); setExerciseDrafts({});
+      setSearchTerm(''); setVisibleExerciseCount(24); setNewExerciseName(''); setSavePlanNameInput('');
+      setView('home'); setActiveRoutineName(null); setEditingSavedPlanId(null);
+      setMessage('All data cleared.');
+    });
   }
 
   function toggleSection(sectionKey: string) {
@@ -1911,10 +1938,10 @@ export default function App() {
       try {
         const d = JSON.parse(event.target?.result as string);
         if (d.savedPlans && d.sessions) {
-          if (window.confirm('Restore this backup? Current data will be overwritten.')) {
+          showConfirm('Restore this backup? Current data will be overwritten.', () => {
             persist(normalizeMuscleGroupsForPersistedData(d as PersistedGymData));
             setMessage('Data restored successfully!');
-          }
+          });
         } else {
           setMessage('Invalid backup file format.');
         }
@@ -2024,7 +2051,14 @@ export default function App() {
   function saveWorkout() {
     const includedIds = selectedExerciseIds.filter((id) => exerciseDrafts[id]?.completed);
     if (includedIds.length === 0) { setMessage('Check "Done" for at least one move.'); return; }
-    if (isLikelyDuplicateWorkoutSave(data.sessions, includedIds) && !window.confirm('Looks like a duplicate — save anyway?')) return;
+    if (isLikelyDuplicateWorkoutSave(data.sessions, includedIds)) {
+      showConfirm('Looks like a duplicate — save anyway?', commitSaveWorkout);
+      return;
+    }
+    commitSaveWorkout();
+  }
+
+  function commitSaveWorkout() {
     const result = commitWorkoutSession({
       data,
       exerciseOrderIds: selectedExerciseIds,
@@ -2055,35 +2089,45 @@ export default function App() {
         </div>
       )}
 
+      {/* Inline confirmation dialog */}
+      {confirmDialog && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirm action">
+          <div className="confirm-box">
+            <p className="confirm-message">{confirmDialog.message}</p>
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="confirm-btn confirm-btn--cancel"
+                onClick={() => setConfirmDialog(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-btn confirm-btn--ok"
+                onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main id="app-main" className="app-shell">
-        {isMainView && (
+        {isMainView && !cloudSignedIn && (
           <div className="gf-cloud-strip" role="region" aria-label="Cloud backup and account">
-            {cloudSignedIn ? (
-              <>
-                <p className="gf-cloud-strip__status gf-cloud-strip__status--on">
-                  <span>Cloud backup on</span>
-                </p>
-                <div className="gf-cloud-strip__actions">
-                  <a href="/gym-flow-account/">Account</a>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="gf-cloud-strip__status">Sign in to sync workouts and nutrition to the cloud.</p>
-                <div className="gf-cloud-strip__actions">
-                  <button type="button" className="button button-small" onClick={() => openGymFlowSignIn()}>
-                    Sign in
-                  </button>
-                  <a href={getGymFlowSignInPopupUrl()} target="_blank" rel="opener">
-                    New tab
-                  </a>
-                  <span className="gf-cloud-strip__sep" aria-hidden="true">
-                    ·
-                  </span>
-                  <a href="/gym-flow-account/">Account page</a>
-                </div>
-              </>
-            )}
+            <p className="gf-cloud-strip__status">Sign in to sync workouts and nutrition to the cloud.</p>
+            <div className="gf-cloud-strip__actions">
+              <button type="button" className="button button-small" onClick={() => openGymFlowSignIn()}>
+                Sign in
+              </button>
+              <a href={getGymFlowSignInPopupUrl()} target="_blank" rel="opener">
+                New tab
+              </a>
+              <span className="gf-cloud-strip__sep" aria-hidden="true">·</span>
+              <a href="/gym-flow-account/">Account page</a>
+            </div>
           </div>
         )}
 
@@ -2096,6 +2140,47 @@ export default function App() {
                 <p className="tab-subtitle">Calendar, nutrition, and training overview.</p>
               </div>
             </header>
+
+            {data.sessions.length === 0 && sortedSavedPlans.length === 0 && (
+              <section className="panel onboarding-panel" aria-label="Getting started">
+                <div className="onboarding-panel__icon" aria-hidden="true">🏋️</div>
+                <h2 className="onboarding-panel__heading">Welcome to Gym Flow</h2>
+                <p className="onboarding-panel__body">
+                  Track workouts, log nutrition, and watch your progress grow.
+                </p>
+                <div className="onboarding-panel__steps">
+                  <div className="onboarding-step">
+                    <span className="onboarding-step__num">1</span>
+                    <div>
+                      <strong>Create a plan</strong>
+                      <p>Go to <em>Plans</em> and tap <strong>+ New plan</strong> to build your first workout routine.</p>
+                    </div>
+                  </div>
+                  <div className="onboarding-step">
+                    <span className="onboarding-step__num">2</span>
+                    <div>
+                      <strong>Start a workout</strong>
+                      <p>Hit <em>Start</em> on any plan to log your sets and reps in real time.</p>
+                    </div>
+                  </div>
+                  <div className="onboarding-step">
+                    <span className="onboarding-step__num">3</span>
+                    <div>
+                      <strong>Log your food</strong>
+                      <p>Open the <em>Nutrition</em> tab to track macros and calories daily.</p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="button onboarding-panel__cta"
+                  onClick={() => setView('home')}
+                >
+                  Create my first plan
+                </button>
+              </section>
+            )}
+
             <section className="panel">
               <h2 className="panel-heading panel-heading--plain">Workout Calendar</h2>
               <WorkoutCalendar
@@ -2255,9 +2340,20 @@ export default function App() {
                 <button className="icon-add-btn" onClick={(e) => { e.stopPropagation(); startCreatePlan(); }} aria-label="New plan">+</button>
               </div>
 
+              {lastQuickPlan && (
+                <div className="last-quick-plan-banner">
+                  <div className="last-quick-plan-info">
+                    <span className="last-quick-plan-label">Last Quick Workout</span>
+                    <span className="last-quick-plan-sub">{lastQuickPlan.exerciseIds.length} exercises</span>
+                  </div>
+                  <button className="btn-start" onClick={() => openRoutineWorkoutTab(lastQuickPlan.id)}>
+                    Resume
+                  </button>
+                </div>
+              )}
               {true && (
                 <>
-                  {data.savedPlans.length === 0 ? (
+                  {sortedSavedPlans.length === 0 ? (
                     <button className="create-plan-empty" onClick={() => startCreatePlan()}>
                       <span className="create-plan-empty-icon">+</span>
                       <span>Create your first plan</span>
@@ -2294,7 +2390,7 @@ export default function App() {
                               <button className="plan-action-btn" onClick={() => beginEditSavedPlan(plan)}>Edit</button>
                               <button
                                 className="plan-action-btn plan-action-btn--danger"
-                                onClick={() => { if (window.confirm(`Delete "${plan.name}"?`)) deleteSavedPlanTemplate(plan.id); }}
+                                onClick={() => showConfirm(`Delete "${plan.name}"?`, () => deleteSavedPlanTemplate(plan.id))}
                               >
                                 Delete
                               </button>
@@ -2385,13 +2481,81 @@ export default function App() {
                 <BodyMapFigure
                   practiceCounts={practiceCounts}
                   practiceWindowDays={reportDays}
-                  selectedGroups={[]}
-                  onToggleGroup={(group) => openMusclePlanSuggestions(group)}
+                  selectedGroups={muscleSuggestionsGroup ? [muscleSuggestionsGroup] : []}
+                  onToggleGroup={(group) => setMuscleSuggestionsGroup(group === muscleSuggestionsGroup ? null : group)}
                   greenThreshold={bodyMapGreenThreshold}
                   onGreenThresholdChange={patchBodyMapGreenThreshold}
                   allowRegionToggle
                 />
               </div>
+              {muscleSuggestionsGroup && (
+                <div className="inline-muscle-suggestions">
+                  <div className="inline-muscle-suggestions__header">
+                    <strong className="inline-muscle-suggestions__title">{muscleSuggestionsGroup}</strong>
+                    <span className="inline-muscle-suggestions__count">
+                      {musclePlanSuggestionLists.total} plan{musclePlanSuggestionLists.total === 1 ? '' : 's'}
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-muscle-suggestions__close"
+                      onClick={() => setMuscleSuggestionsGroup(null)}
+                      aria-label="Close suggestions"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {musclePlanSuggestionLists.total === 0 && (
+                    <p className="panel-subtle">No plans include this muscle yet.</p>
+                  )}
+                  {musclePlanSuggestionLists.saved.length > 0 && (
+                    <ul className="plan-card-list">
+                      {musclePlanSuggestionLists.saved.map((plan) => {
+                        const entries = orderedPlanEntries(plan, allExercises);
+                        const lastUsed = getLastPlanSessionDate(plan, data.sessions);
+                        return (
+                          <li key={plan.id} className="plan-card-home">
+                            <div className="plan-card-home-row">
+                              <div className="plan-card-home-info">
+                                <span className="plan-card-home-name">{plan.name}</span>
+                                <span className="plan-card-home-sub">{planCardActivitySubline(entries.length, lastUsed)}</span>
+                              </div>
+                              <button type="button" className="btn-start" onClick={() => handleMuscleSuggestionStart(plan)}>Start</button>
+                            </div>
+                            <div className="plan-card-home-actions">
+                              <button type="button" className="plan-action-btn" onClick={() => handleMuscleSuggestionEdit(plan)}>Edit</button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  {musclePlanSuggestionLists.presets.map(({ category, plans }) => (
+                    <div key={category}>
+                      <p className="inline-muscle-suggestions__category">{category}</p>
+                      <ul className="plan-card-list">
+                        {plans.map((plan) => {
+                          const entries = orderedPlanEntries(plan, allExercises);
+                          const lastUsed = getLastPlanSessionDate(plan, data.sessions);
+                          return (
+                            <li key={plan.id} className="plan-card-home">
+                              <div className="plan-card-home-row">
+                                <div className="plan-card-home-info">
+                                  <span className="plan-card-home-name">{plan.name}</span>
+                                  <span className="plan-card-home-sub">{planCardActivitySubline(entries.length, lastUsed)}</span>
+                                </div>
+                                <button type="button" className="btn-start" onClick={() => handleMuscleSuggestionStart(plan)}>Start</button>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                  <button type="button" className="button muscle-plan-suggestions-build-btn" onClick={() => startCreatePlan([muscleSuggestionsGroup])}>
+                    Build a plan for {muscleSuggestionsGroup}
+                  </button>
+                </div>
+              )}
             </section>
             )}
 
@@ -2539,13 +2703,25 @@ export default function App() {
                   <ul className="ninjas-results-list">
                     {ninjasResults.map((ex, i) => {
                       const alreadyInLib = allExercises.some((e) => e.name.toLowerCase() === ex.name.toLowerCase());
+                      const isExpanded = expandedNinjaIdx === i;
                       return (
                         <li key={`${ex.name}-${i}`} className="ninjas-result-row">
                           <div className="ninjas-result-body">
-                            <span className="ninjas-result-name">{ex.name}</span>
+                            <button
+                              type="button"
+                              className="ninjas-result-name ninjas-result-name--btn"
+                              aria-expanded={isExpanded}
+                              onClick={() => setExpandedNinjaIdx(isExpanded ? null : i)}
+                            >
+                              {ex.name}
+                              <span className="ninjas-result-expand-hint">{isExpanded ? '▲' : '▼'}</span>
+                            </button>
                             <span className="ninjas-result-meta">
                               {ex.muscle.replace(/_/g, ' ')} · {ex.type.replace(/_/g, ' ')}
                             </span>
+                            {isExpanded && ex.instructions && (
+                              <p className="ninjas-result-instructions">{ex.instructions}</p>
+                            )}
                           </div>
                           <button
                             type="button"
@@ -2926,15 +3102,27 @@ export default function App() {
                 <ul className="ninjas-results-list">
                   {ninjasResults.map((ex, i) => {
                     const alreadyInLib = allExercises.some((e) => e.name.toLowerCase() === ex.name.toLowerCase());
+                    const isExpanded = expandedNinjaIdx === i;
                     return (
                       <li key={`${ex.name}-${i}`} className="ninjas-result-row">
                         <div className="ninjas-result-body">
-                          <span className="ninjas-result-name">{ex.name}</span>
+                          <button
+                            type="button"
+                            className="ninjas-result-name ninjas-result-name--btn"
+                            aria-expanded={isExpanded}
+                            onClick={() => setExpandedNinjaIdx(isExpanded ? null : i)}
+                          >
+                            {ex.name}
+                            <span className="ninjas-result-expand-hint">{isExpanded ? '▲' : '▼'}</span>
+                          </button>
                           <span className="ninjas-result-meta">
                             {ex.muscle.replace(/_/g, ' ')} · {ex.type.replace(/_/g, ' ')} · {ex.difficulty}
                           </span>
                           {ex.equipment && ex.equipment !== 'other' && (
                             <span className="ninjas-result-meta">{ex.equipment.replace(/_/g, ' ')}</span>
+                          )}
+                          {isExpanded && ex.instructions && (
+                            <p className="ninjas-result-instructions">{ex.instructions}</p>
                           )}
                         </div>
                         <button
@@ -3100,14 +3288,6 @@ export default function App() {
                     <span className="activity-overview-row-sub">{MUSCLE_GROUPS.length} total groups</span>
                   </div>
                   <strong className="activity-overview-row-value">{trainedGroupsCountAnalysis}</strong>
-                </article>
-
-                <article className="activity-overview-row" role="listitem">
-                  <div className="activity-overview-row-main">
-                    <span className="activity-overview-row-label">Best streak</span>
-                    <span className="activity-overview-row-sub">All-time max</span>
-                  </div>
-                  <strong className="activity-overview-row-value">{streak.longest}</strong>
                 </article>
 
                 <article className="activity-overview-row" role="listitem">
@@ -3407,17 +3587,24 @@ export default function App() {
             {nutritionSubTab === 'today' && (
             <section className="panel nutrition-log-food-panel">
               <h2 className="panel-heading panel-heading--plain">Log food</h2>
-              <div className="nutrition-search-row">
+              {!cloudSignedIn && (
+                <div className="nutrition-signin-gate">
+                  <p className="nutrition-signin-gate__text">Sign in to search and log food</p>
+                  <button type="button" className="button button-small" onClick={openGymFlowSignIn}>Sign in</button>
+                </div>
+              )}
+              <div className={`nutrition-search-row${!cloudSignedIn ? ' nutrition-search-row--locked' : ''}`}>
                 <input
                   className="text-input nutrition-search-input"
                   type="text"
                   placeholder="Search foods…"
+                  disabled={!cloudSignedIn}
                   value={nutritionQuery}
                   onChange={(e) => setNutritionQuery(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      runNutritionSearch();
+                      if (cloudSignedIn) runNutritionSearch();
                     }
                   }}
                 />

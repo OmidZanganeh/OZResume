@@ -127,7 +127,39 @@ export function RoutineRunView({ planId }: Props) {
   /** Browse-all mode in the swap section — show all exercises not just same-muscle. */
   const [swapBrowseAll, setSwapBrowseAll] = useState(false);
   const [swapSearch, setSwapSearch] = useState('');
+  const [swapBrowseLimit, setSwapBrowseLimit] = useState(20);
+  /** Rest timer state */
+  const [restSecondsLeft, setRestSecondsLeft] = useState<number | null>(null);
+  const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Inline confirm dialog */
+  const [rrConfirmDialog, setRrConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  function rrShowConfirm(msg: string, onConfirm: () => void) {
+    setRrConfirmDialog({ message: msg, onConfirm });
+  }
   const prevPlanIdForInitRef = useRef<string | null>(null);
+
+  function startRestTimer(seconds: number) {
+    if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+    setRestSecondsLeft(seconds);
+    restIntervalRef.current = setInterval(() => {
+      setRestSecondsLeft((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(restIntervalRef.current!);
+          restIntervalRef.current = null;
+          if (prev === 1) {
+            try { navigator.vibrate?.([200, 100, 200]); } catch { /* ignore */ }
+          }
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  function stopRestTimer() {
+    if (restIntervalRef.current) { clearInterval(restIntervalRef.current); restIntervalRef.current = null; }
+    setRestSecondsLeft(null);
+  }
 
   const allExercises = useMemo(
     () => [...EXERCISE_LIBRARY, ...data.customExercises],
@@ -325,6 +357,7 @@ export function RoutineRunView({ planId }: Props) {
     setMediaExpanded(false);
     setSwapBrowseAll(false);
     setSwapSearch('');
+    setSwapBrowseLimit(20);
   }, [currentIndex]);
 
   useEffect(() => {
@@ -413,17 +446,17 @@ export function RoutineRunView({ planId }: Props) {
     setSaveMessage(`This slot is now “${alt.name}” for the rest of this session.`);
   }
 
-  function replaceExerciseInPlanPermanently(alt: Exercise) {
+  function replaceExerciseInPlanPermanently(alt: Exercise, confirmed = false) {
     if (!plan || exercises.length === 0) return;
     const cur = exercises[currentIndex];
     if (!cur || cur.id === alt.id) return;
 
     if (isUserSavedPlan) {
-      if (
-        !window.confirm(
+      if (!confirmed) {
+        rrShowConfirm(
           `Replace “${cur.name}” with “${alt.name}” in “${plan.name}” for all future workouts?`,
-        )
-      ) {
+          () => replaceExerciseInPlanPermanently(alt, true),
+        );
         return;
       }
       const idx = data.savedPlans.findIndex((p) => p.id === planId);
@@ -455,11 +488,11 @@ export function RoutineRunView({ planId }: Props) {
       return;
     }
 
-    if (
-      !window.confirm(
+    if (!confirmed) {
+      rrShowConfirm(
         `Preset routines cannot be edited in place. Add “${plan.name} · adapted” to My plans with “${alt.name}” instead of “${cur.name}”? You will switch to that new routine.`,
-      )
-    ) {
+        () => replaceExerciseInPlanPermanently(alt, true),
+      );
       return;
     }
     const base = resolvePlanExerciseIdsToCatalog(plan.exerciseIds, allExercises);
@@ -495,7 +528,7 @@ export function RoutineRunView({ planId }: Props) {
     window.location.replace(`${url.pathname}${url.search}`);
   }
 
-  function handleSaveWorkout() {
+  function handleSaveWorkout(dupConfirmed = false) {
     if (!plan) return;
     const orderIds = exercises.map((e) => e.id);
     const includedIds = orderIds.filter((id) => exerciseDrafts[id]?.completed);
@@ -510,13 +543,11 @@ export function RoutineRunView({ planId }: Props) {
         return;
       }
     }
-    if (
-      includedIds.length > 0 &&
-      isLikelyDuplicateWorkoutSave(data.sessions, includedIds) &&
-      !window.confirm(
+    if (includedIds.length > 0 && isLikelyDuplicateWorkoutSave(data.sessions, includedIds) && !dupConfirmed) {
+      rrShowConfirm(
         'This matches a workout you saved a few minutes ago (same moves). Save again anyway?',
-      )
-    ) {
+        () => handleSaveWorkout(true),
+      );
       return;
     }
     const result = commitWorkoutSession({
@@ -609,7 +640,7 @@ export function RoutineRunView({ planId }: Props) {
             <h1 className="routine-run-topbar__title">{plan.name}</h1>
           </div>
           {canSave ? (
-            <button type="button" className="button button-small routine-run-topbar__save" onClick={handleSaveWorkout}>
+            <button type="button" className="button button-small routine-run-topbar__save" onClick={() => handleSaveWorkout()}>
               Save
             </button>
           ) : (
@@ -715,6 +746,11 @@ export function RoutineRunView({ planId }: Props) {
                 onClick={() => {
                   const nextCompleted = !(draft?.completed ?? false);
                   updateDraft(ex.id, { completed: nextCompleted });
+                  if (nextCompleted) {
+                    startRestTimer(90);
+                  } else {
+                    stopRestTimer();
+                  }
                   if (autoAdvanceOnInclude && nextCompleted && currentIndex < exercises.length - 1) {
                     setCurrentIndex((i) => Math.min(exercises.length - 1, i + 1));
                   }
@@ -839,11 +875,14 @@ export function RoutineRunView({ planId }: Props) {
               )}
 
               {(() => {
-                const list = swapBrowseAll ? swapBrowseList.slice(0, 60) : exerciseAlternatives;
+                const rawList = swapBrowseAll ? swapBrowseList : exerciseAlternatives;
+                const list = swapBrowseAll ? rawList.slice(0, swapBrowseLimit) : rawList;
+                const hasMore = swapBrowseAll && rawList.length > swapBrowseLimit;
                 if (list.length === 0) {
                   return <p className="routine-run-history-empty">No matches.</p>;
                 }
                 return (
+                  <>
                   <ul className="routine-run-alts-list">
                     {list.map((alt) => {
                       const altImg = images[alt.name];
@@ -899,6 +938,16 @@ export function RoutineRunView({ planId }: Props) {
                       );
                     })}
                   </ul>
+                  {hasMore && (
+                    <button
+                      type="button"
+                      className="routine-run-load-more"
+                      onClick={() => setSwapBrowseLimit((n) => n + 20)}
+                    >
+                      Load more ({rawList.length - swapBrowseLimit} remaining)
+                    </button>
+                  )}
+                  </>
                 );
               })()}
 
@@ -1046,7 +1095,7 @@ export function RoutineRunView({ planId }: Props) {
               <button
                 type="button"
                 className="routine-run-footer__btn routine-run-footer__btn--primary"
-                onClick={handleSaveWorkout}
+                onClick={() => handleSaveWorkout()}
                 disabled={!canSave}
               >
                 Finish &amp; save
@@ -1065,11 +1114,54 @@ export function RoutineRunView({ planId }: Props) {
               {includedCount} included · Saves to Activity &amp; body map
             </span>
           </div>
-          <button type="button" className="button" onClick={handleSaveWorkout}>
+          <button type="button" className="button" onClick={() => handleSaveWorkout()}>
             Save workout
           </button>
         </div>
       ) : null}
+
+      {/* Inline confirm dialog */}
+      {rrConfirmDialog && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirm action">
+          <div className="confirm-box">
+            <p className="confirm-message">{rrConfirmDialog.message}</p>
+            <div className="confirm-actions">
+              <button type="button" className="confirm-btn confirm-btn--cancel" onClick={() => setRrConfirmDialog(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-btn confirm-btn--ok"
+                onClick={() => { rrConfirmDialog.onConfirm(); setRrConfirmDialog(null); }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rest timer floating sheet */}
+      {restSecondsLeft !== null && (
+        <div className="rest-timer-sheet" role="status" aria-live="polite" aria-label="Rest timer">
+          <div className="rest-timer-sheet__inner">
+            <div className="rest-timer-sheet__label">Rest</div>
+            <div className="rest-timer-sheet__countdown">
+              {Math.floor(restSecondsLeft / 60)}:{String(restSecondsLeft % 60).padStart(2, '0')}
+            </div>
+            <div className="rest-timer-sheet__presets">
+              {[30, 60, 90, 120, 180].map((s) => (
+                <button key={s} type="button" className="rest-timer-preset" onClick={() => startRestTimer(s)}>
+                  {s < 60 ? `${s}s` : `${s / 60}m`}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="rest-timer-sheet__skip" onClick={stopRestTimer}>
+              Skip rest
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
