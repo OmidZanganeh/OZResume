@@ -58,6 +58,7 @@
 | `gym-flow/data` | Gym Flow cloud JSON (auth required) |
 | `gym-flow/profile` | PATCH merge `userProfile` into cloud payload (auth + DB) |
 | `gym-flow/register` | Email/password Gym Flow registration |
+| `gym-flow/exercises/search` | API Ninjas proxy — returns up to 10 exercises matching `name`/`muscle`/`type`/`difficulty`. Requires `EXERCISE_NINJAS_API_KEY` env var. Auth-gated. |
 | `gym-flow/nutrition/search` | USDA + OFF text search; **8–14 digit query** also hits OFF `/product/{code}` (barcode) and merges first. Client splits compound queries (`and`/`&`/`,`/`+`) and calls this route once per part — see `utils/nutritionQueryParser.ts`. |
 | `gym-flow/nutrition/item` | USDA FDC or Open Food Facts product detail; codes `usda:{fdcId}` vs barcode (US + world OFF hosts) |
 

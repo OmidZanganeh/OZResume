@@ -253,6 +253,14 @@ export default function App() {
   const [exerciseDrafts, setExerciseDrafts] = useState<Record<string, ExerciseLogDraft>>({});
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseGroup, setNewExerciseGroup] = useState<MuscleGroup>('Chest');
+  /** API Ninjas online exercise search state */
+  const [ninjasQuery, setNinjasQuery] = useState('');
+  const [ninjasResults, setNinjasResults] = useState<Array<{
+    name: string; type: string; muscle: string; equipment: string; difficulty: string; instructions: string;
+  }>>([]);
+  const [ninjasLoading, setNinjasLoading] = useState(false);
+  const [ninjasError, setNinjasError] = useState<string | null>(null);
+  const ninjasAbortRef = useRef<AbortController | null>(null);
   const [message, setMessage] = useState('');
   const [analysisDays, setAnalysisDays] = useState(10);
   const [reportDays, setReportDays] = useState(DEFAULT_REPORT_DAYS);
@@ -1763,6 +1771,66 @@ export default function App() {
     setMessage(`"${name}" added.`);
   }
 
+  function runNinjasExerciseSearch(queryOverride?: string) {
+    const q = (queryOverride ?? ninjasQuery).trim();
+    if (q.length < 2) {
+      setNinjasError('Enter at least 2 characters.');
+      return;
+    }
+    ninjasAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    ninjasAbortRef.current = ctrl;
+    setNinjasLoading(true);
+    setNinjasError(null);
+    setNinjasResults([]);
+    const url = `/api/gym-flow/exercises/search?name=${encodeURIComponent(q)}`;
+    fetch(url, { credentials: 'include', signal: ctrl.signal })
+      .then(async (r) => {
+        let json: unknown = {};
+        try { json = await r.json(); } catch { json = {}; }
+        if (!r.ok) {
+          const msg = (json as { error?: string }).error ?? 'Search failed';
+          setNinjasError(msg);
+          return;
+        }
+        const payload = json as { exercises?: typeof ninjasResults };
+        setNinjasResults(Array.isArray(payload.exercises) ? payload.exercises : []);
+      })
+      .catch((err) => {
+        if (err?.name === 'AbortError') return;
+        setNinjasError('Search failed');
+      })
+      .finally(() => {
+        if (ninjasAbortRef.current === ctrl) ninjasAbortRef.current = null;
+        setNinjasLoading(false);
+      });
+  }
+
+  /** Map API Ninjas muscle names to our MuscleGroup enum. */
+  function ninjaMuscleToGroup(muscle: string): MuscleGroup {
+    const map: Record<string, MuscleGroup> = {
+      abdominals: 'Core', abductors: 'Glutes', adductors: 'Glutes',
+      biceps: 'Biceps', calves: 'Calves', chest: 'Chest',
+      forearms: 'Forearms', glutes: 'Glutes', hamstrings: 'Hamstrings',
+      lats: 'Back', lower_back: 'Back', middle_back: 'Back',
+      neck: 'Shoulders', quadriceps: 'Quads', traps: 'Shoulders', triceps: 'Triceps',
+    };
+    return map[muscle.toLowerCase()] ?? 'Core';
+  }
+
+  function addNinjasExerciseToLibrary(ex: typeof ninjasResults[number]) {
+    const name = ex.name.trim();
+    if (!name) return;
+    if (allExercises.some((e) => e.name.toLowerCase() === name.toLowerCase())) {
+      setMessage(`"${name}" is already in your library.`);
+      return;
+    }
+    const group = ninjaMuscleToGroup(ex.muscle);
+    const id = `custom-${name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}-${Date.now()}`;
+    persist({ ...data, customExercises: [...data.customExercises, { id, name, primaryGroup: group }] });
+    setMessage(`"${name}" added to your library.`);
+  }
+
   async function handleDownloadImage() {
     const reportEl = document.getElementById('print-report');
     if (!reportEl) return;
@@ -2445,6 +2513,55 @@ export default function App() {
               )}
 
               {/* Start button */}
+              {/* Online exercise search — add missing moves to library */}
+              <details className="ninjas-search-section ninjas-search-section--compact">
+                <summary className="ninjas-search-summary">Can't find a move? Search online</summary>
+                <div className="ninjas-search-row" style={{ marginTop: '0.5rem' }}>
+                  <input
+                    className="text-input"
+                    type="text"
+                    placeholder="e.g. Bulgarian split squat…"
+                    value={ninjasQuery}
+                    onChange={(e) => setNinjasQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runNinjasExerciseSearch(); } }}
+                  />
+                  <button
+                    type="button"
+                    className="button button-small"
+                    disabled={ninjasLoading || !cloudSignedIn}
+                    onClick={() => runNinjasExerciseSearch()}
+                  >
+                    {ninjasLoading ? '…' : 'Search'}
+                  </button>
+                </div>
+                {ninjasError && <p className="ninjas-search-hint ninjas-search-hint--err">{ninjasError}</p>}
+                {ninjasResults.length > 0 && (
+                  <ul className="ninjas-results-list">
+                    {ninjasResults.map((ex, i) => {
+                      const alreadyInLib = allExercises.some((e) => e.name.toLowerCase() === ex.name.toLowerCase());
+                      return (
+                        <li key={`${ex.name}-${i}`} className="ninjas-result-row">
+                          <div className="ninjas-result-body">
+                            <span className="ninjas-result-name">{ex.name}</span>
+                            <span className="ninjas-result-meta">
+                              {ex.muscle.replace(/_/g, ' ')} · {ex.type.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className={`button button-small ${alreadyInLib ? 'button-muted' : ''}`}
+                            disabled={alreadyInLib}
+                            onClick={() => addNinjasExerciseToLibrary(ex)}
+                          >
+                            {alreadyInLib ? 'In library' : '+ Add'}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </details>
+
               <div className="quick-workout-footer">
                 <button
                   type="button"
@@ -2777,6 +2894,66 @@ export default function App() {
               <button type="button" className="button button-block" style={{ margin: '0 1rem 1rem' }} onClick={() => setVisibleExerciseCount((v) => v + 24)}>
                 Show more
               </button>
+            )}
+
+            {/* ── Online Exercise Search (API Ninjas) ── */}
+            {planEditorShowCatalog && (
+            <section className="ninjas-search-section">
+              <h3 className="ninjas-search-heading">Search online exercises</h3>
+              <p className="ninjas-search-hint">Find 3,000+ moves by name. Add any to your library, then pick it above.</p>
+              <div className="ninjas-search-row">
+                <input
+                  className="text-input"
+                  type="text"
+                  placeholder="e.g. Bulgarian split squat…"
+                  value={ninjasQuery}
+                  onChange={(e) => setNinjasQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runNinjasExerciseSearch(); } }}
+                />
+                <button
+                  type="button"
+                  className="button button-small"
+                  disabled={ninjasLoading || !cloudSignedIn}
+                  onClick={() => runNinjasExerciseSearch()}
+                  title={!cloudSignedIn ? 'Sign in to search online' : ''}
+                >
+                  {ninjasLoading ? '…' : 'Search'}
+                </button>
+              </div>
+              {!cloudSignedIn && <p className="ninjas-search-hint ninjas-search-hint--warn">Sign in to use online search.</p>}
+              {ninjasError && <p className="ninjas-search-hint ninjas-search-hint--err">{ninjasError}</p>}
+              {ninjasResults.length > 0 && (
+                <ul className="ninjas-results-list">
+                  {ninjasResults.map((ex, i) => {
+                    const alreadyInLib = allExercises.some((e) => e.name.toLowerCase() === ex.name.toLowerCase());
+                    return (
+                      <li key={`${ex.name}-${i}`} className="ninjas-result-row">
+                        <div className="ninjas-result-body">
+                          <span className="ninjas-result-name">{ex.name}</span>
+                          <span className="ninjas-result-meta">
+                            {ex.muscle.replace(/_/g, ' ')} · {ex.type.replace(/_/g, ' ')} · {ex.difficulty}
+                          </span>
+                          {ex.equipment && ex.equipment !== 'other' && (
+                            <span className="ninjas-result-meta">{ex.equipment.replace(/_/g, ' ')}</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className={`button button-small ${alreadyInLib ? 'button-muted' : ''}`}
+                          disabled={alreadyInLib}
+                          onClick={() => addNinjasExerciseToLibrary(ex)}
+                        >
+                          {alreadyInLib ? 'In library' : '+ Add'}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {ninjasResults.length === 0 && !ninjasLoading && !ninjasError && ninjasQuery.trim().length >= 2 && (
+                <p className="ninjas-search-hint">No results yet — press Search.</p>
+              )}
+            </section>
             )}
 
             {/* Save plan bar — sticky bottom */}

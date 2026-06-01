@@ -5426,6 +5426,92 @@ select.text-input.day-modal-select {
   justify-content: center;
 }
 
+/* ── API Ninjas Online Exercise Search ──────────────────────────── */
+.ninjas-search-section {
+  margin: 1.25rem 1rem 0;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.ninjas-search-section--compact {
+  margin: 0.75rem 0 0;
+  padding: 0.7rem 0.85rem;
+}
+.ninjas-search-section--compact > summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--gf-text-xs);
+  color: var(--muted);
+  user-select: none;
+}
+.ninjas-search-section--compact > summary::-webkit-details-marker { display: none; }
+.ninjas-search-section--compact[open] > summary {
+  color: #a5b4fc;
+  margin-bottom: 0.1rem;
+}
+.ninjas-search-heading {
+  margin: 0 0 0.15rem;
+  font-size: var(--gf-text-sm);
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.ninjas-search-hint {
+  margin: 0 0 0.6rem;
+  font-size: var(--gf-text-xs);
+  color: var(--muted);
+  line-height: 1.45;
+}
+.ninjas-search-hint--warn { color: #fbbf24; }
+.ninjas-search-hint--err  { color: #f87171; margin-top: 0.35rem; }
+.ninjas-search-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.ninjas-search-row .text-input {
+  flex: 1;
+}
+.ninjas-results-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.ninjas-result-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.ninjas-result-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.ninjas-result-name {
+  font-size: var(--gf-text-sm);
+  font-weight: 500;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ninjas-result-meta {
+  font-size: var(--gf-text-2xs);
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
 .nutrition-compound-results {
   margin: 0.75rem 0 0;
   display: flex;
