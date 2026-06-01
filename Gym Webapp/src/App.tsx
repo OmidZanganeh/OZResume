@@ -2164,7 +2164,7 @@ export default function App() {
                 { id: 'my', label: 'My Plans' },
                 { id: 'browse', label: 'Browse' },
                 { id: 'bodymap', label: 'Body Map' },
-                { id: 'quick', label: '⚡ Quick' },
+                { id: 'quick', label: 'Quick' },
               ] as const).map((t) => (
                 <button
                   key={t.id}
@@ -2175,9 +2175,6 @@ export default function App() {
                   onClick={() => setPlansSubTab(t.id)}
                 >
                   {t.label}
-                  {t.id === 'my' && data.savedPlans.length > 0 ? (
-                    <span className="subtab-badge">{data.savedPlans.length}</span>
-                  ) : null}
                 </button>
               ))}
             </nav>
