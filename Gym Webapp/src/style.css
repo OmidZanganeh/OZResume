@@ -5359,7 +5359,7 @@ select.text-input.day-modal-select {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   cursor: pointer;
   user-select: none;
 }
@@ -5370,16 +5370,46 @@ select.text-input.day-modal-select {
   accent-color: #6366f1;
   cursor: pointer;
 }
-.quick-workout-row-name {
+.quick-workout-row-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+}
+.quick-workout-row-img--ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.quick-workout-row-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.quick-workout-row-name {
   font-size: var(--gf-text-sm);
   font-weight: 500;
   color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .quick-workout-row-muscle {
   font-size: var(--gf-text-2xs);
   color: var(--muted);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .quick-workout-footer {
   position: sticky;

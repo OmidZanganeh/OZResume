@@ -808,9 +808,14 @@ export default function App() {
   );
 
   const exercisesToResolveImages = useMemo(() => {
-    const names = new Set([...visibleExercises.map((e) => e.name), ...planExercises.map((e) => e.name)]);
+    const names = new Set([
+      ...visibleExercises.map((e) => e.name),
+      ...planExercises.map((e) => e.name),
+      // Quick Workout: load images for the currently visible filtered list (capped to avoid giant batches)
+      ...quickFilteredExercises.slice(0, 40).map((e) => e.name),
+    ]);
     return allExercises.filter((e) => names.has(e.name));
-  }, [allExercises, planExercises, visibleExercises]);
+  }, [allExercises, planExercises, visibleExercises, quickFilteredExercises]);
 
   // Auto-dismiss toast after 4s
   useEffect(() => {
@@ -2397,6 +2402,7 @@ export default function App() {
                 <ul className="quick-workout-list">
                   {quickFilteredExercises.map((ex) => {
                     const picked = quickPickedIds.has(ex.id);
+                    const imgMeta = exerciseImages[ex.name];
                     return (
                       <li key={ex.id} className={`quick-workout-row ${picked ? 'is-picked' : ''}`}>
                         <label className="quick-workout-row-label">
@@ -2413,8 +2419,27 @@ export default function App() {
                               });
                             }}
                           />
-                          <span className="quick-workout-row-name">{ex.name}</span>
-                          <span className="quick-workout-row-muscle">{ex.primaryGroup}</span>
+                          {imgMeta?.url ? (
+                            <img
+                              src={imgMeta.url}
+                              alt=""
+                              className="quick-workout-row-img"
+                              width={48}
+                              height={48}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="quick-workout-row-img quick-workout-row-img--ph" aria-hidden="true">
+                              {ex.primaryGroup.slice(0, 2)}
+                            </div>
+                          )}
+                          <div className="quick-workout-row-info">
+                            <span className="quick-workout-row-name">{ex.name}</span>
+                            <span className="quick-workout-row-muscle">
+                              {ex.primaryGroup}
+                              {ex.secondaryGroups?.length ? ` · ${ex.secondaryGroups.slice(0, 2).join(', ')}` : ''}
+                            </span>
+                          </div>
                         </label>
                       </li>
                     );
