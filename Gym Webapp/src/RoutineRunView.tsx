@@ -171,10 +171,16 @@ export function RoutineRunView({ planId }: Props) {
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
   const allPresets = useMemo(() => buildPresetPlans(allExercises).flatMap(g => g.plans), [allExercises]);
 
-  const plan = data.savedPlans.find((p) => p.id === planId)
-    || allPresets.find((p) => p.id === planId)
-    || (planId === 'gf-quick-active' ? loadQuickPlanFromLocalStorage() : null)
-    || undefined;
+  const plan = useMemo(
+    () =>
+      data.savedPlans.find((p) => p.id === planId)
+      || allPresets.find((p) => p.id === planId)
+      || (planId === 'gf-quick-active' ? loadQuickPlanFromLocalStorage() : null)
+      || undefined,
+    // loadQuickPlanFromLocalStorage is stable (reads localStorage) — only re-run when plan list or presets change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.savedPlans, allPresets, planId],
+  );
 
   const baseResolvedIds = useMemo(() => {
     if (!plan) return [];
