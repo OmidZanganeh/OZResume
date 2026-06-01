@@ -324,7 +324,12 @@ export default function App() {
   const [settingsSearch, setSettingsSearch] = useState('');
   const [activitySubTab, setActivitySubTab] = useState<'overview' | 'insights' | 'history'>('overview');
   const [nutritionSubTab, setNutritionSubTab] = useState<'today' | 'foods' | 'goals'>('today');
-  const [plansSubTab, setPlansSubTab] = useState<'my' | 'browse' | 'bodymap'>('my');
+  const [plansSubTab, setPlansSubTab] = useState<'my' | 'browse' | 'bodymap' | 'quick'>('my');
+  /** Muscle groups selected on the Quick Workout body map. */
+  const [quickMuscles, setQuickMuscles] = useState<MuscleGroup[]>([]);
+  /** Exercise IDs the user checked for the Quick Workout. */
+  const [quickPickedIds, setQuickPickedIds] = useState<Set<string>>(new Set());
+  const [quickSearch, setQuickSearch] = useState('');
   const [planEditorShowCatalog, setPlanEditorShowCatalog] = useState(true);
   const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [reportImageBusy, setReportImageBusy] = useState(false);
@@ -336,6 +341,30 @@ export default function App() {
 
   const allExercises = useMemo(() => [...EXERCISE_LIBRARY, ...data.customExercises], [data.customExercises]);
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
+
+  /** Exercises shown in the Quick Workout picker, filtered by selected muscles and search. */
+  const quickFilteredExercises = useMemo(() => {
+    const q = quickSearch.trim().toLowerCase();
+    return allExercises
+      .filter((ex) => {
+        if (quickMuscles.length === 0) return true;
+        const groups = new Set([ex.primaryGroup, ...(ex.secondaryGroups ?? [])]);
+        return quickMuscles.some((m) => groups.has(m));
+      })
+      .filter((ex) => {
+        if (!q) return true;
+        return (
+          ex.name.toLowerCase().includes(q) ||
+          ex.primaryGroup.toLowerCase().includes(q) ||
+          (ex.secondaryGroups ?? []).some((g) => g.toLowerCase().includes(q))
+        );
+      })
+      .sort((a, b) => {
+        const pg = a.primaryGroup.localeCompare(b.primaryGroup);
+        if (pg !== 0) return pg;
+        return a.name.localeCompare(b.name);
+      });
+  }, [allExercises, quickMuscles, quickSearch]);
   const categoryFilterOptions = useMemo(() => collectSortedUnique(allExercises.map((e) => getEffectiveCategory(e))), [allExercises]);
   const equipmentFilterOptions = useMemo(() => collectSortedUnique(allExercises.map((e) => getEffectiveEquipment(e))), [allExercises]);
   const presetCategories = useMemo(() => buildPresetPlans(allExercises), [allExercises]);
@@ -1694,6 +1723,31 @@ export default function App() {
     beginEditSavedPlan(plan);
   }
 
+  function startQuickWorkout(pickedIds: string[]) {
+    if (pickedIds.length === 0) return;
+    const QUICK_PLAN_ID = 'gf-quick-active';
+    const muscles = Array.from(
+      new Set(
+        pickedIds.flatMap((id) => {
+          const ex = allExercises.find((e) => e.id === id);
+          return ex ? [ex.primaryGroup, ...(ex.secondaryGroups ?? [])] : [];
+        }),
+      ),
+    ) as MuscleGroup[];
+    const newPlan: SavedPlan = {
+      id: QUICK_PLAN_ID,
+      name: 'Quick Workout',
+      createdAt: new Date().toISOString(),
+      exerciseIds: pickedIds,
+      muscleGroups: muscles,
+      equipment: [],
+    };
+    // Replace any existing quick plan slot.
+    const nextPlans = data.savedPlans.filter((p) => p.id !== QUICK_PLAN_ID);
+    persist({ ...data, savedPlans: [...nextPlans, newPlan] });
+    openRoutineWorkoutTab(QUICK_PLAN_ID);
+  }
+
   function handleAddCustomExercise(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const name = newExerciseName.trim();
@@ -2105,6 +2159,7 @@ export default function App() {
                 { id: 'my', label: 'My Plans' },
                 { id: 'browse', label: 'Browse' },
                 { id: 'bodymap', label: 'Body Map' },
+                { id: 'quick', label: '⚡ Quick' },
               ] as const).map((t) => (
                 <button
                   key={t.id}
@@ -2266,6 +2321,128 @@ export default function App() {
                   onGreenThresholdChange={patchBodyMapGreenThreshold}
                   allowRegionToggle
                 />
+              </div>
+            </section>
+            )}
+
+            {/* ── QUICK WORKOUT ─────────────────────────────────────── */}
+            {plansSubTab === 'quick' && (
+            <section className="home-section quick-workout-section" aria-label="Quick Workout">
+              <div className="home-section-header" style={{ cursor: 'default' }}>
+                <span className="home-section-label">QUICK WORKOUT</span>
+                {quickPickedIds.size > 0 && (
+                  <span className="home-section-sub">{quickPickedIds.size} selected</span>
+                )}
+              </div>
+
+              <p className="quick-workout-hint">
+                Tap muscles on the body map, then pick moves. Hit <strong>Start</strong> to go.
+              </p>
+
+              {/* Muscle picker body map */}
+              <div className="quick-workout-map-wrap">
+                <BodyMapFigure
+                  practiceCounts={new Map()}
+                  practiceWindowDays={7}
+                  selectedGroups={quickMuscles}
+                  onToggleGroup={(g) =>
+                    setQuickMuscles((prev) =>
+                      prev.includes(g) ? prev.filter((m) => m !== g) : [...prev, g],
+                    )
+                  }
+                  allowRegionToggle
+                  showMuscleScores={false}
+                />
+              </div>
+
+              {/* Selected muscle chips */}
+              {quickMuscles.length > 0 && (
+                <div className="quick-workout-chips" role="group" aria-label="Selected muscles">
+                  {quickMuscles.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      className="chip chip-compact chip-active"
+                      onClick={() => setQuickMuscles((prev) => prev.filter((x) => x !== m))}
+                      title={`Remove ${m}`}
+                    >
+                      {m} ×
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="chip chip-compact"
+                    onClick={() => { setQuickMuscles([]); setQuickPickedIds(new Set()); }}
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
+
+              {/* Exercise search */}
+              <div className="quick-workout-search-row">
+                <input
+                  className="text-input"
+                  type="text"
+                  placeholder={quickMuscles.length === 0 ? 'Search all exercises…' : 'Filter exercises…'}
+                  value={quickSearch}
+                  onChange={(e) => setQuickSearch(e.target.value)}
+                />
+              </div>
+
+              {/* Exercise list */}
+              {quickFilteredExercises.length === 0 ? (
+                <p className="empty-text">No exercises match. Try different muscles or clear the search.</p>
+              ) : (
+                <ul className="quick-workout-list">
+                  {quickFilteredExercises.map((ex) => {
+                    const picked = quickPickedIds.has(ex.id);
+                    return (
+                      <li key={ex.id} className={`quick-workout-row ${picked ? 'is-picked' : ''}`}>
+                        <label className="quick-workout-row-label">
+                          <input
+                            type="checkbox"
+                            className="quick-workout-check"
+                            checked={picked}
+                            onChange={() => {
+                              setQuickPickedIds((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(ex.id)) next.delete(ex.id);
+                                else next.add(ex.id);
+                                return next;
+                              });
+                            }}
+                          />
+                          <span className="quick-workout-row-name">{ex.name}</span>
+                          <span className="quick-workout-row-muscle">{ex.primaryGroup}</span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {/* Start button */}
+              <div className="quick-workout-footer">
+                <button
+                  type="button"
+                  className="button quick-workout-start-btn"
+                  disabled={quickPickedIds.size === 0}
+                  onClick={() => startQuickWorkout(Array.from(quickPickedIds))}
+                >
+                  {quickPickedIds.size === 0
+                    ? 'Pick exercises to start'
+                    : `Start workout · ${quickPickedIds.size} move${quickPickedIds.size === 1 ? '' : 's'}`}
+                </button>
+                {quickPickedIds.size > 0 && (
+                  <button
+                    type="button"
+                    className="button button-muted button-small"
+                    onClick={() => setQuickPickedIds(new Set())}
+                  >
+                    Deselect all
+                  </button>
+                )}
               </div>
             </section>
             )}

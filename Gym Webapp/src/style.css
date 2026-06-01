@@ -1282,6 +1282,45 @@ body {
   line-height: 1.35;
 }
 
+/* Swap mode toggle bar */
+.routine-run-alts-mode-bar {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0.5rem;
+}
+.routine-run-alts-mode-btn {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--gf-text-xs);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.routine-run-alts-mode-btn:hover {
+  background: rgba(255,255,255,0.07);
+  color: #e2e8f0;
+}
+.routine-run-alts-mode-btn.is-active {
+  background: rgba(99,102,241,0.25);
+  border-color: rgba(99,102,241,0.5);
+  color: #c7d2fe;
+}
+.routine-run-alts-search {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: #e2e8f0;
+  font-size: var(--gf-text-sm);
+  margin-bottom: 0.5rem;
+}
+.routine-run-alts-search::placeholder { color: #64748b; }
+
 .routine-run-count-toggle {
   margin: 0.75rem 0 0;
   display: flex;
@@ -5267,6 +5306,94 @@ select.text-input.day-modal-select {
 
 .nutrition-recent-chip.is-selected .nutrition-recent-chip-meta {
   color: #99f6e4;
+}
+
+/* ── Quick Workout ─────────────────────────────────────────────── */
+.quick-workout-section {
+  padding-bottom: 5rem;
+}
+.quick-workout-hint {
+  margin: 0 0 0.75rem;
+  font-size: var(--gf-text-xs);
+  color: var(--muted);
+  line-height: 1.5;
+}
+.quick-workout-map-wrap {
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+.quick-workout-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+.quick-workout-search-row {
+  margin-bottom: 0.65rem;
+}
+.quick-workout-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 380px;
+  overflow-y: auto;
+}
+.quick-workout-row {
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.02);
+  transition: background 0.15s, border-color 0.15s;
+}
+.quick-workout-row.is-picked {
+  background: rgba(99,102,241,0.14);
+  border-color: rgba(99,102,241,0.4);
+}
+.quick-workout-row-label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+.quick-workout-check {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+.quick-workout-row-name {
+  flex: 1;
+  font-size: var(--gf-text-sm);
+  font-weight: 500;
+  color: #e2e8f0;
+}
+.quick-workout-row-muscle {
+  font-size: var(--gf-text-2xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.quick-workout-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg, #0f172a);
+  padding: 0.75rem 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 2;
+}
+.quick-workout-start-btn {
+  width: 100%;
+  justify-content: center;
 }
 
 .nutrition-compound-results {

@@ -39,9 +39,50 @@ import { hydrateFromCloudIfSignedIn } from './utils/cloudSync';
 type Props = { planId: string };
 
 const AUTO_ADVANCE_KEY = 'gf-routine-auto-advance';
+/** Drafts live in localStorage so they survive a screen-lock / PWA reload. Anything older than 36h is ignored. */
+const DRAFT_TTL_MS = 36 * 60 * 60 * 1000;
 
 function routineDraftStorageKey(planId: string) {
   return `gf-routine-draft:${planId}`;
+}
+
+function readDraftFromStorage(key: string): string | null {
+  for (const store of [localStorage, sessionStorage]) {
+    try {
+      const raw = store.getItem(key);
+      if (!raw) continue;
+      // Check TTL wrapper.
+      try {
+        const outer = JSON.parse(raw) as { savedAt?: number; payload?: string };
+        if (typeof outer.savedAt === 'number' && typeof outer.payload === 'string') {
+          if (Date.now() - outer.savedAt > DRAFT_TTL_MS) {
+            try { store.removeItem(key); } catch { /* ignore */ }
+            continue;
+          }
+          return outer.payload;
+        }
+      } catch { /* fall through — treat raw as legacy plain JSON */ }
+      return raw;
+    } catch { /* ignore */ }
+  }
+  return null;
+}
+
+function writeDraftToStorage(key: string, payload: string): void {
+  const wrapped = JSON.stringify({ savedAt: Date.now(), payload });
+  try {
+    localStorage.setItem(key, wrapped);
+    // Remove legacy copy from sessionStorage if present.
+    try { sessionStorage.removeItem(key); } catch { /* ignore */ }
+  } catch {
+    // localStorage full / private mode — fall back to sessionStorage.
+    try { sessionStorage.setItem(key, payload); } catch { /* ignore */ }
+  }
+}
+
+function removeDraftFromStorage(key: string): void {
+  try { localStorage.removeItem(key); } catch { /* ignore */ }
+  try { sessionStorage.removeItem(key); } catch { /* ignore */ }
 }
 
 function readAutoAdvancePref(): boolean {
@@ -83,6 +124,9 @@ export function RoutineRunView({ planId }: Props) {
   const [autoAdvanceOnInclude, setAutoAdvanceOnInclude] = useState(readAutoAdvancePref);
   /** When set, same length as base plan order — replaces catalog order for this session only. */
   const [sessionOrderIds, setSessionOrderIds] = useState<string[] | null>(null);
+  /** Browse-all mode in the swap section — show all exercises not just same-muscle. */
+  const [swapBrowseAll, setSwapBrowseAll] = useState(false);
+  const [swapSearch, setSwapSearch] = useState('');
   const prevPlanIdForInitRef = useRef<string | null>(null);
 
   const allExercises = useMemo(
@@ -133,7 +177,7 @@ export function RoutineRunView({ planId }: Props) {
   useLayoutEffect(() => {
     if (!plan || baseResolvedIds.length === 0) return;
     try {
-      const raw = sessionStorage.getItem(routineDraftStorageKey(plan.id));
+      const raw = readDraftFromStorage(routineDraftStorageKey(plan.id));
       if (!raw) return;
       const p = JSON.parse(raw) as {
         sessionOrderIds?: string[];
@@ -157,8 +201,29 @@ export function RoutineRunView({ planId }: Props) {
   const exerciseAlternatives = useMemo(() => {
     const ex = exercises[currentIndex];
     if (!ex) return [];
-    return getAlternativeExercises(ex, allExercises, { limit: 10 });
+    return getAlternativeExercises(ex, allExercises, { limit: 12 });
   }, [currentIndex, exercises, allExercises]);
+
+  /** All exercises sorted by primary group then name, filtered by swapSearch, excluding current. */
+  const swapBrowseList = useMemo(() => {
+    const cur = exercises[currentIndex];
+    const q = swapSearch.trim().toLowerCase();
+    return allExercises
+      .filter((e) => e.id !== cur?.id)
+      .filter((e) => {
+        if (!q) return true;
+        return (
+          e.name.toLowerCase().includes(q) ||
+          e.primaryGroup.toLowerCase().includes(q) ||
+          (e.secondaryGroups ?? []).some((g) => g.toLowerCase().includes(q))
+        );
+      })
+      .sort((a, b) => {
+        const pg = a.primaryGroup.localeCompare(b.primaryGroup);
+        if (pg !== 0) return pg;
+        return a.name.localeCompare(b.name);
+      });
+  }, [currentIndex, exercises, allExercises, swapSearch]);
 
   const persist = useCallback((next: PersistedGymData) => {
     setData(next);
@@ -184,7 +249,7 @@ export function RoutineRunView({ planId }: Props) {
     let restoredDrafts: Record<string, ExerciseLogDraft> | null = null;
     let restoredIndex: number | null = null;
     try {
-      const raw = sessionStorage.getItem(routineDraftStorageKey(plan.id));
+      const raw = readDraftFromStorage(routineDraftStorageKey(plan.id));
       if (raw) {
         const p = JSON.parse(raw) as {
           exerciseIdsKey?: string;
@@ -237,19 +302,15 @@ export function RoutineRunView({ planId }: Props) {
     const gotAll = exercises.every((e) => exerciseDrafts[e.id] != null);
     if (!gotAll) return;
     const t = window.setTimeout(() => {
-      try {
-        sessionStorage.setItem(
-          routineDraftStorageKey(plan.id),
-          JSON.stringify({
-            exerciseIdsKey,
-            sessionOrderIds: sessionOrderIds ?? undefined,
-            drafts: exerciseDrafts,
-            currentIndex,
-          }),
-        );
-      } catch {
-        /* quota / private mode */
-      }
+      writeDraftToStorage(
+        routineDraftStorageKey(plan.id),
+        JSON.stringify({
+          exerciseIdsKey,
+          sessionOrderIds: sessionOrderIds ?? undefined,
+          drafts: exerciseDrafts,
+          currentIndex,
+        }),
+      );
     }, 400);
     return () => window.clearTimeout(t);
   }, [plan?.id, exerciseIdsKey, exerciseDrafts, currentIndex, exercises, sessionOrderIds]);
@@ -262,6 +323,8 @@ export function RoutineRunView({ planId }: Props) {
 
   useEffect(() => {
     setMediaExpanded(false);
+    setSwapBrowseAll(false);
+    setSwapSearch('');
   }, [currentIndex]);
 
   useEffect(() => {
@@ -426,11 +489,7 @@ export function RoutineRunView({ planId }: Props) {
       newPlan.exerciseMuscleTargets = cleanedForkTargets;
     }
     persist({ ...data, savedPlans: [...data.savedPlans, newPlan] });
-    try {
-      sessionStorage.removeItem(routineDraftStorageKey(planId));
-    } catch {
-      /* ignore */
-    }
+    removeDraftFromStorage(routineDraftStorageKey(planId));
     const url = new URL(window.location.href);
     url.searchParams.set('routine', newId);
     window.location.replace(`${url.pathname}${url.search}`);
@@ -472,11 +531,7 @@ export function RoutineRunView({ planId }: Props) {
       return;
     }
     persist(result.nextData);
-    try {
-      sessionStorage.removeItem(routineDraftStorageKey(planId));
-    } catch {
-      /* ignore */
-    }
+    removeDraftFromStorage(routineDraftStorageKey(planId));
     setSaveMessage(
       `Saved ${result.completedCount} move${result.completedCount === 1 ? '' : 's'}. History below will update.`,
     );
@@ -750,73 +805,109 @@ export function RoutineRunView({ planId }: Props) {
               <p className="routine-run-history-empty">No history yet for this move.</p>
             )}
 
-            {exerciseAlternatives.length > 0 ? (
-              <details className="routine-run-alts-details">
-                <summary>
-                  Swap ideas — same muscles ({exerciseAlternatives.length})
-                </summary>
-                <ul className="routine-run-alts-list">
-                  {exerciseAlternatives.map((alt) => {
-                    const altImg = images[alt.name];
-                    return (
-                      <li key={alt.id} className="routine-run-alt-row">
-                        <div className="routine-run-alt-thumb-wrap">
-                          {altImg?.url ? (
-                            <img
-                              src={altImg.url}
-                              alt=""
-                              className="routine-run-alt-thumb"
-                              width={52}
-                              height={52}
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="routine-run-alt-thumb routine-run-alt-thumb--ph" aria-hidden="true">
-                              {alt.primaryGroup.slice(0, 2)}
-                            </div>
-                          )}
-                        </div>
-                        <div className="routine-run-alt-body">
-                          <ExerciseYoutubeLink
-                            exerciseName={alt.name}
-                            className="routine-run-alt-link exercise-youtube"
-                          >
-                            {alt.name}
-                          </ExerciseYoutubeLink>
-                          <span className="routine-run-alt-meta">
-                            {alt.primaryGroup}
-                            {alt.secondaryGroups?.length ? ` · ${alt.secondaryGroups.join(', ')}` : ''}
-                          </span>
-                          <div className="routine-run-alt-actions">
-                            <button
-                              type="button"
-                              className="routine-run-alt-btn routine-run-alt-btn--today"
-                              onClick={() => swapExerciseForToday(alt)}
-                            >
-                              <ArrowRightLeft size={14} strokeWidth={2} aria-hidden />
-                              Use today
-                            </button>
-                            <button
-                              type="button"
-                              className="routine-run-alt-btn routine-run-alt-btn--plan"
-                              onClick={() => replaceExerciseInPlanPermanently(alt)}
-                            >
-                              <Library size={14} strokeWidth={2} aria-hidden />
-                              {isUserSavedPlan ? 'Update plan' : 'Save to My plans'}
-                            </button>
+            <details className="routine-run-alts-details">
+              <summary>
+                Swap ideas ({swapBrowseAll ? `${swapBrowseList.length} total` : `${exerciseAlternatives.length} same muscles`})
+              </summary>
+
+              {/* Mode toggle */}
+              <div className="routine-run-alts-mode-bar">
+                <button
+                  type="button"
+                  className={`routine-run-alts-mode-btn ${!swapBrowseAll ? 'is-active' : ''}`}
+                  onClick={() => { setSwapBrowseAll(false); setSwapSearch(''); }}
+                >
+                  Same muscles
+                </button>
+                <button
+                  type="button"
+                  className={`routine-run-alts-mode-btn ${swapBrowseAll ? 'is-active' : ''}`}
+                  onClick={() => setSwapBrowseAll(true)}
+                >
+                  All exercises
+                </button>
+              </div>
+
+              {swapBrowseAll && (
+                <input
+                  className="routine-run-alts-search"
+                  type="text"
+                  placeholder="Filter by name or muscle…"
+                  value={swapSearch}
+                  onChange={(e) => setSwapSearch(e.target.value)}
+                />
+              )}
+
+              {(() => {
+                const list = swapBrowseAll ? swapBrowseList.slice(0, 60) : exerciseAlternatives;
+                if (list.length === 0) {
+                  return <p className="routine-run-history-empty">No matches.</p>;
+                }
+                return (
+                  <ul className="routine-run-alts-list">
+                    {list.map((alt) => {
+                      const altImg = images[alt.name];
+                      return (
+                        <li key={alt.id} className="routine-run-alt-row">
+                          <div className="routine-run-alt-thumb-wrap">
+                            {altImg?.url ? (
+                              <img
+                                src={altImg.url}
+                                alt=""
+                                className="routine-run-alt-thumb"
+                                width={52}
+                                height={52}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="routine-run-alt-thumb routine-run-alt-thumb--ph" aria-hidden="true">
+                                {alt.primaryGroup.slice(0, 2)}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="routine-run-alts-hint">
-                  <strong>Use today</strong> replaces only this session&apos;s card.{' '}
-                  <strong>{isUserSavedPlan ? 'Update plan' : 'Save to My plans'}</strong> changes the routine in your library
-                  {isUserSavedPlan ? ' (this plan)' : ' (adds an adapted copy; you switch to it)'}.
-                </p>
-              </details>
-            ) : null}
+                          <div className="routine-run-alt-body">
+                            <ExerciseYoutubeLink
+                              exerciseName={alt.name}
+                              className="routine-run-alt-link exercise-youtube"
+                            >
+                              {alt.name}
+                            </ExerciseYoutubeLink>
+                            <span className="routine-run-alt-meta">
+                              {alt.primaryGroup}
+                              {alt.secondaryGroups?.length ? ` · ${alt.secondaryGroups.join(', ')}` : ''}
+                            </span>
+                            <div className="routine-run-alt-actions">
+                              <button
+                                type="button"
+                                className="routine-run-alt-btn routine-run-alt-btn--today"
+                                onClick={() => swapExerciseForToday(alt)}
+                              >
+                                <ArrowRightLeft size={14} strokeWidth={2} aria-hidden />
+                                Use today
+                              </button>
+                              <button
+                                type="button"
+                                className="routine-run-alt-btn routine-run-alt-btn--plan"
+                                onClick={() => replaceExerciseInPlanPermanently(alt)}
+                              >
+                                <Library size={14} strokeWidth={2} aria-hidden />
+                                {isUserSavedPlan ? 'Update plan' : 'Save to My plans'}
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              })()}
+
+              <p className="routine-run-alts-hint">
+                <strong>Use today</strong> replaces only this session&apos;s card.{' '}
+                <strong>{isUserSavedPlan ? 'Update plan' : 'Save to My plans'}</strong> changes the routine in your library
+                {isUserSavedPlan ? ' (this plan)' : ' (adds an adapted copy; you switch to it)'}.
+              </p>
+            </details>
             </section>
 
             {candidateMuscleGroupsForExercise(ex).length > 1 ? (
