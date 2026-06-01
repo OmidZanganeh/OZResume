@@ -14,6 +14,8 @@ import type { Exercise } from './data/exerciseLibrary';
 import {
   loadPersistedGymData,
   savePersistedGymData,
+  loadQuickPlanFromLocalStorage,
+  clearQuickPlanFromLocalStorage,
   type PersistedGymData,
   type SavedPlan,
 } from './data/gymFlowStorage';
@@ -169,7 +171,10 @@ export function RoutineRunView({ planId }: Props) {
   const exerciseById = useMemo(() => new Map(allExercises.map((e) => [e.id, e])), [allExercises]);
   const allPresets = useMemo(() => buildPresetPlans(allExercises).flatMap(g => g.plans), [allExercises]);
 
-  const plan = data.savedPlans.find((p) => p.id === planId) || allPresets.find((p) => p.id === planId);
+  const plan = data.savedPlans.find((p) => p.id === planId)
+    || allPresets.find((p) => p.id === planId)
+    || (planId === 'gf-quick-active' ? loadQuickPlanFromLocalStorage() : null)
+    || undefined;
 
   const baseResolvedIds = useMemo(() => {
     if (!plan) return [];
@@ -563,6 +568,7 @@ export function RoutineRunView({ planId }: Props) {
     }
     persist(result.nextData);
     removeDraftFromStorage(routineDraftStorageKey(planId));
+    if (planId === 'gf-quick-active') clearQuickPlanFromLocalStorage();
     setSaveMessage(
       `Saved ${result.completedCount} move${result.completedCount === 1 ? '' : 's'}. History below will update.`,
     );

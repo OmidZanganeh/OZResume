@@ -34,6 +34,7 @@ import {
   defaultGymData,
   loadPersistedGymData,
   savePersistedGymData,
+  saveQuickPlanToLocalStorage,
   type CustomFood,
   type PersistedGymData,
   type NutritionFavoriteFood,
@@ -1784,6 +1785,8 @@ export default function App() {
     // Replace any existing quick plan slot.
     const nextPlans = data.savedPlans.filter((p) => p.id !== QUICK_PLAN_ID);
     persist({ ...data, savedPlans: [...nextPlans, newPlan] });
+    // Write to localStorage so RoutineRunView can find the plan before cloud hydration.
+    saveQuickPlanToLocalStorage(newPlan);
     openRoutineWorkoutTab(QUICK_PLAN_ID);
   }
 

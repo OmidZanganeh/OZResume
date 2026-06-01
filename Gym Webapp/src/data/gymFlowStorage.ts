@@ -163,6 +163,24 @@ export function loadPersistedGymData(): PersistedGymData {
   return defaultGymData;
 }
 
+/** Persist a quick-workout plan to localStorage so RoutineRunView can read it before cloud hydration. */
+const QUICK_PLAN_LS_KEY = 'gf-quick-pending-plan';
+
+export function saveQuickPlanToLocalStorage(plan: SavedPlan): void {
+  try { localStorage.setItem(QUICK_PLAN_LS_KEY, JSON.stringify(plan)); } catch { /* ignore */ }
+}
+
+export function loadQuickPlanFromLocalStorage(): SavedPlan | null {
+  try {
+    const raw = localStorage.getItem(QUICK_PLAN_LS_KEY);
+    return raw ? (JSON.parse(raw) as SavedPlan) : null;
+  } catch { return null; }
+}
+
+export function clearQuickPlanFromLocalStorage(): void {
+  try { localStorage.removeItem(QUICK_PLAN_LS_KEY); } catch { /* ignore */ }
+}
+
 export function savePersistedGymData(data: PersistedGymData): void {
   if (typeof window !== 'undefined') {
     import('../utils/cloudSync')
