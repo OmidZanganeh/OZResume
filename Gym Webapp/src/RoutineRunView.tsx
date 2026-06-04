@@ -758,11 +758,6 @@ export function RoutineRunView({ planId }: Props) {
                 onClick={() => {
                   const nextCompleted = !(draft?.completed ?? false);
                   updateDraft(ex.id, { completed: nextCompleted });
-                  if (nextCompleted) {
-                    startRestTimer(90);
-                  } else {
-                    stopRestTimer();
-                  }
                   if (autoAdvanceOnInclude && nextCompleted && currentIndex < exercises.length - 1) {
                     setCurrentIndex((i) => Math.min(exercises.length - 1, i + 1));
                   }
@@ -1077,6 +1072,40 @@ export function RoutineRunView({ planId }: Props) {
               )}
             </div>
             </section>
+
+            {/* Rest timer trigger row */}
+            <div className="routine-run-rest-row">
+              {restSecondsLeft === null ? (
+                <div className="routine-run-rest-presets">
+                  <span className="routine-run-rest-label">Rest</span>
+                  {[30, 60, 90, 120, 180].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className="rest-timer-preset"
+                      onClick={() => startRestTimer(s)}
+                    >
+                      {s < 60 ? `${s}s` : `${s / 60}m`}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="routine-run-rest-active">
+                  <span className="routine-run-rest-countdown">
+                    {Math.floor(restSecondsLeft / 60)}:{String(restSecondsLeft % 60).padStart(2, '0')}
+                  </span>
+                  <div className="routine-run-rest-active-presets">
+                    {[30, 60, 90, 120, 180].map((s) => (
+                      <button key={s} type="button" className="rest-timer-preset rest-timer-preset--sm" onClick={() => startRestTimer(s)}>
+                        {s < 60 ? `${s}s` : `${s / 60}m`}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" className="routine-run-rest-stop" onClick={stopRestTimer}>✕</button>
+                </div>
+              )}
+            </div>
+
             {isLast ? (
               <p className="routine-run-last-hint">
                 Last exercise — save your workout when you are finished.
@@ -1153,27 +1182,6 @@ export function RoutineRunView({ planId }: Props) {
         </div>
       )}
 
-      {/* Rest timer floating sheet */}
-      {restSecondsLeft !== null && (
-        <div className="rest-timer-sheet" role="status" aria-live="polite" aria-label="Rest timer">
-          <div className="rest-timer-sheet__inner">
-            <div className="rest-timer-sheet__label">Rest</div>
-            <div className="rest-timer-sheet__countdown">
-              {Math.floor(restSecondsLeft / 60)}:{String(restSecondsLeft % 60).padStart(2, '0')}
-            </div>
-            <div className="rest-timer-sheet__presets">
-              {[30, 60, 90, 120, 180].map((s) => (
-                <button key={s} type="button" className="rest-timer-preset" onClick={() => startRestTimer(s)}>
-                  {s < 60 ? `${s}s` : `${s / 60}m`}
-                </button>
-              ))}
-            </div>
-            <button type="button" className="rest-timer-sheet__skip" onClick={stopRestTimer}>
-              Skip rest
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

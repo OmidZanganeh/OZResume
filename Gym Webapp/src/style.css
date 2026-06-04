@@ -7899,50 +7899,53 @@ select.text-input.day-modal-select {
 }
 .nutrition-search-row--locked { opacity: 0.4; pointer-events: none; }
 
-/* ── Rest timer floating sheet ──────────────────────────────────── */
-.rest-timer-sheet {
-  position: fixed; bottom: calc(var(--bnav-h, 68px) + 0.75rem); left: 50%;
-  transform: translateX(-50%);
-  z-index: 800;
-  width: min(360px, calc(100vw - 2rem));
+/* ── Rest timer inline row (inside workout card) ────────────────── */
+.routine-run-rest-row {
+  padding: 0.65rem 1rem 0.65rem;
+  border-top: 1px solid rgba(71,85,105,0.2);
 }
-.rest-timer-sheet__inner {
-  background: #1e293b;
-  border: 1px solid rgba(71,85,105,0.5);
-  border-radius: 20px;
-  padding: 1rem 1.25rem 0.875rem;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.45);
-  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-  animation: slideUp 200ms cubic-bezier(0.2,0.9,0.3,1);
+.routine-run-rest-presets {
+  display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
 }
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to   { transform: translateY(0);   opacity: 1; }
-}
-.rest-timer-sheet__label {
-  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
+.routine-run-rest-label {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: #64748b;
-}
-.rest-timer-sheet__countdown {
-  font-size: 2.75rem; font-weight: 800; color: #a5b4fc;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-.rest-timer-sheet__presets {
-  display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center;
+  margin-right: 0.25rem;
 }
 .rest-timer-preset {
-  background: rgba(99,102,241,0.15); color: #a5b4fc;
-  border: 1px solid rgba(99,102,241,0.3); border-radius: 20px;
-  padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 600;
+  background: rgba(99,102,241,0.12); color: #a5b4fc;
+  border: 1px solid rgba(99,102,241,0.25); border-radius: 20px;
+  padding: 0.28rem 0.6rem; font-size: 0.78rem; font-weight: 600;
   cursor: pointer; transition: background 150ms;
 }
-.rest-timer-preset:hover { background: rgba(99,102,241,0.3); }
-.rest-timer-sheet__skip {
-  background: transparent; border: none; color: #64748b;
-  font-size: 0.8rem; cursor: pointer; padding: 0.25rem 0.5rem;
-  text-decoration: underline;
+.rest-timer-preset:hover { background: rgba(99,102,241,0.28); }
+.rest-timer-preset--sm { padding: 0.2rem 0.45rem; font-size: 0.72rem; }
+
+/* Active timer state */
+.routine-run-rest-active {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
 }
+.routine-run-rest-countdown {
+  font-size: 1.6rem; font-weight: 800; color: #a5b4fc;
+  font-variant-numeric: tabular-nums; line-height: 1;
+  min-width: 3.2rem;
+  animation: timerPulse 1s ease-in-out infinite;
+}
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+.routine-run-rest-active-presets {
+  display: flex; gap: 0.3rem; flex-wrap: wrap;
+}
+.routine-run-rest-stop {
+  background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+  color: #f87171; border-radius: 50%; width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; cursor: pointer; transition: background 150ms;
+  flex-shrink: 0;
+}
+.routine-run-rest-stop:hover { background: rgba(239,68,68,0.3); }
 
 /* ── Inline muscle suggestions (body map tab) ───────────────────── */
 .inline-muscle-suggestions {
