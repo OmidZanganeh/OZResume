@@ -86,7 +86,7 @@ const STEPS: Step[] = [
     links: [
       { href: '/projects', label: 'Projects' },
       { href: '/tools', label: 'Tools hub' },
-      { href: '/Omid-Zanganeh-Resume.pdf', label: 'Résumé PDF', download: true },
+      { href: '/Omid-Zanganeh-Resume.pdf', label: 'Résumé PDF', external: true },
     ],
   },
   {

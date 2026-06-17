@@ -17,6 +17,7 @@ import SkillRadar from "./components/SkillRadar";
 import HobbiesSection from "./components/HobbiesSection";
 import ScrollFadeIn from "./components/ScrollFadeIn";
 import LandsatNameSidebars from "./components/LandsatNameSidebars";
+import PdfModal from "./components/PdfModal";
 
 // ─── Inline SVG Icons ────────────────────────────────────────────────────────
 const PhoneIcon = () => (
@@ -126,6 +127,7 @@ const AVATARS = ['/Omid.png', '/Omid2.png'] as const;
 export default function Resume() {
   const [gameOpen, setGameOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
   const [avatarSrc, setAvatarSrc] = useState<typeof AVATARS[number]>(AVATARS[0]);
 
   useEffect(() => {
@@ -172,9 +174,9 @@ export default function Resume() {
             </div>
 
             <div className={styles.headerActions}>
-              <a href="/Omid-Zanganeh-Resume.pdf" download className={styles.downloadBtn}>
+              <button type="button" onClick={() => setPdfOpen(true)} className={styles.downloadBtn}>
                 <DocumentIcon /> Resume
-              </a>
+              </button>
               <Link href="/projects" className={styles.projectsBtn}>
                 <FolderIcon /> Projects
               </Link>
@@ -487,6 +489,7 @@ export default function Resume() {
       ══════════════════════════════════════ */}
       {gameOpen && <GameHub onClose={() => setGameOpen(false)} />}
       <RecruiterTour open={tourOpen} onClose={() => setTourOpen(false)} />
+      <PdfModal open={pdfOpen} onClose={() => setPdfOpen(false)} pdfUrl="/Omid-Zanganeh-Resume.pdf" fileName="Omid-Zanganeh-Resume.pdf" />
 
       {/* ══════════════════════════════════════
           FOOTER
