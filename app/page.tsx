@@ -161,7 +161,7 @@ export default function Resume() {
             <h1 className={styles.name}>
               <TypeWriter text="Omid Zanganeh" speed={80} />
             </h1>
-            <p className={styles.tagline}>GIS Developer</p>
+            <p className={styles.tagline}>GIS Developer · Telecom Engineering &amp; AI/ML Integration</p>
 
             <div className={styles.contact}>
               <a className={styles.contactItem} href="tel:+15312296873"><PhoneIcon /> +1 (531) 229-6873</a>
@@ -210,28 +210,28 @@ export default function Resume() {
         <h2 className={styles.sectionTitle}>About Me</h2>
         <div className={styles.aboutBody}>
           <p>
-            I&apos;m a GIS Developer at Olsson, specializing in workflow automation, geospatial analysis,
-            and application development to solve complex spatial challenges. I work extensively with ArcGIS Pro,
-            Python, SQL, and remote sensing platforms to build high-performance tools for automating spatial
-            workflows and supporting fiber-network market analysis and design.
+            I&apos;m a GIS Developer at Olsson specializing in telecom/fiber engineering automation,
+            ArcGIS Pro development, and AI-powered spatial workflows. I build production desktop
+            applications in Python and C#, custom ArcGIS Pro add-ins and geoprocessing toolboxes,
+            SQL Server data pipelines, and full-stack web tools — compressing multi-day manual
+            processes into automated pipelines.
           </p>
           <p>
             I hold a Master&apos;s in Geography with a concentration in GIS&amp;T from the University of Nebraska
             at Omaha, graduating with a <strong>4.0 GPA</strong>. My research earned the{' '}
             <strong>GRACA Project Award</strong> for spatiotemporal analysis of NOx emissions using TROPOMI
-            satellite data. I also taught over <strong>150 students</strong> in Human-Environment Geography labs
-            at UNO, emphasizing hands-on learning, inclusivity, and real-world applications.
+            satellite data. I was also named a <strong>2025 Edison Award Nominee</strong> at Olsson for
+            my contributions to telecom engineering automation.
           </p>
           <p>
-            I contributed to the <strong>Omaha Spatial Justice Project</strong> as a GIS Technician —
-            digitizing historical land parcels, reviewing legal documents, and building a geodatabase
-            identifying homes with racially restrictive covenants in Douglas County. This work deepened
-            my commitment to using GIS as a tool for social equity.
+            I taught over <strong>150 students</strong> in Human-Environment Geography labs at UNO
+            as sole instructor of record, and contributed to the <strong>Omaha Spatial Justice Project</strong> —
+            building a geodatabase of racially restrictive covenants in Douglas County from archival
+            documents and aerial photography.
           </p>
           <p>
-            With a proven record of delivering scalable GIS solutions, I&apos;m passionate about bridging
-            technical expertise with practical impact — and always open to connecting with professionals
-            who share my enthusiasm for solving spatial problems.
+            I&apos;m passionate about bridging technical expertise with practical impact and always open
+            to connecting with professionals who share my enthusiasm for solving spatial problems.
           </p>
         </div>
       </section>
@@ -298,11 +298,12 @@ export default function Resume() {
                 <p className={styles.jobTitle}>GIS Developer – Telecom Engineering &amp; Design <span className={styles.awardBadge}>Edison Award Nominee</span></p>
                 <p className={styles.location}>Lincoln, Nebraska</p>
                 <ul className={styles.bullets}>
-                  <li>Developed Python and C# desktop applications for deep learning-based object detection, data parsing, and SQL Server management — improving efficiency across multiple workflows.</li>
-                  <li>Built a fully automated bore profile generation app, cutting processing time from <strong>days to minutes</strong>.</li>
-                  <li>Automated complex ArcGIS Pro workflows with custom Python geoprocessing toolboxes, reducing manual steps by <CountUp end={90} suffix="%" /> and accelerating fiber network design.</li>
-                  <li>Designed fiber optic network layouts in ArcGIS to optimize routing, reduce build costs, and ensure full coverage.</li>
-                  <li>Built AI-powered tools using Google AI Studio and Azure AI Foundry for RFP data classification — cutting sourcing time from <strong>months to hours</strong>.</li>
+                  <li>Architected production Python and C# desktop applications for fiber telecom engineering, including automated bore profile generation that cut processing time from <strong>days to minutes</strong>.</li>
+                  <li>Built an ArcGIS Automation Suite of custom Python geoprocessing toolboxes — pocketing, conduit drawing, centerline generation, cable route consolidation, cost/routing — reducing manual GIS steps by <CountUp end={90} suffix="%" /> and accelerating fiber network design timelines.</li>
+                  <li>Developed ArcGIS Pro add-ins (.NET/C#/WPF): multi-source GIS Data Downloader (OSM, USGS, FEMA, Census/TIGER, BSL), RF Analysis panel (coverage prediction, PCI/RSI planning, interference analysis, tower placement), Street View map tool, and FTTH network design dock pane.</li>
+                  <li>Engineered AI-powered tools using Azure AI Foundry, Azure OpenAI, and Google AI Studio — including RFP Radar for intelligent web-grounded contract search and classification — cutting strategic sourcing timelines from <strong>months to hours</strong>.</li>
+                  <li>Built YOLO-based aerial and street-level object detection apps for remote inventory of utility poles, streetlights, and telecom infrastructure with georeferenced ArcGIS export.</li>
+                  <li>Created GeoPipe: a GUI ETL application for importing large geospatial/tabular datasets into SQL Server with schema auto-detection, spatial type support, and connection-loss recovery.</li>
                 </ul>
               </div>
 
@@ -326,7 +327,7 @@ export default function Resume() {
                 <p className={styles.jobTitle}>GIS Technician – Omaha Spatial Justice Project</p>
                 <p className={styles.location}>Omaha, Nebraska</p>
                 <ul className={styles.bullets}>
-                  <li>Digitized historical land parcels to support urban spatial analysis, revealing patterns of racial exclusion. Reviewed legal documents to ensure accurate mapping and data integrity.</li>
+                  <li>Digitized historical land parcels from archival documents and aerial photography; reviewed legal records to build an accurate geodatabase of racially restrictive covenants in Douglas County, supporting urban spatial justice research.</li>
                 </ul>
               </div>
 
