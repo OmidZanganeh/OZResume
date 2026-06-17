@@ -47,23 +47,21 @@ export default function PdfModal({ open, onClose, pdfUrl, fileName = 'resume.pdf
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && close()}>
       <div className={styles.modal} role="dialog" aria-modal="true" aria-label="Resume PDF viewer">
-        <div className={styles.toolbar}>
-          <span className={styles.toolbarTitle}>Omid Zanganeh — Résumé</span>
-          <div className={styles.toolbarActions}>
-            <a href={pdfUrl} download={fileName} className={styles.downloadBtn}>
-              <DownloadIcon /> Download PDF
-            </a>
-            <button type="button" className={styles.closeBtn} onClick={close} aria-label="Close">
-              <XIcon />
-            </button>
-          </div>
-        </div>
+        <button type="button" className={styles.closeBtn} onClick={close} aria-label="Close">
+          <XIcon />
+        </button>
         <div className={styles.viewer}>
           <iframe
             src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
             className={styles.iframe}
             title="Résumé PDF"
           />
+        </div>
+        <div className={styles.footer}>
+          <span className={styles.footerTitle}>Omid Zanganeh — Résumé</span>
+          <a href={pdfUrl} download={fileName} className={styles.downloadBtn}>
+            <DownloadIcon /> Download PDF
+          </a>
         </div>
       </div>
     </div>
