@@ -330,18 +330,6 @@ export default function Resume() {
                 </ul>
               </div>
 
-              <div className={styles.job}>
-                <div className={styles.jobMeta}>
-                  <span className={styles.company}>Geomatics College of National Cartographic Center</span>
-                  <span className={styles.datePill}>2014 – 2016</span>
-                </div>
-                <p className={styles.jobTitle}>GIS Technician</p>
-                <p className={styles.location}>Tehran, Iran</p>
-                <ul className={styles.bullets}>
-                  <li>Generated detailed urban maps from photogrammetric photos for city planning. Helped manage a database covering <CountUp end={60} suffix=" years" /> of aerial photography.</li>
-                </ul>
-              </div>
-
             </div>
           </section>
 
