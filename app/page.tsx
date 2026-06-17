@@ -210,28 +210,46 @@ export default function Resume() {
         <h2 className={styles.sectionTitle}>About Me</h2>
         <div className={styles.aboutBody}>
           <p>
-            I&apos;m a GIS Developer at Olsson specializing in telecom/fiber engineering automation,
-            ArcGIS Pro development, and AI-powered spatial workflows. I build production desktop
-            applications in Python and C#, custom ArcGIS Pro add-ins and geoprocessing toolboxes,
-            SQL Server data pipelines, and full-stack web tools — compressing multi-day manual
-            processes into automated pipelines.
+            I&apos;m a GIS Developer at Olsson specializing in telecom engineering, fiber network design,
+            and enterprise workflow automation. I turn manual, time-intensive spatial work into
+            production-grade pipelines — Python and C# desktop apps, ArcGIS Pro add-ins, Python
+            geoprocessing toolboxes, and SQL Server integrations — that deliver measurable savings
+            in design time, build cost, and market analysis.
           </p>
           <p>
-            I hold a Master&apos;s in Geography with a concentration in GIS&amp;T from the University of Nebraska
-            at Omaha, graduating with a <strong>4.0 GPA</strong>. My research earned the{' '}
-            <strong>GRACA Project Award</strong> for spatiotemporal analysis of NOx emissions using TROPOMI
-            satellite data. I was also named a <strong>2025 Edison Award Nominee</strong> at Olsson for
-            my contributions to telecom engineering automation.
+            At Olsson, I build end-to-end tools across the fiber lifecycle: automated bore profile
+            generation (<strong>days to minutes</strong>), a suite of ArcGIS automation tools for
+            pocketing, conduit drawing, centerlines, and cable consolidation (~<strong>90% reduction</strong>{' '}
+            in manual GIS steps), FTTH network design add-ins, and RF planning panels for wireless
+            coverage, interference, and tower optimization. I also ship custom ArcGIS Pro add-ins
+            that pull multi-source GIS data (OSM, USGS, FEMA, Census, BSL) directly into project geodatabases.
           </p>
           <p>
-            I taught over <strong>150 students</strong> in Human-Environment Geography labs at UNO
-            as sole instructor of record, and contributed to the <strong>Omaha Spatial Justice Project</strong> —
-            building a geodatabase of racially restrictive covenants in Douglas County from archival
-            documents and aerial photography.
+            A major thread of my work is applied AI for real engineering bottlenecks. Using Microsoft
+            Azure AI Foundry, Azure OpenAI, and Google AI Studio, I built RFP Radar for intelligent
+            contract sourcing and classification (<strong>months to hours</strong>), batch SQL-integrated
+            classifiers for property and tabular enrichment, and YOLO-based object detection for remote
+            utility infrastructure inventory via aerial and street-level imagery. I was nominated for
+            Olsson&apos;s <strong>Edison Award</strong> for these automation contributions.
           </p>
           <p>
-            I&apos;m passionate about bridging technical expertise with practical impact and always open
-            to connecting with professionals who share my enthusiasm for solving spatial problems.
+            Beyond enterprise GIS, I build full-stack web products: a Next.js portfolio site with
+            browser-based GIS tools (geocoder, isochrone, elevation profile, census, coordinate
+            conversion, PDF/image utilities) and an offline-first Gym Flow fitness PWA with nutrition
+            logging and cloud sync.
+          </p>
+          <p>
+            I hold a Master&apos;s in Geography (GIS&amp;T) from the University of Nebraska at Omaha
+            (<strong>4.0 GPA</strong>). My thesis on spatiotemporal NOx emissions from U.S. cement
+            plants using TROPOMI data earned the <strong>GRACA Project Award</strong>. I taught
+            Human-Environment Geography labs to <strong>150+ students</strong> as instructor of record
+            and contributed GIS work to the <strong>Omaha Spatial Justice Project</strong>, digitizing
+            historical parcels and mapping racially restrictive covenants in Douglas County.
+          </p>
+          <p>
+            I&apos;m passionate about bridging geospatial science, software engineering, and applied AI
+            to solve complex spatial problems with practical impact — and always open to connecting
+            with others who share that focus.
           </p>
         </div>
       </section>
