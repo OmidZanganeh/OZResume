@@ -18,6 +18,7 @@ import HobbiesSection from "./components/HobbiesSection";
 import ScrollFadeIn from "./components/ScrollFadeIn";
 import LandsatNameSidebars from "./components/LandsatNameSidebars";
 import PdfModal from "./components/PdfModal";
+import BusinessCard from "./components/BusinessCard";
 
 // ─── Inline SVG Icons ────────────────────────────────────────────────────────
 const PhoneIcon = () => (
@@ -91,6 +92,13 @@ const GamepadIcon = () => (
   </svg>
 );
 
+const CardIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="5" width="20" height="14" rx="2"/>
+    <line x1="2" y1="10" x2="22" y2="10"/>
+  </svg>
+);
+
 const AppWindowIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect width="18" height="18" x="3" y="3" rx="2"/>
@@ -128,6 +136,7 @@ export default function Resume() {
   const [gameOpen, setGameOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
   const [avatarSrc, setAvatarSrc] = useState<typeof AVATARS[number]>(AVATARS[0]);
 
   useEffect(() => {
@@ -176,6 +185,9 @@ export default function Resume() {
             <div className={styles.headerActions}>
               <button type="button" onClick={() => setPdfOpen(true)} className={styles.downloadBtn}>
                 <DocumentIcon /> Resume
+              </button>
+              <button type="button" onClick={() => setCardOpen(true)} className={styles.downloadBtn}>
+                <CardIcon /> Card
               </button>
               <Link href="/projects" className={styles.projectsBtn}>
                 <FolderIcon /> Projects
@@ -490,6 +502,7 @@ export default function Resume() {
       {gameOpen && <GameHub onClose={() => setGameOpen(false)} />}
       <RecruiterTour open={tourOpen} onClose={() => setTourOpen(false)} />
       <PdfModal open={pdfOpen} onClose={() => setPdfOpen(false)} pdfUrl="/Omid-Zanganeh-Resume.pdf" fileName="Omid-Zanganeh-Resume.pdf" />
+      <BusinessCard open={cardOpen} onClose={() => setCardOpen(false)} />
 
       {/* ══════════════════════════════════════
           FOOTER
