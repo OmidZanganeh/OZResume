@@ -179,6 +179,16 @@ export default function BusinessCard({ open, onClose }: Props) {
             {/* ── BACK ── */}
             <div className={`${styles.cardFace} ${styles.cardBack}`}>
               <div className={styles.stripeTexture} aria-hidden="true" />
+              {/* Bold world map background */}
+              <div className={styles.mapBgBack} aria-hidden="true">
+                <ComposableMap projection="geoNaturalEarth1" projectionConfig={{ scale: 165, center: [15, 8] }} style={{ width: '100%', height: '100%' }}>
+                  <Geographies geography={GEO_URL}>
+                    {({ geographies }) => geographies.map(geo => (
+                      <Geography key={geo.rsmKey} geography={geo} fill="rgba(255,255,255,0.13)" stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }} />
+                    ))}
+                  </Geographies>
+                </ComposableMap>
+              </div>
               <div className={styles.backCenter}>
                 <span className={styles.backMonogram}>OZ</span>
                 <div className={styles.backDivider} aria-hidden="true" />

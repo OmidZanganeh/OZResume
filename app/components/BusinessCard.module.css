@@ -138,6 +138,14 @@
   pointer-events: none;
 }
 
+/* World map — back face background */
+.mapBgBack {
+  position: absolute;
+  inset: -8% -4%;
+  z-index: 0;
+  pointer-events: none;
+}
+
 /* Back — centered minimal layout */
 .backCenter {
   position: absolute;
