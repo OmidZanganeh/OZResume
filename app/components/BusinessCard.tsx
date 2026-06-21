@@ -163,7 +163,7 @@ export default function BusinessCard({ open, onClose }: Props) {
                 <p className={styles.jobSub}>Telecom Engineering &amp; AI/ML Integration</p>
               </div>
               <div className={styles.photoCircle}>
-                <Image src="/Omid.png" alt="Omid Zanganeh" fill sizes="80px" className={styles.photoImg} />
+                <Image src="/Omid2.png" alt="Omid Zanganeh" fill sizes="80px" className={styles.photoImg} />
               </div>
             </div>
 
