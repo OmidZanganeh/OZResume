@@ -10,7 +10,7 @@ export default function CountUp({
   suffix?: string;
   duration?: number;
 }) {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(end);
   const [started, setStarted] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
 
