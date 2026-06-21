@@ -212,7 +212,7 @@
 
 .name {
   margin: 0;
-  font-size: clamp(13px, 3.2vw, 19px);
+  font-size: clamp(15.5px, 3.84vw, 23px);
   font-weight: 800;
   letter-spacing: 0.08em;
   color: #ffffff;
@@ -222,7 +222,7 @@
 
 .jobTitle {
   margin: 0;
-  font-size: clamp(7px, 1.5vw, 9.5px);
+  font-size: clamp(8.5px, 1.8vw, 11.5px);
   font-weight: 500;
   color: rgba(255, 255, 255, 0.55);
   letter-spacing: 0.06em;
@@ -231,7 +231,7 @@
 
 .jobSub {
   margin: 0;
-  font-size: clamp(6px, 1.2vw, 8px);
+  font-size: clamp(7px, 1.44vw, 9.5px);
   color: rgba(255, 255, 255, 0.3);
   letter-spacing: 0.02em;
 }
@@ -277,7 +277,7 @@
 }
 
 .contactText {
-  font-size: clamp(6px, 1.25vw, 8.5px);
+  font-size: clamp(7px, 1.5vw, 10px);
   color: rgba(255, 255, 255, 0.5);
   letter-spacing: 0.01em;
   white-space: nowrap;
