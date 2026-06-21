@@ -48,6 +48,11 @@ const IconLayers = () => (
     <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
   </svg>
 );
+const IconCompass = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+  </svg>
+);
 
 export const metadata: Metadata = {
   title: 'Free Online GIS Tools – Coordinate Converter, Elevation Profile, Isochrone Map & More | Omid Zanganeh',
@@ -97,7 +102,8 @@ const toolsJsonLd = {
     { '@type': 'ListItem', position: 6, name: 'Geocoder & Reverse Geocoder', url: `${BASE}/tools/geocoder` },
     { '@type': 'ListItem', position: 7, name: 'US Census Demographics Lookup', url: `${BASE}/tools/census` },
     { '@type': 'ListItem', position: 8, name: 'GIS Data Downloader',           url: `${BASE}/tools/gis-downloader` },
-    { '@type': 'ListItem', position: 9, name: 'PDF and Image Tools',           url: `${BASE}/tools/pdf-image-tools` },
+    { '@type': 'ListItem', position: 9,  name: 'PDF and Image Tools',    url: `${BASE}/tools/pdf-image-tools` },
+    { '@type': 'ListItem', position: 10, name: 'Discover — Trip Explorer', url: `${BASE}/tools/trip-explorer` },
   ],
 };
 
@@ -164,6 +170,13 @@ const TOOLS = [
     title: 'PDF & Image Tools',
     desc: 'Merge, compress, and split PDFs; convert or resize images (PNG, JPEG, WebP, AVIF, BMP, ICO); images to PDF; PDF pages to JPEG.',
     tags: ['PDF', 'Privacy-first'],
+  },
+  {
+    href: '/tools/trip-explorer',
+    icon: <IconCompass />,
+    title: 'Discover — Trip Explorer',
+    desc: 'Explore any city on an interactive dark map and instantly surface nearby Wikipedia-powered places. Search, read summaries, and open full articles — no account needed.',
+    tags: ['Travel', 'Wikipedia', 'Interactive'],
   },
 ];
 
