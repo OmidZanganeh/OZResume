@@ -212,7 +212,7 @@
 
 .name {
   margin: 0;
-  font-size: clamp(15.5px, 3.84vw, 23px);
+  font-size: clamp(18.5px, 4.6vw, 27.5px);
   font-weight: 800;
   letter-spacing: 0.08em;
   color: #ffffff;
@@ -222,7 +222,7 @@
 
 .jobTitle {
   margin: 0;
-  font-size: clamp(8.5px, 1.8vw, 11.5px);
+  font-size: clamp(10px, 2.16vw, 14px);
   font-weight: 500;
   color: rgba(255, 255, 255, 0.55);
   letter-spacing: 0.06em;
@@ -231,7 +231,7 @@
 
 .jobSub {
   margin: 0;
-  font-size: clamp(7px, 1.44vw, 9.5px);
+  font-size: clamp(8.5px, 1.73vw, 11.5px);
   color: rgba(255, 255, 255, 0.3);
   letter-spacing: 0.02em;
 }
@@ -239,8 +239,8 @@
 /* Photo — no border, just the circle crop */
 .photoCircle {
   position: relative;
-  width: clamp(44px, 12vw, 66px);
-  height: clamp(44px, 12vw, 66px);
+  width: clamp(57px, 15.6vw, 86px);
+  height: clamp(57px, 15.6vw, 86px);
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
@@ -277,7 +277,7 @@
 }
 
 .contactText {
-  font-size: clamp(7px, 1.5vw, 10px);
+  font-size: clamp(8.5px, 1.8vw, 12px);
   color: rgba(255, 255, 255, 0.5);
   letter-spacing: 0.01em;
   white-space: nowrap;
