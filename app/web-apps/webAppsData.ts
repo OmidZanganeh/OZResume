@@ -30,4 +30,15 @@ export const apps: WebAppListing[] = [
     urlAbsolute: `${siteUrl}${gymFlowPublicPath}`,
     schemaCategory: "HealthApplication",
   },
+  {
+    icon: "🧭",
+    title: "Discover",
+    subtitle: "Interactive travel & place discovery map",
+    description:
+      "Explore any city on a dark interactive map and instantly surface interesting nearby places — museums, historic sites, parks, and more — powered by Wikipedia. Read summaries and full articles without leaving the page.",
+    tech: ["Next.js", "Leaflet", "Wikipedia API", "TypeScript"],
+    href: "/tools/trip-explorer",
+    urlAbsolute: `${siteUrl}/tools/trip-explorer`,
+    schemaCategory: "TravelApplication",
+  },
 ];
