@@ -75,6 +75,7 @@
   width: 100%;
   aspect-ratio: 3.5 / 2;
   perspective: 1200px;
+  /* Never add overflow:hidden here — it breaks 3D transforms */
 }
 
 .cardFlipper {
@@ -82,7 +83,9 @@
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Do NOT set overflow:hidden or will-change here */
 }
 
 .cardFlipped {
@@ -93,10 +96,13 @@
   position: absolute;
   inset: 0;
   border-radius: 12px;
-  background-color: #1c1c1c;
+  /* Must be fully opaque — no transparency, or the other face bleeds through */
+  background: #1c1c1c;
   overflow: hidden;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  /* Isolate stacking context so children don't pierce through */
+  isolation: isolate;
   box-shadow:
     0 2px 0 rgba(255,255,255,0.06) inset,
     0 32px 80px rgba(0, 0, 0, 0.8),
@@ -105,6 +111,8 @@
 
 .cardBack {
   transform: rotateY(180deg);
+  /* Extra solid background to guarantee no bleed-through */
+  background: #1a1a1a;
 }
 
 /* Horizontal line texture — exactly like the reference */

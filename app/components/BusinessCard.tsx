@@ -76,7 +76,6 @@ const FlipIcon = () => (
 
 export default function BusinessCard({ open, onClose }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const backRef = useRef<HTMLDivElement>(null);
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [downloading, setDownloading] = useState(false);
   const [flipped, setFlipped] = useState(false);
@@ -178,7 +177,7 @@ export default function BusinessCard({ open, onClose }: Props) {
             </div>
 
             {/* ── BACK ── */}
-            <div ref={backRef} className={`${styles.cardFace} ${styles.cardBack}`}>
+            <div className={`${styles.cardFace} ${styles.cardBack}`}>
               <div className={styles.stripeTexture} aria-hidden="true" />
               {/* Large prominent world map */}
               <div className={styles.mapBgBack} aria-hidden="true">
