@@ -67,11 +67,20 @@ function IconBadge({ children }: { children: React.ReactNode }) {
   return <span className={styles.iconBadge}>{children}</span>;
 }
 
+const FlipIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+    <path d="M3 3v5h5"/>
+  </svg>
+);
+
 export default function BusinessCard({ open, onClose }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLDivElement>(null);
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [downloading, setDownloading] = useState(false);
-  const close = useCallback(() => onClose(), [onClose]);
+  const [flipped, setFlipped] = useState(false);
+  const close = useCallback(() => { onClose(); setFlipped(false); }, [onClose]);
 
   useEffect(() => {
     QRCode.toDataURL(SITE_URL, {
@@ -122,82 +131,73 @@ export default function BusinessCard({ open, onClose }: Props) {
           <button type="button" className={styles.closeBtn} onClick={close} aria-label="Close"><XIcon /></button>
         </div>
 
-        {/* ══ THE CARD ══ */}
-        <div ref={cardRef} className={styles.card}>
+        {/* ══ FLIP SCENE ══ */}
+        <div className={styles.cardScene}>
+          <div className={`${styles.cardFlipper} ${flipped ? styles.cardFlipped : ''}`}>
 
-          {/* Horizontal stripe texture overlay */}
-          <div className={styles.stripeTexture} aria-hidden="true" />
-
-          {/* World map ghost — background */}
-          <div className={styles.mapBg} aria-hidden="true">
-            <ComposableMap
-              projection="geoNaturalEarth1"
-              projectionConfig={{ scale: 140, center: [10, 5] }}
-              style={{ width: '100%', height: '100%' }}
-            >
-              <Geographies geography={GEO_URL}>
-                {({ geographies }) =>
-                  geographies.map(geo => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      fill="rgba(255,255,255,0.09)"
-                      stroke="rgba(255,255,255,0.04)"
-                      strokeWidth={0.5}
-                      style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }}
-                    />
-                  ))
-                }
-              </Geographies>
-            </ComposableMap>
-          </div>
-
-          {/* Card content */}
-          <div className={styles.cardContent}>
-
-            {/* Top row: name block + photo */}
-            <div className={styles.topRow}>
-              <div className={styles.nameBlock}>
-                <p className={styles.name}>OMID ZANGANEH</p>
-                <p className={styles.jobTitle}>GIS Developer</p>
-                <p className={styles.jobSub}>Telecom Engineering &amp; AI/ML Integration</p>
+            {/* ── FRONT ── */}
+            <div ref={cardRef} className={`${styles.cardFace} ${styles.cardFront}`}>
+              <div className={styles.stripeTexture} aria-hidden="true" />
+              <div className={styles.mapBg} aria-hidden="true">
+                <ComposableMap projection="geoNaturalEarth1" projectionConfig={{ scale: 140, center: [10, 5] }} style={{ width: '100%', height: '100%' }}>
+                  <Geographies geography={GEO_URL}>
+                    {({ geographies }) => geographies.map(geo => (
+                      <Geography key={geo.rsmKey} geography={geo} fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.04)" strokeWidth={0.5} style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }} />
+                    ))}
+                  </Geographies>
+                </ComposableMap>
               </div>
-              <div className={styles.photoCircle}>
-                <Image src="/Omid2.png" alt="Omid Zanganeh" fill sizes="80px" className={styles.photoImg} />
+
+              <div className={styles.cardContent}>
+                <div className={styles.topRow}>
+                  <div className={styles.nameBlock}>
+                    <p className={styles.name}>OMID ZANGANEH</p>
+                    <p className={styles.jobTitle}>GIS Developer</p>
+                    <p className={styles.jobSub}>Telecom Engineering &amp; AI/ML Integration</p>
+                  </div>
+                  <div className={styles.photoCircle}>
+                    <Image src="/Omid2.png" alt="Omid Zanganeh" fill sizes="80px" className={styles.photoImg} />
+                  </div>
+                </div>
+                <div className={styles.bottomRow}>
+                  <div className={styles.contactList}>
+                    <div className={styles.contactRow}><IconBadge><IconPin /></IconBadge><span className={styles.contactText}>Lincoln, Nebraska</span></div>
+                    <div className={styles.contactRow}><IconBadge><IconMail /></IconBadge><span className={styles.contactText}>ozanganeh@unomaha.edu</span></div>
+                    <div className={styles.contactRow}><IconBadge><IconPhone /></IconBadge><span className={styles.contactText}>+1 (531) 229-6873</span></div>
+                    <div className={styles.contactRow}><IconBadge><IconGlobe /></IconBadge><span className={styles.contactText}>omidzanganeh.com</span></div>
+                    <div className={styles.contactRow}><IconBadge><IconLinkedIn /></IconBadge><span className={styles.contactText}>linkedin.com/in/omidzanganeh</span></div>
+                  </div>
+                  {qrDataUrl && (
+                    <div className={styles.qrWrap}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={qrDataUrl} alt="QR code — omidzanganeh.com" className={styles.qrImg} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Bottom row: contacts (icon-left) + QR code (right) */}
-            <div className={styles.bottomRow}>
-              <div className={styles.contactList}>
-                <div className={styles.contactRow}>
-                  <IconBadge><IconPin /></IconBadge>
-                  <span className={styles.contactText}>Lincoln, Nebraska</span>
-                </div>
-                <div className={styles.contactRow}>
-                  <IconBadge><IconMail /></IconBadge>
-                  <span className={styles.contactText}>ozanganeh@unomaha.edu</span>
-                </div>
-                <div className={styles.contactRow}>
-                  <IconBadge><IconPhone /></IconBadge>
-                  <span className={styles.contactText}>+1 (531) 229-6873</span>
-                </div>
-                <div className={styles.contactRow}>
-                  <IconBadge><IconGlobe /></IconBadge>
-                  <span className={styles.contactText}>omidzanganeh.com</span>
-                </div>
-                <div className={styles.contactRow}>
-                  <IconBadge><IconLinkedIn /></IconBadge>
-                  <span className={styles.contactText}>linkedin.com/in/omidzanganeh</span>
+            {/* ── BACK ── */}
+            <div ref={backRef} className={`${styles.cardFace} ${styles.cardBack}`}>
+              <div className={styles.stripeTexture} aria-hidden="true" />
+              {/* Large prominent world map */}
+              <div className={styles.mapBgBack} aria-hidden="true">
+                <ComposableMap projection="geoNaturalEarth1" projectionConfig={{ scale: 165, center: [15, 8] }} style={{ width: '100%', height: '100%' }}>
+                  <Geographies geography={GEO_URL}>
+                    {({ geographies }) => geographies.map(geo => (
+                      <Geography key={geo.rsmKey} geography={geo} fill="rgba(255,255,255,0.82)" stroke="rgba(28,28,28,0.6)" strokeWidth={0.8} style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }} />
+                    ))}
+                  </Geographies>
+                </ComposableMap>
+              </div>
+              {/* Branding — bottom right */}
+              <div className={styles.backBranding}>
+                <span className={styles.backInitials}>OZ</span>
+                <div className={styles.backBrandText}>
+                  <span className={styles.backName}>OMID ZANGANEH</span>
+                  <span className={styles.backUrl}>omidzanganeh.com</span>
                 </div>
               </div>
-
-              {qrDataUrl && (
-                <div className={styles.qrWrap}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qrDataUrl} alt="QR code — omidzanganeh.com" className={styles.qrImg} />
-                </div>
-              )}
             </div>
 
           </div>
@@ -207,6 +207,9 @@ export default function BusinessCard({ open, onClose }: Props) {
         <div className={styles.actions}>
           <button type="button" className={styles.btnPrimary} onClick={handleDownload} disabled={downloading}>
             <DownloadIcon /> {downloading ? 'Saving…' : 'Save as PNG'}
+          </button>
+          <button type="button" className={styles.btnSecondary} onClick={() => setFlipped(f => !f)}>
+            <FlipIcon /> {flipped ? 'See front' : 'See back'}
           </button>
           <button type="button" className={styles.btnSecondary} onClick={() => window.print()}>
             <PrintIcon /> Print
