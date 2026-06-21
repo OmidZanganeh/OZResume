@@ -183,20 +183,28 @@
 }
 
 /* ════════════════════════════════
-   CONTACT LIST — text + icon paired
+   BOTTOM ROW: contacts + QR
 ════════════════════════════════ */
+.bottomRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .contactList {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  flex: 1;
+  min-width: 0;
 }
 
-/* Each row: text stretches, icon badge pinned right */
+/* Each row: icon on left, text after */
 .contactRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .contactText {
@@ -206,7 +214,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
 }
 
 .iconBadge {

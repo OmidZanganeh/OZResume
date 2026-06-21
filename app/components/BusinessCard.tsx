@@ -167,37 +167,38 @@ export default function BusinessCard({ open, onClose }: Props) {
               </div>
             </div>
 
-            {/* Contact list — text + icon paired per row */}
-            <div className={styles.contactList}>
-              <div className={styles.contactRow}>
-                <span className={styles.contactText}>Lincoln, Nebraska</span>
-                <IconBadge><IconPin /></IconBadge>
+            {/* Bottom row: contacts (icon-left) + QR code (right) */}
+            <div className={styles.bottomRow}>
+              <div className={styles.contactList}>
+                <div className={styles.contactRow}>
+                  <IconBadge><IconPin /></IconBadge>
+                  <span className={styles.contactText}>Lincoln, Nebraska</span>
+                </div>
+                <div className={styles.contactRow}>
+                  <IconBadge><IconMail /></IconBadge>
+                  <span className={styles.contactText}>ozanganeh@unomaha.edu</span>
+                </div>
+                <div className={styles.contactRow}>
+                  <IconBadge><IconPhone /></IconBadge>
+                  <span className={styles.contactText}>+1 (531) 229-6873</span>
+                </div>
+                <div className={styles.contactRow}>
+                  <IconBadge><IconGlobe /></IconBadge>
+                  <span className={styles.contactText}>omidzanganeh.com</span>
+                </div>
+                <div className={styles.contactRow}>
+                  <IconBadge><IconLinkedIn /></IconBadge>
+                  <span className={styles.contactText}>linkedin.com/in/omidzanganeh</span>
+                </div>
               </div>
-              <div className={styles.contactRow}>
-                <span className={styles.contactText}>ozanganeh@unomaha.edu</span>
-                <IconBadge><IconMail /></IconBadge>
-              </div>
-              <div className={styles.contactRow}>
-                <span className={styles.contactText}>+1 (531) 229-6873</span>
-                <IconBadge><IconPhone /></IconBadge>
-              </div>
-              <div className={styles.contactRow}>
-                <span className={styles.contactText}>omidzanganeh.com</span>
-                <IconBadge><IconGlobe /></IconBadge>
-              </div>
-              <div className={styles.contactRow}>
-                <span className={styles.contactText}>linkedin.com/in/omidzanganeh</span>
-                <IconBadge><IconLinkedIn /></IconBadge>
-              </div>
-            </div>
 
-            {/* QR code */}
-            {qrDataUrl && (
-              <div className={styles.qrWrap}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrDataUrl} alt="QR code — omidzanganeh.com" className={styles.qrImg} />
-              </div>
-            )}
+              {qrDataUrl && (
+                <div className={styles.qrWrap}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qrDataUrl} alt="QR code — omidzanganeh.com" className={styles.qrImg} />
+                </div>
+              )}
+            </div>
 
           </div>
         </div>
