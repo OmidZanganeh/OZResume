@@ -155,54 +155,49 @@ export default function BusinessCard({ open, onClose }: Props) {
           {/* Card content */}
           <div className={styles.cardContent}>
 
-            {/* LEFT: name + contacts + QR */}
-            <div className={styles.leftCol}>
+            {/* Top row: name block + photo */}
+            <div className={styles.topRow}>
               <div className={styles.nameBlock}>
                 <p className={styles.name}>OMID ZANGANEH</p>
                 <p className={styles.jobTitle}>GIS Developer</p>
                 <p className={styles.jobSub}>Telecom Engineering &amp; AI/ML Integration</p>
               </div>
-
-              <div className={styles.contactList}>
-                <div className={styles.contactRow}>
-                  <span className={styles.contactText}>Lincoln, Nebraska</span>
-                </div>
-                <div className={styles.contactRow}>
-                  <span className={styles.contactText}>ozanganeh@unomaha.edu</span>
-                </div>
-                <div className={styles.contactRow}>
-                  <span className={styles.contactText}>+1 (531) 229-6873</span>
-                </div>
-                <div className={styles.contactRow}>
-                  <span className={styles.contactText}>omidzanganeh.com</span>
-                </div>
-                <div className={styles.contactRow}>
-                  <span className={styles.contactText}>linkedin.com/in/omidzanganeh</span>
-                </div>
-              </div>
-
-              {qrDataUrl && (
-                <div className={styles.qrWrap}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qrDataUrl} alt="QR code — omidzanganeh.com" className={styles.qrImg} />
-                </div>
-              )}
-            </div>
-
-            {/* RIGHT: photo + icon badges */}
-            <div className={styles.rightCol}>
               <div className={styles.photoCircle}>
                 <Image src="/Omid.png" alt="Omid Zanganeh" fill sizes="80px" className={styles.photoImg} />
               </div>
+            </div>
 
-              <div className={styles.badgeList}>
+            {/* Contact list — text + icon paired per row */}
+            <div className={styles.contactList}>
+              <div className={styles.contactRow}>
+                <span className={styles.contactText}>Lincoln, Nebraska</span>
                 <IconBadge><IconPin /></IconBadge>
+              </div>
+              <div className={styles.contactRow}>
+                <span className={styles.contactText}>ozanganeh@unomaha.edu</span>
                 <IconBadge><IconMail /></IconBadge>
+              </div>
+              <div className={styles.contactRow}>
+                <span className={styles.contactText}>+1 (531) 229-6873</span>
                 <IconBadge><IconPhone /></IconBadge>
+              </div>
+              <div className={styles.contactRow}>
+                <span className={styles.contactText}>omidzanganeh.com</span>
                 <IconBadge><IconGlobe /></IconBadge>
+              </div>
+              <div className={styles.contactRow}>
+                <span className={styles.contactText}>linkedin.com/in/omidzanganeh</span>
                 <IconBadge><IconLinkedIn /></IconBadge>
               </div>
             </div>
+
+            {/* QR code */}
+            {qrDataUrl && (
+              <div className={styles.qrWrap}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={qrDataUrl} alt="QR code — omidzanganeh.com" className={styles.qrImg} />
+              </div>
+            )}
 
           </div>
         </div>

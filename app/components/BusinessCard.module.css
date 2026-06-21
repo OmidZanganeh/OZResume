@@ -116,21 +116,20 @@
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
+  justify-content: space-between;
   padding: clamp(14px, 4%, 22px) clamp(16px, 4.5%, 26px);
   box-sizing: border-box;
-  gap: 10px;
 }
 
 /* ════════════════════════════════
-   LEFT COLUMN
+   TOP ROW: name + photo
 ════════════════════════════════ */
-.leftCol {
-  flex: 1;
+.topRow {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
-  min-width: 0;
+  gap: 8px;
 }
 
 /* Name block */
@@ -138,6 +137,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .name {
@@ -166,16 +167,36 @@
   letter-spacing: 0.02em;
 }
 
-/* Contact list */
+/* Photo — no border, just the circle crop */
+.photoCircle {
+  position: relative;
+  width: clamp(44px, 12vw, 66px);
+  height: clamp(44px, 12vw, 66px);
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.photoImg {
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* ════════════════════════════════
+   CONTACT LIST — text + icon paired
+════════════════════════════════ */
 .contactList {
   display: flex;
   flex-direction: column;
-  gap: 2.5px;
+  gap: 3px;
 }
 
+/* Each row: text stretches, icon badge pinned right */
 .contactRow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .contactText {
@@ -185,60 +206,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* QR code */
-.qrWrap {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 4px;
-  overflow: hidden;
-  width: fit-content;
-  background: #1c1c1c;
-  line-height: 0;
-}
-
-.qrImg {
-  display: block;
-  width: clamp(44px, 12vw, 64px);
-  height: clamp(44px, 12vw, 64px);
-}
-
-/* ════════════════════════════════
-   RIGHT COLUMN
-════════════════════════════════ */
-.rightCol {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  width: clamp(52px, 14%, 76px);
-  padding: 2px 0;
-}
-
-/* Photo circle */
-.photoCircle {
-  position: relative;
-  width: clamp(44px, 12vw, 66px);
-  height: clamp(44px, 12vw, 66px);
-  border-radius: 50%;
-  overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.18);
-  flex-shrink: 0;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
-}
-
-.photoImg {
-  object-fit: cover;
-  object-position: center top;
-}
-
-/* Icon badges column — matching the circular icons in reference */
-.badgeList {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(3px, 0.8vw, 6px);
-  align-items: center;
+  flex: 1;
 }
 
 .iconBadge {
@@ -257,6 +225,24 @@
 .iconBadge svg {
   width: 45%;
   height: 45%;
+}
+
+/* ════════════════════════════════
+   QR CODE
+════════════════════════════════ */
+.qrWrap {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+  width: fit-content;
+  background: #1c1c1c;
+  line-height: 0;
+}
+
+.qrImg {
+  display: block;
+  width: clamp(44px, 12vw, 64px);
+  height: clamp(44px, 12vw, 64px);
 }
 
 /* ════════════════════════════════
