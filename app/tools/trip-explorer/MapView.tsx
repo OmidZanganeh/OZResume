@@ -5,19 +5,24 @@ import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-le
 import 'leaflet/dist/leaflet.css';
 
 export interface WikiPlace {
+  uid: string;
   pageid: number;
   title: string;
   lat: number;
   lon: number;
   dist: number;
   thumbnail?: string;
+  source: 'wiki' | 'osm';
+  category: string;
+  color: string;
+  osmTags?: Record<string, string>;
 }
 
 interface Props {
   center: [number, number];
   zoom: number;
   places: WikiPlace[];
-  selectedId: number | null;
+  selectedUid: string | null;
   onPlaceClick: (place: WikiPlace) => void;
   onMapMoveEnd: (lat: number, lon: number) => void;
 }
@@ -26,7 +31,7 @@ function FlyTo({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   const prev = useRef<string>('');
   useEffect(() => {
-    const key = `${center[0]},${center[1]}`;
+    const key = `${center[0].toFixed(5)},${center[1].toFixed(5)}`;
     if (prev.current === key) return;
     prev.current = key;
     map.flyTo(center, zoom, { duration: 1.2 });
@@ -47,7 +52,7 @@ function MoveEndHandler({ onMoveEnd }: { onMoveEnd: (lat: number, lon: number) =
   return null;
 }
 
-export default function MapView({ center, zoom, places, selectedId, onPlaceClick, onMapMoveEnd }: Props) {
+export default function MapView({ center, zoom, places, selectedUid, onPlaceClick, onMapMoveEnd }: Props) {
   return (
     <MapContainer
       center={center}
@@ -64,17 +69,17 @@ export default function MapView({ center, zoom, places, selectedId, onPlaceClick
       <MoveEndHandler onMoveEnd={onMapMoveEnd} />
 
       {places.map(place => {
-        const selected = selectedId === place.pageid;
+        const isSelected = selectedUid === place.uid;
         return (
           <CircleMarker
-            key={place.pageid}
+            key={place.uid}
             center={[place.lat, place.lon]}
-            radius={selected ? 11 : 7}
+            radius={isSelected ? 12 : 7}
             pathOptions={{
-              color: selected ? '#f59e0b' : '#4f8ef7',
-              fillColor: selected ? '#f59e0b' : '#4f8ef7',
-              fillOpacity: selected ? 1 : 0.85,
-              weight: selected ? 2.5 : 1.5,
+              color: isSelected ? '#f59e0b' : place.color,
+              fillColor: isSelected ? '#f59e0b' : place.color,
+              fillOpacity: isSelected ? 1 : 0.82,
+              weight: isSelected ? 3 : 1.5,
             }}
             eventHandlers={{ click: () => onPlaceClick(place) }}
           >
