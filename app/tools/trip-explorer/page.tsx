@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import dynamic from 'next/dynamic';
+import TripExplorerWrapper from './TripExplorerWrapper';
 
 export const metadata: Metadata = {
   title: 'Discover — Find Interesting Places | Omid Zanganeh',
@@ -7,8 +7,6 @@ export const metadata: Metadata = {
   alternates: { canonical: '/tools/trip-explorer' },
 };
 
-const TripExplorer = dynamic(() => import('./TripExplorer'), { ssr: false });
-
 export default function Page() {
-  return <TripExplorer />;
+  return <TripExplorerWrapper />;
 }
