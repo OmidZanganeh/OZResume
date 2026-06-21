@@ -179,23 +179,11 @@ export default function BusinessCard({ open, onClose }: Props) {
             {/* ── BACK ── */}
             <div className={`${styles.cardFace} ${styles.cardBack}`}>
               <div className={styles.stripeTexture} aria-hidden="true" />
-              {/* Large prominent world map */}
-              <div className={styles.mapBgBack} aria-hidden="true">
-                <ComposableMap projection="geoNaturalEarth1" projectionConfig={{ scale: 165, center: [15, 8] }} style={{ width: '100%', height: '100%' }}>
-                  <Geographies geography={GEO_URL}>
-                    {({ geographies }) => geographies.map(geo => (
-                      <Geography key={geo.rsmKey} geography={geo} fill="rgba(255,255,255,0.82)" stroke="rgba(28,28,28,0.6)" strokeWidth={0.8} style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }} />
-                    ))}
-                  </Geographies>
-                </ComposableMap>
-              </div>
-              {/* Branding — bottom right */}
-              <div className={styles.backBranding}>
-                <span className={styles.backInitials}>OZ</span>
-                <div className={styles.backBrandText}>
-                  <span className={styles.backName}>OMID ZANGANEH</span>
-                  <span className={styles.backUrl}>omidzanganeh.com</span>
-                </div>
+              <div className={styles.backCenter}>
+                <span className={styles.backMonogram}>OZ</span>
+                <div className={styles.backDivider} aria-hidden="true" />
+                <span className={styles.backFullName}>OMID ZANGANEH</span>
+                <span className={styles.backTagline}>GIS Developer · omidzanganeh.com</span>
               </div>
             </div>
 
