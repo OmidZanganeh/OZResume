@@ -109,11 +109,21 @@ function fmtDate(d: string) {
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+// ─── Wikipedia noise filter ───────────────────────────────────────────────────
+// Strip articles that are about incidents, crimes, disasters, or deaths rather
+// than actual places. We match on common incident-language in article titles.
+const NOISE_TITLE_RE = /\b(attack|attacks|attacker|shooting|stabbing|bombing|explosion|massacre|murder|murders|killing|killed|suicide|crash|collision|accident|disaster|fire of|flood|hurricane|earthquake|riot|riots|protest|protests|death|deaths|death of|obituary|funeral|scandal|siege|hostage|abduction|kidnapping|terrorism|terrorist|genocide)\b/i;
+
+function filterWikiNoise<T extends { title: string }>(places: T[]): T[] {
+  return places.filter(p => !NOISE_TITLE_RE.test(p.title));
+}
+
 // ─── API ──────────────────────────────────────────────────────────────────────
 async function fetchWikiPlaces(lat: number, lon: number, radius: number, color: string, catId: string): Promise<WikiPlace[]> {
-  const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=${radius}&gslimit=50&format=json&origin=*`);
+  const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=${radius}&gslimit=500&format=json&origin=*`);
   const data = await res.json();
-  return ((data.query?.geosearch ?? []) as { pageid: number; title: string; lat: number; lon: number; dist: number }[])
+  const raw = (data.query?.geosearch ?? []) as { pageid: number; title: string; lat: number; lon: number; dist: number }[];
+  return filterWikiNoise(raw)
     .map(p => ({ uid: `wiki:${p.pageid}`, pageid: p.pageid, title: p.title, lat: p.lat, lon: p.lon, dist: p.dist, source: 'wiki' as const, category: catId, color }));
 }
 
@@ -135,9 +145,9 @@ async function fetchWikiSummary(title: string): Promise<PlaceDetail> {
 
 async function fetchOsmPlaces(lat: number, lon: number, radius: number, template: string, color: string, catId: string): Promise<WikiPlace[]> {
   const inner = template.replace(/RADIUS/g, String(radius)).replace(/LAT/g, String(lat)).replace(/LON/g, String(lon));
-  const query = `[out:json][timeout:20];(${inner});out body center 50;`;
+  const query = `[out:json][timeout:25];(${inner});out body center 150;`;
   const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 22000);
+  const tid = setTimeout(() => ctrl.abort(), 28000);
   try {
     const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`, { signal: ctrl.signal });
     const data = await res.json();
@@ -391,9 +401,9 @@ export default function TripExplorer() {
           if (section.wiki) {
             raw = await fetchWikiPlaces(lat, lon, 5000, section.color, section.id);
             const thumbs = await fetchBatchThumbs(raw);
-            raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] })).slice(0, 6);
+            raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] })).slice(0, 20);
           } else if (section.osmTemplate) {
-            raw = (await fetchOsmPlaces(lat, lon, 5000, section.osmTemplate, section.color, section.id)).slice(0, 6);
+            raw = (await fetchOsmPlaces(lat, lon, 5000, section.osmTemplate, section.color, section.id)).slice(0, 20);
           }
           setPlanResults(prev => prev.map(r => r.sectionId === section.id ? { ...r, places: raw, loading: false } : r));
         } catch {
