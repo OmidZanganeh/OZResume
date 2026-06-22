@@ -20,7 +20,6 @@ import IsoPanel, {
   extractPolyString, processOverpassResult,
 } from './IsoPanel';
 import CensusPanel, { CensusData, CensusStatus } from './CensusPanel';
-import { fetchIsochrone } from '@/app/lib/valhalla';
 import styles from './TripExplorer.module.css';
 
 const MapView = dynamic(() => import('./MapView'), {
@@ -624,9 +623,14 @@ export default function TripExplorer() {
         contours: sorted.map(t => ({ time: t })),
         polygons: true,
       };
-      const data = await fetchIsochrone(body);
-      // Tag each feature with a _colorIdx matching the sorted time order
-      const feats = data.features.map((f, i) => ({
+      const res  = await fetch('/api/isochrone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json() as Record<string, unknown> & { error?: string };
+      if (!res.ok || data.error) { setIsoError(data.error ?? `Server error ${res.status}`); return; }
+      const feats = (data.features as Record<string, unknown>[]).map((f, i) => ({
         ...f,
         properties: { ...(f.properties as Record<string, unknown>), _colorIdx: i },
       }));

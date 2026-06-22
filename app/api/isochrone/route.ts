@@ -1,29 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { VALHALLA_ISOCHRONE_URL } from '@/app/lib/valhalla';
 
-/** Server-side fallback proxy — primary path is browser → Valhalla direct. */
 export async function POST(req: NextRequest) {
-  let body: unknown;
-  try { body = await req.json(); } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
   try {
-    const upstream = await fetch(VALHALLA_ISOCHRONE_URL, {
+    const body = await req.json();
+    const upstream = await fetch('https://valhalla1.openstreetmap.de/isochrone', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      // Multi-ring isochrones can take 30–60 s; do not abort early.
-      signal: AbortSignal.timeout(90_000),
     });
     if (!upstream.ok) {
       const text = await upstream.text();
-      return NextResponse.json({ error: text || `Valhalla HTTP ${upstream.status}` }, { status: upstream.status });
+      return NextResponse.json({ error: text }, { status: upstream.status });
     }
     const data = await upstream.json();
     return NextResponse.json(data);
-  } catch (err) {
+  } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Request failed';
-    return NextResponse.json({ error: msg }, { status: 502 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
