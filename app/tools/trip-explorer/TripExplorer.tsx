@@ -227,6 +227,7 @@ export default function TripExplorer() {
   const [category, setCategory] = useState('all');
   const [radius, setRadius] = useState(5000);
   const [places, setPlaces] = useState<WikiPlace[]>([]);
+  const [sortBy, setSortBy] = useState<'dist' | 'name'>('dist');
   const [discovering, setDiscovering] = useState(false);
   const [osmError, setOsmError] = useState(false);
   const [wikiError, setWikiError] = useState(false);
@@ -618,6 +619,18 @@ export default function TripExplorer() {
           <button type="button" className={styles.osmRetryBtn} onClick={discoverCenter}>Retry</button>
         </div>
       )}
+
+      {/* Sort bar — only show when there are results */}
+      {places.length > 1 && (
+        <div className={styles.sortBar}>
+          <span className={styles.sortLabel}>{places.length} results</span>
+          <div className={styles.sortBtns}>
+            <button type="button" className={`${styles.sortBtn} ${sortBy === 'dist' ? styles.sortBtnActive : ''}`} onClick={() => setSortBy('dist')}>Nearest</button>
+            <button type="button" className={`${styles.sortBtn} ${sortBy === 'name' ? styles.sortBtnActive : ''}`} onClick={() => setSortBy('name')}>A → Z</button>
+          </div>
+        </div>
+      )}
+
       <div className={styles.resultsList}>
         {places.length === 0 && !discovering ? (
           <div className={styles.emptyState}>
@@ -626,7 +639,7 @@ export default function TripExplorer() {
             <p className={styles.emptyDesc}>Pick a category above, then click <strong>Discover this area</strong>.</p>
           </div>
         ) : (
-          <>{places.map(renderPlaceCard)}</>
+          <>{[...places].sort((a, b) => sortBy === 'name' ? a.title.localeCompare(b.title) : a.dist - b.dist).map(renderPlaceCard)}</>
         )}
       </div>
     </div>
