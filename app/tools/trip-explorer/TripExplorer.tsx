@@ -9,7 +9,7 @@ import {
   Globe, Landmark, UtensilsCrossed, Coffee, BedDouble, Trees, Palette,
   Clapperboard, Waves, Beer, ShoppingBag, HeartPulse, Heart, Plane,
   Search, Navigation, Crosshair, ArrowLeft, ChevronRight, ChevronDown,
-  MapPin, Share2, BookOpen, ExternalLink, Pin, PinOff,
+  MapPin, Share2, BookOpen, ExternalLink, Pin, PinOff, X, Image,
   Sun, Cloud, CloudRain, Snowflake, CloudLightning, CloudDrizzle,
   Wind, Droplets, CalendarDays, Info, Globe2, Clock,
   CreditCard, Languages, Car,
@@ -49,6 +49,7 @@ interface PlanSectionDef {
 }
 
 interface PlaceDetail { title: string; extract: string; thumbnail?: { source: string }; content_urls?: { desktop: { page: string } }; }
+interface OsmWikiInfo { title: string; extract: string; url: string; thumbnail?: string; }
 interface Weather { temp: number; code: number; wind: number; }
 interface DailyForecast { date: string; maxTemp: number; minTemp: number; code: number; precipProb: number; }
 interface CountryInfo { name: string; flag: string; currencies: string; languages: string; timezones: string; drivingSide: string; }
@@ -56,14 +57,21 @@ interface OsmElement { id: number; lat?: number; lon?: number; center?: { lat: n
 interface PlanResult { sectionId: string; places: WikiPlace[]; loading: boolean; error: boolean; }
 
 // ─── Data ────────────────────────────────────────────────────────────────────
+// Landmarks query: real physical attractions, monuments, historic sites — not Wikipedia articles
+const LANDMARKS_OSM = [
+  'node["tourism"~"^(attraction|viewpoint|artwork|zoo|aquarium|theme_park)$"](around:RADIUS,LAT,LON);',
+  'node["historic"~"^(monument|memorial|castle|ruins|landmark|building|statue|city_gate|fort|archaeological_site|tomb|wayside_cross|wayside_shrine)$"](around:RADIUS,LAT,LON);',
+  'node["amenity"~"^(place_of_worship|arts_centre)$"]["name"](around:RADIUS,LAT,LON);',
+].join('');
+
 const EXPLORE_CATEGORIES: Category[] = [
   { id: 'all',           label: 'All',       Icon: Globe,          color: '#4f8ef7', source: 'wiki' },
-  { id: 'landmarks',     label: 'Landmarks', Icon: Landmark,       color: '#6366f1', source: 'wiki' },
+  { id: 'landmarks',     label: 'Landmarks', Icon: Landmark,       color: '#6366f1', source: 'osm', osmTemplate: LANDMARKS_OSM },
   { id: 'restaurants',   label: 'Eat',       Icon: UtensilsCrossed,color: '#f97316', source: 'osm', osmTemplate: 'node["amenity"="restaurant"](around:RADIUS,LAT,LON);' },
   { id: 'cafes',         label: 'Cafes',     Icon: Coffee,         color: '#d97706', source: 'osm', osmTemplate: 'node["amenity"~"^(cafe|coffee_shop)$"](around:RADIUS,LAT,LON);' },
   { id: 'hotels',        label: 'Stay',      Icon: BedDouble,      color: '#a855f7', source: 'osm', osmTemplate: 'node["tourism"~"^(hotel|hostel|guest_house|motel)$"](around:RADIUS,LAT,LON);' },
   { id: 'parks',         label: 'Nature',    Icon: Trees,          color: '#22c55e', source: 'osm', osmTemplate: 'node["leisure"~"^(park|nature_reserve|garden)$"](around:RADIUS,LAT,LON);' },
-  { id: 'culture',       label: 'Culture',   Icon: Palette,        color: '#ec4899', source: 'osm', osmTemplate: 'node["tourism"~"^(museum|gallery|attraction)$"](around:RADIUS,LAT,LON);' },
+  { id: 'culture',       label: 'Culture',   Icon: Palette,        color: '#ec4899', source: 'osm', osmTemplate: 'node["tourism"~"^(museum|gallery)$"](around:RADIUS,LAT,LON);' },
   { id: 'entertainment', label: 'Fun',       Icon: Clapperboard,   color: '#f43f5e', source: 'osm', osmTemplate: 'node["amenity"~"^(cinema|theatre|arts_centre)$"](around:RADIUS,LAT,LON);node["leisure"~"^(amusement_arcade|water_park|escape_game)$"](around:RADIUS,LAT,LON);' },
   { id: 'beach',         label: 'Beach',     Icon: Waves,          color: '#06b6d4', source: 'osm', osmTemplate: 'node["natural"="beach"](around:RADIUS,LAT,LON);node["leisure"="beach_resort"](around:RADIUS,LAT,LON);' },
   { id: 'nightlife',     label: 'Nightlife', Icon: Beer,           color: '#ef4444', source: 'osm', osmTemplate: 'node["amenity"~"^(bar|pub|nightclub)$"](around:RADIUS,LAT,LON);' },
@@ -71,8 +79,13 @@ const EXPLORE_CATEGORIES: Category[] = [
   { id: 'health',        label: 'Health',    Icon: HeartPulse,     color: '#10b981', source: 'osm', osmTemplate: 'node["amenity"~"^(hospital|pharmacy|clinic|doctors)$"](around:RADIUS,LAT,LON);' },
 ];
 
+const LANDMARKS_OSM_PLAN = [
+  'node["tourism"~"^(attraction|viewpoint|artwork|zoo|aquarium|theme_park)$"](around:5000,LAT,LON);',
+  'node["historic"~"^(monument|memorial|castle|ruins|landmark|building|statue|city_gate|fort|archaeological_site)$"](around:5000,LAT,LON);',
+].join('');
+
 const PLAN_SECTIONS: PlanSectionDef[] = [
-  { id: 'landmarks',   Icon: Landmark,        title: 'Top Landmarks',  color: '#6366f1', wiki: true },
+  { id: 'landmarks',   Icon: Landmark,        title: 'Top Landmarks',  color: '#6366f1', wiki: false, osmTemplate: LANDMARKS_OSM_PLAN },
   { id: 'hotels',      Icon: BedDouble,       title: 'Where to Stay',  color: '#a855f7', wiki: false, osmTemplate: 'node["tourism"~"^(hotel|hostel|guest_house|motel)$"](around:5000,LAT,LON);' },
   { id: 'restaurants', Icon: UtensilsCrossed, title: 'Where to Eat',   color: '#f97316', wiki: false, osmTemplate: 'node["amenity"="restaurant"](around:5000,LAT,LON);' },
   { id: 'culture',     Icon: Palette,         title: 'Things to Do',   color: '#ec4899', wiki: false, osmTemplate: 'node["tourism"~"^(museum|gallery|attraction)$"](around:5000,LAT,LON);' },
@@ -134,6 +147,57 @@ async function fetchBatchThumbs(places: WikiPlace[]): Promise<Record<string, str
 async function fetchWikiSummary(title: string): Promise<PlaceDetail> {
   const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
   return res.json();
+}
+
+// Fetch a gallery of photos for a Wikipedia article title
+async function fetchWikiPhotos(title: string): Promise<string[]> {
+  try {
+    // Step 1: get list of image file names on the page
+    const r1 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=images&imlimit=20&format=json&origin=*`);
+    const d1 = await r1.json();
+    const pages1 = Object.values(d1.query?.pages ?? {}) as { images?: { title: string }[] }[];
+    const imgTitles = (pages1[0]?.images ?? [])
+      .map(i => i.title)
+      .filter(t => /\.(jpg|jpeg|png|webp)$/i.test(t) &&
+        !/flag|logo|icon|coat|seal|map|blank|locator|symbol|commons-logo|cc-by|edit-clear|signature|portrait|emblem/i.test(t));
+    if (!imgTitles.length) return [];
+    // Step 2: resolve file names to actual image URLs (600px wide thumbs)
+    const r2 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(imgTitles.slice(0, 12).join('|'))}&prop=imageinfo&iiprop=url&iiurlwidth=600&format=json&origin=*`);
+    const d2 = await r2.json();
+    return (Object.values(d2.query?.pages ?? {}) as { imageinfo?: { thumburl?: string; url?: string }[] }[])
+      .map(p => p.imageinfo?.[0]?.thumburl ?? p.imageinfo?.[0]?.url ?? '')
+      .filter(Boolean);
+  } catch { return []; }
+}
+
+// Search Wikimedia Commons for photos matching a search term
+async function fetchCommonsPhotos(name: string): Promise<string[]> {
+  try {
+    const r = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(name)}&gsrnamespace=6&gsrlimit=10&prop=imageinfo&iiprop=url&iiurlwidth=600&format=json&origin=*`);
+    const d = await r.json();
+    return (Object.values(d.query?.pages ?? {}) as { imageinfo?: { thumburl?: string; url?: string }[] }[])
+      .map(p => p.imageinfo?.[0]?.thumburl ?? p.imageinfo?.[0]?.url ?? '')
+      .filter((u): u is string => Boolean(u) && /\.(jpg|jpeg|png|webp)/i.test(u));
+  } catch { return []; }
+}
+
+// For OSM places: search Wikipedia for a matching article to get a description
+async function searchWikipediaByName(name: string): Promise<{ title: string; extract: string; url: string; thumbnail?: string } | null> {
+  try {
+    const r1 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(name)}&srprop=snippet&srlimit=1&format=json&origin=*`);
+    const d1 = await r1.json();
+    const hit = d1.query?.search?.[0];
+    if (!hit) return null;
+    const r2 = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hit.title)}`);
+    const d2 = await r2.json();
+    if (!d2.extract) return null;
+    return {
+      title: d2.title ?? hit.title,
+      extract: d2.extract,
+      url: d2.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(hit.title)}`,
+      thumbnail: d2.thumbnail?.source,
+    };
+  } catch { return null; }
 }
 
 // Multiple public Overpass endpoints — tried in order, first success wins
@@ -236,10 +300,19 @@ export default function TripExplorer() {
   const [osmError, setOsmError] = useState(false);
   const [wikiError, setWikiError] = useState(false);
 
+  // Wikipedia overlay
+  const [wikiOverlay, setWikiOverlay] = useState(false);
+  const [wikiOverlayPlaces, setWikiOverlayPlaces] = useState<WikiPlace[]>([]);
+  const [wikiOverlayLoading, setWikiOverlayLoading] = useState(false);
+  const [wikiOverlayOpen, setWikiOverlayOpen] = useState(true);
+
   // Detail state
   const [selected, setSelected] = useState<WikiPlace | null>(null);
   const [detail, setDetail] = useState<PlaceDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailPhotos, setDetailPhotos] = useState<string[]>([]);
+  const [osmWikiInfo, setOsmWikiInfo] = useState<OsmWikiInfo | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   // Weather/forecast state
@@ -284,9 +357,23 @@ export default function TripExplorer() {
     fetchForecast(lat, lon).then(setForecast);
   }, []);
 
+  const fetchWikiOverlay = useCallback(async (lat: number, lon: number, rad: number) => {
+    setWikiOverlayLoading(true);
+    setWikiOverlayPlaces([]);
+    try {
+      let raw = await fetchWikiPlaces(lat, lon, rad, '#e8a243', 'wiki-overlay');
+      const thumbs = await fetchBatchThumbs(raw);
+      raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] }));
+      setWikiOverlayPlaces(raw);
+    } catch { /* silent */ }
+    finally { setWikiOverlayLoading(false); }
+  }, []);
+
   const discover = useCallback(async (lat: number, lon: number, rad: number, catId: string) => {
     setDiscovering(true); setSelected(null); setDetail(null); setOsmError(false); setWikiError(false);
     loadWeather(lat, lon);
+    // Refresh wiki overlay if it's on
+    if (wikiOverlay) fetchWikiOverlay(lat, lon, rad);
 
     if (catId === 'all') {
       // Run every category in parallel, stream results in as they arrive
@@ -329,7 +416,7 @@ export default function TripExplorer() {
       }
       setPlaces(raw);
     } finally { setDiscovering(false); }
-  }, [getCat, loadWeather]);
+  }, [getCat, loadWeather, wikiOverlay, fetchWikiOverlay]);
 
   const discoverCenter = useCallback(() => {
     const loc = pinnedLocation ?? mapCenter;
@@ -343,12 +430,37 @@ export default function TripExplorer() {
   }, [pinnedLocation, mapCenter, radius, discover]);
 
   const handlePlaceClick = useCallback(async (place: WikiPlace) => {
-    setSelected(place); setDetail(null);
-    if (place.source === 'wiki') {
-      setDetailLoading(true);
-      try { setDetail(await fetchWikiSummary(place.title)); } catch { /* silent */ }
-      finally { setDetailLoading(false); }
-    }
+    setSelected(place); setDetail(null); setDetailPhotos([]); setOsmWikiInfo(null);
+    setDetailLoading(true);
+    try {
+      if (place.source === 'wiki') {
+        // Fetch summary + photos in parallel
+        const [summary, photos] = await Promise.all([
+          fetchWikiSummary(place.title),
+          fetchWikiPhotos(place.title),
+        ]);
+        setDetail(summary);
+        // Merge Wikipedia article photos + Commons photos (deduplicated)
+        const commonsPhotos = await fetchCommonsPhotos(place.title);
+        const all = [...new Set([...photos, ...commonsPhotos])].filter(Boolean);
+        setDetailPhotos(all);
+      } else {
+        // OSM place — search Wikipedia for a description + fetch Commons photos in parallel
+        const [wikiInfo, commonsPhotos] = await Promise.all([
+          searchWikipediaByName(place.title),
+          fetchCommonsPhotos(place.title),
+        ]);
+        if (wikiInfo) {
+          setOsmWikiInfo(wikiInfo);
+          // Also fetch Wikipedia article photos
+          const wikiPhotos = await fetchWikiPhotos(wikiInfo.title);
+          setDetailPhotos([...new Set([...wikiPhotos, ...commonsPhotos])].filter(Boolean));
+        } else {
+          setDetailPhotos(commonsPhotos);
+        }
+      }
+    } catch { /* silent */ }
+    finally { setDetailLoading(false); }
   }, []);
 
   const geocode = useCallback(async (query: string) => {
@@ -452,12 +564,27 @@ export default function TripExplorer() {
     finally { setPlanning(false); }
   }, [planCityQ]);
 
+
+  const toggleWikiOverlay = useCallback(() => {
+    setWikiOverlay(prev => {
+      const next = !prev;
+      if (next) {
+        const loc = pinnedLocation ?? mapCenter;
+        fetchWikiOverlay(loc[0], loc[1], radius);
+      } else {
+        setWikiOverlayPlaces([]);
+      }
+      return next;
+    });
+  }, [pinnedLocation, mapCenter, radius, fetchWikiOverlay]);
+
   const mapPlaces = useMemo(() => {
+    const overlay = wikiOverlay && tab === 'explore' ? wikiOverlayPlaces : [];
     if (tab === 'plan') return planResults.flatMap(r => r.places);
     if (tab === 'saved') return favorites;
-    if (category === 'all' && allGroups.length) return allGroups.flatMap(g => g.places);
-    return places;
-  }, [tab, category, places, favorites, planResults, allGroups]);
+    if (category === 'all' && allGroups.length) return [...allGroups.flatMap(g => g.places), ...overlay];
+    return [...places, ...overlay];
+  }, [tab, category, places, favorites, planResults, allGroups, wikiOverlay, wikiOverlayPlaces]);
 
   const selectedDateForecast = useMemo(() => travelDate && forecast.length ? (forecast.find(f => f.date === travelDate) ?? null) : null, [travelDate, forecast]);
 
@@ -485,60 +612,119 @@ export default function TripExplorer() {
     );
   };
 
+  // ── Photo strip shared renderer ───────────────────────────────────────────
+  const renderPhotoStrip = (heroSrc?: string) => {
+    const all = [
+      ...(heroSrc ? [heroSrc] : []),
+      ...detailPhotos.filter(u => u !== heroSrc),
+    ];
+    if (!all.length) return null;
+    return (
+      <div className={styles.photoStrip}>
+        {all.map((src, i) => (
+          <button key={i} type="button" className={styles.photoThumb} onClick={() => setLightboxSrc(src)}>
+            <img src={src} alt="" loading="lazy" />
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // ── Action buttons shared renderer ────────────────────────────────────────
+  const renderActions = (wikiUrl?: string) => (
+    <div className={styles.detailActions}>
+      <button type="button" className={styles.actionBtn} onClick={() => openDirections(selected!.lat, selected!.lon)}><Navigation size={13} /> Directions</button>
+      <a href={`https://www.google.com/maps/search/?api=1&query=${selected!.lat},${selected!.lon}`} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline}><ExternalLink size={12} /> Maps</a>
+      {wikiUrl && <a href={wikiUrl} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline}><BookOpen size={12} /> Wikipedia</a>}
+      <a href={`https://www.google.com/search?q=${encodeURIComponent(selected!.title)}`} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline}><Globe2 size={12} /> Google</a>
+      <a href={`https://www.google.com/search?q=${encodeURIComponent(selected!.title)}&tbm=isch`} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline}><Image size={12} /> Photos</a>
+      <button type="button" className={`${styles.actionBtnOutline} ${isFav(selected!.uid) ? styles.actionBtnFav : ''}`} onClick={() => toggleFav(selected!)}><Heart size={12} fill={isFav(selected!.uid) ? 'currentColor' : 'none'} /> {isFav(selected!.uid) ? 'Saved' : 'Save'}</button>
+      <button type="button" className={styles.actionBtnOutline} onClick={handleShare}><Share2 size={12} /> {copied ? 'Copied!' : 'Share'}</button>
+    </div>
+  );
+
   const renderDetail = () => {
     if (!selected) return null;
     const cat = getCat(selected.category);
     const backLabel = tab === 'plan' ? 'Back to plan' : tab === 'saved' ? 'Back to saved' : 'Back to results';
     return (
-      <div className={styles.detailPanel}>
-        <button type="button" className={styles.backBtn} onClick={() => { setSelected(null); setDetail(null); }}>
-          <ArrowLeft size={14} /> {backLabel}
-        </button>
-        {selected.source === 'osm' && selected.osmTags ? (
-          <div className={styles.detailContent}>
-            <div className={styles.osmHeader}>
-              {cat && (
-                <span className={styles.osmCatChip} style={{ background: cat.color + '22', color: cat.color, borderColor: cat.color + '44' }}>
-                  <cat.Icon size={12} /> {cat.label}
-                </span>
-              )}
-              <h2 className={styles.detailTitle}>{selected.title}</h2>
-              <span className={styles.detailDist}><MapPin size={11} /> {fmtDist(selected.dist)} away</span>
-            </div>
-            <div className={styles.osmMeta}>
-              {selected.osmTags.cuisine && <div className={styles.osmRow}><span className={styles.osmKey}>Cuisine</span><span>{selected.osmTags.cuisine.replace(/_/g, ' ')}</span></div>}
-              {selected.osmTags.opening_hours && <div className={styles.osmRow}><span className={styles.osmKey}>Hours</span><span>{selected.osmTags.opening_hours}</span></div>}
-              {(selected.osmTags['addr:street'] || selected.osmTags['addr:housenumber']) && <div className={styles.osmRow}><span className={styles.osmKey}>Address</span><span>{[selected.osmTags['addr:housenumber'], selected.osmTags['addr:street'], selected.osmTags['addr:city']].filter(Boolean).join(', ')}</span></div>}
-              {(selected.osmTags.phone || selected.osmTags['contact:phone']) && <div className={styles.osmRow}><span className={styles.osmKey}>Phone</span><a href={`tel:${selected.osmTags.phone}`} className={styles.osmLink}>{selected.osmTags.phone || selected.osmTags['contact:phone']}</a></div>}
-              {(selected.osmTags.website || selected.osmTags['contact:website']) && <div className={styles.osmRow}><span className={styles.osmKey}>Web</span><a href={selected.osmTags.website || selected.osmTags['contact:website']} target="_blank" rel="noopener noreferrer" className={styles.osmLink}>{(selected.osmTags.website || selected.osmTags['contact:website'] || '').replace(/^https?:\/\/(www\.)?/, '').substring(0, 30)}</a></div>}
-              {selected.osmTags.stars && <div className={styles.osmRow}><span className={styles.osmKey}>Stars</span><span className={styles.starRow}>{Array.from({ length: Math.min(5, parseInt(selected.osmTags.stars)) }).map((_, i) => <span key={i} className={styles.starFilled}>★</span>)}</span></div>}
-            </div>
-            <div className={styles.detailActions}>
-              <button type="button" className={styles.actionBtn} onClick={() => openDirections(selected.lat, selected.lon)}><Navigation size={13} /> Directions</button>
-              <a href={`https://www.google.com/maps/search/?api=1&query=${selected.lat},${selected.lon}`} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline}><ExternalLink size={12} /> Maps</a>
-              <button type="button" className={`${styles.actionBtnOutline} ${isFav(selected.uid) ? styles.actionBtnFav : ''}`} onClick={() => toggleFav(selected)}><Heart size={12} fill={isFav(selected.uid) ? 'currentColor' : 'none'} /> {isFav(selected.uid) ? 'Saved' : 'Save'}</button>
-              <button type="button" className={styles.actionBtnOutline} onClick={handleShare}><Share2 size={12} /> {copied ? 'Copied!' : 'Share'}</button>
-            </div>
+      <>
+        {/* Lightbox overlay */}
+        {lightboxSrc && (
+          <div className={styles.lightbox} onClick={() => setLightboxSrc(null)}>
+            <button type="button" className={styles.lightboxClose} onClick={() => setLightboxSrc(null)}><X size={20} /></button>
+            <img src={lightboxSrc} alt="" className={styles.lightboxImg} onClick={e => e.stopPropagation()} />
           </div>
-        ) : selected.source === 'wiki' ? (
-          detailLoading ? (
-            <div className={styles.detailSkeleton}><div className={styles.skeletonImg} /><div className={styles.skeletonLine} /><div className={styles.skeletonLine} style={{ width: '80%' }} /><div className={styles.skeletonLine} style={{ width: '60%' }} /></div>
-          ) : detail ? (
-            <div className={styles.detailContent}>
-              {detail.thumbnail && <img src={detail.thumbnail.source} alt={detail.title} className={styles.detailImg} />}
-              <h2 className={styles.detailTitle}>{detail.title}</h2>
-              <span className={styles.detailDist}><MapPin size={11} /> {fmtDist(selected.dist)} away</span>
-              <p className={styles.detailExtract}>{detail.extract}</p>
-              <div className={styles.detailActions}>
-                {detail.content_urls && <a href={detail.content_urls.desktop.page} target="_blank" rel="noopener noreferrer" className={styles.actionBtn}><BookOpen size={13} /> Wikipedia</a>}
-                <button type="button" className={styles.actionBtnOutline} onClick={() => openDirections(selected.lat, selected.lon)}><Navigation size={12} /> Directions</button>
-                <button type="button" className={`${styles.actionBtnOutline} ${isFav(selected.uid) ? styles.actionBtnFav : ''}`} onClick={() => toggleFav(selected)}><Heart size={12} fill={isFav(selected.uid) ? 'currentColor' : 'none'} /> {isFav(selected.uid) ? 'Saved' : 'Save'}</button>
-                <button type="button" className={styles.actionBtnOutline} onClick={handleShare}><Share2 size={12} /> {copied ? 'Copied!' : 'Share'}</button>
-              </div>
+        )}
+
+        <div className={styles.detailPanel}>
+          <button type="button" className={styles.backBtn} onClick={() => { setSelected(null); setDetail(null); setDetailPhotos([]); setOsmWikiInfo(null); setLightboxSrc(null); }}>
+            <ArrowLeft size={14} /> {backLabel}
+          </button>
+
+          {/* Loading skeleton */}
+          {detailLoading && (
+            <div className={styles.detailSkeleton}>
+              <div className={styles.skeletonImg} />
+              <div className={styles.skeletonLine} />
+              <div className={styles.skeletonLine} style={{ width: '80%' }} />
+              <div className={styles.skeletonLine} style={{ width: '60%' }} />
             </div>
-          ) : null
-        ) : null}
-      </div>
+          )}
+
+          {!detailLoading && (
+            <div className={styles.detailContent}>
+              {/* Category chip + title + distance */}
+              <div className={styles.detailHeader}>
+                {cat && (
+                  <span className={styles.osmCatChip} style={{ background: cat.color + '22', color: cat.color, borderColor: cat.color + '44' }}>
+                    <cat.Icon size={12} /> {cat.label}
+                  </span>
+                )}
+                <h2 className={styles.detailTitle}>{selected.title}</h2>
+                <span className={styles.detailDist}><MapPin size={11} /> {fmtDist(selected.dist)} away</span>
+              </div>
+
+              {/* Photo strip */}
+              {renderPhotoStrip(
+                selected.source === 'wiki' ? detail?.thumbnail?.source : osmWikiInfo?.thumbnail
+              )}
+
+              {/* Wikipedia extract (wiki places) */}
+              {selected.source === 'wiki' && detail?.extract && (
+                <p className={styles.detailExtract}>{detail.extract}</p>
+              )}
+
+              {/* OSM structured tags */}
+              {selected.source === 'osm' && selected.osmTags && (
+                <div className={styles.osmMeta}>
+                  {selected.osmTags.cuisine && <div className={styles.osmRow}><span className={styles.osmKey}>Cuisine</span><span>{selected.osmTags.cuisine.replace(/_/g, ' ')}</span></div>}
+                  {selected.osmTags.opening_hours && <div className={styles.osmRow}><span className={styles.osmKey}>Hours</span><span>{selected.osmTags.opening_hours}</span></div>}
+                  {(selected.osmTags['addr:street'] || selected.osmTags['addr:housenumber']) && <div className={styles.osmRow}><span className={styles.osmKey}>Address</span><span>{[selected.osmTags['addr:housenumber'], selected.osmTags['addr:street'], selected.osmTags['addr:city']].filter(Boolean).join(', ')}</span></div>}
+                  {(selected.osmTags.phone || selected.osmTags['contact:phone']) && <div className={styles.osmRow}><span className={styles.osmKey}>Phone</span><a href={`tel:${selected.osmTags.phone ?? selected.osmTags['contact:phone']}`} className={styles.osmLink}>{selected.osmTags.phone ?? selected.osmTags['contact:phone']}</a></div>}
+                  {(selected.osmTags.website || selected.osmTags['contact:website']) && <div className={styles.osmRow}><span className={styles.osmKey}>Web</span><a href={selected.osmTags.website ?? selected.osmTags['contact:website']} target="_blank" rel="noopener noreferrer" className={styles.osmLink}>{(selected.osmTags.website ?? selected.osmTags['contact:website'] ?? '').replace(/^https?:\/\/(www\.)?/, '').substring(0, 32)}</a></div>}
+                  {selected.osmTags.stars && <div className={styles.osmRow}><span className={styles.osmKey}>Stars</span><span className={styles.starRow}>{Array.from({ length: Math.min(5, parseInt(selected.osmTags.stars)) }).map((_, i) => <span key={i} className={styles.starFilled}>★</span>)}</span></div>}
+                </div>
+              )}
+
+              {/* Wikipedia article found for OSM place */}
+              {selected.source === 'osm' && osmWikiInfo && (
+                <div className={styles.osmWikiBlurb}>
+                  <span className={styles.osmWikiLabel}><BookOpen size={11} /> Wikipedia</span>
+                  <p className={styles.osmWikiExtract}>{osmWikiInfo.extract}</p>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              {renderActions(
+                selected.source === 'wiki'
+                  ? detail?.content_urls?.desktop?.page
+                  : osmWikiInfo?.url
+              )}
+            </div>
+          )}
+        </div>
+      </>
     );
   };
 
@@ -562,6 +748,26 @@ export default function TripExplorer() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Wikipedia overlay toggle */}
+      <div className={styles.wikiToggleRow}>
+        <button
+          type="button"
+          className={`${styles.wikiToggleBtn} ${wikiOverlay ? styles.wikiToggleBtnOn : ''}`}
+          onClick={toggleWikiOverlay}
+          title="Overlay Wikipedia places on the map"
+        >
+          <BookOpen size={13} />
+          <span>Wikipedia overlay</span>
+          {wikiOverlay && wikiOverlayLoading && <span className={styles.spinner} style={{ marginLeft: 4 }} />}
+          {wikiOverlay && !wikiOverlayLoading && wikiOverlayPlaces.length > 0 && (
+            <span className={styles.wikiCount}>{wikiOverlayPlaces.length}</span>
+          )}
+        </button>
+        {wikiOverlay && (
+          <span className={styles.wikiOverlayHint}>Wikipedia articles shown in amber on map</span>
+        )}
       </div>
 
       {/* Radius + Discover */}
@@ -705,6 +911,32 @@ export default function TripExplorer() {
           <Globe size={32} className={styles.emptyIcon} style={{ color: '#4f8ef7' }} />
           <p className={styles.emptyTitle}>Nothing yet</p>
           <p className={styles.emptyDesc}>Click <strong>Discover this area</strong> to see everything nearby — landmarks, restaurants, parks and more — grouped by type.</p>
+        </div>
+      )}
+
+      {/* Wikipedia overlay results */}
+      {wikiOverlay && (wikiOverlayLoading || wikiOverlayPlaces.length > 0) && (
+        <div className={styles.wikiSection}>
+          <button
+            type="button"
+            className={styles.wikiSectionHead}
+            onClick={() => setWikiOverlayOpen(v => !v)}
+          >
+            <BookOpen size={13} style={{ color: '#e8a243', flexShrink: 0 }} />
+            <span className={styles.wikiSectionTitle}>Wikipedia</span>
+            {wikiOverlayLoading
+              ? <span className={styles.spinner} style={{ marginLeft: 'auto' }} />
+              : <span className={styles.wikiCount} style={{ marginLeft: 'auto' }}>{wikiOverlayPlaces.length}</span>
+            }
+            <ChevronDown size={13} className={wikiOverlayOpen ? styles.chevronOpen : styles.chevronClosed} />
+          </button>
+          {wikiOverlayOpen && !wikiOverlayLoading && (
+            <div className={styles.resultsList}>
+              {[...wikiOverlayPlaces]
+                .sort((a, b) => sortBy === 'name' ? a.title.localeCompare(b.title) : a.dist - b.dist)
+                .map(renderPlaceCard)}
+            </div>
+          )}
         </div>
       )}
     </div>
