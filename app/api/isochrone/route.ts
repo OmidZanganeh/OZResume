@@ -21,7 +21,7 @@ async function fetchValhalla(body: IsoRequest): Promise<Record<string, unknown>>
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(20_000),
+    // No timeout — matches the route that worked before today's changes.
   });
   if (!res.ok) {
     const text = await res.text();
