@@ -126,13 +126,6 @@ async function fetchWikiSummary(title: string): Promise<PlaceDetail> {
   return res.json();
 }
 
-// Multiple public Overpass endpoints — tried in order, first success wins
-const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-];
-
 function parseOsmElements(elements: OsmElement[], lat: number, lon: number, color: string, catId: string): WikiPlace[] {
   return elements
     .filter(e => (e.lat ?? e.center?.lat) != null && e.tags?.name)
@@ -144,28 +137,31 @@ function parseOsmElements(elements: OsmElement[], lat: number, lon: number, colo
 }
 
 async function fetchOsmPlaces(lat: number, lon: number, radius: number, template: string, color: string, catId: string): Promise<WikiPlace[]> {
-  const inner = template.replace(/RADIUS/g, String(radius)).replace(/LAT/g, String(lat)).replace(/LON/g, String(lon));
-  // `out tags center` skips full geometry — much faster in dense cities
-  const query = `[out:json][timeout:20][maxsize:2000000];(${inner});out tags center 60;`;
-  const encoded = encodeURIComponent(query);
+  // Build a bounding box — faster than `around:` because it uses a spatial index directly
+  const latDeg  = radius / 111_000;
+  const lonDeg  = radius / (111_000 * Math.cos(lat * Math.PI / 180));
+  const bbox    = `${(lat - latDeg).toFixed(5)},${(lon - lonDeg).toFixed(5)},${(lat + latDeg).toFixed(5)},${(lon + lonDeg).toFixed(5)}`;
+  // Replace the `around:` placeholder with bbox equivalents
+  const inner = template
+    .replace(/\(around:RADIUS,LAT,LON\)/g, `(${bbox})`)
+    .replace(/RADIUS/g, String(radius))
+    .replace(/LAT/g, String(lat))
+    .replace(/LON/g, String(lon));
+  // `out tags qt` = no geometry + quicktile sort (fastest output mode)
+  const query = `[out:json][timeout:18][bbox:${bbox}][maxsize:1000000];(${inner});out tags qt 60;`;
 
-  let lastErr: unknown;
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 22000);
-    try {
-      const res = await fetch(`${endpoint}?data=${encoded}`, { signal: ctrl.signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      clearTimeout(tid);
-      return parseOsmElements(data.elements ?? [], lat, lon, color, catId);
-    } catch (err) {
-      clearTimeout(tid);
-      lastErr = err;
-      // Try next endpoint
-    }
-  }
-  throw lastErr;
+  // Route through our internal server-side proxy (server→Overpass is faster
+  // than browser→Overpass, and the proxy tries multiple endpoints)
+  const res = await fetch('/api/overpass', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+    signal: AbortSignal.timeout(70_000), // proxy has 3×22s tries
+  });
+  if (!res.ok) throw new Error(`Proxy error ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return parseOsmElements(data.elements ?? [], lat, lon, color, catId);
 }
 
 async function fetchWeather(lat: number, lon: number): Promise<Weather | null> {

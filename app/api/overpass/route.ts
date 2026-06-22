@@ -1,10 +1,16 @@
 /**
  * Server-side proxy for the Overpass API (OpenStreetMap POI queries).
- * Avoids browser CORS restrictions while keeping client code simple.
+ * Tries multiple public endpoints in order so one congested server
+ * doesn't block the user. Server-to-server is also significantly faster
+ * than browser-to-Overpass, especially for dense cities.
  */
 import { NextRequest, NextResponse } from 'next/server';
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+const ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+];
 
 export async function POST(req: NextRequest) {
   let query: string;
@@ -17,34 +23,36 @@ export async function POST(req: NextRequest) {
   if (!query?.trim())
     return NextResponse.json({ error: 'Empty query' }, { status: 400 });
 
-  try {
-    const res = await fetch(OVERPASS_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    `data=${encodeURIComponent(query)}`,
-      signal:  AbortSignal.timeout(30_000),
-    });
+  const body = `data=${encodeURIComponent(query)}`;
+  let lastErr = '';
 
-    if (!res.ok)
-      return NextResponse.json(
-        { error: `Overpass returned ${res.status}` },
-        { status: res.status },
-      );
+  for (const endpoint of ENDPOINTS) {
+    try {
+      const res = await fetch(endpoint, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: AbortSignal.timeout(22_000),
+      });
 
-    const text = await res.text();
-    let data: unknown;
-    try { data = JSON.parse(text); }
-    catch {
-      return NextResponse.json(
-        { error: `Overpass returned non-JSON: ${text.slice(0, 200)}` },
-        { status: 502 },
-      );
+      if (!res.ok) {
+        lastErr = `${endpoint} → HTTP ${res.status}`;
+        continue;
+      }
+
+      const text = await res.text();
+      let data: unknown;
+      try { data = JSON.parse(text); }
+      catch {
+        lastErr = `${endpoint} → non-JSON response`;
+        continue;
+      }
+      return NextResponse.json(data);
+    } catch (err: unknown) {
+      lastErr = `${endpoint} → ${err instanceof Error ? err.message : 'failed'}`;
+      // try next endpoint
     }
-    return NextResponse.json(data);
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Overpass request failed' },
-      { status: 502 },
-    );
   }
+
+  return NextResponse.json({ error: `All Overpass endpoints failed. Last: ${lastErr}` }, { status: 502 });
 }
