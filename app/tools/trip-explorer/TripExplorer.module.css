@@ -214,6 +214,17 @@
 .datePicker:focus { border-color: rgba(79,142,247,0.5); }
 .datePickerLabel { color: rgba(255,255,255,0.28); font-size: 11px; }
 
+/* ── All-mode grouped sections ─────────────────────────────────────────────── */
+.allGroup { border-bottom: 1px solid rgba(255,255,255,0.04); }
+.allGroupHead {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 12px 5px; border-left: 3px solid transparent;
+  position: sticky; top: 0; z-index: 2;
+  background: #111620;
+}
+.allGroupTitle { font-size: 11px; font-weight: 700; color: #dde5f0; text-transform: uppercase; letter-spacing: 0.5px; }
+.allGroupCount { margin-left: auto; padding: 2px 7px; border-radius: 20px; font-size: 10.5px; font-weight: 600; }
+
 /* ── Sort bar ──────────────────────────────────────────────────────────────── */
 .sortBar {
   display: flex; align-items: center; justify-content: space-between;

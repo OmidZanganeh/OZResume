@@ -83,6 +83,9 @@ const PLAN_SECTIONS: PlanSectionDef[] = [
 
 const RADII = [{ label: '1 km', value: 1000 }, { label: '5 km', value: 5000 }, { label: '10 km', value: 10000 }, { label: '25 km', value: 25000 }];
 
+// "All" fetches every category except itself
+const ALL_GROUP_CATS = EXPLORE_CATEGORIES.filter(c => c.id !== 'all');
+
 // ─── Utilities ───────────────────────────────────────────────────────────────
 const NOISE_RE = /\b(attack|attacks|shooting|stabbing|bombing|explosion|massacre|murder|murders|killing|killed|suicide|crash|collision|accident|disaster|fire of|flood|hurricane|earthquake|riot|riots|protests|death|deaths|obituary|funeral|scandal|siege|hostage|abduction|kidnapping|terrorism|terrorist|genocide)\b/i;
 function filterWikiNoise<T extends { title: string }>(places: T[]): T[] { return places.filter(p => !NOISE_RE.test(p.title)); }
@@ -227,6 +230,7 @@ export default function TripExplorer() {
   const [category, setCategory] = useState('all');
   const [radius, setRadius] = useState(5000);
   const [places, setPlaces] = useState<WikiPlace[]>([]);
+  const [allGroups, setAllGroups] = useState<PlanResult[]>([]);
   const [sortBy, setSortBy] = useState<'dist' | 'name'>('dist');
   const [discovering, setDiscovering] = useState(false);
   const [osmError, setOsmError] = useState(false);
@@ -281,15 +285,40 @@ export default function TripExplorer() {
   }, []);
 
   const discover = useCallback(async (lat: number, lon: number, rad: number, catId: string) => {
-    const cat = getCat(catId);
-    if (!cat) return;
     setDiscovering(true); setSelected(null); setDetail(null); setOsmError(false); setWikiError(false);
+    loadWeather(lat, lon);
+
+    if (catId === 'all') {
+      // Run every category in parallel, stream results in as they arrive
+      setAllGroups(ALL_GROUP_CATS.map(c => ({ sectionId: c.id, places: [], loading: true, error: false })));
+      setPlaces([]);
+      await Promise.allSettled(ALL_GROUP_CATS.map(async cat => {
+        try {
+          let raw: WikiPlace[] = [];
+          if (cat.source === 'wiki') {
+            raw = await fetchWikiPlaces(lat, lon, rad, cat.color, cat.id);
+            const thumbs = await fetchBatchThumbs(raw);
+            raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] })).slice(0, 15);
+          } else if (cat.osmTemplate) {
+            raw = (await fetchOsmPlaces(lat, lon, rad, cat.osmTemplate, cat.color, cat.id)).slice(0, 15);
+          }
+          setAllGroups(prev => prev.map(g => g.sectionId === cat.id ? { ...g, places: raw, loading: false } : g));
+        } catch {
+          setAllGroups(prev => prev.map(g => g.sectionId === cat.id ? { ...g, loading: false, error: true } : g));
+        }
+      }));
+      setDiscovering(false);
+      return;
+    }
+
+    const cat = getCat(catId);
+    if (!cat) { setDiscovering(false); return; }
+    setAllGroups([]);
     try {
       let raw: WikiPlace[] = [];
       if (cat.source === 'wiki') {
         try {
           raw = await fetchWikiPlaces(lat, lon, rad, cat.color, catId);
-          // Thumbnails are best-effort — a failed chunk just means no image, not a fatal error
           const thumbs = await fetchBatchThumbs(raw);
           raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] }));
         } catch { setWikiError(true); raw = []; }
@@ -300,7 +329,6 @@ export default function TripExplorer() {
       }
       setPlaces(raw);
     } finally { setDiscovering(false); }
-    loadWeather(lat, lon);
   }, [getCat, loadWeather]);
 
   const discoverCenter = useCallback(() => {
@@ -427,8 +455,9 @@ export default function TripExplorer() {
   const mapPlaces = useMemo(() => {
     if (tab === 'plan') return planResults.flatMap(r => r.places);
     if (tab === 'saved') return favorites;
+    if (category === 'all' && allGroups.length) return allGroups.flatMap(g => g.places);
     return places;
-  }, [tab, places, favorites, planResults]);
+  }, [tab, category, places, favorites, planResults, allGroups]);
 
   const selectedDateForecast = useMemo(() => travelDate && forecast.length ? (forecast.find(f => f.date === travelDate) ?? null) : null, [travelDate, forecast]);
 
@@ -604,44 +633,80 @@ export default function TripExplorer() {
         </div>
       )}
 
-      {/* Results */}
-      {wikiError && (
-        <div className={styles.osmError}>
-          <Info size={13} />
-          <span>Wikipedia was slow to respond. Try a smaller radius, or retry.</span>
-          <button type="button" className={styles.osmRetryBtn} onClick={discoverCenter}>Retry</button>
-        </div>
-      )}
-      {osmError && (
-        <div className={styles.osmError}>
-          <Info size={13} />
-          <span>OpenStreetMap servers were slow for this area. Try a smaller radius, or retry.</span>
-          <button type="button" className={styles.osmRetryBtn} onClick={discoverCenter}>Retry</button>
+      {/* ── All: grouped sections ── */}
+      {category === 'all' && allGroups.length > 0 && (
+        <div className={styles.resultsList}>
+          {allGroups.map(group => {
+            const cat = getCat(group.sectionId);
+            if (!cat) return null;
+            const sorted = [...group.places].sort((a, b) => sortBy === 'name' ? a.title.localeCompare(b.title) : a.dist - b.dist);
+            return (
+              <div key={group.sectionId} className={styles.allGroup}>
+                <div className={styles.allGroupHead} style={{ borderLeftColor: cat.color }}>
+                  <cat.Icon size={13} style={{ color: cat.color, flexShrink: 0 }} />
+                  <span className={styles.allGroupTitle}>{cat.label}</span>
+                  {group.loading && <span className={styles.spinner} style={{ marginLeft: 'auto' }} />}
+                  {!group.loading && group.places.length > 0 && (
+                    <span className={styles.allGroupCount} style={{ background: cat.color + '22', color: cat.color }}>{group.places.length}</span>
+                  )}
+                </div>
+                {group.loading && <div className={styles.planSkeletons}>{[1,2].map(i => <div key={i} className={styles.planSkeleton} />)}</div>}
+                {!group.loading && group.error && <div className={styles.planError}>Could not load</div>}
+                {!group.loading && sorted.map(renderPlaceCard)}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Sort bar — only show when there are results */}
-      {places.length > 1 && (
-        <div className={styles.sortBar}>
-          <span className={styles.sortLabel}>{places.length} results</span>
-          <div className={styles.sortBtns}>
-            <button type="button" className={`${styles.sortBtn} ${sortBy === 'dist' ? styles.sortBtnActive : ''}`} onClick={() => setSortBy('dist')}>Nearest</button>
-            <button type="button" className={`${styles.sortBtn} ${sortBy === 'name' ? styles.sortBtnActive : ''}`} onClick={() => setSortBy('name')}>A → Z</button>
+      {/* ── Single category: flat list ── */}
+      {category !== 'all' && (
+        <>
+          {wikiError && (
+            <div className={styles.osmError}>
+              <Info size={13} />
+              <span>Wikipedia was slow to respond. Try a smaller radius, or retry.</span>
+              <button type="button" className={styles.osmRetryBtn} onClick={discoverCenter}>Retry</button>
+            </div>
+          )}
+          {osmError && (
+            <div className={styles.osmError}>
+              <Info size={13} />
+              <span>OpenStreetMap servers were slow for this area. Try a smaller radius, or retry.</span>
+              <button type="button" className={styles.osmRetryBtn} onClick={discoverCenter}>Retry</button>
+            </div>
+          )}
+          {places.length > 1 && (
+            <div className={styles.sortBar}>
+              <span className={styles.sortLabel}>{places.length} results</span>
+              <div className={styles.sortBtns}>
+                <button type="button" className={`${styles.sortBtn} ${sortBy === 'dist' ? styles.sortBtnActive : ''}`} onClick={() => setSortBy('dist')}>Nearest</button>
+                <button type="button" className={`${styles.sortBtn} ${sortBy === 'name' ? styles.sortBtnActive : ''}`} onClick={() => setSortBy('name')}>A → Z</button>
+              </div>
+            </div>
+          )}
+          <div className={styles.resultsList}>
+            {places.length === 0 && !discovering ? (
+              <div className={styles.emptyState}>
+                {(() => { const cat = getCat(category); return cat ? <cat.Icon size={32} className={styles.emptyIcon} style={{ color: cat.color }} /> : null; })()}
+                <p className={styles.emptyTitle}>Nothing yet</p>
+                <p className={styles.emptyDesc}>Pick a category above, then click <strong>Discover this area</strong>.</p>
+              </div>
+            ) : (
+              <>{[...places].sort((a, b) => sortBy === 'name' ? a.title.localeCompare(b.title) : a.dist - b.dist).map(renderPlaceCard)}</>
+            )}
           </div>
-        </div>
+        </>
       )}
 
-      <div className={styles.resultsList}>
-        {places.length === 0 && !discovering ? (
-          <div className={styles.emptyState}>
-            {(() => { const cat = getCat(category); return cat ? <cat.Icon size={32} className={styles.emptyIcon} style={{ color: cat.color }} /> : null; })()}
-            <p className={styles.emptyTitle}>Nothing yet</p>
-            <p className={styles.emptyDesc}>Pick a category above, then click <strong>Discover this area</strong>.</p>
-          </div>
-        ) : (
-          <>{[...places].sort((a, b) => sortBy === 'name' ? a.title.localeCompare(b.title) : a.dist - b.dist).map(renderPlaceCard)}</>
-        )}
-      </div>
+      {/* Empty state for All before first discover */}
+      {category === 'all' && allGroups.length === 0 && !discovering && (
+        <div className={styles.emptyState}>
+          <Globe size={32} className={styles.emptyIcon} style={{ color: '#4f8ef7' }} />
+          <p className={styles.emptyTitle}>Nothing yet</p>
+          <p className={styles.emptyDesc}>Click <strong>Discover this area</strong> to see everything nearby — landmarks, restaurants, parks and more — grouped by type.</p>
+        </div>
+      )}
     </div>
   );
 
