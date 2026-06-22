@@ -313,7 +313,7 @@ export default function TripExplorer() {
   const [tab, setTab] = useState<AppTab>('explore');
 
   // Map state
-  const [mapCenter, setMapCenter] = useState<[number, number]>([48.8566, 2.3522]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([39.0997, -94.5786]); // Kansas City, MO
   const [mapZoom, setMapZoom] = useState(13);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [pinnedLocation, setPinnedLocation] = useState<[number, number] | null>(null);
