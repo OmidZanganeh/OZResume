@@ -628,8 +628,15 @@ export default function TripExplorer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await res.json() as Record<string, unknown> & { error?: string };
-      if (!res.ok || data.error) { setIsoError(data.error ?? `Server error ${res.status}`); return; }
+      const data = await res.json() as Record<string, unknown> & { error?: string; message?: string };
+      if (!res.ok || data.error) {
+        setIsoError(
+          data.error === 'SERVICE_UNAVAILABLE' && data.message
+            ? data.message
+            : (data.error ?? data.message ?? `Server error ${res.status}`),
+        );
+        return;
+      }
       const feats = (data.features as Record<string, unknown>[]).map((f, i) => ({
         ...f,
         properties: { ...(f.properties as Record<string, unknown>), _colorIdx: i },

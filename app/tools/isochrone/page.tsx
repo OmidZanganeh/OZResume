@@ -197,8 +197,12 @@ export default function IsochronePage() {
         }),
       });
       if (!res.ok) {
-        const err = await res.json() as { error?: string };
-        throw new Error(err.error ?? `Server error ${res.status}`);
+        const err = await res.json() as { error?: string; message?: string };
+        throw new Error(
+          err.error === 'SERVICE_UNAVAILABLE' && err.message
+            ? err.message
+            : (err.error ?? err.message ?? `Server error ${res.status}`),
+        );
       }
       const data = await res.json() as { features: unknown[] };
       const processed = {
