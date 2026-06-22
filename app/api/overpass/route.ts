@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         method:  'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
-        signal: AbortSignal.timeout(12_000),
+        signal: AbortSignal.timeout(20_000),
       });
 
       if (!res.ok) {

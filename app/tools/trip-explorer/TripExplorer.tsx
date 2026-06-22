@@ -623,11 +623,24 @@ export default function TripExplorer() {
         contours: sorted.map(t => ({ time: t })),
         polygons: true,
       };
-      const res  = await fetch('/api/isochrone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const data = await res.json() as Record<string, unknown> & { error?: string };
+      const res  = await fetch('/api/isochrone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const text = await res.text();
+      let data: Record<string, unknown> & { error?: string; features?: unknown[] };
+      try { data = JSON.parse(text); }
+      catch { throw new Error(`Routing server returned an invalid response (HTTP ${res.status}). Try again.`); }
       if (!res.ok || data.error) { setIsoError(data.error ?? `Server error ${res.status}`); return; }
+      if (!Array.isArray(data.features) || data.features.length === 0) {
+        throw new Error('No coverage returned for this location. Try a different origin or costing mode.');
+      }
       // Tag each feature with a _colorIdx matching the sorted time order
-      const feats = (data.features as Record<string, unknown>[]).map((f, i) => ({ ...f, properties: { ...(f.properties as Record<string, unknown>), _colorIdx: i } }));
+      const feats = (data.features as Record<string, unknown>[]).map((f, i) => ({
+        ...f,
+        properties: { ...(f.properties as Record<string, unknown>), _colorIdx: i },
+      }));
       setIsoGeojson({ ...data, features: feats });
       setIsoGeoJsonKey(k => k + 1);
     } catch (e) {
@@ -662,28 +675,30 @@ export default function TripExplorer() {
     if (!isoGeojson || !isoOrigin) return;
     const cat = ISO_POI_CATS.find(c => c.id === catId);
     if (!cat) return;
-    const poly = extractPolyString(isoGeojson, ringTime);
-    if (!poly) { setIsoPoisError('Ring polygon not found. Try regenerating.'); return; }
+    // Simplify polygon to ≤60 points to keep query small, then route through
+    // the server-side /api/overpass proxy (POST body → no URL length limits,
+    // 4 endpoints with fallbacks, server-to-server is faster).
+    const poly = extractPolyString(isoGeojson, ringTime, 60);
+    if (!poly) { setIsoPoisError('Ring polygon not found. Try regenerating the zones.'); return; }
     setIsoPoisLoading(true); setIsoPoisError(null); setIsoPois([]);
-    const query = `[out:json][timeout:20];node["${cat.key}"="${cat.val}"](poly:"${poly}");out tags;`;
-    const encoded = encodeURIComponent(query);
-    const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://z.overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-    let last: unknown;
-    for (const ep of ENDPOINTS) {
-      try {
-        const ctrl = new AbortController();
-        const tid  = setTimeout(() => ctrl.abort(), 12000);
-        const res  = await fetch(`${ep}?data=${encoded}`, { signal: ctrl.signal });
-        clearTimeout(tid);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json() as { elements: Parameters<typeof processOverpassResult>[0] };
-        setIsoPois(processOverpassResult(data.elements ?? [], cat));
-        setIsoPoisLoading(false);
-        return;
-      } catch (e) { last = e; }
+    const query = `[out:json][timeout:25];(node["${cat.key}"="${cat.val}"](poly:"${poly}");way["${cat.key}"="${cat.val}"](poly:"${poly}"););out tags center 80;`;
+    try {
+      const res  = await fetch('/api/overpass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const data = await res.json() as { error?: string; elements?: Parameters<typeof processOverpassResult>[0] };
+      if (!res.ok || data.error) throw new Error(data.error ?? `Server error ${res.status}`);
+      setIsoPois(processOverpassResult(data.elements ?? [], cat));
+    } catch (e) {
+      setIsoPoisError(
+        (e instanceof Error ? e.message : 'Search failed') +
+        ' — try a smaller ring or different category.',
+      );
+    } finally {
+      setIsoPoisLoading(false);
     }
-    setIsoPoisError((last instanceof Error ? last.message : 'All endpoints failed') + '. Try a smaller time ring.');
-    setIsoPoisLoading(false);
   }, [isoGeojson, isoOrigin]);
 
   const handleRadiusChange = useCallback((r: number) => {
