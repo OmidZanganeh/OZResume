@@ -9,12 +9,17 @@ import {
   Globe, Landmark, UtensilsCrossed, Coffee, BedDouble, Trees, Palette,
   Clapperboard, Waves, Beer, ShoppingBag, HeartPulse, Heart, Plane,
   Search, Navigation, Crosshair, ArrowLeft, ChevronRight, ChevronDown,
-  MapPin, Share2, BookOpen, ExternalLink, Pin, PinOff, X, Image,
+  MapPin, Share2, BookOpen, ExternalLink, X, Image,
   Sun, Cloud, CloudRain, Snowflake, CloudLightning, CloudDrizzle,
   Wind, Droplets, CalendarDays, Info, Globe2, Clock,
-  CreditCard, Languages, Car,
+  CreditCard, Languages, Car, Timer, BarChart2, PinOff,
 } from 'lucide-react';
 import type { WikiPlace } from './MapView';
+import IsoPanel, {
+  IsoCosting, IsoPOI, ISO_POI_CATS,
+  extractPolyString, processOverpassResult,
+} from './IsoPanel';
+import CensusPanel, { CensusData, CensusStatus } from './CensusPanel';
 import styles from './TripExplorer.module.css';
 
 const MapView = dynamic(() => import('./MapView'), {
@@ -28,7 +33,7 @@ const MapView = dynamic(() => import('./MapView'), {
 });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type AppTab = 'explore' | 'plan' | 'saved';
+type AppTab = 'explore' | 'plan' | 'iso' | 'census' | 'saved';
 
 interface Category {
   id: string;
@@ -312,7 +317,28 @@ export default function TripExplorer() {
   const [mapZoom, setMapZoom] = useState(13);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [pinnedLocation, setPinnedLocation] = useState<[number, number] | null>(null);
-  const [pinMode, setPinMode] = useState(false);
+  // ↑ Clicking the map in Explore tab sets this directly (no pin-mode toggle needed)
+
+  // Isochrone state
+  const [isoOrigin, setIsoOrigin] = useState<[number, number] | null>(null);
+  const [isoCosting, setIsoCosting] = useState<IsoCosting>('auto');
+  const [isoTimes, setIsoTimes] = useState<number[]>([15, 30, 45]);
+  const [isoGeojson, setIsoGeojson] = useState<Record<string, unknown> | null>(null);
+  const [isoGeoJsonKey, setIsoGeoJsonKey] = useState(0);
+  const [isoLoading, setIsoLoading] = useState(false);
+  const [isoError, setIsoError] = useState<string | null>(null);
+  const [isoPois, setIsoPois] = useState<IsoPOI[]>([]);
+  const [isoPoisLoading, setIsoPoisLoading] = useState(false);
+  const [isoPoisError, setIsoPoisError] = useState<string | null>(null);
+  const [isoActivePoi, setIsoActivePoi] = useState<number | null>(null);
+  const [isoLocating, setIsoLocating] = useState(false);
+
+  // Census state
+  const [censusPin, setCensusPin] = useState<[number, number] | null>(null);
+  const [censusTract, setCensusTract] = useState<{ state: string; county: string; tract: string } | null>(null);
+  const [censusStatus, setCensusStatus] = useState<CensusStatus>('idle');
+  const [censusData, setCensusData] = useState<CensusData | null>(null);
+  const [censusError, setCensusError] = useState('');
 
   // Explore state
   const [category, setCategory] = useState('all');
@@ -549,8 +575,115 @@ export default function TripExplorer() {
     );
   }, []);
 
-  const handleMapClick = useCallback((lat: number, lon: number) => { setPinnedLocation([lat, lon]); setPinMode(false); }, []);
-  const handleMapMoveEnd = useCallback((_lat: number, _lon: number) => { /* could update center ref */ }, []);
+  const handleMapClick = useCallback((lat: number, lon: number) => {
+    if (tab === 'iso') {
+      setIsoOrigin([lat, lon]);
+    } else if (tab === 'census') {
+      handleCensusPick(lat, lon);
+    } else if (tab === 'explore') {
+      setPinnedLocation([lat, lon]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const handleMapMoveEnd = useCallback((_lat: number, _lon: number) => { /* no-op */ }, []);
+
+  // ── Census pick ───────────────────────────────────────────────────────────
+  const handleCensusPick = useCallback(async (lat: number, lon: number) => {
+    setCensusPin([lat, lon]);
+    setCensusStatus('loading');
+    setCensusError('');
+    try {
+      const res  = await fetch(`/api/census?lat=${lat}&lon=${lon}`);
+      const json = await res.json() as CensusData & { error?: string };
+      if (!res.ok || json.error) {
+        setCensusError(json.error ?? `Error ${res.status}`);
+        setCensusStatus('error');
+        return;
+      }
+      setCensusData(json);
+      setCensusTract({ state: json.tract.STATE, county: json.tract.COUNTY, tract: json.tract.TRACT });
+      setCensusStatus('done');
+    } catch (e) {
+      setCensusError(e instanceof Error ? e.message : 'Unknown error');
+      setCensusStatus('error');
+    }
+  }, []);
+
+  // ── Isochrone generate ─────────────────────────────────────────────────────
+  const generateIsochrone = useCallback(async () => {
+    if (!isoOrigin || isoTimes.length === 0) return;
+    setIsoLoading(true); setIsoError(null); setIsoPois([]);
+    try {
+      const sorted = [...isoTimes].sort((a, b) => a - b);
+      const body = {
+        locations: [{ lon: isoOrigin[1], lat: isoOrigin[0] }],
+        costing: isoCosting,
+        contours: sorted.map(t => ({ time: t })),
+        polygons: true,
+      };
+      const res  = await fetch('/api/isochrone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json() as Record<string, unknown> & { error?: string };
+      if (!res.ok || data.error) { setIsoError(data.error ?? `Server error ${res.status}`); return; }
+      // Tag each feature with a _colorIdx matching the sorted time order
+      const feats = (data.features as Record<string, unknown>[]).map((f, i) => ({ ...f, properties: { ...(f.properties as Record<string, unknown>), _colorIdx: i } }));
+      setIsoGeojson({ ...data, features: feats });
+      setIsoGeoJsonKey(k => k + 1);
+    } catch (e) {
+      setIsoError(e instanceof Error ? e.message : 'Failed to generate');
+    } finally {
+      setIsoLoading(false);
+    }
+  }, [isoOrigin, isoTimes, isoCosting]);
+
+  const isoTimesToggle = useCallback((t: number) => {
+    setIsoTimes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+  }, []);
+
+  const handleIsoLocateMe = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setIsoLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => { setIsoOrigin([pos.coords.latitude, pos.coords.longitude]); setIsoLocating(false); },
+      () => setIsoLocating(false),
+    );
+  }, []);
+
+  const handleIsoDownload = useCallback(() => {
+    if (!isoGeojson) return;
+    const blob = new Blob([JSON.stringify(isoGeojson, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href: url, download: 'isochrone.geojson' });
+    a.click(); URL.revokeObjectURL(url);
+  }, [isoGeojson]);
+
+  const handleFindIsoPOIs = useCallback(async (catId: string, ringTime: number) => {
+    if (!isoGeojson || !isoOrigin) return;
+    const cat = ISO_POI_CATS.find(c => c.id === catId);
+    if (!cat) return;
+    const poly = extractPolyString(isoGeojson, ringTime);
+    if (!poly) { setIsoPoisError('Ring polygon not found. Try regenerating.'); return; }
+    setIsoPoisLoading(true); setIsoPoisError(null); setIsoPois([]);
+    const query = `[out:json][timeout:20];node["${cat.key}"="${cat.val}"](poly:"${poly}");out tags;`;
+    const encoded = encodeURIComponent(query);
+    const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://z.overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+    let last: unknown;
+    for (const ep of ENDPOINTS) {
+      try {
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), 12000);
+        const res  = await fetch(`${ep}?data=${encoded}`, { signal: ctrl.signal });
+        clearTimeout(tid);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json() as { elements: Parameters<typeof processOverpassResult>[0] };
+        setIsoPois(processOverpassResult(data.elements ?? [], cat));
+        setIsoPoisLoading(false);
+        return;
+      } catch (e) { last = e; }
+    }
+    setIsoPoisError((last instanceof Error ? last.message : 'All endpoints failed') + '. Try a smaller time ring.');
+    setIsoPoisLoading(false);
+  }, [isoGeojson, isoOrigin]);
 
   const handleRadiusChange = useCallback((r: number) => {
     setRadius(r);
@@ -619,11 +752,17 @@ export default function TripExplorer() {
 
   const mapPlaces = useMemo(() => {
     const overlay = wikiOverlay && tab === 'explore' ? wikiOverlayPlaces : [];
-    if (tab === 'plan') return planResults.flatMap(r => r.places);
-    if (tab === 'saved') return favorites;
+    if (tab === 'plan')    return planResults.flatMap(r => r.places);
+    if (tab === 'saved')   return favorites;
+    if (tab === 'census')  return [];
+    if (tab === 'iso')     return isoPois.map(p => ({
+      uid: `iso:${p.id}`, pageid: p.id, title: p.name,
+      lat: p.lat, lon: p.lon, dist: 0,
+      source: 'osm' as const, category: 'restaurants', color: '#6366f1', osmTags: p.tags,
+    }));
     if (category === 'all' && allGroups.length) return [...allGroups.flatMap(g => g.places), ...overlay];
     return [...places, ...overlay];
-  }, [tab, category, places, favorites, planResults, allGroups, wikiOverlay, wikiOverlayPlaces]);
+  }, [tab, category, places, favorites, planResults, allGroups, wikiOverlay, wikiOverlayPlaces, isoPois]);
 
   const selectedDateForecast = useMemo(() => travelDate && forecast.length ? (forecast.find(f => f.date === travelDate) ?? null) : null, [travelDate, forecast]);
 
@@ -823,9 +962,9 @@ export default function TripExplorer() {
           {discovering ? <><span className={styles.spinner} /> Searching…</> : <><Search size={14} /> Discover {pinnedLocation ? 'pinned spot' : 'this area'}</>}
         </button>
         {pinnedLocation && (
-          <button type="button" className={styles.clearPinInline} onClick={() => setPinnedLocation(null)}>
-            <PinOff size={12} /> Remove pin
-          </button>
+          <span className={styles.pinnedHint}>
+            <MapPin size={11} /> Pinned spot — click map to move it
+          </span>
         )}
       </div>
 
@@ -1069,6 +1208,38 @@ export default function TripExplorer() {
     </div>
   );
 
+  const renderIsoPanel = () => (
+    <IsoPanel
+      origin={isoOrigin}
+      costing={isoCosting}
+      times={isoTimes}
+      geojson={isoGeojson}
+      loading={isoLoading}
+      error={isoError}
+      pois={isoPois}
+      poisLoading={isoPoisLoading}
+      poisError={isoPoisError}
+      activePoi={isoActivePoi}
+      locating={isoLocating}
+      onCostingChange={setIsoCosting}
+      onTimesToggle={isoTimesToggle}
+      onGenerate={generateIsochrone}
+      onDownload={handleIsoDownload}
+      onFindPois={handleFindIsoPOIs}
+      onActivePoi={setIsoActivePoi}
+      onLocateMe={handleIsoLocateMe}
+    />
+  );
+
+  const renderCensusPanel = () => (
+    <CensusPanel
+      pin={censusPin}
+      status={censusStatus}
+      data={censusData}
+      error={censusError}
+    />
+  );
+
   return (
     <div className={styles.root}>
       {/* ── Compact header ── */}
@@ -1102,14 +1273,20 @@ export default function TripExplorer() {
 
           {/* Tab bar */}
           <div className={styles.tabBar}>
-            <button type="button" className={`${styles.tab} ${tab === 'explore' ? styles.tabActive : ''}`} onClick={() => { setTab('explore'); setSelected(null); setDetail(null); }}>
-              <Globe size={14} /> Explore
+            <button type="button" className={`${styles.tab} ${tab === 'explore' ? styles.tabActive : ''}`} onClick={() => { setTab('explore'); setSelected(null); setDetail(null); }} title="Explore">
+              <Globe size={14} /> <span>Explore</span>
             </button>
-            <button type="button" className={`${styles.tab} ${tab === 'plan' ? styles.tabActive : ''}`} onClick={() => { setTab('plan'); setSelected(null); setDetail(null); }}>
-              <Plane size={14} /> Plan
+            <button type="button" className={`${styles.tab} ${tab === 'plan' ? styles.tabActive : ''}`} onClick={() => { setTab('plan'); setSelected(null); setDetail(null); }} title="Trip Planner">
+              <Plane size={14} /> <span>Plan</span>
             </button>
-            <button type="button" className={`${styles.tab} ${tab === 'saved' ? styles.tabActive : ''}`} onClick={() => { setTab('saved'); setSelected(null); setDetail(null); }}>
-              <Heart size={14} /> Saved
+            <button type="button" className={`${styles.tab} ${tab === 'iso' ? styles.tabActive : ''}`} onClick={() => { setTab('iso'); setSelected(null); setDetail(null); }} title="Isochrone — Travel Time Zones">
+              <Timer size={14} /> <span>Zones</span>
+            </button>
+            <button type="button" className={`${styles.tab} ${tab === 'census' ? styles.tabActive : ''}`} onClick={() => { setTab('census'); setSelected(null); setDetail(null); }} title="US Census Demographics">
+              <BarChart2 size={14} /> <span>Census</span>
+            </button>
+            <button type="button" className={`${styles.tab} ${tab === 'saved' ? styles.tabActive : ''}`} onClick={() => { setTab('saved'); setSelected(null); setDetail(null); }} title="Saved places">
+              <Heart size={14} /> <span>Saved</span>
               {favorites.length > 0 && <span className={styles.tabBadge}>{favorites.length}</span>}
             </button>
           </div>
@@ -1120,6 +1297,8 @@ export default function TripExplorer() {
               ? renderDetail()
               : tab === 'explore' ? renderExplorePanel()
               : tab === 'plan'    ? renderPlanPanel()
+              : tab === 'iso'     ? renderIsoPanel()
+              : tab === 'census'  ? renderCensusPanel()
               :                    renderSavedPanel()
             }
           </div>
@@ -1130,20 +1309,22 @@ export default function TripExplorer() {
           <MapView
             center={mapCenter} zoom={mapZoom} places={mapPlaces}
             selectedUid={selected?.uid ?? null} userLocation={userLocation}
-            pinnedLocation={pinnedLocation} pinMode={pinMode}
+            pinnedLocation={pinnedLocation}
             onPlaceClick={handlePlaceClick} onMapMoveEnd={handleMapMoveEnd} onMapClick={handleMapClick}
+            isoGeojson={isoGeojson} isoGeoJsonKey={isoGeoJsonKey} isoOrigin={isoOrigin}
+            censusPin={censusPin} censusTract={censusTract}
+            activeTab={tab}
           />
 
-          {/* Pin mode banner */}
-          {pinMode && (
-            <div className={styles.pinBanner}>
-              <Pin size={13} /> Click anywhere on the map to drop a pin
-            </div>
+          {/* Map hints */}
+          {tab === 'explore' && mapPlaces.length === 0 && !discovering && (
+            <div className={styles.mapHint}>Click map to pin a spot · then <strong>Discover</strong></div>
           )}
-
-          {/* Map hint */}
-          {mapPlaces.length === 0 && !discovering && tab === 'explore' && !pinMode && (
-            <div className={styles.mapHint}>Pan map then click <strong>Discover this area</strong></div>
+          {tab === 'iso' && !isoOrigin && (
+            <div className={styles.mapHint}><Timer size={12} /> Click map to place origin</div>
+          )}
+          {tab === 'census' && censusStatus === 'idle' && (
+            <div className={styles.mapHint}><BarChart2 size={12} /> Click on the US map for demographics</div>
           )}
 
           {/* Floating buttons */}
@@ -1151,9 +1332,11 @@ export default function TripExplorer() {
             <button type="button" className={styles.floatBtn} onClick={handleLocateMe} title="Show my location">
               {locating ? <span className={styles.spinnerDark} /> : <Crosshair size={16} />}
             </button>
-            <button type="button" className={`${styles.floatBtn} ${pinMode ? styles.floatBtnActive : ''}`} onClick={() => setPinMode(v => !v)} title={pinMode ? 'Cancel pin mode' : 'Drop a pin on the map'}>
-              {pinMode ? <PinOff size={15} /> : <Pin size={15} />}
-            </button>
+            {pinnedLocation && tab === 'explore' && (
+              <button type="button" className={styles.floatBtn} onClick={() => setPinnedLocation(null)} title="Remove pin">
+                <PinOff size={15} />
+              </button>
+            )}
           </div>
 
           {/* Mobile: tap to switch to list view */}

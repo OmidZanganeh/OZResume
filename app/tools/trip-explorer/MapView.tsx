@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, CircleMarker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, CircleMarker, Tooltip, GeoJSON, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+import { ISO_RING_COLORS } from './IsoPanel';
 
 export interface WikiPlace {
   uid: string;
@@ -27,10 +29,18 @@ interface Props {
   selectedUid: string | null;
   userLocation: [number, number] | null;
   pinnedLocation: [number, number] | null;
-  pinMode: boolean;
   onPlaceClick: (place: WikiPlace) => void;
   onMapMoveEnd: (lat: number, lon: number) => void;
   onMapClick: (lat: number, lon: number) => void;
+  // iso overlay
+  isoGeojson?: Record<string, unknown> | null;
+  isoGeoJsonKey?: number;
+  isoOrigin?: [number, number] | null;
+  // census overlay
+  censusPin?: [number, number] | null;
+  censusTract?: { state: string; county: string; tract: string } | null;
+  // tab-aware cursor
+  activeTab?: string;
 }
 
 // ── Tiny category SVG paths (Lucide-style, viewBox 0 0 24 24) ─────────────────
@@ -143,32 +153,93 @@ function FlyTo({ center, zoom }: { center: [number, number]; zoom: number }) {
   return null;
 }
 
-function MapEventHandler({ pinMode, onMoveEnd, onClick }: {
-  pinMode: boolean;
+function MapEventHandler({ onMoveEnd, onClick }: {
   onMoveEnd: (lat: number, lon: number) => void;
   onClick: (lat: number, lon: number) => void;
 }) {
   useMapEvents({
     moveend: e => { const c = e.target.getCenter(); onMoveEnd(c.lat, c.lng); },
-    click: e => { if (pinMode) onClick(e.latlng.lat, e.latlng.lng); },
+    click:   e => { onClick(e.latlng.lat, e.latlng.lng); },
   });
   return null;
+}
+
+// ── Census tract boundary (fetches TIGERweb GeoJSON) ─────────────────────────
+function TractLayer({ state, county, tract }: { state: string; county: string; tract: string }) {
+  const map      = useMap();
+  const layerRef = useRef<L.GeoJSON | null>(null);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const url  =
+      `https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_ACS2023/MapServer/8/query` +
+      `?where=STATE+%3D+%27${state}%27+AND+COUNTY+%3D+%27${county}%27+AND+TRACT+%3D+%27${tract}%27` +
+      `&outFields=STATE,COUNTY,TRACT&returnGeometry=true&f=geojson`;
+
+    if (layerRef.current) { map.removeLayer(layerRef.current); layerRef.current = null; }
+
+    fetch(url, { signal: ctrl.signal })
+      .then(r => r.json())
+      .then((geojson: Parameters<typeof L.geoJSON>[0]) => {
+        if (ctrl.signal.aborted) return;
+        const layer = L.geoJSON(geojson, {
+          style: { color: '#4f8ef7', weight: 2.5, fillColor: '#4f8ef7', fillOpacity: 0.12 },
+        }).addTo(map);
+        layerRef.current = layer;
+        const bounds = layer.getBounds();
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+      })
+      .catch(() => {});
+
+    return () => {
+      ctrl.abort();
+      if (layerRef.current) { map.removeLayer(layerRef.current); layerRef.current = null; }
+    };
+  }, [state, county, tract, map]);
+
+  return null;
+}
+
+// ── ISO origin icon ───────────────────────────────────────────────────────────
+function makeIsoOriginIcon(): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:18px;height:18px;border-radius:50%;background:#ef4444;border:3px solid #fff;box-shadow:0 2px 8px rgba(239,68,68,0.6)"></div>`,
+    iconSize: [18, 18], iconAnchor: [9, 9],
+  });
+}
+
+// ── Census pin icon ───────────────────────────────────────────────────────────
+function makeCensusPinIcon(): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34">
+        <path d="M13 0C5.82 0 0 5.82 0 13c0 9.75 13 21 13 21s13-11.25 13-21C26 5.82 20.18 0 13 0z"
+          fill="#4f8ef7" stroke="#fff" stroke-width="2"/>
+        <circle cx="13" cy="13" r="5" fill="#fff"/>
+      </svg>`,
+    iconSize: [26, 34], iconAnchor: [13, 34], tooltipAnchor: [0, -34],
+  });
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function MapView({
   center, zoom, places, selectedUid, userLocation,
-  pinnedLocation, pinMode, onPlaceClick, onMapMoveEnd, onMapClick,
+  pinnedLocation, onPlaceClick, onMapMoveEnd, onMapClick,
+  isoGeojson, isoGeoJsonKey, isoOrigin,
+  censusPin, censusTract,
+  activeTab = 'explore',
 }: Props) {
-  const pinIcon = useRef<L.DivIcon | null>(null);
-  if (typeof window !== 'undefined' && !pinIcon.current) {
-    pinIcon.current = makePinIcon();
-  }
+  const pinIcon        = useRef<L.DivIcon | null>(null);
+  const isoOriginIcon  = useRef<L.DivIcon | null>(null);
+  const censusPinIcon  = useRef<L.DivIcon | null>(null);
 
-  const handleMapClick = useCallback(
-    (lat: number, lon: number) => { if (pinMode) onMapClick(lat, lon); },
-    [pinMode, onMapClick],
-  );
+  if (typeof window !== 'undefined') {
+    if (!pinIcon.current)       pinIcon.current       = makePinIcon();
+    if (!isoOriginIcon.current) isoOriginIcon.current = makeIsoOriginIcon();
+    if (!censusPinIcon.current) censusPinIcon.current = makeCensusPinIcon();
+  }
 
   // Pre-build icons for all places (memoised by uid+selected state)
   const iconCache = useRef<Map<string, L.DivIcon>>(new Map());
@@ -180,11 +251,14 @@ export default function MapView({
     return iconCache.current.get(key)!;
   }, []);
 
+  const crosshairTabs = ['iso', 'census'];
+  const cursor = crosshairTabs.includes(activeTab) ? 'crosshair' : 'pointer';
+
   return (
     <MapContainer
       center={center}
       zoom={zoom}
-      style={{ width: '100%', height: '100%', cursor: pinMode ? 'crosshair' : undefined }}
+      style={{ width: '100%', height: '100%', cursor }}
       zoomControl
     >
       <TileLayer
@@ -193,9 +267,44 @@ export default function MapView({
         maxZoom={19}
       />
       <FlyTo center={center} zoom={zoom} />
-      <MapEventHandler pinMode={pinMode} onMoveEnd={onMapMoveEnd} onClick={handleMapClick} />
+      <MapEventHandler onMoveEnd={onMapMoveEnd} onClick={onMapClick} />
 
-      {/* User location — halo + dot */}
+      {/* ── ISO rings ── */}
+      {isoGeojson && (
+        <GeoJSON
+          key={isoGeoJsonKey}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data={isoGeojson as any}
+          style={(feature) => {
+            const idx = (feature?.properties as Record<string, number>)?._colorIdx ?? 0;
+            const col = ISO_RING_COLORS[idx % ISO_RING_COLORS.length];
+            return { fillColor: col, fillOpacity: 0.12 + idx * 0.04, color: col, weight: 2 };
+          }}
+        />
+      )}
+
+      {/* ── ISO origin dot ── */}
+      {isoOrigin && isoOriginIcon.current && (
+        <Marker position={isoOrigin} icon={isoOriginIcon.current} interactive={false}>
+          <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>Origin</Tooltip>
+        </Marker>
+      )}
+
+      {/* ── Census tract boundary ── */}
+      {censusTract && (
+        <TractLayer state={censusTract.state} county={censusTract.county} tract={censusTract.tract} />
+      )}
+
+      {/* ── Census pin ── */}
+      {censusPin && censusPinIcon.current && (
+        <Marker position={censusPin} icon={censusPinIcon.current} interactive={false}>
+          <Tooltip direction="top" offset={[0, -34]} opacity={0.95}>
+            {censusPin[0].toFixed(4)}, {censusPin[1].toFixed(4)}
+          </Tooltip>
+        </Marker>
+      )}
+
+      {/* ── User location — halo + dot ── */}
       {userLocation && (
         <>
           <CircleMarker center={userLocation} radius={18}
@@ -211,14 +320,14 @@ export default function MapView({
         </>
       )}
 
-      {/* Pinned location */}
+      {/* ── Pinned explore location ── */}
       {pinnedLocation && pinIcon.current && (
         <Marker position={pinnedLocation} icon={pinIcon.current} interactive={false}>
-          <Tooltip direction="top" offset={[0, -36]} opacity={0.95}>Pinned location</Tooltip>
+          <Tooltip direction="top" offset={[0, -36]} opacity={0.95}>Click "Discover here" →</Tooltip>
         </Marker>
       )}
 
-      {/* Clustered place markers */}
+      {/* ── Clustered place markers ── */}
       <MarkerClusterGroup
         chunkedLoading
         iconCreateFunction={createClusterIcon}

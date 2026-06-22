@@ -622,3 +622,180 @@
   .catGrid { grid-template-columns: repeat(4, 1fr); }
   .mapFloats { bottom: 60px; right: 8px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ISOCHRONE PANEL
+═══════════════════════════════════════════════════════════════════════════ */
+.isoPanel { display: flex; flex-direction: column; gap: 0; flex: 1; min-height: 0; overflow-y: auto; }
+
+.isoHint {
+  display: flex; align-items: center; gap: 8px;
+  margin: 12px 14px 4px;
+  background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.18);
+  border-radius: 8px; padding: 9px 12px;
+  font-size: 12.5px; color: rgba(255,255,255,0.6);
+}
+.isoHint svg { color: #4f8ef7; flex-shrink: 0; }
+
+.isoPanelBlock {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.isoModeRow { display: flex; gap: 6px; margin-top: 6px; }
+.isoModeBtn {
+  display: flex; align-items: center; gap: 5px;
+  flex: 1; justify-content: center;
+  padding: 6px 8px; border-radius: 7px; font-size: 12.5px; font-weight: 500;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.55); cursor: pointer; transition: all 0.15s;
+}
+.isoModeBtn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
+.isoModeBtnActive { background: rgba(79,142,247,0.15); border-color: rgba(79,142,247,0.45); color: #4f8ef7; }
+
+.isoTimeGrid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 6px;
+}
+.isoTimeChip {
+  padding: 5px 2px; border-radius: 6px; font-size: 11.5px; font-weight: 500; text-align: center;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.15s;
+}
+.isoTimeChip:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
+.isoTimeChipActive { background: rgba(99,102,241,0.18); border-color: rgba(99,102,241,0.5); color: #818cf8; }
+
+.isoOriginVal {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: rgba(255,255,255,0.45); margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.isoOriginVal svg { color: #f59e0b; }
+
+.isoLocateBtn {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px; padding: 6px 11px; font-size: 12.5px; font-weight: 500;
+  color: rgba(255,255,255,0.55); cursor: pointer; transition: all 0.15s; width: 100%;
+}
+.isoLocateBtn:hover { background: rgba(79,142,247,0.1); border-color: rgba(79,142,247,0.3); color: #4f8ef7; }
+.isoLocateBtn:disabled { opacity: 0.5; cursor: default; }
+
+.isoLegendRow { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.isoLegendSwatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.isoLegendText { font-size: 12.5px; color: rgba(255,255,255,0.7); }
+
+.isoFullBtn { width: 100%; justify-content: center; }
+
+.isoPoiSection { border-top: 1px solid rgba(255,255,255,0.06); }
+.isoPoiContent { padding: 8px 14px 10px; display: flex; flex-direction: column; gap: 8px; }
+
+.isoCatGrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.isoCatBtn {
+  padding: 6px 2px; border-radius: 7px; font-size: 16px; text-align: center; cursor: pointer;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+  transition: all 0.15s;
+}
+.isoCatBtn:hover { background: rgba(255,255,255,0.09); }
+.isoCatBtnActive { background: rgba(99,102,241,0.16); border-color: rgba(99,102,241,0.4); }
+
+.isoRingRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.isoRingRow .radiusBtns { flex: 1; }
+
+.isoPoiList { display: flex; flex-direction: column; gap: 0; margin-top: 2px; }
+.isoPoiCardActive { background: rgba(99,102,241,0.1) !important; border-left-color: #6366f1 !important; }
+
+/* ── Pinned hint ────────────────────────────────────────────────────────────── */
+.pinnedHint {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: rgba(245,158,11,0.7); margin-top: 4px; padding: 0 2px;
+}
+.pinnedHint svg { color: #f59e0b; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CENSUS PANEL
+═══════════════════════════════════════════════════════════════════════════ */
+.censusPanel { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; padding: 2px 0; }
+.censusData  { display: flex; flex-direction: column; gap: 0; }
+
+.censusHeader {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 12px 14px 10px; border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.censusTractName { font-size: 13px; font-weight: 600; color: #e2e8f0; margin: 0 0 3px; line-height: 1.4; }
+.censusFips { font-size: 10.5px; color: rgba(255,255,255,0.35); font-variant-numeric: tabular-nums; }
+.censusActions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; margin-left: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.censusBadge { font-size: 10px; padding: 2px 7px; border-radius: 20px; background: rgba(79,142,247,0.12); color: #4f8ef7; border: 1px solid rgba(79,142,247,0.25); white-space: nowrap; }
+.censusUpdating { font-size: 10px; padding: 2px 7px; border-radius: 20px; background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); white-space: nowrap; }
+.censusExportBtn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.13);
+  color: rgba(255,255,255,0.55); cursor: pointer; transition: all 0.15s;
+}
+.censusExportBtn:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); }
+
+/* Core stats grid */
+.censusStatsGrid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+  background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.censusStatCard {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 12px; background: #0f1320;
+}
+.censusStatLabel { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.3); }
+.censusStatValue { font-size: 16px; font-weight: 700; color: #e2e8f0; line-height: 1.2; }
+.censusStatSub   { font-size: 10.5px; color: rgba(255,255,255,0.3); }
+
+/* Collapsible sections */
+.censusSections { display: flex; flex-direction: column; }
+.censusSection  { border-bottom: 1px solid rgba(255,255,255,0.06); }
+.censusSectionToggle {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 9px 14px; background: none; border: none; cursor: pointer;
+  transition: background 0.15s;
+}
+.censusSectionToggle:hover { background: rgba(255,255,255,0.03); }
+.censusSectionTitle {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.censusSectionTitle svg { opacity: 0.7; }
+.censusSectionBody { padding: 4px 14px 12px; }
+.censusSectionHighlight { font-size: 12.5px; color: rgba(255,255,255,0.65); margin: 0 0 8px; }
+
+/* Bar rows */
+.censusBarRow { display: flex; align-items: center; gap: 7px; padding: 3px 0; }
+.censusBarLabel { font-size: 11.5px; color: rgba(255,255,255,0.5); width: 110px; flex-shrink: 0; }
+.censusBarTrack { flex: 1; height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; }
+.censusBarFill  { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.censusBarPct   { font-size: 11px; color: rgba(255,255,255,0.4); width: 38px; text-align: right; flex-shrink: 0; }
+
+/* Mini stats grid */
+.censusMiniGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.censusMiniStat { display: flex; flex-direction: column; gap: 2px; padding: 7px 8px; background: rgba(255,255,255,0.03); border-radius: 7px; }
+.censusMiniLabel { font-size: 10.5px; color: rgba(255,255,255,0.35); }
+.censusMiniValue { font-size: 13.5px; font-weight: 700; color: #e2e8f0; }
+
+/* Stacked bar */
+.censusStackedBar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 1px; margin-bottom: 8px; }
+.censusStackSeg  { height: 100%; transition: width 0.4s; }
+.censusStackLegend { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.censusStackItem { display: flex; align-items: center; gap: 5px; }
+.censusStackDot  { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.censusStackLbl  { font-size: 11.5px; color: rgba(255,255,255,0.5); }
+.censusStackPct  { font-size: 11px; color: rgba(255,255,255,0.35); }
+
+.censusSource { font-size: 10.5px; color: rgba(255,255,255,0.25); padding: 8px 14px 12px; margin: 0; }
+
+/* ── 5-tab bar compact layout ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .tabBar { gap: 0; }
+  .tab span { display: none; }
+  .tab { padding: 8px 10px; min-width: 0; }
+}
+@media (max-width: 700px) {
+  .tab span { display: inline; font-size: 10.5px; }
+  .tab { padding: 7px 6px; font-size: 11px; gap: 3px; }
+}
