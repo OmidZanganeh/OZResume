@@ -181,22 +181,45 @@ async function fetchCommonsPhotos(name: string): Promise<string[]> {
   } catch { return []; }
 }
 
-// For OSM places: search Wikipedia for a matching article to get a description
-async function searchWikipediaByName(name: string): Promise<{ title: string; extract: string; url: string; thumbnail?: string } | null> {
+// Reverse geocode coordinates to get city name (Nominatim)
+async function reverseGeocodeCity(lat: number, lon: number): Promise<string> {
   try {
-    const r1 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(name)}&srprop=snippet&srlimit=1&format=json&origin=*`);
-    const d1 = await r1.json();
-    const hit = d1.query?.search?.[0];
-    if (!hit) return null;
-    const r2 = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hit.title)}`);
-    const d2 = await r2.json();
-    if (!d2.extract) return null;
-    return {
-      title: d2.title ?? hit.title,
-      extract: d2.extract,
-      url: d2.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(hit.title)}`,
-      thumbnail: d2.thumbnail?.source,
-    };
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&accept-language=en`);
+    const d = await r.json();
+    return d.address?.city ?? d.address?.town ?? d.address?.village ?? d.address?.county ?? '';
+  } catch { return ''; }
+}
+
+// For OSM places: search Wikipedia for a matching article — city-qualified to avoid wrong matches
+async function searchWikipediaByName(
+  name: string,
+  city: string,
+): Promise<{ title: string; extract: string; url: string; thumbnail?: string } | null> {
+  try {
+    // Search with city context first ("Eiffel Tower Paris"), fall back to name alone
+    const queries = city ? [`${name} ${city}`, name] : [name];
+    for (const q of queries) {
+      const r1 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srprop=snippet&srlimit=3&format=json&origin=*`);
+      const d1 = await r1.json();
+      const hits: { title: string; snippet: string }[] = d1.query?.search ?? [];
+      if (!hits.length) continue;
+
+      // Pick the hit whose title/snippet contains the city name (if we have one)
+      const best = city
+        ? hits.find(h => h.title.toLowerCase().includes(city.toLowerCase()) || h.snippet.toLowerCase().includes(city.toLowerCase())) ?? hits[0]
+        : hits[0];
+
+      const r2 = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(best.title)}`);
+      const d2 = await r2.json();
+      if (!d2.extract) continue;
+      return {
+        title: d2.title ?? best.title,
+        extract: d2.extract,
+        url: d2.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(best.title)}`,
+        thumbnail: d2.thumbnail?.source,
+      };
+    }
+    return null;
   } catch { return null; }
 }
 
@@ -452,10 +475,18 @@ export default function TripExplorer() {
         const all = [...new Set([...photos, ...commonsPhotos])].filter(Boolean);
         setDetailPhotos(all);
       } else {
-        // OSM place — search Wikipedia for a description + fetch Commons photos in parallel
+        // Resolve city: OSM tags first, then reverse geocode
+        const city =
+          place.osmTags?.['addr:city'] ??
+          place.osmTags?.['addr:town'] ??
+          place.osmTags?.['addr:suburb'] ??
+          place.osmTags?.['addr:municipality'] ??
+          await reverseGeocodeCity(place.lat, place.lon);
+
+        // OSM place — search Wikipedia (city-qualified) + fetch Commons photos in parallel
         const [wikiInfo, commonsPhotos] = await Promise.all([
-          searchWikipediaByName(place.title),
-          fetchCommonsPhotos(place.title),
+          searchWikipediaByName(place.title, city),
+          fetchCommonsPhotos(`${place.title} ${city}`.trim()),
         ]);
         if (wikiInfo) {
           setOsmWikiInfo(wikiInfo);
