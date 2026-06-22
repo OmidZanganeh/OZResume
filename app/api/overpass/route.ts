@@ -7,9 +7,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
+  'https://overpass-api.de/api/interpreter',       // primary (main DE server)
+  'https://z.overpass-api.de/api/interpreter',     // load-balanced DE mirror
+  'https://overpass.kumi.systems/api/interpreter', // community mirror (AT)
+  'https://overpass.private.coffee/api/interpreter', // reliable community mirror
 ];
 
 export async function POST(req: NextRequest) {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
         method:  'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
-        signal: AbortSignal.timeout(22_000),
+        signal: AbortSignal.timeout(12_000),
       });
 
       if (!res.ok) {

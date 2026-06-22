@@ -226,8 +226,9 @@ async function searchWikipediaByName(
 // Multiple public Overpass endpoints — tried in order, first success wins
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
 ];
 
 function parseOsmElements(elements: OsmElement[], lat: number, lon: number, color: string, catId: string): WikiPlace[] {
@@ -249,7 +250,7 @@ async function fetchOsmPlaces(lat: number, lon: number, radius: number, template
   let lastErr: unknown;
   for (const endpoint of OVERPASS_ENDPOINTS) {
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 22000);
+      const tid = setTimeout(() => ctrl.abort(), 12000);
     try {
       const res = await fetch(`${endpoint}?data=${encoded}`, { signal: ctrl.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
