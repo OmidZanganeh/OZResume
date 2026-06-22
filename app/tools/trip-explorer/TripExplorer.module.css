@@ -220,11 +220,19 @@
 .resultsList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
 .osmError {
-  display: flex; align-items: flex-start; gap: 6px;
+  display: flex; align-items: flex-start; gap: 6px; flex-wrap: wrap;
   margin: 8px 10px; padding: 8px 10px;
   background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.22);
   border-radius: 7px; color: #fca5a5; font-size: 12px; line-height: 1.5; flex-shrink: 0;
 }
+.osmError span { flex: 1; min-width: 0; }
+.osmRetryBtn {
+  padding: 3px 10px; border-radius: 5px; flex-shrink: 0;
+  background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35);
+  color: #fca5a5; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s;
+}
+.osmRetryBtn:hover { background: rgba(239,68,68,0.25); }
 
 /* ── Plan panel ────────────────────────────────────────────────────────────── */
 .planPanel {

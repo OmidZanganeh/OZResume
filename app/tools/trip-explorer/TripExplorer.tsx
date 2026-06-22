@@ -62,10 +62,10 @@ const EXPLORE_CATEGORIES: Category[] = [
   { id: 'restaurants',   label: 'Eat',       Icon: UtensilsCrossed,color: '#f97316', source: 'osm', osmTemplate: 'node["amenity"="restaurant"](around:RADIUS,LAT,LON);' },
   { id: 'cafes',         label: 'Cafes',     Icon: Coffee,         color: '#d97706', source: 'osm', osmTemplate: 'node["amenity"~"^(cafe|coffee_shop)$"](around:RADIUS,LAT,LON);' },
   { id: 'hotels',        label: 'Stay',      Icon: BedDouble,      color: '#a855f7', source: 'osm', osmTemplate: 'node["tourism"~"^(hotel|hostel|guest_house|motel)$"](around:RADIUS,LAT,LON);' },
-  { id: 'parks',         label: 'Nature',    Icon: Trees,          color: '#22c55e', source: 'osm', osmTemplate: 'node["leisure"~"^(park|nature_reserve|garden)$"](around:RADIUS,LAT,LON);way["leisure"~"^(park|nature_reserve|garden)$"](around:RADIUS,LAT,LON);' },
+  { id: 'parks',         label: 'Nature',    Icon: Trees,          color: '#22c55e', source: 'osm', osmTemplate: 'node["leisure"~"^(park|nature_reserve|garden)$"](around:RADIUS,LAT,LON);' },
   { id: 'culture',       label: 'Culture',   Icon: Palette,        color: '#ec4899', source: 'osm', osmTemplate: 'node["tourism"~"^(museum|gallery|attraction)$"](around:RADIUS,LAT,LON);' },
   { id: 'entertainment', label: 'Fun',       Icon: Clapperboard,   color: '#f43f5e', source: 'osm', osmTemplate: 'node["amenity"~"^(cinema|theatre|arts_centre)$"](around:RADIUS,LAT,LON);node["leisure"~"^(amusement_arcade|water_park|escape_game)$"](around:RADIUS,LAT,LON);' },
-  { id: 'beach',         label: 'Beach',     Icon: Waves,          color: '#06b6d4', source: 'osm', osmTemplate: 'node["natural"="beach"](around:RADIUS,LAT,LON);way["natural"="beach"](around:RADIUS,LAT,LON);node["leisure"="beach_resort"](around:RADIUS,LAT,LON);' },
+  { id: 'beach',         label: 'Beach',     Icon: Waves,          color: '#06b6d4', source: 'osm', osmTemplate: 'node["natural"="beach"](around:RADIUS,LAT,LON);node["leisure"="beach_resort"](around:RADIUS,LAT,LON);' },
   { id: 'nightlife',     label: 'Nightlife', Icon: Beer,           color: '#ef4444', source: 'osm', osmTemplate: 'node["amenity"~"^(bar|pub|nightclub)$"](around:RADIUS,LAT,LON);' },
   { id: 'shopping',      label: 'Shopping',  Icon: ShoppingBag,    color: '#14b8a6', source: 'osm', osmTemplate: 'node["shop"~"^(mall|department_store|marketplace|supermarket)$"](around:RADIUS,LAT,LON);node["amenity"="marketplace"](around:RADIUS,LAT,LON);' },
   { id: 'health',        label: 'Health',    Icon: HeartPulse,     color: '#10b981', source: 'osm', osmTemplate: 'node["amenity"~"^(hospital|pharmacy|clinic|doctors)$"](around:RADIUS,LAT,LON);' },
@@ -76,7 +76,7 @@ const PLAN_SECTIONS: PlanSectionDef[] = [
   { id: 'hotels',      Icon: BedDouble,       title: 'Where to Stay',  color: '#a855f7', wiki: false, osmTemplate: 'node["tourism"~"^(hotel|hostel|guest_house|motel)$"](around:5000,LAT,LON);' },
   { id: 'restaurants', Icon: UtensilsCrossed, title: 'Where to Eat',   color: '#f97316', wiki: false, osmTemplate: 'node["amenity"="restaurant"](around:5000,LAT,LON);' },
   { id: 'culture',     Icon: Palette,         title: 'Things to Do',   color: '#ec4899', wiki: false, osmTemplate: 'node["tourism"~"^(museum|gallery|attraction)$"](around:5000,LAT,LON);' },
-  { id: 'parks',       Icon: Trees,           title: 'Nature & Parks', color: '#22c55e', wiki: false, osmTemplate: 'node["leisure"~"^(park|nature_reserve|garden)$"](around:5000,LAT,LON);way["leisure"~"^(park|nature_reserve|garden)$"](around:5000,LAT,LON);' },
+  { id: 'parks',       Icon: Trees,           title: 'Nature & Parks', color: '#22c55e', wiki: false, osmTemplate: 'node["leisure"~"^(park|nature_reserve|garden)$"](around:5000,LAT,LON);' },
   { id: 'cafes',       Icon: Coffee,          title: 'Cafes & Coffee', color: '#d97706', wiki: false, osmTemplate: 'node["amenity"~"^(cafe|coffee_shop)$"](around:5000,LAT,LON);' },
   { id: 'nightlife',   Icon: Beer,            title: 'Nightlife',      color: '#ef4444', wiki: false, osmTemplate: 'node["amenity"~"^(bar|pub|nightclub)$"](around:5000,LAT,LON);' },
 ];
@@ -126,22 +126,46 @@ async function fetchWikiSummary(title: string): Promise<PlaceDetail> {
   return res.json();
 }
 
+// Multiple public Overpass endpoints — tried in order, first success wins
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+];
+
+function parseOsmElements(elements: OsmElement[], lat: number, lon: number, color: string, catId: string): WikiPlace[] {
+  return elements
+    .filter(e => (e.lat ?? e.center?.lat) != null && e.tags?.name)
+    .map(e => {
+      const eLat = e.lat ?? e.center!.lat, eLon = e.lon ?? e.center!.lon;
+      return { uid: `osm:${e.id}`, pageid: e.id, title: e.tags!.name!, lat: eLat, lon: eLon, dist: haversineM(lat, lon, eLat, eLon), source: 'osm' as const, category: catId, color, osmTags: e.tags };
+    })
+    .sort((a, b) => a.dist - b.dist);
+}
+
 async function fetchOsmPlaces(lat: number, lon: number, radius: number, template: string, color: string, catId: string): Promise<WikiPlace[]> {
   const inner = template.replace(/RADIUS/g, String(radius)).replace(/LAT/g, String(lat)).replace(/LON/g, String(lon));
-  const query = `[out:json][timeout:25];(${inner});out body center 150;`;
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 28000);
-  try {
-    const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`, { signal: ctrl.signal });
-    const data = await res.json();
-    return ((data.elements ?? []) as OsmElement[])
-      .filter(e => (e.lat ?? e.center?.lat) != null && e.tags?.name)
-      .map(e => {
-        const eLat = e.lat ?? e.center!.lat, eLon = e.lon ?? e.center!.lon;
-        return { uid: `osm:${e.id}`, pageid: e.id, title: e.tags!.name!, lat: eLat, lon: eLon, dist: haversineM(lat, lon, eLat, eLon), source: 'osm' as const, category: catId, color, osmTags: e.tags };
-      })
-      .sort((a, b) => a.dist - b.dist);
-  } finally { clearTimeout(tid); }
+  // `out tags center` skips full geometry — much faster in dense cities
+  const query = `[out:json][timeout:20][maxsize:2000000];(${inner});out tags center 60;`;
+  const encoded = encodeURIComponent(query);
+
+  let lastErr: unknown;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 22000);
+    try {
+      const res = await fetch(`${endpoint}?data=${encoded}`, { signal: ctrl.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      clearTimeout(tid);
+      return parseOsmElements(data.elements ?? [], lat, lon, color, catId);
+    } catch (err) {
+      clearTimeout(tid);
+      lastErr = err;
+      // Try next endpoint
+    }
+  }
+  throw lastErr;
 }
 
 async function fetchWeather(lat: number, lon: number): Promise<Weather | null> {
@@ -568,7 +592,13 @@ export default function TripExplorer() {
       )}
 
       {/* Results */}
-      {osmError && <div className={styles.osmError}><Info size={13} /> OpenStreetMap timed out. Try a smaller radius or try again.</div>}
+      {osmError && (
+        <div className={styles.osmError}>
+          <Info size={13} />
+          <span>All OpenStreetMap servers were slow for this area. Try a smaller radius, or retry.</span>
+          <button type="button" className={styles.osmRetryBtn} onClick={discoverCenter}>Retry</button>
+        </div>
+      )}
       <div className={styles.resultsList}>
         {places.length === 0 && !discovering ? (
           <div className={styles.emptyState}>
