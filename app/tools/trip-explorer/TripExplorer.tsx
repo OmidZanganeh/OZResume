@@ -246,6 +246,25 @@ function parseOsmElements(elements: OsmElement[], lat: number, lon: number, colo
     .sort((a, b) => a.dist - b.dist);
 }
 
+function convertTemplateToPoly(template: string, poly: string): string {
+  return template.replace(/\(around:RADIUS,LAT,LON\)/g, `(poly:"${poly}")`);
+}
+
+async function fetchOsmPlacesByPoly(
+  lat: number, lon: number, template: string, poly: string, color: string, catId: string,
+): Promise<WikiPlace[]> {
+  const inner = convertTemplateToPoly(template, poly);
+  const query = `[out:json][timeout:25];(${inner});out tags center 80;`;
+  const res = await fetch('/api/overpass', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  });
+  const data = await res.json() as { error?: string; elements?: OsmElement[] };
+  if (!res.ok || data.error) throw new Error(data.error ?? `Overpass error ${res.status}`);
+  return parseOsmElements(data.elements ?? [], lat, lon, color, catId);
+}
+
 async function fetchOsmPlaces(lat: number, lon: number, radius: number, template: string, color: string, catId: string): Promise<WikiPlace[]> {
   const inner = template.replace(/RADIUS/g, String(radius)).replace(/LAT/g, String(lat)).replace(/LON/g, String(lon));
   // `out tags center` skips full geometry — much faster in dense cities
@@ -343,6 +362,8 @@ export default function TripExplorer() {
   // Explore state
   const [category, setCategory] = useState('all');
   const [radius, setRadius] = useState(5000);
+  const [exploreSearchMode, setExploreSearchMode] = useState<'radius' | 'zone'>('radius');
+  const [exploreZoneRing, setExploreZoneRing] = useState<number>(30);
   const [places, setPlaces] = useState<WikiPlace[]>([]);
   const [allGroups, setAllGroups] = useState<PlanResult[]>([]);
   const [sortBy, setSortBy] = useState<'dist' | 'name'>('dist');
@@ -400,6 +421,32 @@ export default function TripExplorer() {
   }, []);
 
   const getCat = useCallback((id: string) => EXPLORE_CATEGORIES.find(c => c.id === id), []);
+
+  const isoAvailableRings = useMemo(() => {
+    if (!isoGeojson?.features) return [];
+    return ((isoGeojson.features as { properties?: { contour?: number } }[])
+      .map(f => f.properties?.contour)
+      .filter((t): t is number => t != null)
+      .sort((a, b) => a - b));
+  }, [isoGeojson]);
+
+  useEffect(() => {
+    if (isoAvailableRings.length > 0) {
+      setExploreZoneRing(prev =>
+        isoAvailableRings.includes(prev) ? prev : isoAvailableRings[isoAvailableRings.length - 1],
+      );
+    }
+  }, [isoAvailableRings]);
+
+  const getExploreOrigin = useCallback((): [number, number] => {
+    if (exploreSearchMode === 'zone' && isoOrigin) return isoOrigin;
+    return pinnedLocation ?? mapCenter;
+  }, [exploreSearchMode, isoOrigin, pinnedLocation, mapCenter]);
+
+  const getZonePoly = useCallback((): string | null => {
+    if (exploreSearchMode !== 'zone' || !isoGeojson) return null;
+    return extractPolyString(isoGeojson, exploreZoneRing, 60);
+  }, [exploreSearchMode, isoGeojson, exploreZoneRing]);
   const isFav = useCallback((uid: string) => favorites.some(f => f.uid === uid), [favorites]);
   const toggleFav = useCallback((place: WikiPlace) => {
     setFavorites(prev => { const next = prev.some(f => f.uid === place.uid) ? prev.filter(f => f.uid !== place.uid) : [...prev, place]; saveFavs(next); return next; });
@@ -422,14 +469,17 @@ export default function TripExplorer() {
     finally { setWikiOverlayLoading(false); }
   }, []);
 
-  const discover = useCallback(async (lat: number, lon: number, rad: number, catId: string) => {
+  const discover = useCallback(async (lat: number, lon: number, rad: number, catId: string, zonePoly?: string) => {
     setDiscovering(true); setSelected(null); setDetail(null); setOsmError(false); setWikiError(false);
     loadWeather(lat, lon);
-    // Refresh wiki overlay if it's on
     if (wikiOverlay) fetchWikiOverlay(lat, lon, rad);
 
+    const fetchOsm = async (template: string, color: string, id: string) =>
+      zonePoly
+        ? fetchOsmPlacesByPoly(lat, lon, template, zonePoly, color, id)
+        : fetchOsmPlaces(lat, lon, rad, template, color, id);
+
     if (catId === 'all') {
-      // Run every category in parallel, stream results in as they arrive
       setAllGroups(ALL_GROUP_CATS.map(c => ({ sectionId: c.id, places: [], loading: true, error: false })));
       setPlaces([]);
       await Promise.allSettled(ALL_GROUP_CATS.map(async cat => {
@@ -440,7 +490,7 @@ export default function TripExplorer() {
             const thumbs = await fetchBatchThumbs(raw);
             raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] })).slice(0, 15);
           } else if (cat.osmTemplate) {
-            raw = (await fetchOsmPlaces(lat, lon, rad, cat.osmTemplate, cat.color, cat.id)).slice(0, 15);
+            raw = (await fetchOsm(cat.osmTemplate, cat.color, cat.id)).slice(0, 15);
           }
           setAllGroups(prev => prev.map(g => g.sectionId === cat.id ? { ...g, places: raw, loading: false } : g));
         } catch {
@@ -464,27 +514,31 @@ export default function TripExplorer() {
         } catch { setWikiError(true); raw = []; }
       } else if (cat.osmTemplate) {
         try {
-          raw = await fetchOsmPlaces(lat, lon, rad, cat.osmTemplate, cat.color, catId);
+          raw = await fetchOsm(cat.osmTemplate, cat.color, catId);
         } catch { setOsmError(true); raw = []; }
       }
       setPlaces(raw);
     } finally {
       setDiscovering(false);
-      // On mobile, switch to list view automatically after discovering
       if (window.innerWidth <= 700) setMobileListView(true);
     }
   }, [getCat, loadWeather, wikiOverlay, fetchWikiOverlay]);
 
+  const runDiscover = useCallback((catId: string = category) => {
+    const loc = getExploreOrigin();
+    const poly = getZonePoly();
+    if (exploreSearchMode === 'zone' && !poly) return;
+    discover(loc[0], loc[1], radius, catId, poly ?? undefined);
+  }, [getExploreOrigin, getZonePoly, exploreSearchMode, radius, category, discover]);
+
   const discoverCenter = useCallback(() => {
-    const loc = pinnedLocation ?? mapCenter;
-    discover(loc[0], loc[1], radius, category);
-  }, [pinnedLocation, mapCenter, radius, category, discover]);
+    runDiscover(category);
+  }, [runDiscover, category]);
 
   const handleCategoryChange = useCallback((catId: string) => {
     setCategory(catId); setSelected(null); setDetail(null);
-    const loc = pinnedLocation ?? mapCenter;
-    discover(loc[0], loc[1], radius, catId);
-  }, [pinnedLocation, mapCenter, radius, discover]);
+    runDiscover(catId);
+  }, [runDiscover]);
 
   const handlePlaceClick = useCallback(async (place: WikiPlace) => {
     setSelected(place); setDetail(null); setDetailPhotos([]); setOsmWikiInfo(null);
@@ -719,8 +773,8 @@ export default function TripExplorer() {
 
   const handleRadiusChange = useCallback((r: number) => {
     setRadius(r);
-    if (places.length > 0) { const loc = pinnedLocation ?? mapCenter; discover(loc[0], loc[1], r, category); }
-  }, [places.length, mapCenter, pinnedLocation, category, discover]);
+    if (places.length > 0 || allGroups.length > 0) runDiscover(category);
+  }, [places.length, allGroups.length, category, runDiscover]);
 
   const handleShare = useCallback(() => {
     if (!selected) return;
@@ -980,24 +1034,76 @@ export default function TripExplorer() {
         )}
       </div>
 
-      {/* Radius + Discover */}
+      {/* Search area: radius or travel zone */}
       <div className={styles.discoverSection}>
-        <div className={styles.radiusRow}>
-          <span className={styles.sectionLabel}>Radius</span>
-          <div className={styles.radiusBtns}>
-            {RADII.map(r => (
-              <button key={r.value} type="button" className={`${styles.radiusBtn} ${radius === r.value ? styles.radiusBtnActive : ''}`} onClick={() => handleRadiusChange(r.value)}>{r.label}</button>
-            ))}
+        {isoAvailableRings.length > 0 && (
+          <div className={styles.searchModeRow}>
+            <span className={styles.sectionLabel}>Search area</span>
+            <div className={styles.radiusBtns}>
+              <button
+                type="button"
+                className={`${styles.radiusBtn} ${exploreSearchMode === 'radius' ? styles.radiusBtnActive : ''}`}
+                onClick={() => setExploreSearchMode('radius')}
+              >
+                Radius
+              </button>
+              <button
+                type="button"
+                className={`${styles.radiusBtn} ${exploreSearchMode === 'zone' ? styles.radiusBtnActive : ''}`}
+                onClick={() => setExploreSearchMode('zone')}
+              >
+                <Timer size={12} /> Travel zone
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {exploreSearchMode === 'zone' && isoAvailableRings.length > 0 ? (
+          <div className={styles.radiusRow}>
+            <span className={styles.sectionLabel}>Zone ring</span>
+            <div className={styles.radiusBtns}>
+              {isoAvailableRings.map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`${styles.radiusBtn} ${exploreZoneRing === t ? styles.radiusBtnActive : ''}`}
+                  onClick={() => { setExploreZoneRing(t); if (places.length > 0 || allGroups.length > 0) runDiscover(category); }}
+                >
+                  {t} min
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className={styles.radiusRow}>
+            <span className={styles.sectionLabel}>Radius</span>
+            <div className={styles.radiusBtns}>
+              {RADII.map(r => (
+                <button key={r.value} type="button" className={`${styles.radiusBtn} ${radius === r.value ? styles.radiusBtnActive : ''}`} onClick={() => handleRadiusChange(r.value)}>{r.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <button type="button" className={styles.discoverBtn} onClick={discoverCenter} disabled={discovering}>
-          {discovering ? <><span className={styles.spinner} /> Searching…</> : <><Search size={14} /> Discover {pinnedLocation ? 'pinned spot' : 'this area'}</>}
+          {discovering ? <><span className={styles.spinner} /> Searching…</> : (
+            <>
+              <Search size={14} />
+              {exploreSearchMode === 'zone'
+                ? `Discover within ${exploreZoneRing} min zone`
+                : `Discover ${pinnedLocation ? 'pinned spot' : 'this area'}`}
+            </>
+          )}
         </button>
-        {pinnedLocation && (
+        {exploreSearchMode === 'zone' ? (
+          <span className={styles.pinnedHint}>
+            <Timer size={11} /> Using travel zones from the Zones tab · origin shown on map
+          </span>
+        ) : pinnedLocation ? (
           <span className={styles.pinnedHint}>
             <MapPin size={11} /> Pinned spot — click map to move it
           </span>
-        )}
+        ) : null}
       </div>
 
       {/* Weather row (collapsible) */}
@@ -1350,7 +1456,11 @@ export default function TripExplorer() {
 
           {/* Map hints */}
           {tab === 'explore' && mapPlaces.length === 0 && !discovering && (
-            <div className={styles.mapHint}>Click map to pin a spot · then <strong>Discover</strong></div>
+            <div className={styles.mapHint}>
+              {isoAvailableRings.length > 0
+                ? <>Switch to <strong>Travel zone</strong> in Explore to search inside your zones</>
+                : <>Click map to pin a spot · then <strong>Discover</strong></>}
+            </div>
           )}
           {tab === 'iso' && !isoOrigin && (
             <div className={styles.mapHint}><Timer size={12} /> Click map to place origin</div>
