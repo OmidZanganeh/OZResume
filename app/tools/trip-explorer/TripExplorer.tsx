@@ -337,6 +337,9 @@ export default function TripExplorer() {
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
 
+  // Mobile map/list toggle
+  const [mobileListView, setMobileListView] = useState(false);
+
   useEffect(() => {
     setFavorites(loadFavs());
     try {
@@ -415,7 +418,11 @@ export default function TripExplorer() {
         } catch { setOsmError(true); raw = []; }
       }
       setPlaces(raw);
-    } finally { setDiscovering(false); }
+    } finally {
+      setDiscovering(false);
+      // On mobile, switch to list view automatically after discovering
+      if (window.innerWidth <= 700) setMobileListView(true);
+    }
   }, [getCat, loadWeather, wikiOverlay, fetchWikiOverlay]);
 
   const discoverCenter = useCallback(() => {
@@ -1051,9 +1058,16 @@ export default function TripExplorer() {
       </header>
 
       {/* ── Body ── */}
-      <div className={styles.body}>
+      <div className={`${styles.body} ${mobileListView ? styles.bodyListView : ''}`}>
         {/* Left panel */}
         <aside className={styles.panel}>
+          {/* Mobile: List→Map button at top of panel */}
+          {mobileListView && (
+            <button type="button" className={styles.mobileViewToggle} onClick={() => setMobileListView(false)}>
+              <MapPin size={13} /> Back to map
+            </button>
+          )}
+
           {/* Tab bar */}
           <div className={styles.tabBar}>
             <button type="button" className={`${styles.tab} ${tab === 'explore' ? styles.tabActive : ''}`} onClick={() => { setTab('explore'); setSelected(null); setDetail(null); }}>
@@ -1109,6 +1123,14 @@ export default function TripExplorer() {
               {pinMode ? <PinOff size={15} /> : <Pin size={15} />}
             </button>
           </div>
+
+          {/* Mobile: tap to switch to list view */}
+          {!mobileListView && (
+            <button type="button" className={styles.mobileViewToggle} onClick={() => setMobileListView(true)}>
+              <ChevronRight size={13} style={{ transform: 'rotate(-90deg)' }} />
+              List {mapPlaces.length > 0 ? `· ${mapPlaces.length}` : ''}
+            </button>
+          )}
         </div>
       </div>
     </div>

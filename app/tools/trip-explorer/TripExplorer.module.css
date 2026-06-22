@@ -562,18 +562,63 @@
 .wiStorm { color: #818cf8; }
 
 /* ── Mobile ────────────────────────────────────────────────────────────────── */
+/* ── Mobile map/list toggle pill ───────────────────────────────────────── */
+.mobileViewToggle { display: none; }
+
 @media (max-width: 700px) {
-  .body { flex-direction: column-reverse; }
+  /* Layout: map stacked above panel */
+  .body { flex-direction: column; }
+  .mapWrap { height: 38vh; flex: none; position: relative; }
   .panel { width: 100%; border-right: none; border-top: 1px solid rgba(255,255,255,0.06); flex: 1; min-height: 0; }
-  .mapWrap { height: 42vh; flex: none; }
+
+  /* List-view mode: map hidden, panel full height */
+  .bodyListView .mapWrap { height: 0; overflow: hidden; }
+  .bodyListView .panel { flex: 1; }
+
+  /* Toggle pill shown over map */
+  .mobileViewToggle {
+    display: flex; align-items: center; gap: 5px;
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    z-index: 800;
+    background: #1a1f2e; border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px; padding: 7px 18px;
+    color: #e2e8f0; font-size: 13px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5); white-space: nowrap;
+  }
+  /* In list-view, pill sits at top of panel as a sticky "back to map" bar */
+  .bodyListView .mobileViewToggle {
+    position: static; transform: none; bottom: auto; left: auto;
+    width: 100%; justify-content: center; border-radius: 0;
+    border: none; border-bottom: 1px solid rgba(79,142,247,0.2);
+    background: rgba(79,142,247,0.07); color: #4f8ef7;
+    box-shadow: none; padding: 9px 16px;
+  }
+
+  /* Compact category grid: icons only, 6-per-row */
+  .catGrid { grid-template-columns: repeat(6, 1fr); gap: 4px; }
+  .catGridBtn { padding: 7px 2px; gap: 0; }
+  .catGridBtn span { display: none; }
+  .catSection { padding: 8px 10px 6px; }
+
+  /* Compact radius + controls */
+  .discoverSection { padding: 6px 10px 6px; gap: 6px; }
+  .sectionLabel { display: none; }
+  .radiusBtn { padding: 4px 9px; font-size: 11.5px; }
+  .discoverBtn { padding: 7px 12px; font-size: 13px; }
+
+  /* Compact wiki toggle */
+  .wikiToggleRow { padding: 5px 10px 4px; }
+  .wikiOverlayHint { display: none; }
+
+  /* Header */
   .nearMeBtn span { display: none; }
   .nearMeBtn { padding: 6px 9px; }
-  .catGrid { grid-template-columns: repeat(4, 1fr); }
-  .forecastGrid { grid-template-columns: repeat(7, 1fr); }
   .logoText { font-size: 14px; }
+  .forecastGrid { grid-template-columns: repeat(7, 1fr); }
 }
+
 @media (max-width: 420px) {
   .header { padding: 7px 9px; gap: 6px; }
-  .catGrid { grid-template-columns: repeat(3, 1fr); }
+  .catGrid { grid-template-columns: repeat(4, 1fr); }
   .mapFloats { bottom: 60px; right: 8px; }
 }
