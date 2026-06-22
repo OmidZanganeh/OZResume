@@ -8,8 +8,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 
-const GEOCODER_URL = 'https://geocoding.geo.census.gov/geocoder/geographies/coordinates';
-const ACS_URL      = 'https://api.census.gov/data/2023/acs/acs5';
+const GEOCODER_URL  = 'https://geocoding.geo.census.gov/geocoder/geographies/coordinates';
+const ACS_URL       = 'https://api.census.gov/data/2023/acs/acs5';
+// As of May 12 2026, the Census Data API requires a key for all data queries.
+// Get a free key at https://api.census.gov/data/key_signup.html
+// and add it as CENSUS_API_KEY in your Vercel environment variables.
+const CENSUS_KEY    = process.env.CENSUS_API_KEY ?? '';
 
 // Census API limit: 50 variables per request. Split into two batches.
 const ACS_VARS_1 = [
@@ -69,6 +73,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid coordinates' }, { status: 400 });
   }
 
+  if (!CENSUS_KEY) {
+    return NextResponse.json({
+      error: 'SETUP_REQUIRED',
+      message: 'A free Census API key is required. Visit api.census.gov/data/key_signup.html to get one, then add it as CENSUS_API_KEY in your Vercel environment variables.',
+    }, { status: 503 });
+  }
+
   /* ── Step 1: Geocoder → FIPS ── */
   let tract: GeocoderTract;
   try {
@@ -103,10 +114,10 @@ export async function GET(req: NextRequest) {
 
   /* ── Step 2: ACS 5-year (two parallel requests, each ≤ 50 vars) ── */
   try {
-    const forClause = `&for=tract:${tract.TRACT}&in=state:${tract.STATE}%20county:${tract.COUNTY}`;
+    const forClause = `&for=tract:${tract.TRACT}&in=state:${tract.STATE}%20county:${tract.COUNTY}&key=${CENSUS_KEY}`;
     const [acsRes1, acsRes2] = await Promise.all([
-      fetch(`${ACS_URL}?get=${ACS_VARS_1.join(',')}${forClause}`, { signal: AbortSignal.timeout(12_000) }),
-      fetch(`${ACS_URL}?get=${ACS_VARS_2.join(',')}${forClause}`, { signal: AbortSignal.timeout(12_000) }),
+      fetch(`${ACS_URL}?get=${ACS_VARS_1.join(',')}${forClause}`, { signal: AbortSignal.timeout(15_000) }),
+      fetch(`${ACS_URL}?get=${ACS_VARS_2.join(',')}${forClause}`, { signal: AbortSignal.timeout(15_000) }),
     ]);
     if (!acsRes1.ok) return NextResponse.json({ error: `ACS API: HTTP ${acsRes1.status}` }, { status: 502 });
     if (!acsRes2.ok) return NextResponse.json({ error: `ACS API (batch 2): HTTP ${acsRes2.status}` }, { status: 502 });

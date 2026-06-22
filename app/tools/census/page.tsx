@@ -288,13 +288,28 @@ export default function CensusPage() {
             )}
 
             {status === 'error' && (
-              <div className={styles.errorState}>
-                <p className={styles.errorTitle}><IconAlertTriangle /> Could not load data</p>
-                <p className={styles.errorDesc}>{error}</p>
-                <p className={styles.errorDesc} style={{ marginTop: 6 }}>
-                  This tool only covers the United States (including territories). Try clicking inside a US state.
-                </p>
-              </div>
+              error === 'SETUP_REQUIRED'
+                ? (
+                  <div className={styles.errorState}>
+                    <p className={styles.errorTitle}>Census API Key Required</p>
+                    <p className={styles.errorDesc}>
+                      As of May 12, 2026, the US Census Bureau requires a free API key for all data queries.
+                    </p>
+                    <p className={styles.errorDesc} style={{ marginTop: 6 }}>
+                      1. Sign up at <a href="https://api.census.gov/data/key_signup.html" target="_blank" rel="noreferrer" className={styles.link}>api.census.gov/data/key_signup.html</a><br />
+                      2. Activate the key from your email<br />
+                      3. Add it to Vercel env vars as <strong>CENSUS_API_KEY</strong>
+                    </p>
+                  </div>
+                ) : (
+                  <div className={styles.errorState}>
+                    <p className={styles.errorTitle}><IconAlertTriangle /> Could not load data</p>
+                    <p className={styles.errorDesc}>{error}</p>
+                    <p className={styles.errorDesc} style={{ marginTop: 6 }}>
+                      This tool only covers the United States (including territories). Try clicking inside a US state.
+                    </p>
+                  </div>
+                )
             )}
 
             {(status === 'done' || (status === 'loading' && data)) && data && (

@@ -595,8 +595,9 @@ export default function TripExplorer() {
     setCensusError('');
     try {
       const res  = await fetch(`/api/census?lat=${lat}&lon=${lon}`);
-      const json = await res.json() as CensusData & { error?: string };
+      const json = await res.json() as CensusData & { error?: string; message?: string };
       if (!res.ok || json.error) {
+        // Pass 'SETUP_REQUIRED' directly so CensusPanel can show the setup instructions
         setCensusError(json.error ?? `Error ${res.status}`);
         setCensusStatus('error');
         return;

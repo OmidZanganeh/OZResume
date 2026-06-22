@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
   DollarSign, Globe2, BookOpen, Car, Home, Wifi,
-  ChevronDown, MapPin, AlertTriangle, Download,
+  ChevronDown, MapPin, AlertTriangle, Download, BarChart2,
 } from 'lucide-react';
 import styles from './TripExplorer.module.css';
 
@@ -172,11 +172,27 @@ export default function CensusPanel({ pin, status, data, error }: Props) {
 
       {/* Error */}
       {status === 'error' && (
-        <div className={styles.osmError} style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={13} /> Could not load data</span>
-          <span style={{ fontSize: 11.5, opacity: 0.8 }}>{error}</span>
-          <span style={{ fontSize: 11.5, opacity: 0.65 }}>This tool only covers the United States. Try clicking inside a US state.</span>
-        </div>
+        error === 'SETUP_REQUIRED'
+          ? (
+            <div className={styles.censusSetupBox}>
+              <BarChart2 size={26} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <p className={styles.censusSetupTitle}>Census API Key Required</p>
+              <p className={styles.censusSetupDesc}>
+                As of May 12, 2026, the US Census Bureau requires a free API key for all data queries.
+              </p>
+              <ol className={styles.censusSetupSteps}>
+                <li>Sign up at <a href="https://api.census.gov/data/key_signup.html" target="_blank" rel="noreferrer" className={styles.censusSetupLink}>api.census.gov/data/key_signup.html</a></li>
+                <li>Activate the key from your email</li>
+                <li>Add it to Vercel env vars as <code>CENSUS_API_KEY</code></li>
+              </ol>
+            </div>
+          ) : (
+            <div className={styles.osmError} style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={13} /> Could not load data</span>
+              <span style={{ fontSize: 11.5, opacity: 0.8 }}>{error}</span>
+              <span style={{ fontSize: 11.5, opacity: 0.65 }}>This tool covers the United States only. Try clicking inside a US state.</span>
+            </div>
+          )
       )}
 
       {/* Loading skeleton (no previous data) */}
