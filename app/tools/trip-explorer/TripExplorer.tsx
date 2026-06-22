@@ -110,14 +110,21 @@ async function fetchWikiPlaces(lat: number, lon: number, radius: number, color: 
   return filterWikiNoise(raw).map(p => ({ uid: `wiki:${p.pageid}`, pageid: p.pageid, title: p.title, lat: p.lat, lon: p.lon, dist: p.dist, source: 'wiki' as const, category: catId, color }));
 }
 
+// Wikipedia's API accepts at most 50 titles per request — batch accordingly
 async function fetchBatchThumbs(places: WikiPlace[]): Promise<Record<string, string>> {
   if (!places.length) return {};
-  const titles = places.map(p => p.title).join('|');
-  const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=pageimages&pithumbsize=140&format=json&origin=*`);
-  const data = await res.json();
+  const CHUNK = 50;
   const out: Record<string, string> = {};
-  for (const page of Object.values(data.query?.pages ?? {}) as { pageid: number; thumbnail?: { source: string } }[])
-    if (page.thumbnail?.source) out[`wiki:${page.pageid}`] = page.thumbnail.source;
+  for (let i = 0; i < places.length; i += CHUNK) {
+    const chunk = places.slice(i, i + CHUNK);
+    const titles = chunk.map(p => p.title).join('|');
+    try {
+      const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=pageimages&pithumbsize=140&format=json&origin=*`);
+      const data = await res.json();
+      for (const page of Object.values(data.query?.pages ?? {}) as { pageid: number; thumbnail?: { source: string } }[])
+        if (page.thumbnail?.source) out[`wiki:${page.pageid}`] = page.thumbnail.source;
+    } catch { /* skip this chunk — places still show, just without thumbnails */ }
+  }
   return out;
 }
 
@@ -125,6 +132,13 @@ async function fetchWikiSummary(title: string): Promise<PlaceDetail> {
   const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
   return res.json();
 }
+
+// Multiple public Overpass endpoints — tried in order, first success wins
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+];
 
 function parseOsmElements(elements: OsmElement[], lat: number, lon: number, color: string, catId: string): WikiPlace[] {
   return elements
@@ -137,31 +151,28 @@ function parseOsmElements(elements: OsmElement[], lat: number, lon: number, colo
 }
 
 async function fetchOsmPlaces(lat: number, lon: number, radius: number, template: string, color: string, catId: string): Promise<WikiPlace[]> {
-  // Build a bounding box — faster than `around:` because it uses a spatial index directly
-  const latDeg  = radius / 111_000;
-  const lonDeg  = radius / (111_000 * Math.cos(lat * Math.PI / 180));
-  const bbox    = `${(lat - latDeg).toFixed(5)},${(lon - lonDeg).toFixed(5)},${(lat + latDeg).toFixed(5)},${(lon + lonDeg).toFixed(5)}`;
-  // Replace the `around:` placeholder with bbox equivalents
-  const inner = template
-    .replace(/\(around:RADIUS,LAT,LON\)/g, `(${bbox})`)
-    .replace(/RADIUS/g, String(radius))
-    .replace(/LAT/g, String(lat))
-    .replace(/LON/g, String(lon));
-  // `out tags qt` = no geometry + quicktile sort (fastest output mode)
-  const query = `[out:json][timeout:18][bbox:${bbox}][maxsize:1000000];(${inner});out tags qt 60;`;
+  const inner = template.replace(/RADIUS/g, String(radius)).replace(/LAT/g, String(lat)).replace(/LON/g, String(lon));
+  // `out tags center` skips full geometry — much faster in dense cities
+  const query = `[out:json][timeout:20][maxsize:2000000];(${inner});out tags center 60;`;
+  const encoded = encodeURIComponent(query);
 
-  // Route through our internal server-side proxy (server→Overpass is faster
-  // than browser→Overpass, and the proxy tries multiple endpoints)
-  const res = await fetch('/api/overpass', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-    signal: AbortSignal.timeout(70_000), // proxy has 3×22s tries
-  });
-  if (!res.ok) throw new Error(`Proxy error ${res.status}`);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return parseOsmElements(data.elements ?? [], lat, lon, color, catId);
+  let lastErr: unknown;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 22000);
+    try {
+      const res = await fetch(`${endpoint}?data=${encoded}`, { signal: ctrl.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      clearTimeout(tid);
+      return parseOsmElements(data.elements ?? [], lat, lon, color, catId);
+    } catch (err) {
+      clearTimeout(tid);
+      lastErr = err;
+      // Try next endpoint
+    }
+  }
+  throw lastErr;
 }
 
 async function fetchWeather(lat: number, lon: number): Promise<Weather | null> {
@@ -218,6 +229,7 @@ export default function TripExplorer() {
   const [places, setPlaces] = useState<WikiPlace[]>([]);
   const [discovering, setDiscovering] = useState(false);
   const [osmError, setOsmError] = useState(false);
+  const [wikiError, setWikiError] = useState(false);
 
   // Detail state
   const [selected, setSelected] = useState<WikiPlace | null>(null);
@@ -270,19 +282,23 @@ export default function TripExplorer() {
   const discover = useCallback(async (lat: number, lon: number, rad: number, catId: string) => {
     const cat = getCat(catId);
     if (!cat) return;
-    setDiscovering(true); setSelected(null); setDetail(null); setOsmError(false);
+    setDiscovering(true); setSelected(null); setDetail(null); setOsmError(false); setWikiError(false);
     try {
       let raw: WikiPlace[] = [];
       if (cat.source === 'wiki') {
-        raw = await fetchWikiPlaces(lat, lon, rad, cat.color, catId);
-        const thumbs = await fetchBatchThumbs(raw);
-        raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] }));
+        try {
+          raw = await fetchWikiPlaces(lat, lon, rad, cat.color, catId);
+          // Thumbnails are best-effort — a failed chunk just means no image, not a fatal error
+          const thumbs = await fetchBatchThumbs(raw);
+          raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] }));
+        } catch { setWikiError(true); raw = []; }
       } else if (cat.osmTemplate) {
-        raw = await fetchOsmPlaces(lat, lon, rad, cat.osmTemplate, cat.color, catId);
+        try {
+          raw = await fetchOsmPlaces(lat, lon, rad, cat.osmTemplate, cat.color, catId);
+        } catch { setOsmError(true); raw = []; }
       }
       setPlaces(raw);
-    } catch { setOsmError(true); setPlaces([]); }
-    finally { setDiscovering(false); }
+    } finally { setDiscovering(false); }
     loadWeather(lat, lon);
   }, [getCat, loadWeather]);
 
@@ -588,10 +604,17 @@ export default function TripExplorer() {
       )}
 
       {/* Results */}
+      {wikiError && (
+        <div className={styles.osmError}>
+          <Info size={13} />
+          <span>Wikipedia was slow to respond. Try a smaller radius, or retry.</span>
+          <button type="button" className={styles.osmRetryBtn} onClick={discoverCenter}>Retry</button>
+        </div>
+      )}
       {osmError && (
         <div className={styles.osmError}>
           <Info size={13} />
-          <span>All OpenStreetMap servers were slow for this area. Try a smaller radius, or retry.</span>
+          <span>OpenStreetMap servers were slow for this area. Try a smaller radius, or retry.</span>
           <button type="button" className={styles.osmRetryBtn} onClick={discoverCenter}>Retry</button>
         </div>
       )}
