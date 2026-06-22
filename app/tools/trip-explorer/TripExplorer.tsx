@@ -675,30 +675,46 @@ export default function TripExplorer() {
     if (!isoGeojson || !isoOrigin) return;
     const cat = ISO_POI_CATS.find(c => c.id === catId);
     if (!cat) return;
-    // Simplify polygon to ≤60 points to keep query small, then route through
-    // the server-side /api/overpass proxy (POST body → no URL length limits,
-    // 4 endpoints with fallbacks, server-to-server is faster).
+    // Simplify polygon to ≤60 points so the POST body stays small.
+    // We POST directly from the browser (NOT through the server proxy) so each
+    // user's own IP is used — avoids the shared Vercel-server-IP rate limit (429).
+    // Overpass supports CORS for POST requests.
     const poly = extractPolyString(isoGeojson, ringTime, 60);
     if (!poly) { setIsoPoisError('Ring polygon not found. Try regenerating the zones.'); return; }
     setIsoPoisLoading(true); setIsoPoisError(null); setIsoPois([]);
     const query = `[out:json][timeout:25];(node["${cat.key}"="${cat.val}"](poly:"${poly}");way["${cat.key}"="${cat.val}"](poly:"${poly}"););out tags center 80;`;
-    try {
-      const res  = await fetch('/api/overpass', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
-      });
-      const data = await res.json() as { error?: string; elements?: Parameters<typeof processOverpassResult>[0] };
-      if (!res.ok || data.error) throw new Error(data.error ?? `Server error ${res.status}`);
-      setIsoPois(processOverpassResult(data.elements ?? [], cat));
-    } catch (e) {
-      setIsoPoisError(
-        (e instanceof Error ? e.message : 'Search failed') +
-        ' — try a smaller ring or different category.',
-      );
-    } finally {
-      setIsoPoisLoading(false);
+    const formBody = `data=${encodeURIComponent(query)}`;
+    const BROWSER_ENDPOINTS = [
+      'https://overpass-api.de/api/interpreter',
+      'https://z.overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
+    ];
+    let last: unknown;
+    for (const ep of BROWSER_ENDPOINTS) {
+      try {
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), 28_000);
+        const res  = await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formBody,
+          signal: ctrl.signal,
+        });
+        clearTimeout(tid);
+        if (res.status === 429) { last = new Error(`${ep} rate-limited (429) — trying next`); continue; }
+        if (!res.ok) { last = new Error(`${ep} HTTP ${res.status}`); continue; }
+        const data = await res.json() as { elements?: Parameters<typeof processOverpassResult>[0] };
+        setIsoPois(processOverpassResult(data.elements ?? [], cat));
+        setIsoPoisLoading(false);
+        return;
+      } catch (e) { last = e; }
     }
+    setIsoPoisError(
+      (last instanceof Error ? last.message : 'All endpoints failed') +
+      ' — please try again in a moment.',
+    );
+    setIsoPoisLoading(false);
   }, [isoGeojson, isoOrigin]);
 
   const handleRadiusChange = useCallback((r: number) => {
