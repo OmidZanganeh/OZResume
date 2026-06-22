@@ -150,9 +150,17 @@
 }
 
 .appIcon {
-  font-size: 1.75em;
-  line-height: 1;
-  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(37, 99, 235, 0.09);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  color: var(--accent-blue);
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .appTitle {

@@ -4,6 +4,23 @@ import styles from "./page.module.css";
 import { WebAppsJsonLd } from "./WebAppsJsonLd";
 import { apps, siteUrl, webAppsPath } from "./webAppsData";
 
+// ─── App icons (SVG, no emojis) ───────────────────────────────────────────────
+const IconGym = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6 5v14"/><path d="M18 5v14"/><path d="M2 9h4"/><path d="M18 9h4"/><path d="M2 15h4"/><path d="M18 15h4"/><path d="M6 9h12"/><path d="M6 15h12"/>
+  </svg>
+);
+const IconDiscover = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+  </svg>
+);
+
+const APP_ICONS: Record<string, React.ReactNode> = {
+  gym: <IconGym />,
+  discover: <IconDiscover />,
+};
+
 const webAppsUrl = `${siteUrl}${webAppsPath}`;
 
 export const metadata: Metadata = {
@@ -125,8 +142,8 @@ export default function WebAppsPage() {
                 <article key={app.title} className={styles.appCard}>
                   <div className={styles.appTop}>
                     <div className={styles.appTitleRow}>
-                      <span className={styles.appIcon} aria-hidden="true">
-                        {app.icon}
+                      <span className={styles.appIcon}>
+                        {APP_ICONS[app.iconId] ?? null}
                       </span>
                       <div>
                         <h3 className={styles.appTitle}>{app.title}</h3>

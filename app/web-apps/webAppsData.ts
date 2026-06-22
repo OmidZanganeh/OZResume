@@ -5,7 +5,8 @@ export const webAppsPath = "/web-apps";
 export const gymFlowPublicPath = "/gym-flow/";
 
 export type WebAppListing = {
-  icon: string;
+  /** Identifies which SVG icon to render — resolved in page.tsx */
+  iconId: string;
   title: string;
   subtitle: string;
   description: string;
@@ -20,7 +21,7 @@ export type WebAppListing = {
 
 export const apps: WebAppListing[] = [
   {
-    icon: "🏋️",
+    iconId: "gym",
     title: "Gym Flow",
     subtitle: "Offline-first gym planner & progress tracker",
     description:
@@ -31,7 +32,7 @@ export const apps: WebAppListing[] = [
     schemaCategory: "HealthApplication",
   },
   {
-    icon: "🧭",
+    iconId: "discover",
     title: "Discover",
     subtitle: "Interactive travel & place discovery map",
     description:

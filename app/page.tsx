@@ -13,6 +13,7 @@ import GameHub from "./components/GameHub";
 import RecruiterTour from "./components/RecruiterTour";
 import VisitorCounter from "./components/VisitorCounter";
 import ToolsHoverCard from "./components/ToolsHoverCard";
+import WebAppsHoverCard from "./components/WebAppsHoverCard";
 import SkillRadar from "./components/SkillRadar";
 import HobbiesSection from "./components/HobbiesSection";
 import ScrollFadeIn from "./components/ScrollFadeIn";
@@ -99,12 +100,7 @@ const CardIcon = () => (
   </svg>
 );
 
-const AppWindowIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect width="18" height="18" x="3" y="3" rx="2"/>
-    <path d="M3 9h18"/>
-  </svg>
-);
+
 
 const CogIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -192,9 +188,7 @@ export default function Resume() {
               <Link href="/projects" className={styles.projectsBtn}>
                 <FolderIcon /> Projects
               </Link>
-              <Link href="/web-apps" className={styles.projectsBtn}>
-                <AppWindowIcon /> Web apps
-              </Link>
+              <WebAppsHoverCard suppressPopover={gameOpen} />
               <ToolsHoverCard suppressPopover={gameOpen} />
               <Link href="/news" className={styles.projectsBtn}>
                 <SignalIcon /> AI News
