@@ -20,6 +20,7 @@ import IsoPanel, {
   extractPolyString, processOverpassResult,
 } from './IsoPanel';
 import CensusPanel, { CensusData, CensusStatus } from './CensusPanel';
+import { fetchIsochrone } from '@/app/lib/valhalla';
 import styles from './TripExplorer.module.css';
 
 const MapView = dynamic(() => import('./MapView'), {
@@ -623,21 +624,9 @@ export default function TripExplorer() {
         contours: sorted.map(t => ({ time: t })),
         polygons: true,
       };
-      const res  = await fetch('/api/isochrone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const text = await res.text();
-      let data: Record<string, unknown> & { error?: string; features?: unknown[] };
-      try { data = JSON.parse(text); }
-      catch { throw new Error(`Routing server returned an invalid response (HTTP ${res.status}). Try again.`); }
-      if (!res.ok || data.error) { setIsoError(data.error ?? `Server error ${res.status}`); return; }
-      if (!Array.isArray(data.features) || data.features.length === 0) {
-        throw new Error('No coverage returned for this location. Try a different origin or costing mode.');
-      }
+      const data = await fetchIsochrone(body);
       // Tag each feature with a _colorIdx matching the sorted time order
-      const feats = (data.features as Record<string, unknown>[]).map((f, i) => ({
+      const feats = data.features.map((f, i) => ({
         ...f,
         properties: { ...(f.properties as Record<string, unknown>), _colorIdx: i },
       }));

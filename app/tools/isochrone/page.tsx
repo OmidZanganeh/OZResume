@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { fetchIsochrone } from '@/app/lib/valhalla';
 import styles from './page.module.css';
 import type { POI } from './IsochroneMap';
 
@@ -186,24 +187,15 @@ export default function IsochronePage() {
     setPois([]);
     try {
       const sortedTimes = [...times].sort((a, b) => a - b);
-      const res = await fetch('/api/isochrone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          locations: [{ lat: origin[0], lon: origin[1] }],
-          costing,
-          contours: sortedTimes.map(t => ({ time: t })),
-          polygons: true,
-        }),
+      const data = await fetchIsochrone({
+        locations: [{ lat: origin[0], lon: origin[1] }],
+        costing,
+        contours: sortedTimes.map(t => ({ time: t })),
+        polygons: true,
       });
-      if (!res.ok) {
-        const err = await res.json() as { error?: string };
-        throw new Error(err.error ?? `Server error ${res.status}`);
-      }
-      const data = await res.json() as { features: unknown[] };
       const processed = {
         ...data,
-        features: (data.features as Record<string, unknown>[]).map((f, i) => ({
+        features: data.features.map((f, i) => ({
           ...f,
           properties: {
             ...(f.properties as object),
