@@ -59,17 +59,30 @@ export async function POST(req: NextRequest) {
 
   const body = `data=${encodeURIComponent(query)}`;
 
-  // First pass through all endpoints; if all fail, wait and try once more.
-  let result = await queryEndpoints(body);
-  if (!result.ok) {
+  // Race all mirrors in parallel — return first success
+  const attempts = ENDPOINTS.map(async endpoint => {
+    const res = await fetch(endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) throw new Error(`${endpoint} → HTTP ${res.status}`);
+    const text = await res.text();
+    try { return JSON.parse(text) as unknown; }
+    catch { throw new Error(`${endpoint} → non-JSON`); }
+  });
+
+  try {
+    const data = await Promise.any(attempts);
+    return NextResponse.json(data);
+  } catch {
     await new Promise(r => setTimeout(r, PASS_DELAY_MS));
-    result = await queryEndpoints(body);
+    const retry = await queryEndpoints(body);
+    if (retry.ok) return NextResponse.json(retry.data);
+    return NextResponse.json(
+      { error: `All Overpass endpoints failed. Last: ${retry.lastErr}` },
+      { status: 502 },
+    );
   }
-
-  if (result.ok) return NextResponse.json(result.data);
-
-  return NextResponse.json(
-    { error: `All Overpass endpoints failed. Last: ${result.lastErr}` },
-    { status: 502 },
-  );
 }

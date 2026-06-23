@@ -21,6 +21,10 @@ import {
   BASEMAP_OPTIONS, latLonPolyString, polygonCentroid,
   loadItinerary, saveItinerary, encodeTripShareUrl, decodeTripFromUrl,
 } from './mapUtils';
+import {
+  discoverCacheKey, getDiscoverCache, setDiscoverCache,
+  effectiveRadius, buildCombinedOsmQuery, bucketOsmElements,
+} from './discoverUtils';
 import IsoPanel, {
   IsoCosting, IsoPOI, ISO_POI_CATS,
   extractPolyString, processOverpassResult,
@@ -117,6 +121,12 @@ const RADII = [{ label: '1 km', value: 1000 }, { label: '5 km', value: 5000 }, {
 
 // "All" fetches every category except itself
 const ALL_GROUP_CATS = EXPLORE_CATEGORIES.filter(c => c.id !== 'all');
+const OSM_EXPLORE_TEMPLATES = ALL_GROUP_CATS
+  .filter((c): c is Category & { osmTemplate: string } => Boolean(c.osmTemplate))
+  .map(c => c.osmTemplate);
+const OSM_CAT_META = ALL_GROUP_CATS
+  .filter(c => c.osmTemplate)
+  .map(c => ({ id: c.id, color: c.color }));
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 const NOISE_RE = /\b(attack|attacks|shooting|stabbing|bombing|explosion|massacre|murder|murders|killing|killed|suicide|crash|collision|accident|disaster|fire of|flood|hurricane|earthquake|riot|riots|protests|death|deaths|obituary|funeral|scandal|siege|hostage|abduction|kidnapping|terrorism|terrorist|genocide)\b/i;
@@ -139,7 +149,7 @@ function fmtDist(m: number) { return m < 1000 ? `${m} m` : `${(m/1000).toFixed(1
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 async function fetchWikiPlaces(lat: number, lon: number, radius: number, color: string, catId: string): Promise<WikiPlace[]> {
-  const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=${radius}&gslimit=500&format=json&origin=*`);
+  const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=${radius}&gslimit=80&format=json&origin=*`);
   const data = await res.json();
   const raw = (data.query?.geosearch ?? []) as { pageid: number; title: string; lat: number; lon: number; dist: number }[];
   return filterWikiNoise(raw).map(p => ({ uid: `wiki:${p.pageid}`, pageid: p.pageid, title: p.title, lat: p.lat, lon: p.lon, dist: p.dist, source: 'wiki' as const, category: catId, color }));
@@ -325,53 +335,56 @@ function overpassDelay(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms));
 }
 
-/** Query Overpass with retries: server proxy (×2) then browser POST fallback (×2 rounds). */
-async function fetchOverpassElements(query: string): Promise<OsmElement[]> {
-  let lastErr: unknown;
-
-  // 1) Server proxy — two attempts (each tries 4 endpoints server-side)
-  for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt > 0) await overpassDelay(1000);
-    try {
-      const res = await fetch('/api/overpass', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
-      });
-      const data = await res.json() as { error?: string; elements?: OsmElement[] };
-      if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
-      return data.elements ?? [];
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-
-  // 2) Browser-direct POST — user's IP, avoids shared Vercel rate limits
+async function overpassDirect(query: string): Promise<OsmElement[]> {
   const formBody = `data=${encodeURIComponent(query)}`;
-  for (let round = 0; round < 2; round++) {
-    if (round > 0) await overpassDelay(1500);
-    for (const ep of OVERPASS_ENDPOINTS) {
-      try {
-        const ctrl = new AbortController();
-        const tid  = setTimeout(() => ctrl.abort(), 28_000);
-        const res  = await fetch(ep, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formBody,
-          signal: ctrl.signal,
-        });
-        clearTimeout(tid);
-        if (res.status === 429) { lastErr = new Error('rate-limited'); continue; }
-        if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
-        const data = await res.json() as { elements?: OsmElement[] };
-        return data.elements ?? [];
-      } catch (err) {
-        lastErr = err;
-      }
+  const errors: unknown[] = [];
+  const attempts = OVERPASS_ENDPOINTS.map(async ep => {
+    const res = await fetch(ep, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formBody,
+      signal: AbortSignal.timeout(18_000),
+    });
+    if (res.status === 429) throw new Error('rate-limited');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json() as { elements?: OsmElement[] };
+    return data.elements ?? [];
+  });
+  const results = await Promise.allSettled(attempts);
+  for (const r of results) {
+    if (r.status === 'fulfilled') return r.value;
+    errors.push(r.reason);
+  }
+  throw errors[0] ?? new Error('All Overpass endpoints failed');
+}
+
+async function overpassViaProxy(query: string): Promise<OsmElement[]> {
+  const res = await fetch('/api/overpass', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  const data = await res.json() as { error?: string; elements?: OsmElement[] };
+  if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
+  return data.elements ?? [];
+}
+
+/** Race server proxy vs fastest public mirror; one quick retry on failure */
+async function fetchOverpassElements(query: string): Promise<OsmElement[]> {
+  const race = () =>
+    Promise.any([overpassViaProxy(query), overpassDirect(query)]);
+
+  try {
+    return await race();
+  } catch {
+    await overpassDelay(700);
+    try {
+      return await race();
+    } catch {
+      return overpassViaProxy(query);
     }
   }
-
-  throw lastErr ?? new Error('All Overpass endpoints failed');
 }
 
 function parseOsmElements(elements: OsmElement[], lat: number, lon: number, color: string, catId: string): WikiPlace[] {
@@ -392,16 +405,17 @@ async function fetchOsmPlacesByPoly(
   lat: number, lon: number, template: string, poly: string, color: string, catId: string,
 ): Promise<WikiPlace[]> {
   const inner = convertTemplateToPoly(template, poly);
-  const query = `[out:json][timeout:25];(${inner});out tags center 80;`;
+  const query = `[out:json][timeout:18][maxsize:800000];(${inner});out tags center 40;`;
   const elements = await fetchOverpassElements(query);
-  return parseOsmElements(elements, lat, lon, color, catId);
+  return parseOsmElements(elements, lat, lon, color, catId).slice(0, 40);
 }
 
 async function fetchOsmPlaces(lat: number, lon: number, radius: number, template: string, color: string, catId: string): Promise<WikiPlace[]> {
-  const inner = template.replace(/RADIUS/g, String(radius)).replace(/LAT/g, String(lat)).replace(/LON/g, String(lon));
-  const query = `[out:json][timeout:25][maxsize:2000000];(${inner});out tags center 60;`;
+  const effRad = effectiveRadius(catId, radius);
+  const inner = template.replace(/RADIUS/g, String(effRad)).replace(/LAT/g, String(lat)).replace(/LON/g, String(lon));
+  const query = `[out:json][timeout:18][maxsize:800000];(${inner});out tags center 40;`;
   const elements = await fetchOverpassElements(query);
-  return parseOsmElements(elements, lat, lon, color, catId);
+  return parseOsmElements(elements, lat, lon, color, catId).slice(0, 40);
 }
 
 async function fetchWeather(lat: number, lon: number): Promise<Weather | null> {
@@ -670,42 +684,64 @@ export default function TripExplorer() {
   }, []);
 
   const discover = useCallback(async (lat: number, lon: number, rad: number, catId: string, zonePoly?: string) => {
+    const cacheKey = discoverCacheKey(lat, lon, rad, catId, zonePoly);
+    const cached = getDiscoverCache(cacheKey);
+    if (cached?.groups && catId === 'all') {
+      setAllGroups(cached.groups.map(g => ({ ...g, loading: false, error: false })));
+      setPlaces([]);
+      setDiscovering(false);
+      return;
+    }
+    if (cached?.places && catId !== 'all') {
+      setPlaces(cached.places);
+      setAllGroups([]);
+      setDiscovering(false);
+      if (window.innerWidth <= 700) setMobileListView(true);
+      return;
+    }
+
     setDiscovering(true); setSelected(null); setDetail(null); setOsmError(false); setWikiError(false);
     loadWeather(lat, lon);
     reverseGeocodeContext(lat, lon).then(ctx => { if (ctx.label) setLocationContext(ctx); });
     if (wikiOverlay) fetchWikiOverlay(lat, lon, rad);
 
     const fetchOsm = async (template: string, color: string, id: string) => {
-      const run = () =>
-        zonePoly
+      try {
+        return zonePoly
           ? fetchOsmPlacesByPoly(lat, lon, template, zonePoly, color, id)
           : fetchOsmPlaces(lat, lon, rad, template, color, id);
-      try {
-        return await run();
       } catch {
-        await overpassDelay(1200);
-        return run();
+        await overpassDelay(800);
+        return zonePoly
+          ? fetchOsmPlacesByPoly(lat, lon, template, zonePoly, color, id)
+          : fetchOsmPlaces(lat, lon, rad, template, color, id);
       }
     };
 
     if (catId === 'all') {
+      const effRad = effectiveRadius('all', rad);
       setAllGroups(ALL_GROUP_CATS.map(c => ({ sectionId: c.id, places: [], loading: true, error: false })));
       setPlaces([]);
-      await Promise.allSettled(ALL_GROUP_CATS.map(async cat => {
-        try {
-          let raw: WikiPlace[] = [];
-          if (cat.source === 'wiki') {
-            raw = await fetchWikiPlaces(lat, lon, rad, cat.color, cat.id);
-            const thumbs = await fetchBatchThumbs(raw);
-            raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] })).slice(0, 15);
-          } else if (cat.osmTemplate) {
-            raw = (await fetchOsm(cat.osmTemplate, cat.color, cat.id)).slice(0, 15);
-          }
-          setAllGroups(prev => prev.map(g => g.sectionId === cat.id ? { ...g, places: raw, loading: false } : g));
-        } catch {
-          setAllGroups(prev => prev.map(g => g.sectionId === cat.id ? { ...g, loading: false, error: true } : g));
-        }
-      }));
+
+      try {
+        const query = buildCombinedOsmQuery(OSM_EXPLORE_TEMPLATES, lat, lon, effRad, zonePoly);
+        const elements = await fetchOverpassElements(query);
+        const osmBuckets = bucketOsmElements(elements, lat, lon, OSM_CAT_META, haversineM);
+
+        const groups = ALL_GROUP_CATS.map(c => ({
+          sectionId: c.id,
+          places: osmBuckets.get(c.id) ?? [],
+          loading: false,
+          error: false,
+        }));
+
+        setAllGroups(groups);
+        setDiscoverCache(cacheKey, { groups: groups.map(g => ({ sectionId: g.sectionId, places: g.places })) });
+      } catch {
+        setOsmError(true);
+        setAllGroups(ALL_GROUP_CATS.map(c => ({ sectionId: c.id, places: [], loading: false, error: true })));
+      }
+
       setDiscovering(false);
       return;
     }
@@ -718,7 +754,10 @@ export default function TripExplorer() {
       if (cat.source === 'wiki') {
         try {
           raw = await fetchWikiPlaces(lat, lon, rad, cat.color, catId);
-          const thumbs = await fetchBatchThumbs(raw);
+          raw = filterWikiNoise(raw).map(p => ({ ...p, thumbnail: undefined }));
+          setPlaces(raw.slice(0, 40));
+          setDiscoverCache(cacheKey, { places: raw.slice(0, 40) });
+          const thumbs = await fetchBatchThumbs(raw.slice(0, 40));
           raw = raw.map(p => ({ ...p, thumbnail: thumbs[p.uid] }));
         } catch { setWikiError(true); raw = []; }
       } else if (cat.osmTemplate) {
@@ -727,6 +766,7 @@ export default function TripExplorer() {
         } catch { setOsmError(true); raw = []; }
       }
       setPlaces(raw);
+      if (raw.length) setDiscoverCache(cacheKey, { places: raw });
     } finally {
       setDiscovering(false);
       if (window.innerWidth <= 700) setMobileListView(true);
