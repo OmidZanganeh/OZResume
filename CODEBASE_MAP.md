@@ -40,6 +40,7 @@
 | `/tools/elevation-profile` | `page.tsx`, `ElevationMap.tsx` |
 | `/tools/geocoder` | `page.tsx`, `GeocoderMap.tsx` |
 | `/tools/census` | `page.tsx`, `CensusMap.tsx` |
+| `/tools/stock-screener` | `page.tsx`, `StockScreener.tsx`, `historical.ts`, `DateTimeline.tsx`, `BacktestPanel.tsx`, `mockStocks.ts` |
 
 ## API routes (`app/api/*/route.ts`)
 

@@ -53,6 +53,11 @@ const IconCompass = () => (
     <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
   </svg>
 );
+const IconCandlestick = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 5v4"/><path d="M15 5v2"/><rect x="7" y="9" width="4" height="6" rx="1"/><rect x="13" y="7" width="4" height="8" rx="1"/><path d="M9 15v4"/><path d="M15 15v2"/>
+  </svg>
+);
 
 export const metadata: Metadata = {
   title: 'Free Online GIS Tools – Coordinate Converter, Elevation Profile, Isochrone Map & More | Omid Zanganeh',
@@ -104,6 +109,7 @@ const toolsJsonLd = {
     { '@type': 'ListItem', position: 8, name: 'GIS Data Downloader',           url: `${BASE}/tools/gis-downloader` },
     { '@type': 'ListItem', position: 9,  name: 'PDF and Image Tools',    url: `${BASE}/tools/pdf-image-tools` },
     { '@type': 'ListItem', position: 10, name: 'Discover — Trip Explorer', url: `${BASE}/tools/trip-explorer` },
+    { '@type': 'ListItem', position: 11, name: 'Stock Screener Dashboard', url: `${BASE}/tools/stock-screener` },
   ],
 };
 
@@ -177,6 +183,13 @@ const TOOLS = [
     title: 'Discover — Trip Explorer',
     desc: 'Explore any city on an interactive dark map and instantly surface nearby Wikipedia-powered places. Search, read summaries, and open full articles — no account needed.',
     tags: ['Travel', 'Wikipedia', 'Interactive'],
+  },
+  {
+    href: '/tools/stock-screener',
+    icon: <IconCandlestick />,
+    title: 'Stock Screener Dashboard',
+    desc: 'Filter a universe of mock equities by P/E, EPS growth, debt-to-equity, and RSI. Real-time sliders, color-coded metrics, and animated results grid.',
+    tags: ['Finance', 'Interactive', 'Dashboard'],
   },
 ];
 
