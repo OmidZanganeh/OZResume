@@ -228,13 +228,65 @@ async function searchWikipediaByName(
   } catch { return null; }
 }
 
-// Multiple public Overpass endpoints — tried in order, first success wins
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://z.overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
 ];
+
+function overpassDelay(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms));
+}
+
+/** Query Overpass with retries: server proxy (×2) then browser POST fallback (×2 rounds). */
+async function fetchOverpassElements(query: string): Promise<OsmElement[]> {
+  let lastErr: unknown;
+
+  // 1) Server proxy — two attempts (each tries 4 endpoints server-side)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await overpassDelay(1000);
+    try {
+      const res = await fetch('/api/overpass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const data = await res.json() as { error?: string; elements?: OsmElement[] };
+      if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
+      return data.elements ?? [];
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  // 2) Browser-direct POST — user's IP, avoids shared Vercel rate limits
+  const formBody = `data=${encodeURIComponent(query)}`;
+  for (let round = 0; round < 2; round++) {
+    if (round > 0) await overpassDelay(1500);
+    for (const ep of OVERPASS_ENDPOINTS) {
+      try {
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), 28_000);
+        const res  = await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formBody,
+          signal: ctrl.signal,
+        });
+        clearTimeout(tid);
+        if (res.status === 429) { lastErr = new Error('rate-limited'); continue; }
+        if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
+        const data = await res.json() as { elements?: OsmElement[] };
+        return data.elements ?? [];
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+  }
+
+  throw lastErr ?? new Error('All Overpass endpoints failed');
+}
 
 function parseOsmElements(elements: OsmElement[], lat: number, lon: number, color: string, catId: string): WikiPlace[] {
   return elements
@@ -255,39 +307,15 @@ async function fetchOsmPlacesByPoly(
 ): Promise<WikiPlace[]> {
   const inner = convertTemplateToPoly(template, poly);
   const query = `[out:json][timeout:25];(${inner});out tags center 80;`;
-  const res = await fetch('/api/overpass', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-  });
-  const data = await res.json() as { error?: string; elements?: OsmElement[] };
-  if (!res.ok || data.error) throw new Error(data.error ?? `Overpass error ${res.status}`);
-  return parseOsmElements(data.elements ?? [], lat, lon, color, catId);
+  const elements = await fetchOverpassElements(query);
+  return parseOsmElements(elements, lat, lon, color, catId);
 }
 
 async function fetchOsmPlaces(lat: number, lon: number, radius: number, template: string, color: string, catId: string): Promise<WikiPlace[]> {
   const inner = template.replace(/RADIUS/g, String(radius)).replace(/LAT/g, String(lat)).replace(/LON/g, String(lon));
-  // `out tags center` skips full geometry — much faster in dense cities
-  const query = `[out:json][timeout:20][maxsize:2000000];(${inner});out tags center 60;`;
-  const encoded = encodeURIComponent(query);
-
-  let lastErr: unknown;
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 12000);
-    try {
-      const res = await fetch(`${endpoint}?data=${encoded}`, { signal: ctrl.signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      clearTimeout(tid);
-      return parseOsmElements(data.elements ?? [], lat, lon, color, catId);
-    } catch (err) {
-      clearTimeout(tid);
-      lastErr = err;
-      // Try next endpoint
-    }
-  }
-  throw lastErr;
+  const query = `[out:json][timeout:25][maxsize:2000000];(${inner});out tags center 60;`;
+  const elements = await fetchOverpassElements(query);
+  return parseOsmElements(elements, lat, lon, color, catId);
 }
 
 async function fetchWeather(lat: number, lon: number): Promise<Weather | null> {
@@ -474,10 +502,18 @@ export default function TripExplorer() {
     loadWeather(lat, lon);
     if (wikiOverlay) fetchWikiOverlay(lat, lon, rad);
 
-    const fetchOsm = async (template: string, color: string, id: string) =>
-      zonePoly
-        ? fetchOsmPlacesByPoly(lat, lon, template, zonePoly, color, id)
-        : fetchOsmPlaces(lat, lon, rad, template, color, id);
+    const fetchOsm = async (template: string, color: string, id: string) => {
+      const run = () =>
+        zonePoly
+          ? fetchOsmPlacesByPoly(lat, lon, template, zonePoly, color, id)
+          : fetchOsmPlaces(lat, lon, rad, template, color, id);
+      try {
+        return await run();
+      } catch {
+        await overpassDelay(1200);
+        return run();
+      }
+    };
 
     if (catId === 'all') {
       setAllGroups(ALL_GROUP_CATS.map(c => ({ sectionId: c.id, places: [], loading: true, error: false })));
@@ -737,38 +773,17 @@ export default function TripExplorer() {
     if (!poly) { setIsoPoisError('Ring polygon not found. Try regenerating the zones.'); return; }
     setIsoPoisLoading(true); setIsoPoisError(null); setIsoPois([]);
     const query = `[out:json][timeout:25];(node["${cat.key}"="${cat.val}"](poly:"${poly}");way["${cat.key}"="${cat.val}"](poly:"${poly}"););out tags center 80;`;
-    const formBody = `data=${encodeURIComponent(query)}`;
-    const BROWSER_ENDPOINTS = [
-      'https://overpass-api.de/api/interpreter',
-      'https://z.overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
-      'https://overpass.private.coffee/api/interpreter',
-    ];
-    let last: unknown;
-    for (const ep of BROWSER_ENDPOINTS) {
-      try {
-        const ctrl = new AbortController();
-        const tid  = setTimeout(() => ctrl.abort(), 28_000);
-        const res  = await fetch(ep, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formBody,
-          signal: ctrl.signal,
-        });
-        clearTimeout(tid);
-        if (res.status === 429) { last = new Error(`${ep} rate-limited (429) — trying next`); continue; }
-        if (!res.ok) { last = new Error(`${ep} HTTP ${res.status}`); continue; }
-        const data = await res.json() as { elements?: Parameters<typeof processOverpassResult>[0] };
-        setIsoPois(processOverpassResult(data.elements ?? [], cat));
-        setIsoPoisLoading(false);
-        return;
-      } catch (e) { last = e; }
+    try {
+      const elements = await fetchOverpassElements(query);
+      setIsoPois(processOverpassResult(elements, cat));
+    } catch (e) {
+      setIsoPoisError(
+        (e instanceof Error ? e.message : 'Search failed') +
+        ' — please try again in a moment.',
+      );
+    } finally {
+      setIsoPoisLoading(false);
     }
-    setIsoPoisError(
-      (last instanceof Error ? last.message : 'All endpoints failed') +
-      ' — please try again in a moment.',
-    );
-    setIsoPoisLoading(false);
   }, [isoGeojson, isoOrigin]);
 
   const handleRadiusChange = useCallback((r: number) => {
@@ -1194,7 +1209,7 @@ export default function TripExplorer() {
           {osmError && (
             <div className={styles.osmError}>
               <Info size={13} />
-              <span>OpenStreetMap servers were slow for this area. Try a smaller radius, or retry.</span>
+              <span>OpenStreetMap servers were slow — we retried automatically. Try a smaller radius or tap Retry.</span>
               <button type="button" className={styles.osmRetryBtn} onClick={discoverCenter}>Retry</button>
             </div>
           )}
