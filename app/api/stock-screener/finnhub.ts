@@ -1,7 +1,7 @@
 import type { Stock } from '@/app/tools/stock-screener/types';
 import type { TickerEntry } from '@/app/tools/stock-screener/tickers';
 import { computeRSI, approximateRSIFromRange } from '@/app/tools/stock-screener/rsi';
-import { num, pct, round, mapPool } from './utils';
+import { num, pct, round, sleep } from './utils';
 
 const FINNHUB = 'https://finnhub.io/api/v1';
 
@@ -27,10 +27,14 @@ function finnhubSymbol(symbol: string): string {
   return symbol.replace(/\./g, '-');
 }
 
-async function finnhubGet<T>(path: string, apiKey: string): Promise<T | null> {
+async function finnhubGet<T>(path: string, apiKey: string, attempt = 0): Promise<T | null> {
   const url = `${FINNHUB}${path}${path.includes('?') ? '&' : '?'}token=${apiKey}`;
   try {
     const res = await fetch(url, { next: { revalidate: 0 } });
+    if (res.status === 429 && attempt < 4) {
+      await sleep(1500 * (attempt + 1));
+      return finnhubGet<T>(path, apiKey, attempt + 1);
+    }
     if (res.status === 401 || res.status === 403) return null;
     if (!res.ok) return null;
     return (await res.json()) as T;
@@ -164,13 +168,15 @@ async function fetchOneFinnhub(entry: TickerEntry, apiKey: string): Promise<Stoc
   // ~80 weeks of weekly bars for RSI(14) on weekly closes
   const from = now - 80 * 7 * 24 * 3600;
 
-  const [metricRes, candles] = await Promise.all([
-    finnhubGet<FinnhubMetricSeries>(`/stock/metric?symbol=${encodeURIComponent(sym)}&metric=all`, apiKey),
-    finnhubGet<FinnhubCandle>(
-      `/stock/candle?symbol=${encodeURIComponent(sym)}&resolution=W&from=${from}&to=${now}`,
-      apiKey,
-    ),
-  ]);
+  const metricRes = await finnhubGet<FinnhubMetricSeries>(
+    `/stock/metric?symbol=${encodeURIComponent(sym)}&metric=all`,
+    apiKey,
+  );
+  await sleep(1100); // Finnhub free: 60 calls/min
+  const candles = await finnhubGet<FinnhubCandle>(
+    `/stock/candle?symbol=${encodeURIComponent(sym)}&resolution=W&from=${from}&to=${now}`,
+    apiKey,
+  );
 
   const metric = metricRes?.metric;
   if (!metric || Object.keys(metric).length < 3) return null;
@@ -197,8 +203,14 @@ async function fetchOneFinnhub(entry: TickerEntry, apiKey: string): Promise<Stoc
 export async function fetchStocksFromFinnhub(
   entries: TickerEntry[],
   apiKey: string,
+  onProgress?: (done: number, total: number) => void,
 ): Promise<Stock[]> {
-  // Weekly refresh budget: ~2 calls/symbol, once per week
-  const results = await mapPool(entries, 3, 350, entry => fetchOneFinnhub(entry, apiKey));
-  return results.filter((s): s is Stock => s != null);
+  const stocks: Stock[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    const stock = await fetchOneFinnhub(entries[i]!, apiKey);
+    if (stock) stocks.push(stock);
+    onProgress?.(i + 1, entries.length);
+    if (i + 1 < entries.length) await sleep(200);
+  }
+  return stocks;
 }

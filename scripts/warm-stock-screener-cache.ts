@@ -36,14 +36,16 @@ async function main() {
 
   console.log(`FINNHUB_API_KEY: ${hasFinnhub ? 'yes' : 'MISSING'}`);
   console.log(`REDIS_URL: ${hasRedis ? 'yes' : 'MISSING (will only cache in memory)'}`);
-  console.log('Fetching ~262 stocks — this can take several minutes…\n');
+  console.log('Fetching ~262 stocks — ~10 min at Finnhub free rate limits…\n');
 
   const { getMarketStocks } = await import('../app/api/stock-screener/fetchMarketData');
+  const { SCREEN_TICKERS } = await import('../app/tools/stock-screener/tickers');
+
   const result = await getMarketStocks({ force: true });
 
   console.log('\nDone.');
   console.log(`  source:    ${result.source}`);
-  console.log(`  stocks:    ${result.stocks.length}`);
+  console.log(`  stocks:    ${result.stocks.length} / ${SCREEN_TICKERS.length}`);
   console.log(`  cachedAt:  ${result.cachedAt}`);
   console.log(`  expiresAt: ${result.expiresAt ?? 'n/a'}`);
   console.log(`  redis:     ${hasRedis && result.source !== 'mock' ? 'written (stock-screener:snapshot:v2)' : hasRedis ? 'not written (mock/failed fetch)' : 'skipped'}`);

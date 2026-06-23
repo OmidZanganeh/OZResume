@@ -47,12 +47,16 @@ async function loadFresh(): Promise<MarketDataResult> {
 
     const stocks = await fetchStocksFromFinnhub(SCREEN_TICKERS, finnhubKey);
     if (stocks.length >= 50) {
+      const partial = stocks.length < SCREEN_TICKERS.length;
       return {
         stocks,
         source: 'finnhub',
         cachedAt: new Date().toISOString(),
         fromCache: false,
         expiresAt: new Date(Date.now() + FRESH_TTL_MS).toISOString(),
+        warning: partial
+          ? `Loaded ${stocks.length}/${SCREEN_TICKERS.length} symbols — some missing from Finnhub.`
+          : undefined,
       };
     }
   }
