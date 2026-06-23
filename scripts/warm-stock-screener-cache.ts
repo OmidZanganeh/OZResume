@@ -1,16 +1,14 @@
 /**
- * Fetches Finnhub data for all screener tickers and writes to Redis.
+ * Fetches full US common-stock universe into Redis (incremental batches).
  * Run: npm run warm:stocks
+ * Takes 1–3 hours for ~5k symbols at Finnhub free rate limits.
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 function loadEnvLocal() {
   const p = resolve(process.cwd(), '.env.local');
-  if (!existsSync(p)) {
-    console.warn('No .env.local found — using process env only.');
-    return;
-  }
+  if (!existsSync(p)) return;
   for (const line of readFileSync(p, 'utf8').split(/\r?\n/)) {
     const t = line.trim();
     if (!t || t.startsWith('#')) continue;
@@ -31,31 +29,35 @@ function loadEnvLocal() {
 loadEnvLocal();
 
 async function main() {
-  const hasFinnhub = Boolean(
+  const hasKey = Boolean(
     process.env.FINNHUB_API_KEY?.trim() ||
-    process.env.X_Finnhub_Secret?.trim() ||
-    process.env.X_FINNHUB_SECRET?.trim(),
+    process.env.X_Finnhub_Secret?.trim(),
   );
   const hasRedis = Boolean(process.env.REDIS_URL?.trim());
 
-  console.log(`Finnhub key: ${hasFinnhub ? 'yes (FINNHUB_API_KEY or X_Finnhub_Secret)' : 'MISSING'}`);
-  console.log(`REDIS_URL: ${hasRedis ? 'yes' : 'MISSING (will only cache in memory)'}`);
-  console.log('Fetching ~262 stocks — ~10 min at Finnhub free rate limits…\n');
+  console.log(`Finnhub key: ${hasKey ? 'yes' : 'MISSING'}`);
+  console.log(`REDIS_URL: ${hasRedis ? 'yes' : 'MISSING'}`);
+  console.log('Loading full US symbol list + fundamentals in batches…\n');
 
-  const { getMarketStocks } = await import('../app/api/stock-screener/fetchMarketData');
-  const { SCREEN_TICKERS } = await import('../app/tools/stock-screener/tickers');
+  const { getUsSymbolUniverse } = await import('../app/api/stock-screener/symbols');
+  const { runIncrementalBatch } = await import('../app/api/stock-screener/incrementalRefresh');
 
-  const result = await getMarketStocks({ force: true });
+  const universe = await getUsSymbolUniverse();
+  console.log(`Universe: ${universe.length} US common stocks / ADRs\n`);
 
-  console.log('\nDone.');
-  console.log(`  source:    ${result.source}`);
-  console.log(`  stocks:    ${result.stocks.length} / ${SCREEN_TICKERS.length}`);
-  console.log(`  cachedAt:  ${result.cachedAt}`);
-  console.log(`  expiresAt: ${result.expiresAt ?? 'n/a'}`);
-  console.log(`  redis:     ${hasRedis && result.source !== 'mock' ? 'written (stock-screener:snapshot:v2)' : hasRedis ? 'not written (mock/failed fetch)' : 'skipped'}`);
-  if (result.warning) console.log(`  warning:   ${result.warning}`);
+  let batchNum = 0;
+  while (true) {
+    batchNum++;
+    const reset = batchNum === 1;
+    const batch = await runIncrementalBatch(reset);
+    console.log(
+      `  batch ${batchNum}: +${batch.batchAdded} → ${batch.fetched}/${batch.total}` +
+      (batch.complete ? ' ✓ complete' : ''),
+    );
+    if (batch.complete) break;
+  }
 
-  if (result.source === 'mock') process.exit(1);
+  console.log('\nDone — Redis snapshot ready for all users.');
 }
 
 main().catch(err => {

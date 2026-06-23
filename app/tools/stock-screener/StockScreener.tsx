@@ -8,7 +8,6 @@ import StockCard from './StockCard';
 import DateTimeline from './DateTimeline';
 import BacktestPanel from './BacktestPanel';
 import { MOCK_STOCKS } from './mockStocks';
-import { SCREEN_TICKERS } from './tickers';
 import type { Stock } from './types';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
 import type { ScreenerState } from './filters';
@@ -28,6 +27,8 @@ interface MarketPayload {
   cachedAt?: string;
   expiresAt?: string;
   fromCache?: boolean;
+  totalSymbols?: number;
+  refreshComplete?: boolean;
   warning?: string;
 }
 
@@ -83,6 +84,7 @@ export default function StockScreener() {
   const [dataWarning, setDataWarning] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [cacheLabel, setCacheLabel] = useState<string | null>(null);
+  const [totalSymbols, setTotalSymbols] = useState<number | undefined>();
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +97,7 @@ export default function StockScreener() {
         setStocks(list);
       setDataSource(data.source ?? 'mock');
       setDataWarning(data.warning ?? null);
+      setTotalSymbols(data.totalSymbols);
       const age = formatCacheAge(data.cachedAt);
       setCacheLabel(
         data.source !== 'mock' && age
@@ -200,7 +203,7 @@ export default function StockScreener() {
           {isLoading && (
             <span className={styles.dataBannerLoading}>
               <Loader2 size={14} className={styles.spinIcon} />
-              Loading live market data ({SCREEN_TICKERS.length} stocks across 5 sectors, weekly refresh)…
+              Loading US market data (weekly cache)…
             </span>
           )}
           {!isLoading && dataWarning && (
@@ -211,7 +214,7 @@ export default function StockScreener() {
           )}
           {!isLoading && dataSource !== 'mock' && !dataWarning && (
             <span className={styles.dataBannerOk}>
-              Live data via {dataSource === 'finnhub' ? 'Finnhub' : 'FMP'} · {total} stocks · weekly refresh
+              Live data via Finnhub · {total}{totalSymbols ? ` / ${totalSymbols}` : ''} US stocks · weekly refresh
               {cacheLabel ? ` · ${cacheLabel}` : ''}
             </span>
           )}

@@ -1,8 +1,13 @@
-import type { Stock } from '@/app/tools/stock-screener/types';
-import type { TickerEntry } from '@/app/tools/stock-screener/tickers';
-import { computeRSI, approximateRSIFromRange } from '@/app/tools/stock-screener/rsi';
+import type { Stock, Sector } from '@/app/tools/stock-screener/types';
+import { approximateRSIFromRange } from '@/app/tools/stock-screener/rsi';
+import { inferSector } from './symbols';
 import { num, pct, round, sleep } from './utils';
 
+export interface SymbolInput {
+  symbol: string;
+  name: string;
+  sector: Sector;
+}
 const FINNHUB = 'https://finnhub.io/api/v1';
 
 interface FinnhubMetricSeries {
@@ -10,19 +15,6 @@ interface FinnhubMetricSeries {
   metricType?: string;
   symbol?: string;
 }
-
-interface FinnhubQuote {
-  c?: number;
-  pc?: number;
-  d?: number;
-  dp?: number;
-}
-
-interface FinnhubCandle {
-  c?: number[];
-  s?: string;
-}
-
 function finnhubSymbol(symbol: string): string {
   return symbol.replace(/\./g, '-');
 }
@@ -44,13 +36,11 @@ async function finnhubGet<T>(path: string, apiKey: string, attempt = 0): Promise
 }
 
 function mapFinnhubToStock(
-  entry: TickerEntry,
+  entry: SymbolInput,
   metric: Record<string, number>,
-  quote: FinnhubQuote | null,
+  price: number,
   rsi14: number,
-): Stock {
-  const price = num(quote?.c, num(metric['52WeekHigh'], 0) * 0.85) || 1;
-  const high52 = num(metric['52WeekHigh'], price * 1.2);
+): Stock {  const high52 = num(metric['52WeekHigh'], price * 1.2);
   const low52 = num(metric['52WeekLow'], price * 0.8);
   const avg50 = num(metric['priceRelativeToS&P50052Week'], 0); // not SMA — compute from priceAvg if missing
   const priceAvg50 = price * (1 + num(metric['monthToDatePriceReturnDaily'], 0) * 0.1);
@@ -110,11 +100,12 @@ function mapFinnhubToStock(
 
   const pegRatio = epsGrowth > 0 && peRatio > 0 ? round(peRatio / epsGrowth, 1) : 0;
 
+  const sector = inferSector(entry.name, metric);
+
   return {
     ticker: entry.symbol,
     companyName: entry.name,
-    sector: entry.sector,
-    peRatio: round(peRatio, 1),
+    sector,    peRatio: round(peRatio, 1),
     forwardPe: round(forwardPe, 1),
     pegRatio,
     pbRatio: round(pbRatio, 1),
@@ -162,55 +153,41 @@ function mapFinnhubToStock(
   };
 }
 
-async function fetchOneFinnhub(entry: TickerEntry, apiKey: string): Promise<Stock | null> {
+async function fetchOneMetricOnly(entry: SymbolInput, apiKey: string): Promise<Stock | null> {
   const sym = finnhubSymbol(entry.symbol);
-  const now = Math.floor(Date.now() / 1000);
-  // ~80 weeks of weekly bars for RSI(14) on weekly closes
-  const from = now - 80 * 7 * 24 * 3600;
-
   const metricRes = await finnhubGet<FinnhubMetricSeries>(
     `/stock/metric?symbol=${encodeURIComponent(sym)}&metric=all`,
-    apiKey,
-  );
-  await sleep(1100); // Finnhub free: 60 calls/min
-  const candles = await finnhubGet<FinnhubCandle>(
-    `/stock/candle?symbol=${encodeURIComponent(sym)}&resolution=W&from=${from}&to=${now}`,
     apiKey,
   );
 
   const metric = metricRes?.metric;
   if (!metric || Object.keys(metric).length < 3) return null;
 
-  const closes = candles?.s === 'ok' && Array.isArray(candles.c) ? candles.c.filter(c => c > 0) : [];
-  const price = closes.length > 0
-    ? closes[closes.length - 1]!
-    : num(metric['52WeekHigh'], 0) * 0.85;
-  const high52 = num(metric['52WeekHigh'], price * 1.2);
-  const low52 = num(metric['52WeekLow'], price * 0.8);
+  const high52 = num(metric['52WeekHigh'], 0);
+  const low52 = num(metric['52WeekLow'], 0);
+  const price = high52 > 0 ? high52 * 0.92 : num(metric['marketCapitalization'], 1);
+  const rsi14 = approximateRSIFromRange(price, low52 || price * 0.8, high52 || price * 1.2);
 
-  let rsi14: number;
-  const computed = computeRSI(closes, 14);
-  if (computed != null) {
-    rsi14 = computed;
-  } else {
-    rsi14 = approximateRSIFromRange(price, low52, high52);
-  }
-
-  const quote: FinnhubQuote = { c: price };
-  return mapFinnhubToStock(entry, metric, quote, rsi14);
+  return mapFinnhubToStock(entry, metric, price, rsi14);
 }
 
-export async function fetchStocksFromFinnhub(
-  entries: TickerEntry[],
+/** Bulk path: metric only (~1 call/symbol) for full US universe. */
+export async function fetchStocksBatch(
+  entries: SymbolInput[],
   apiKey: string,
-  onProgress?: (done: number, total: number) => void,
 ): Promise<Stock[]> {
   const stocks: Stock[] = [];
   for (let i = 0; i < entries.length; i++) {
-    const stock = await fetchOneFinnhub(entries[i]!, apiKey);
+    const stock = await fetchOneMetricOnly(entries[i]!, apiKey);
     if (stock) stocks.push(stock);
-    onProgress?.(i + 1, entries.length);
-    if (i + 1 < entries.length) await sleep(200);
+    if (i + 1 < entries.length) await sleep(1100);
   }
   return stocks;
+}
+
+export async function fetchStocksFromFinnhub(
+  entries: SymbolInput[],
+  apiKey: string,
+): Promise<Stock[]> {
+  return fetchStocksBatch(entries, apiKey);
 }

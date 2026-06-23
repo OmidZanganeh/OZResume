@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/stock-screener/refresh",
-      "schedule": "0 22 * * 0"
+      "path": "/api/stock-screener/refresh?continue=1",
+      "schedule": "*/10 * * * 0"
     }
   ]
 }

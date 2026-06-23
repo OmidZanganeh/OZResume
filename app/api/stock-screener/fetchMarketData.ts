@@ -1,98 +1,13 @@
-import type { Stock } from '@/app/tools/stock-screener/types';
-import { SCREEN_TICKERS } from '@/app/tools/stock-screener/tickers';
 import { MOCK_STOCKS } from '@/app/tools/stock-screener/mockStocks';
-import { fetchStocksFromFinnhub } from './finnhub';
-import { fetchStocksFromFmpQuotesOnly } from './fmp';
 import { getFinnhubApiKey } from './env';
-import {
-  FRESH_TTL_MS,
-  readRedisSnapshot,
-  writeRedisSnapshot,
-  type MarketDataResult,
-} from './cache';
+import { readRedisSnapshot, type MarketDataResult } from './cache';
+import { loadMarketFromStore, runIncrementalBatch } from './incrementalRefresh';
 
 export type { MarketDataResult };
 
-const MEMORY_TTL_MS = FRESH_TTL_MS;
+const MEMORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 let memoryCache: { result: MarketDataResult; expiresAt: number } | null = null;
-let inflight: Promise<MarketDataResult> | null = null;
-
-async function loadFresh(): Promise<MarketDataResult> {
-  const finnhubKey = getFinnhubApiKey();
-  const fmpKey = process.env.FMP_API_KEY?.trim();
-
-  if (finnhubKey) {
-    const probe = await fetch(
-      `https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=${finnhubKey}`,
-    );
-    if (probe.status === 401 || probe.status === 403) {
-      const stale = await readRedisSnapshot();
-      if (stale) {
-        const { expiresAt, ...rest } = stale.data;
-        return {
-          ...rest,
-          fromCache: true,
-          expiresAt,
-          warning: 'Invalid Finnhub API key — serving cached snapshot.',
-        };
-      }
-      return {
-        stocks: MOCK_STOCKS,
-        source: 'mock',
-        cachedAt: new Date().toISOString(),
-        fromCache: false,
-        warning: 'Invalid Finnhub API key. Check FINNHUB_API_KEY or X_Finnhub_Secret in Vercel / .env.local.',
-      };
-    }
-
-    const stocks = await fetchStocksFromFinnhub(SCREEN_TICKERS, finnhubKey);
-    if (stocks.length >= 50) {
-      const partial = stocks.length < SCREEN_TICKERS.length;
-      return {
-        stocks,
-        source: 'finnhub',
-        cachedAt: new Date().toISOString(),
-        fromCache: false,
-        expiresAt: new Date(Date.now() + FRESH_TTL_MS).toISOString(),
-        warning: partial
-          ? `Loaded ${stocks.length}/${SCREEN_TICKERS.length} symbols — some missing from Finnhub.`
-          : undefined,
-      };
-    }
-  }
-
-  if (fmpKey) {
-    const stocks = await fetchStocksFromFmpQuotesOnly(SCREEN_TICKERS, fmpKey);
-    if (stocks.length >= 50) {
-      return {
-        stocks,
-        source: 'fmp',
-        cachedAt: new Date().toISOString(),
-        fromCache: false,
-        expiresAt: new Date(Date.now() + FRESH_TTL_MS).toISOString(),
-        warning: finnhubKey
-          ? 'Finnhub fetch incomplete — using FMP batch quotes (approx. RSI & some ratios).'
-          : 'Using FMP batch quotes only to stay within free-tier limits. Add FINNHUB_API_KEY for full fundamentals + RSI.',
-      };
-    }
-  }
-
-  return {
-    stocks: MOCK_STOCKS,
-    source: 'mock',
-    cachedAt: new Date().toISOString(),
-    fromCache: false,
-    warning: !finnhubKey && !fmpKey
-      ? 'No API key configured — showing demo data. Set FINNHUB_API_KEY (or X_Finnhub_Secret) in .env.local.'
-      : 'Live API fetch failed — showing demo data.',
-  };
-}
-
-function fromMemory(): MarketDataResult | null {
-  if (!memoryCache || memoryCache.expiresAt <= Date.now()) return null;
-  return { ...memoryCache.result, fromCache: true };
-}
 
 function remember(result: MarketDataResult) {
   memoryCache = {
@@ -101,57 +16,62 @@ function remember(result: MarketDataResult) {
   };
 }
 
-async function persist(result: MarketDataResult) {
-  remember(result);
-  if (result.source !== 'mock') {
-    await writeRedisSnapshot(result);
-  }
+function fromMemory(): MarketDataResult | null {
+  if (!memoryCache || memoryCache.expiresAt <= Date.now()) return null;
+  return memoryCache.result;
 }
 
-export async function getMarketStocks(options?: { force?: boolean }): Promise<MarketDataResult> {
-  const force = options?.force ?? false;
+/** Read cached snapshot only — never calls Finnhub (safe for page loads). */
+export async function getMarketStocks(): Promise<MarketDataResult> {
+  const mem = fromMemory();
+  if (mem) return mem;
 
-  if (!force) {
-    const mem = fromMemory();
-    if (mem) return mem;
-
-    const redisHit = await readRedisSnapshot();
-    if (redisHit?.fresh) {
-      const { expiresAt, ...rest } = redisHit.data;
-      const result: MarketDataResult = { ...rest, fromCache: true, expiresAt };
-      remember(result);
-      return result;
-    }
+  const stored = await loadMarketFromStore();
+  if (stored) {
+    remember(stored);
+    return stored;
   }
 
-  if (!inflight) {
-    inflight = (async () => {
-      try {
-        const fresh = await loadFresh();
-        if (fresh.source !== 'mock') {
-          await persist(fresh);
-          return { ...fresh, fromCache: false };
-        }
-
-        // Live fetch failed — serve stale Redis if we have it
-        const stale = await readRedisSnapshot();
-        if (stale) {
-          const { expiresAt, ...rest } = stale.data;
-          return {
-            ...rest,
-            fromCache: true,
-            expiresAt,
-            warning: fresh.warning ?? 'Serving cached market data — live refresh failed.',
-          };
-        }
-
-        remember(fresh);
-        return fresh;
-      } finally {
-        inflight = null;
-      }
-    })();
+  if (!getFinnhubApiKey()) {
+    return {
+      stocks: MOCK_STOCKS,
+      source: 'mock',
+      cachedAt: new Date().toISOString(),
+      warning: 'No API key — set FINNHUB_API_KEY or X_Finnhub_Secret.',
+    };
   }
 
-  return inflight;
+  return {
+    stocks: MOCK_STOCKS,
+    source: 'mock',
+    cachedAt: new Date().toISOString(),
+    warning: 'Market cache empty — run npm run warm:stocks or wait for weekly refresh cron.',
+  };
+}
+
+/** Run one incremental batch (refresh route / warm script). */
+export async function refreshMarketBatch(reset = false): Promise<MarketDataResult> {
+  const key = getFinnhubApiKey();
+  if (!key) throw new Error('No Finnhub API key');
+
+  await runIncrementalBatch(reset);
+  const stored = await loadMarketFromStore();
+  if (!stored) throw new Error('Refresh produced no snapshot');
+
+  remember(stored);
+  return stored;
+}
+
+export async function getStaleForInvalidKey(): Promise<MarketDataResult | null> {
+  const stale = await readRedisSnapshot();
+  if (!stale) return null;
+  const { expiresAt, refreshComplete, totalSymbols, ...rest } = stale.data;
+  return {
+    ...rest,
+    fromCache: true,
+    expiresAt,
+    refreshComplete,
+    totalSymbols,
+    warning: 'Invalid Finnhub API key — serving cached snapshot.',
+  };
 }
