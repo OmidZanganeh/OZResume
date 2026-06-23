@@ -1,8 +1,7 @@
 'use client';
 
 import type { Stock, StockMetrics } from './types';
-import { peTone, epsTone, debtTone, rsiTone } from './metricStyles';
-import type { MetricTone } from './metricStyles';
+import { CARD_METRICS, type MetricTone } from './metricStyles';
 import styles from './StockScreener.module.css';
 
 interface Props {
@@ -12,6 +11,7 @@ interface Props {
   isHistorical: boolean;
   returnToTodayPct: number;
   priceThen: number;
+  rsiPeriod: number;
 }
 
 function toneClass(tone: MetricTone): string {
@@ -28,7 +28,7 @@ function fmtReturn(v: number): string {
 }
 
 export default function StockCard({
-  stock, metrics, visible, isHistorical, returnToTodayPct, priceThen,
+  stock, metrics, visible, isHistorical, returnToTodayPct, priceThen, rsiPeriod,
 }: Props) {
   return (
     <article
@@ -60,34 +60,15 @@ export default function StockCard({
       )}
 
       <dl className={styles.metricGrid}>
-        <div className={styles.metricItem}>
-          <dt>P/E{isHistorical ? ' then' : ''}</dt>
-          <dd className={toneClass(peTone(metrics.peRatio))}>{metrics.peRatio.toFixed(1)}</dd>
-        </div>
-        <div className={styles.metricItem}>
-          <dt>EPS Gr.</dt>
-          <dd className={toneClass(epsTone(metrics.epsGrowth))}>
-            {metrics.epsGrowth > 0 ? '+' : ''}{metrics.epsGrowth.toFixed(1)}%
-          </dd>
-        </div>
-        <div className={styles.metricItem}>
-          <dt>D/E</dt>
-          <dd className={toneClass(debtTone(metrics.debtToEquity))}>{metrics.debtToEquity.toFixed(2)}</dd>
-        </div>
-        <div className={styles.metricItem}>
-          <dt>RSI</dt>
-          <dd className={toneClass(rsiTone(metrics.rsi))}>{metrics.rsi.toFixed(0)}</dd>
-        </div>
+        {CARD_METRICS.map(({ key, label, format, tone }) => (
+          <div key={key} className={styles.metricItem}>
+            <dt>{key === 'rsi' ? `RSI (${rsiPeriod})` : label}</dt>
+            <dd className={tone ? toneClass(tone(metrics[key])) : styles.metricNeutral}>
+              {format(metrics[key], rsiPeriod)}
+            </dd>
+          </div>
+        ))}
       </dl>
-
-      {isHistorical && (
-        <div className={styles.todayPeek}>
-          <span className={styles.todayPeekLabel}>Today</span>
-          <span className={styles.todayPeekMetrics}>
-            P/E {stock.peRatio.toFixed(0)} · EPS {stock.epsGrowth > 0 ? '+' : ''}{stock.epsGrowth.toFixed(0)}% · ${stock.price.toFixed(0)}
-          </span>
-        </div>
-      )}
     </article>
   );
 }

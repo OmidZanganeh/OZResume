@@ -5,6 +5,17 @@ export interface StockMetrics {
   epsGrowth: number;
   debtToEquity: number;
   rsi: number;
+  price: number;
+  marketCap: number;
+  dividendYield: number;
+  roe: number;
+  profitMargin: number;
+  revenueGrowth: number;
+  beta: number;
+  pbRatio: number;
+  currentRatio: number;
+  avgVolume: number;
+  priceChange52w: number;
 }
 
 /** Anchor snapshot — represents fundamentals & price today */
@@ -12,8 +23,8 @@ export interface Stock extends StockMetrics {
   ticker: string;
   companyName: string;
   sector: Sector;
-  /** Fictional share price today (USD) */
-  price: number;
+  /** RSI(14) anchor — other periods derived from this */
+  rsi14: number;
   /** Fictional annualized total return used to back-calculate historical prices */
   annualizedReturn: number;
 }
@@ -22,23 +33,17 @@ export interface StockSnapshot extends StockMetrics {
   ticker: string;
   priceThen: number;
   priceToday: number;
-  /** Total % price change from as-of date to today */
+  rsiPeriod: number;
   returnToTodayPct: number;
 }
 
+/** @deprecated use ScreenerState from filters.ts */
 export interface ScreenerFilters {
   maxPe: number;
   minEpsGrowth: number;
   maxDebtEquity: number;
   maxRsi: number;
 }
-
-export const DEFAULT_FILTERS: ScreenerFilters = {
-  maxPe: 100,
-  minEpsGrowth: -20,
-  maxDebtEquity: 5,
-  maxRsi: 100,
-};
 
 /** How far back the date slider goes */
 export const HISTORY_DAYS = 730;

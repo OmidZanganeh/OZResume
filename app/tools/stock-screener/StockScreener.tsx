@@ -9,10 +9,9 @@ import DateTimeline from './DateTimeline';
 import BacktestPanel from './BacktestPanel';
 import { MOCK_STOCKS } from './mockStocks';
 import type { Stock } from './types';
-import { passesFilters } from './metricStyles';
+import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
+import type { ScreenerState } from './filters';
 import { buildAllSnapshots, computeBacktest, formatAsOfDate } from './historical';
-import { DEFAULT_FILTERS } from './types';
-import type { ScreenerFilters } from './types';
 import styles from './StockScreener.module.css';
 
 export type SortMode =
@@ -59,7 +58,7 @@ function sortStocks(
 }
 
 export default function StockScreener() {
-  const [filters, setFilters] = useState<ScreenerFilters>(DEFAULT_FILTERS);
+  const [screenerState, setScreenerState] = useState<ScreenerState>(DEFAULT_SCREENER_STATE);
   const [daysAgo, setDaysAgo] = useState(0);
   const [sortMode, setSortMode] = useState<SortMode>('ticker');
 
@@ -70,21 +69,24 @@ export default function StockScreener() {
   }, []);
 
   const isHistorical = daysAgo > 0;
+  const { rsiPeriod } = screenerState;
 
   useEffect(() => {
     if (isHistorical && sortMode === 'ticker') setSortMode('return-desc');
     if (!isHistorical && (sortMode === 'return-desc' || sortMode === 'return-asc')) setSortMode('ticker');
-  }, [isHistorical]); // eslint-disable-line react-hooks/exhaustive-deps -- only react to date mode change
+  }, [isHistorical]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const snapshots = useMemo(
-    () => buildAllSnapshots(MOCK_STOCKS, daysAgo),
-    [daysAgo],
+    () => buildAllSnapshots(MOCK_STOCKS, daysAgo, rsiPeriod),
+    [daysAgo, rsiPeriod],
   );
 
   const matchingSet = useMemo(() => {
-    const matched = MOCK_STOCKS.filter(s => passesFilters(snapshots.get(s.ticker)!, filters));
+    const matched = MOCK_STOCKS.filter(s =>
+      passesScreen(s, snapshots.get(s.ticker)!, screenerState),
+    );
     return new Set(matched.map(s => s.ticker));
-  }, [filters, snapshots]);
+  }, [screenerState, snapshots]);
 
   const backtest = useMemo(() => {
     if (!isHistorical) return null;
@@ -98,6 +100,7 @@ export default function StockScreener() {
 
   const matchCount = matchingSet.size;
   const total = MOCK_STOCKS.length;
+  const activeFilters = enabledFilterCount(screenerState);
 
   return (
     <div className={styles.root}>
@@ -112,7 +115,11 @@ export default function StockScreener() {
       <DateTimeline daysAgo={daysAgo} onChange={setDaysAgo} />
 
       <div className={styles.layout}>
-        <FilterSidebar filters={filters} onChange={setFilters} isHistorical={isHistorical} />
+        <FilterSidebar
+          state={screenerState}
+          onChange={setScreenerState}
+          isHistorical={isHistorical}
+        />
 
         <main className={styles.main}>
           <div className={styles.resultsHeader}>
@@ -121,9 +128,11 @@ export default function StockScreener() {
                 {isHistorical ? `Matches on ${formatAsOfDate(daysAgo)}` : 'Matching Assets'}
               </h1>
               <p className={styles.resultsSub}>
-                {isHistorical
-                  ? 'Filters apply to past fundamentals — compare returns to today to test your screen'
-                  : 'Adjust sliders to narrow the universe in real time'}
+                {activeFilters === 0
+                  ? 'No filters active — showing all stocks. Enable filters in the sidebar.'
+                  : isHistorical
+                    ? `${activeFilters} filter${activeFilters !== 1 ? 's' : ''} on past data · RSI(${rsiPeriod})`
+                    : `${activeFilters} active filter${activeFilters !== 1 ? 's' : ''} · RSI(${rsiPeriod})`}
               </p>
             </div>
             <div className={styles.countBadge} aria-live="polite">
@@ -164,6 +173,7 @@ export default function StockScreener() {
                   isHistorical={isHistorical}
                   returnToTodayPct={snap.returnToTodayPct}
                   priceThen={snap.priceThen}
+                  rsiPeriod={rsiPeriod}
                 />
               );
             })}
@@ -171,7 +181,8 @@ export default function StockScreener() {
 
           {matchCount === 0 && (
             <p className={styles.emptyState}>
-              No stocks match your criteria{isHistorical ? ' at that date' : ''}. Try loosening one or more filters.
+              No stocks match{activeFilters > 0 ? ' your active filters' : ''}
+              {isHistorical ? ' at that date' : ''}. Try enabling fewer filters or widening ranges.
             </p>
           )}
         </main>

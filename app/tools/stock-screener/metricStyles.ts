@@ -1,24 +1,6 @@
 import type { StockMetrics } from './types';
-import type { ScreenerFilters } from './types';
 
 export type MetricTone = 'good' | 'warn' | 'bad' | 'neutral';
-
-export function passesFilters(metrics: StockMetrics, filters: ScreenerFilters): boolean {
-  return (
-    metrics.peRatio <= filters.maxPe &&
-    metrics.epsGrowth >= filters.minEpsGrowth &&
-    metrics.debtToEquity <= filters.maxDebtEquity &&
-    metrics.rsi <= filters.maxRsi
-  );
-}
-
-export function filterByMetrics<T extends StockMetrics>(
-  items: T[],
-  filters: ScreenerFilters,
-  getMetrics: (item: T) => StockMetrics = (item) => item,
-): T[] {
-  return items.filter(item => passesFilters(getMetrics(item), filters));
-}
 
 export function peTone(pe: number): MetricTone {
   if (pe < 15) return 'good';
@@ -43,3 +25,30 @@ export function rsiTone(rsi: number): MetricTone {
   if (rsi > 70) return 'bad';
   return 'neutral';
 }
+
+export function returnTone(v: number): MetricTone {
+  if (v > 10) return 'good';
+  if (v < 0) return 'bad';
+  return 'neutral';
+}
+
+export function formatMarketCap(m: number): string {
+  if (m >= 1000) return `$${(m / 1000).toFixed(1)}B`;
+  return `$${m.toFixed(0)}M`;
+}
+
+export const CARD_METRICS: {
+  key: keyof StockMetrics;
+  label: string;
+  format: (v: number, rsiPeriod?: number) => string;
+  tone?: (v: number) => MetricTone;
+}[] = [
+  { key: 'peRatio', label: 'P/E', format: v => v.toFixed(1), tone: peTone },
+  { key: 'epsGrowth', label: 'EPS', format: v => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`, tone: epsTone },
+  { key: 'debtToEquity', label: 'D/E', format: v => v.toFixed(2), tone: debtTone },
+  { key: 'rsi', label: 'RSI', format: (v, p) => p ? `${v.toFixed(0)} (${p})` : v.toFixed(0), tone: rsiTone },
+  { key: 'price', label: 'Price', format: v => `$${v.toFixed(0)}` },
+  { key: 'marketCap', label: 'Mkt Cap', format: v => formatMarketCap(v) },
+  { key: 'roe', label: 'ROE', format: v => `${v.toFixed(0)}%` },
+  { key: 'beta', label: 'Beta', format: v => v.toFixed(2) },
+];

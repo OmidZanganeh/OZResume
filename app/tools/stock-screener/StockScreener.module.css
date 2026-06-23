@@ -274,15 +274,15 @@
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 .sidebar {
-  width: 300px;
+  width: 340px;
   flex-shrink: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   background: linear-gradient(180deg, #0c1119 0%, #090d14 100%);
-  padding: 20px 18px;
+  padding: 16px 14px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 14px;
 }
 
 .sidebarHead {
@@ -318,6 +318,166 @@
   border-color: rgba(255, 255, 255, 0.18);
 }
 .resetBtn:disabled { opacity: 0.35; cursor: default; }
+
+.activeCount {
+  display: block;
+  font-size: 11px;
+  color: #5eead4;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.rsiPeriodBlock {
+  padding: 10px 11px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.rsiPeriodLabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.45px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 8px;
+}
+
+.rsiPeriodBtns { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.rsiPeriodBtn {
+  flex: 1;
+  min-width: 36px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.rsiPeriodBtn:hover { background: rgba(255, 255, 255, 0.08); color: #e8edf5; }
+.rsiPeriodBtnActive {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #c7d2fe;
+}
+
+.filterList { display: flex; flex-direction: column; gap: 10px; }
+
+.filterRow {
+  padding: 10px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+}
+.filterRowOn {
+  border-color: rgba(20, 184, 166, 0.25);
+  background: rgba(20, 184, 166, 0.04);
+}
+.filterRowOff { opacity: 0.72; }
+
+.filterToggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+}
+.filterToggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.filterCheck {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
+}
+.filterToggle input:checked + .filterCheck {
+  background: #14b8a6;
+  border-color: #14b8a6;
+}
+.filterToggle input:checked + .filterCheck::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.filterName {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.filterSliders {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.filterSliders .sliderBlock { gap: 5px; }
+.filterSliders .sliderLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.35);
+}
+.filterSliders .sliderValue { font-size: 11.5px; }
+
+.sectorChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.sectorChip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sectorChip:hover { border-color: rgba(255, 255, 255, 0.25); color: #e8edf5; }
+.sectorChipOn {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.45);
+  color: #c7d2fe;
+  font-weight: 600;
+}
+.sectorHint {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  width: 100%;
+}
+
+.legendTip {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.38);
+}
 
 /* ── Sliders ─────────────────────────────────────────────────────────────── */
 .sliderBlock { display: flex; flex-direction: column; gap: 8px; }
@@ -488,7 +648,7 @@
 /* ── Grid + cards ────────────────────────────────────────────────────────── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 14px;
   align-items: start;
 }
@@ -505,7 +665,7 @@
     padding 0.32s ease,
     margin 0.32s ease,
     border-color 0.25s ease;
-  max-height: 280px;
+  max-height: 360px;
   overflow: hidden;
 }
 
@@ -564,8 +724,8 @@
 
 .metricGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 6px 8px;
   margin: 0;
 }
 
