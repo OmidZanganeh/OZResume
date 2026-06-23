@@ -10,7 +10,7 @@ export async function GET() {
     const result = await getMarketStocks();
     return NextResponse.json(result, {
       headers: {
-        'Cache-Control': 'public, s-maxage=21600, stale-while-revalidate=3600',
+        'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=43200',
       },
     });
   } catch (err) {

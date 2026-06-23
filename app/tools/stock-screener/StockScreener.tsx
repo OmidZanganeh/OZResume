@@ -12,6 +12,11 @@ import type { Stock } from './types';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
 import type { ScreenerState } from './filters';
 import { buildAllSnapshots, computeBacktest, formatAsOfDate } from './historical';
+import {
+  readSessionMarketCache,
+  writeSessionMarketCache,
+  formatCacheAge,
+} from './clientCache';
 import styles from './StockScreener.module.css';
 
 type DataSource = 'finnhub' | 'fmp' | 'mock' | 'loading';
@@ -20,6 +25,8 @@ interface MarketPayload {
   stocks: Stock[];
   source: DataSource;
   cachedAt?: string;
+  expiresAt?: string;
+  fromCache?: boolean;
   warning?: string;
 }
 
@@ -74,12 +81,41 @@ export default function StockScreener() {
   const [dataSource, setDataSource] = useState<DataSource>('loading');
   const [dataWarning, setDataWarning] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [cacheLabel, setCacheLabel] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
+    function applyPayload(data: MarketPayload) {
+      const list = Array.isArray(data.stocks) && data.stocks.length > 0
+        ? data.stocks
+        : MOCK_STOCKS.filter(s => s.sector === 'Tech' || s.sector === 'Finance');
+
+      setStocks(list);
+      setDataSource(data.source ?? 'mock');
+      setDataWarning(data.warning ?? null);
+      const age = formatCacheAge(data.cachedAt);
+      setCacheLabel(
+        data.source !== 'mock' && age
+          ? `Snapshot from ${age}${data.fromCache ? ' (cached)' : ''}`
+          : null,
+      );
+      writeSessionMarketCache(data);
+    }
+
+    let hadCachedStocks = false;
+
     async function loadMarketData() {
-      setDataSource('loading');
+      const sessionHit = readSessionMarketCache();
+      if (sessionHit && Array.isArray(sessionHit.stocks) && sessionHit.stocks.length > 0) {
+        hadCachedStocks = true;
+        applyPayload(sessionHit as MarketPayload);
+        setDataSource((sessionHit.source as DataSource) ?? 'mock');
+        setLoadError(null);
+        // Still revalidate in background without blocking UI
+      } else {
+        setDataSource('loading');
+      }
       setLoadError(null);
 
       try {
@@ -88,27 +124,22 @@ export default function StockScreener() {
 
         const data = (await res.json()) as MarketPayload;
         if (cancelled) return;
-
-        const list = Array.isArray(data.stocks) && data.stocks.length > 0
-          ? data.stocks
-          : MOCK_STOCKS.filter(s => s.sector === 'Tech' || s.sector === 'Finance');
-
-        setStocks(list);
-        setDataSource(data.source ?? 'mock');
-        setDataWarning(data.warning ?? null);
+        applyPayload(data);
       } catch (err) {
         if (cancelled) return;
+        if (hadCachedStocks) return;
         const fallback = MOCK_STOCKS.filter(s => s.sector === 'Tech' || s.sector === 'Finance');
         setStocks(fallback.length > 0 ? fallback : MOCK_STOCKS);
         setDataSource('mock');
         setDataWarning('Could not reach market API — using demo data.');
         setLoadError(err instanceof Error ? err.message : 'Load failed');
+        setCacheLabel(null);
       }
     }
 
     loadMarketData();
     return () => { cancelled = true; };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -180,6 +211,7 @@ export default function StockScreener() {
           {!isLoading && dataSource !== 'mock' && !dataWarning && (
             <span className={styles.dataBannerOk}>
               Live data via {dataSource === 'finnhub' ? 'Finnhub' : 'FMP'} · {total} stocks
+              {cacheLabel ? ` · ${cacheLabel}` : ''}
             </span>
           )}
         </div>
