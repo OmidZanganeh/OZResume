@@ -13,8 +13,14 @@ import {
   Sun, Cloud, CloudRain, Snowflake, CloudLightning, CloudDrizzle,
   Wind, Droplets, CalendarDays, Info, Globe2, Clock,
   CreditCard, Languages, Car, Timer, BarChart2, PinOff,
+  Layers, Pentagon, Flame, GripVertical, Trash2,
 } from 'lucide-react';
 import type { WikiPlace } from './MapView';
+import {
+  type MapBasemap, type ExploreSearchMode, type TripItinerary,
+  BASEMAP_OPTIONS, latLonPolyString, polygonCentroid,
+  loadItinerary, saveItinerary, encodeTripShareUrl, decodeTripFromUrl,
+} from './mapUtils';
 import IsoPanel, {
   IsoCosting, IsoPOI, ISO_POI_CATS,
   extractPolyString, processOverpassResult,
@@ -397,8 +403,12 @@ export default function TripExplorer() {
   // Explore state
   const [category, setCategory] = useState('all');
   const [radius, setRadius] = useState(5000);
-  const [exploreSearchMode, setExploreSearchMode] = useState<'radius' | 'zone'>('radius');
+  const [exploreSearchMode, setExploreSearchMode] = useState<ExploreSearchMode>('radius');
   const [exploreZoneRing, setExploreZoneRing] = useState<number>(30);
+  const [drawVertices, setDrawVertices] = useState<[number, number][]>([]);
+  const [customPolygon, setCustomPolygon] = useState<[number, number][] | null>(null);
+  const [basemap, setBasemap] = useState<MapBasemap>('dark');
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const [places, setPlaces] = useState<WikiPlace[]>([]);
   const [allGroups, setAllGroups] = useState<PlanResult[]>([]);
   const [sortBy, setSortBy] = useState<'dist' | 'name'>('dist');
@@ -437,6 +447,8 @@ export default function TripExplorer() {
 
   // Saved state
   const [favorites, setFavorites] = useState<WikiPlace[]>([]);
+  const [itinerary, setItinerary] = useState<TripItinerary>({ days: [[], [], []] });
+  const [tripCopied, setTripCopied] = useState(false);
 
   // Search
   const [searchQ, setSearchQ] = useState('');
@@ -448,10 +460,28 @@ export default function TripExplorer() {
 
   useEffect(() => {
     setFavorites(loadFavs());
+    setItinerary(loadItinerary());
     try {
       const p = new URLSearchParams(window.location.search);
       const lat = parseFloat(p.get('lat') || ''), lon = parseFloat(p.get('lon') || '');
       if (!isNaN(lat) && !isNaN(lon)) { setMapCenter([lat, lon]); setMapZoom(parseInt(p.get('z') || '14', 10)); }
+      const tripParam = p.get('trip');
+      if (tripParam) {
+        const decoded = decodeTripFromUrl(tripParam);
+        if (decoded) {
+          setItinerary(decoded.itinerary);
+          saveItinerary(decoded.itinerary);
+          setFavorites(prev => {
+            const merged = [...prev];
+            for (const pl of decoded.places) {
+              if (!merged.some(f => f.uid === pl.uid)) merged.push(pl);
+            }
+            saveFavs(merged);
+            return merged;
+          });
+          setTab('saved');
+        }
+      }
     } catch { /* ignore */ }
   }, []);
 
@@ -475,17 +505,74 @@ export default function TripExplorer() {
 
   const getExploreOrigin = useCallback((): [number, number] => {
     if (exploreSearchMode === 'zone' && isoOrigin) return isoOrigin;
+    if (exploreSearchMode === 'draw' && customPolygon && customPolygon.length >= 3) {
+      return polygonCentroid(customPolygon);
+    }
     return pinnedLocation ?? mapCenter;
-  }, [exploreSearchMode, isoOrigin, pinnedLocation, mapCenter]);
+  }, [exploreSearchMode, isoOrigin, customPolygon, pinnedLocation, mapCenter]);
 
   const getZonePoly = useCallback((): string | null => {
-    if (exploreSearchMode !== 'zone' || !isoGeojson) return null;
-    return extractPolyString(isoGeojson, exploreZoneRing, 60);
-  }, [exploreSearchMode, isoGeojson, exploreZoneRing]);
+    if (exploreSearchMode === 'draw' && customPolygon && customPolygon.length >= 3) {
+      return latLonPolyString(customPolygon, 60);
+    }
+    if (exploreSearchMode === 'zone' && isoGeojson) {
+      return extractPolyString(isoGeojson, exploreZoneRing, 60);
+    }
+    return null;
+  }, [exploreSearchMode, customPolygon, isoGeojson, exploreZoneRing]);
   const isFav = useCallback((uid: string) => favorites.some(f => f.uid === uid), [favorites]);
   const toggleFav = useCallback((place: WikiPlace) => {
     setFavorites(prev => { const next = prev.some(f => f.uid === place.uid) ? prev.filter(f => f.uid !== place.uid) : [...prev, place]; saveFavs(next); return next; });
   }, []);
+
+  const placeByUid = useCallback((uid: string) => favorites.find(f => f.uid === uid), [favorites]);
+
+  const moveToDay = useCallback((uid: string, dayIdx: 0 | 1 | 2) => {
+    setItinerary(prev => {
+      const days = prev.days.map((d, i) =>
+        i === dayIdx ? [...d.filter(x => x !== uid), uid] : d.filter(x => x !== uid),
+      ) as TripItinerary['days'];
+      saveItinerary({ days });
+      return { days };
+    });
+  }, []);
+
+  const removeFromDay = useCallback((uid: string, dayIdx: 0 | 1 | 2) => {
+    setItinerary(prev => {
+      const days = [...prev.days] as TripItinerary['days'];
+      days[dayIdx] = days[dayIdx].filter(x => x !== uid);
+      saveItinerary({ days });
+      return { days };
+    });
+  }, []);
+
+  const clearItinerary = useCallback(() => {
+    const empty: TripItinerary = { days: [[], [], []] };
+    setItinerary(empty);
+    saveItinerary(empty);
+  }, []);
+
+  const finishDraw = useCallback(() => {
+    if (drawVertices.length >= 3) {
+      setCustomPolygon(drawVertices);
+      setDrawVertices([]);
+    }
+  }, [drawVertices]);
+
+  const clearDraw = useCallback(() => {
+    setCustomPolygon(null);
+    setDrawVertices([]);
+  }, []);
+
+  const handleShareTrip = useCallback(() => {
+    const scheduled = itinerary.days.flat().length;
+    if (scheduled === 0) return;
+    const url = encodeTripShareUrl(window.location.origin, favorites, itinerary);
+    navigator.clipboard.writeText(url).then(() => {
+      setTripCopied(true);
+      setTimeout(() => setTripCopied(false), 2000);
+    });
+  }, [favorites, itinerary]);
 
   const loadWeather = useCallback((lat: number, lon: number) => {
     fetchWeather(lat, lon).then(w => { if (w) setWeather(w); });
@@ -570,7 +657,7 @@ export default function TripExplorer() {
   const runDiscover = useCallback((catId: string = category) => {
     const loc = getExploreOrigin();
     const poly = getZonePoly();
-    if (exploreSearchMode === 'zone' && !poly) return;
+    if ((exploreSearchMode === 'zone' || exploreSearchMode === 'draw') && !poly) return;
     discover(loc[0], loc[1], radius, catId, poly ?? undefined);
   }, [getExploreOrigin, getZonePoly, exploreSearchMode, radius, category, discover]);
 
@@ -678,10 +765,14 @@ export default function TripExplorer() {
     } else if (tab === 'census') {
       handleCensusPick(lat, lon);
     } else if (tab === 'explore') {
-      setPinnedLocation([lat, lon]);
+      if (exploreSearchMode === 'draw') {
+        setDrawVertices(prev => [...prev, [lat, lon]]);
+      } else {
+        setPinnedLocation([lat, lon]);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, exploreSearchMode]);
 
   const handleMapMoveEnd = useCallback((_lat: number, _lon: number) => { /* no-op */ }, []);
 
@@ -1056,29 +1147,36 @@ export default function TripExplorer() {
         )}
       </div>
 
-      {/* Search area: radius or travel zone */}
+      {/* Search area: radius, travel zone, or custom draw */}
       <div className={styles.discoverSection}>
-        {isoAvailableRings.length > 0 && (
-          <div className={styles.searchModeRow}>
-            <span className={styles.sectionLabel}>Search area</span>
-            <div className={styles.radiusBtns}>
-              <button
-                type="button"
-                className={`${styles.radiusBtn} ${exploreSearchMode === 'radius' ? styles.radiusBtnActive : ''}`}
-                onClick={() => setExploreSearchMode('radius')}
-              >
-                Radius
-              </button>
+        <div className={styles.searchModeRow}>
+          <span className={styles.sectionLabel}>Search area</span>
+          <div className={styles.radiusBtns}>
+            <button
+              type="button"
+              className={`${styles.radiusBtn} ${exploreSearchMode === 'radius' ? styles.radiusBtnActive : ''}`}
+              onClick={() => setExploreSearchMode('radius')}
+            >
+              Radius
+            </button>
+            {isoAvailableRings.length > 0 && (
               <button
                 type="button"
                 className={`${styles.radiusBtn} ${exploreSearchMode === 'zone' ? styles.radiusBtnActive : ''}`}
                 onClick={() => setExploreSearchMode('zone')}
               >
-                <Timer size={12} /> Travel zone
+                <Timer size={12} /> Zone
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              className={`${styles.radiusBtn} ${exploreSearchMode === 'draw' ? styles.radiusBtnActive : ''}`}
+              onClick={() => setExploreSearchMode('draw')}
+            >
+              <Pentagon size={12} /> Draw
+            </button>
           </div>
-        )}
+        </div>
 
         {exploreSearchMode === 'zone' && isoAvailableRings.length > 0 ? (
           <div className={styles.radiusRow}>
@@ -1096,6 +1194,25 @@ export default function TripExplorer() {
               ))}
             </div>
           </div>
+        ) : exploreSearchMode === 'draw' ? (
+          <div className={styles.drawControls}>
+            <span className={styles.pinnedHint}>
+              <Pentagon size={11} />
+              {drawVertices.length > 0
+                ? `${drawVertices.length} point${drawVertices.length > 1 ? 's' : ''} — click map to add`
+                : customPolygon
+                  ? 'Area set — click map to redraw'
+                  : 'Click map corners to outline an area'}
+            </span>
+            <div className={styles.drawBtnRow}>
+              <button type="button" className={styles.drawBtn} onClick={finishDraw} disabled={drawVertices.length < 3}>
+                Finish area
+              </button>
+              <button type="button" className={styles.drawBtnOutline} onClick={clearDraw}>
+                Clear
+              </button>
+            </div>
+          </div>
         ) : (
           <div className={styles.radiusRow}>
             <span className={styles.sectionLabel}>Radius</span>
@@ -1107,25 +1224,48 @@ export default function TripExplorer() {
           </div>
         )}
 
-        <button type="button" className={styles.discoverBtn} onClick={discoverCenter} disabled={discovering}>
+        <button
+          type="button"
+          className={styles.discoverBtn}
+          onClick={discoverCenter}
+          disabled={discovering || (exploreSearchMode === 'draw' && (!customPolygon || customPolygon.length < 3))}
+        >
           {discovering ? <><span className={styles.spinner} /> Searching…</> : (
             <>
               <Search size={14} />
               {exploreSearchMode === 'zone'
                 ? `Discover within ${exploreZoneRing} min zone`
-                : `Discover ${pinnedLocation ? 'pinned spot' : 'this area'}`}
+                : exploreSearchMode === 'draw'
+                  ? 'Discover inside drawn area'
+                  : `Discover ${pinnedLocation ? 'pinned spot' : 'this area'}`}
             </>
           )}
         </button>
         {exploreSearchMode === 'zone' ? (
           <span className={styles.pinnedHint}>
-            <Timer size={11} /> Using travel zones from the Zones tab · origin shown on map
+            <Timer size={11} /> Using travel zones from the Zones tab
           </span>
-        ) : pinnedLocation ? (
+        ) : exploreSearchMode === 'draw' ? null : pinnedLocation ? (
           <span className={styles.pinnedHint}>
             <MapPin size={11} /> Pinned spot — click map to move it
           </span>
         ) : null}
+      </div>
+
+      {/* Heatmap toggle */}
+      <div className={styles.wikiToggleRow}>
+        <button
+          type="button"
+          className={`${styles.wikiToggleBtn} ${showHeatmap ? styles.wikiToggleBtnOn : ''}`}
+          onClick={() => setShowHeatmap(v => !v)}
+          title="Show density heatmap for current results"
+        >
+          <Flame size={13} />
+          <span>Density heatmap</span>
+        </button>
+        {showHeatmap && (
+          <span className={styles.wikiOverlayHint}>Hotter colors = more places clustered</span>
+        )}
       </div>
 
       {/* Weather row (collapsible) */}
@@ -1354,19 +1494,127 @@ export default function TripExplorer() {
     </div>
   );
 
-  const renderSavedPanel = () => (
-    <div className={styles.savedPanel}>
-      {favorites.length === 0 ? (
-        <div className={styles.emptyState}>
-          <Heart size={32} className={styles.emptyIcon} />
-          <p className={styles.emptyTitle}>No saved places yet</p>
-          <p className={styles.emptyDesc}>Open any place and tap <strong>Save</strong> to bookmark it here.</p>
+  const renderSavedPanel = () => {
+    const scheduledUids = new Set(itinerary.days.flat());
+    const unscheduled = favorites.filter(f => !scheduledUids.has(f.uid));
+    const dayLabels = ['Day 1', 'Day 2', 'Day 3'] as const;
+
+    const renderItinCard = (place: WikiPlace, dayIdx: 0 | 1 | 2, inDay: boolean) => {
+      const cat = getCat(place.category);
+      return (
+        <div
+          key={`${dayIdx}-${place.uid}`}
+          className={styles.itinCard}
+          draggable
+          onDragStart={e => e.dataTransfer.setData('text/plain', JSON.stringify({ uid: place.uid, fromDay: inDay ? dayIdx : -1 }))}
+          onClick={() => handlePlaceClick(place)}
+        >
+          <GripVertical size={12} className={styles.itinGrip} />
+          {place.thumbnail
+            ? <img src={place.thumbnail} alt="" className={styles.itinThumb} />
+            : <div className={styles.itinThumbFallback} style={{ background: cat ? cat.color + '22' : undefined }}>
+                {cat && <cat.Icon size={14} style={{ color: cat.color }} />}
+              </div>
+          }
+          <span className={styles.itinTitle}>{place.title}</span>
+          {inDay && (
+            <button
+              type="button"
+              className={styles.itinRemove}
+              onClick={e => { e.stopPropagation(); removeFromDay(place.uid, dayIdx); }}
+              title="Remove from day"
+            >
+              <X size={12} />
+            </button>
+          )}
         </div>
-      ) : (
-        <div className={styles.resultsList}>{favorites.map(renderPlaceCard)}</div>
-      )}
-    </div>
-  );
+      );
+    };
+
+    return (
+      <div className={styles.savedPanel}>
+        {favorites.length === 0 ? (
+          <div className={styles.emptyState}>
+            <Heart size={32} className={styles.emptyIcon} />
+            <p className={styles.emptyTitle}>No saved places yet</p>
+            <p className={styles.emptyDesc}>Open any place and tap <strong>Save</strong> to bookmark it here.</p>
+          </div>
+        ) : (
+          <div className={styles.savedScroll}>
+            <div className={styles.itinHeader}>
+              <span className={styles.sectionLabel}><CalendarDays size={13} /> Trip itinerary</span>
+              <div className={styles.itinHeaderBtns}>
+                <button
+                  type="button"
+                  className={styles.itinShareBtn}
+                  onClick={handleShareTrip}
+                  disabled={scheduledUids.size === 0}
+                >
+                  <Share2 size={12} /> {tripCopied ? 'Copied!' : 'Share trip'}
+                </button>
+                <button type="button" className={styles.itinClearBtn} onClick={clearItinerary} title="Clear itinerary">
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+            <p className={styles.itinHint}>Drag saved places into each day. Share link includes your full itinerary.</p>
+
+            <div className={styles.itinDays}>
+              {dayLabels.map((label, dayIdx) => (
+                <div
+                  key={label}
+                  className={styles.itinDayCol}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => {
+                    e.preventDefault();
+                    try {
+                      const { uid } = JSON.parse(e.dataTransfer.getData('text/plain')) as { uid: string };
+                      moveToDay(uid, dayIdx as 0 | 1 | 2);
+                    } catch { /* ignore */ }
+                  }}
+                >
+                  <span className={styles.itinDayLabel}>{label}</span>
+                  <div className={styles.itinDropZone}>
+                    {itinerary.days[dayIdx].map(uid => {
+                      const place = placeByUid(uid);
+                      return place ? renderItinCard(place, dayIdx as 0 | 1 | 2, true) : null;
+                    })}
+                    {itinerary.days[dayIdx].length === 0 && (
+                      <span className={styles.itinDropHint}>Drop places here</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {unscheduled.length > 0 && (
+              <>
+                <span className={styles.sectionLabel} style={{ padding: '8px 12px 4px' }}>Unscheduled</span>
+                <div className={styles.itinUnscheduled}>
+                  {unscheduled.map(place => (
+                    <div
+                      key={place.uid}
+                      className={styles.itinCard}
+                      draggable
+                      onDragStart={e => e.dataTransfer.setData('text/plain', JSON.stringify({ uid: place.uid, fromDay: -1 }))}
+                      onClick={() => handlePlaceClick(place)}
+                    >
+                      <GripVertical size={12} className={styles.itinGrip} />
+                      {place.thumbnail
+                        ? <img src={place.thumbnail} alt="" className={styles.itinThumb} />
+                        : <div className={styles.itinThumbFallback}><Heart size={14} /></div>
+                      }
+                      <span className={styles.itinTitle}>{place.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderIsoPanel = () => (
     <IsoPanel
@@ -1474,14 +1722,21 @@ export default function TripExplorer() {
             isoGeojson={isoGeojson} isoGeoJsonKey={isoGeoJsonKey} isoOrigin={isoOrigin}
             censusPin={censusPin} censusTract={censusTract}
             activeTab={tab}
+            basemap={basemap}
+            showHeatmap={showHeatmap && tab === 'explore'}
+            drawVertices={drawVertices}
+            customPolygon={customPolygon}
+            drawMode={tab === 'explore' && exploreSearchMode === 'draw'}
           />
 
           {/* Map hints */}
           {tab === 'explore' && mapPlaces.length === 0 && !discovering && (
             <div className={styles.mapHint}>
-              {isoAvailableRings.length > 0
-                ? <>Switch to <strong>Travel zone</strong> in Explore to search inside your zones</>
-                : <>Click map to pin a spot · then <strong>Discover</strong></>}
+              {exploreSearchMode === 'draw'
+                ? <>Click map to draw corners · then <strong>Finish area</strong></>
+                : isoAvailableRings.length > 0
+                  ? <>Use <strong>Zone</strong> or <strong>Draw</strong> in Explore for custom search areas</>
+                  : <>Click map to pin · or use <strong>Draw</strong> to outline an area</>}
             </div>
           )}
           {tab === 'iso' && !isoOrigin && (
@@ -1493,10 +1748,23 @@ export default function TripExplorer() {
 
           {/* Floating buttons */}
           <div className={styles.mapFloats}>
+            <div className={styles.layerPicker}>
+              {BASEMAP_OPTIONS.map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  className={`${styles.layerBtn} ${basemap === opt.id ? styles.layerBtnActive : ''}`}
+                  onClick={() => setBasemap(opt.id)}
+                  title={`${opt.label} map`}
+                >
+                  {opt.id === 'dark' ? <Layers size={14} /> : opt.id === 'light' ? <Sun size={14} /> : <Globe size={14} />}
+                </button>
+              ))}
+            </div>
             <button type="button" className={styles.floatBtn} onClick={handleLocateMe} title="Show my location">
               {locating ? <span className={styles.spinnerDark} /> : <Crosshair size={16} />}
             </button>
-            {pinnedLocation && tab === 'explore' && (
+            {pinnedLocation && tab === 'explore' && exploreSearchMode !== 'draw' && (
               <button type="button" className={styles.floatBtn} onClick={() => setPinnedLocation(null)} title="Remove pin">
                 <PinOff size={15} />
               </button>

@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, CircleMarker, Tooltip, GeoJSON, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, CircleMarker, Tooltip, GeoJSON, Polygon, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import { ISO_RING_COLORS } from './IsoPanel';
+import { BASEMAP_TILES, computeHeatCells, heatColor, type MapBasemap } from './mapUtils';
 
 export interface WikiPlace {
   uid: string;
@@ -41,6 +42,11 @@ interface Props {
   censusTract?: { state: string; county: string; tract: string } | null;
   // tab-aware cursor
   activeTab?: string;
+  basemap?: MapBasemap;
+  showHeatmap?: boolean;
+  drawVertices?: [number, number][];
+  customPolygon?: [number, number][] | null;
+  drawMode?: boolean;
 }
 
 // ── Tiny category SVG paths (Lucide-style, viewBox 0 0 24 24) ─────────────────
@@ -153,15 +159,38 @@ function FlyTo({ center, zoom }: { center: [number, number]; zoom: number }) {
   return null;
 }
 
-function MapEventHandler({ onMoveEnd, onClick }: {
+function MapEventHandler({ onMoveEnd, onClick, suppressClick }: {
   onMoveEnd: (lat: number, lon: number) => void;
   onClick: (lat: number, lon: number) => void;
+  suppressClick?: boolean;
 }) {
   useMapEvents({
     moveend: e => { const c = e.target.getCenter(); onMoveEnd(c.lat, c.lng); },
-    click:   e => { onClick(e.latlng.lat, e.latlng.lng); },
+    click:   e => { if (!suppressClick) onClick(e.latlng.lat, e.latlng.lng); },
   });
   return null;
+}
+
+function HeatmapLayer({ places }: { places: WikiPlace[] }) {
+  const cells = computeHeatCells(places);
+  return (
+    <>
+      {cells.map((cell, i) => (
+        <CircleMarker
+          key={`heat-${i}`}
+          center={[cell.lat, cell.lon]}
+          radius={10 + cell.intensity * 22}
+          pathOptions={{
+            color: heatColor(cell.intensity),
+            fillColor: heatColor(cell.intensity),
+            fillOpacity: 0.12 + cell.intensity * 0.38,
+            weight: 0,
+          }}
+          interactive={false}
+        />
+      ))}
+    </>
+  );
 }
 
 // ── Census tract boundary (fetches TIGERweb GeoJSON) ─────────────────────────
@@ -230,6 +259,11 @@ export default function MapView({
   isoGeojson, isoGeoJsonKey, isoOrigin,
   censusPin, censusTract,
   activeTab = 'explore',
+  basemap = 'dark',
+  showHeatmap = false,
+  drawVertices = [],
+  customPolygon = null,
+  drawMode = false,
 }: Props) {
   const pinIcon        = useRef<L.DivIcon | null>(null);
   const isoOriginIcon  = useRef<L.DivIcon | null>(null);
@@ -252,7 +286,8 @@ export default function MapView({
   }, []);
 
   const crosshairTabs = ['iso', 'census'];
-  const cursor = crosshairTabs.includes(activeTab) ? 'crosshair' : 'pointer';
+  const cursor = crosshairTabs.includes(activeTab) || drawMode ? 'crosshair' : 'pointer';
+  const tiles = BASEMAP_TILES[basemap];
 
   return (
     <MapContainer
@@ -262,12 +297,37 @@ export default function MapView({
       zoomControl
     >
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        key={basemap}
+        url={tiles.url}
+        attribution={tiles.attribution}
         maxZoom={19}
       />
       <FlyTo center={center} zoom={zoom} />
       <MapEventHandler onMoveEnd={onMapMoveEnd} onClick={onMapClick} />
+
+      {showHeatmap && places.length > 1 && <HeatmapLayer places={places} />}
+
+      {/* Custom draw polygon */}
+      {customPolygon && customPolygon.length >= 3 && (
+        <Polygon
+          positions={customPolygon}
+          pathOptions={{ color: '#a855f7', weight: 2, fillColor: '#a855f7', fillOpacity: 0.12 }}
+        />
+      )}
+      {drawVertices.length > 0 && (
+        <>
+          <Polyline positions={drawVertices} pathOptions={{ color: '#c084fc', weight: 2, dashArray: '6 4' }} />
+          {drawVertices.map((pt, i) => (
+            <CircleMarker
+              key={`dv-${i}`}
+              center={pt}
+              radius={5}
+              pathOptions={{ color: '#fff', fillColor: '#a855f7', fillOpacity: 1, weight: 2 }}
+              interactive={false}
+            />
+          ))}
+        </>
+      )}
 
       {/* ── ISO rings ── */}
       {isoGeojson && (
