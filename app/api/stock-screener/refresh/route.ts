@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMarketStocks } from '../fetchMarketData';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 /**
  * Warms the stock screener cache (Redis + memory).

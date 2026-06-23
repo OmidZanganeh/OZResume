@@ -160,12 +160,13 @@ function mapFinnhubToStock(
 async function fetchOneFinnhub(entry: TickerEntry, apiKey: string): Promise<Stock | null> {
   const sym = finnhubSymbol(entry.symbol);
   const now = Math.floor(Date.now() / 1000);
-  const from = now - 45 * 24 * 3600;
+  // ~80 weeks of weekly bars for RSI(14) on weekly closes
+  const from = now - 80 * 7 * 24 * 3600;
 
   const [metricRes, candles] = await Promise.all([
     finnhubGet<FinnhubMetricSeries>(`/stock/metric?symbol=${encodeURIComponent(sym)}&metric=all`, apiKey),
     finnhubGet<FinnhubCandle>(
-      `/stock/candle?symbol=${encodeURIComponent(sym)}&resolution=D&from=${from}&to=${now}`,
+      `/stock/candle?symbol=${encodeURIComponent(sym)}&resolution=W&from=${from}&to=${now}`,
       apiKey,
     ),
   ]);
@@ -196,7 +197,7 @@ export async function fetchStocksFromFinnhub(
   entries: TickerEntry[],
   apiKey: string,
 ): Promise<Stock[]> {
-  // ~2 API calls/symbol (metric + candle); quote bundled in metric fetch path — throttle ~25/min
-  const results = await mapPool(entries, 2, 500, entry => fetchOneFinnhub(entry, apiKey));
+  // Weekly refresh budget: ~2 calls/symbol, once per week
+  const results = await mapPool(entries, 3, 350, entry => fetchOneFinnhub(entry, apiKey));
   return results.filter((s): s is Stock => s != null);
 }

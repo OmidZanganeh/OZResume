@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/stock-screener/refresh",
-      "schedule": "0 22 * * 1-5"
+      "schedule": "0 22 * * 0"
     }
   ]
 }

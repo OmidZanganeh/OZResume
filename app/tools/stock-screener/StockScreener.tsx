@@ -8,6 +8,7 @@ import StockCard from './StockCard';
 import DateTimeline from './DateTimeline';
 import BacktestPanel from './BacktestPanel';
 import { MOCK_STOCKS } from './mockStocks';
+import { SCREEN_TICKERS } from './tickers';
 import type { Stock } from './types';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
 import type { ScreenerState } from './filters';
@@ -89,9 +90,9 @@ export default function StockScreener() {
     function applyPayload(data: MarketPayload) {
       const list = Array.isArray(data.stocks) && data.stocks.length > 0
         ? data.stocks
-        : MOCK_STOCKS.filter(s => s.sector === 'Tech' || s.sector === 'Finance');
+          : MOCK_STOCKS;
 
-      setStocks(list);
+        setStocks(list);
       setDataSource(data.source ?? 'mock');
       setDataWarning(data.warning ?? null);
       const age = formatCacheAge(data.cachedAt);
@@ -128,7 +129,7 @@ export default function StockScreener() {
       } catch (err) {
         if (cancelled) return;
         if (hadCachedStocks) return;
-        const fallback = MOCK_STOCKS.filter(s => s.sector === 'Tech' || s.sector === 'Finance');
+        const fallback = MOCK_STOCKS;
         setStocks(fallback.length > 0 ? fallback : MOCK_STOCKS);
         setDataSource('mock');
         setDataWarning('Could not reach market API — using demo data.');
@@ -199,7 +200,7 @@ export default function StockScreener() {
           {isLoading && (
             <span className={styles.dataBannerLoading}>
               <Loader2 size={14} className={styles.spinIcon} />
-              Loading live market data (116 tech &amp; finance stocks)…
+              Loading live market data ({SCREEN_TICKERS.length} stocks across 5 sectors, weekly refresh)…
             </span>
           )}
           {!isLoading && dataWarning && (
@@ -210,7 +211,7 @@ export default function StockScreener() {
           )}
           {!isLoading && dataSource !== 'mock' && !dataWarning && (
             <span className={styles.dataBannerOk}>
-              Live data via {dataSource === 'finnhub' ? 'Finnhub' : 'FMP'} · {total} stocks
+              Live data via {dataSource === 'finnhub' ? 'Finnhub' : 'FMP'} · {total} stocks · weekly refresh
               {cacheLabel ? ` · ${cacheLabel}` : ''}
             </span>
           )}

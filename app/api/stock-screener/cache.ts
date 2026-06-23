@@ -1,13 +1,13 @@
 import Redis from 'ioredis';
 import type { Stock } from '@/app/tools/stock-screener/types';
 
-const REDIS_KEY = 'stock-screener:snapshot:v1';
-
 /** How long a snapshot is considered fresh before we try Finnhub again. */
-export const FRESH_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours → ~1 Finnhub refresh/day
+export const FRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days — weekly refresh
 
-/** Keep stale JSON in Redis for up to a week if live refresh fails. */
-const STALE_RETENTION_SEC = 7 * 24 * 60 * 60;
+/** Keep stale JSON in Redis for up to a month if live refresh fails. */
+const STALE_RETENTION_SEC = 30 * 24 * 60 * 60;
+
+const REDIS_KEY = 'stock-screener:snapshot:v2';
 
 export interface MarketDataResult {
   stocks: Stock[];

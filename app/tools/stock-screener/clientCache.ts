@@ -1,5 +1,5 @@
 const SESSION_KEY = 'stock-screener-market-v1';
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface SessionMarketPayload {
   stocks: unknown[];

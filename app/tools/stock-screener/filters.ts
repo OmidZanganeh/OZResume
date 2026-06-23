@@ -198,7 +198,7 @@ export const FILTER_DEFS: FilterDef[] = [
   },
   {
     id: 'rsi', category: 'technical', label: 'RSI',
-    explanation: 'Relative Strength Index measures recent buying vs selling pressure on a 0–100 scale. Below 30 is often oversold; above 70 overbought. Uses the RSI period you select above.',
+    explanation: 'Relative Strength Index on weekly closing prices (0–100). Below 30 is often oversold; above 70 overbought. Period selector applies to weekly bars. Data refreshes weekly.',
     min: 0, max: 100, step: 1, defaultMin: 0, defaultMax: 100, format: v => v.toFixed(0), metricKey: 'rsi',
   },
   {

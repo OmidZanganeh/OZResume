@@ -50,9 +50,8 @@ async function loadFresh(): Promise<MarketDataResult> {
     }
   }
 
-  const techFinanceMock = MOCK_STOCKS.filter(s => s.sector === 'Tech' || s.sector === 'Finance');
   return {
-    stocks: techFinanceMock.length > 0 ? techFinanceMock : MOCK_STOCKS,
+    stocks: MOCK_STOCKS,
     source: 'mock',
     cachedAt: new Date().toISOString(),
     fromCache: false,
