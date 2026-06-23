@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'media.guim.co.uk' },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/tools/stock-screener',
+        destination: '/web-apps/stock-screener',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

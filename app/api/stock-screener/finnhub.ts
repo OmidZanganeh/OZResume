@@ -1,5 +1,5 @@
-import type { Stock, Sector } from '@/app/tools/stock-screener/types';
-import { approximateRSIFromRange } from '@/app/tools/stock-screener/rsi';
+import type { Stock, Sector } from '@/app/web-apps/stock-screener/types';
+import { approximateRSIFromRange } from '@/app/web-apps/stock-screener/rsi';
 import { inferSector } from './symbols';
 import { num, pct, round, sleep } from './utils';
 

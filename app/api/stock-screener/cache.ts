@@ -1,4 +1,4 @@
-import type { Stock } from '@/app/tools/stock-screener/types';
+import type { Stock } from '@/app/web-apps/stock-screener/types';
 import { getRedis } from './redis';
 import { CURSOR_REDIS_KEY, SNAPSHOT_REDIS_KEY } from './symbols';
 

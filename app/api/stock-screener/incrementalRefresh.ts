@@ -1,4 +1,4 @@
-import type { Stock } from '@/app/tools/stock-screener/types';
+import type { Stock } from '@/app/web-apps/stock-screener/types';
 import { getFinnhubApiKey } from './env';
 import { getSymbolUniverse, inferSector, type UsSymbol } from './symbols';
 import { fetchStocksBatch } from './finnhub';

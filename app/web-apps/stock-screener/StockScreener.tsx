@@ -189,7 +189,7 @@ export default function StockScreener() {
   return (
     <div className={styles.root}>
       <header className={styles.topBar}>
-        <Link href="/tools" className={styles.backLink}>← Tools</Link>
+        <Link href="/web-apps" className={styles.backLink}>← Web apps</Link>
         <div className={styles.brand}>
           <BarChart3 size={18} className={styles.brandIcon} />
           <span>Stock Screener</span>

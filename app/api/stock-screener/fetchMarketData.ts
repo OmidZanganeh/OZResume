@@ -1,4 +1,4 @@
-import { MOCK_STOCKS } from '@/app/tools/stock-screener/mockStocks';
+import { MOCK_STOCKS } from '@/app/web-apps/stock-screener/mockStocks';
 import { getFinnhubApiKey } from './env';
 import { readRedisSnapshot, type MarketDataResult } from './cache';
 import { loadMarketFromStore, runIncrementalBatch } from './incrementalRefresh';

@@ -1,6 +1,6 @@
-import type { Stock } from '@/app/tools/stock-screener/types';
-import type { TickerEntry } from '@/app/tools/stock-screener/tickers';
-import { approximateRSIFromRange } from '@/app/tools/stock-screener/rsi';
+import type { Stock } from '@/app/web-apps/stock-screener/types';
+import type { TickerEntry } from '@/app/web-apps/stock-screener/tickers';
+import { approximateRSIFromRange } from '@/app/web-apps/stock-screener/rsi';
 import { num, round, chunk } from './utils';
 
 const FMP = 'https://financialmodelingprep.com';

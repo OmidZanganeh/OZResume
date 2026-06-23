@@ -25,6 +25,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/tools/elevation-profile`,    lastModified: now, changeFrequency: "monthly", priority: 0.85 },
     { url: `${BASE}/tools/geocoder`,             lastModified: now, changeFrequency: "monthly", priority: 0.85 },
     { url: `${BASE}/tools/census`,               lastModified: now, changeFrequency: "monthly", priority: 0.85 },
-    { url: `${BASE}/tools/stock-screener`,       lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${BASE}/web-apps/stock-screener`,       lastModified: now, changeFrequency: "monthly", priority: 0.85 },
   ];
 }

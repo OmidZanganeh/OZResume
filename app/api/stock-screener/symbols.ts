@@ -1,4 +1,4 @@
-import type { Sector } from '@/app/tools/stock-screener/types';
+import type { Sector } from '@/app/web-apps/stock-screener/types';
 import { getRedis } from './redis';
 
 export const SYMBOLS_REDIS_KEY = 'stock-screener:symbols:sp500';

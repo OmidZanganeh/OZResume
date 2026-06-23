@@ -12,6 +12,11 @@ const IconDiscover = () => (
     <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
   </svg>
 );
+const IconStocks = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 5v4"/><path d="M15 5v2"/><rect x="7" y="9" width="4" height="6" rx="1"/><rect x="13" y="7" width="4" height="8" rx="1"/><path d="M9 15v4"/><path d="M15 15v2"/>
+  </svg>
+);
 const IconAppWindow = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 3v18"/><path d="M2 9h6"/>
@@ -21,6 +26,7 @@ const IconAppWindow = () => (
 const APPS = [
   { icon: <IconGym />,      label: 'Gym Flow',                href: '/gym-flow/' },
   { icon: <IconDiscover />, label: 'Discover — Trip Explorer', href: '/tools/trip-explorer' },
+  { icon: <IconStocks />,   label: 'Stock Screener',           href: '/web-apps/stock-screener' },
 ];
 
 type Props = { suppressPopover?: boolean };

@@ -40,7 +40,7 @@
 | `/tools/elevation-profile` | `page.tsx`, `ElevationMap.tsx` |
 | `/tools/geocoder` | `page.tsx`, `GeocoderMap.tsx` |
 | `/tools/census` | `page.tsx`, `CensusMap.tsx` |
-| `/tools/stock-screener` | `page.tsx`, `StockScreener.tsx`, `historical.ts`, `DateTimeline.tsx`, `BacktestPanel.tsx`, `tickers.ts`, `mockStocks.ts` (fallback) |
+| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 screener (`StockScreener.tsx`, filters, backtest) |
 
 ## API routes (`app/api/*/route.ts`)
 

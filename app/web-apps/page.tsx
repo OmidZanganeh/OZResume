@@ -15,10 +15,16 @@ const IconDiscover = () => (
     <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
   </svg>
 );
+const IconStocks = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 5v4"/><path d="M15 5v2"/><rect x="7" y="9" width="4" height="6" rx="1"/><rect x="13" y="7" width="4" height="8" rx="1"/><path d="M9 15v4"/><path d="M15 15v2"/>
+  </svg>
+);
 
 const APP_ICONS: Record<string, React.ReactNode> = {
   gym: <IconGym />,
   discover: <IconDiscover />,
+  stocks: <IconStocks />,
 };
 
 const webAppsUrl = `${siteUrl}${webAppsPath}`;
