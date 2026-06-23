@@ -29,7 +29,7 @@ interface GeoFC { type: 'FeatureCollection'; features: GeoFeature[]; }
 // ─── Layer catalogue ─────────────────────────────────────────────────────────
 const OSM_LAYERS: Layer[] = [
   { id: 'buildings',     label: 'Buildings',            emoji: '🏘', desc: 'Building footprints' },
-  { id: 'roads',         label: 'Roads & Streets',      emoji: '🛣', desc: 'All highway types' },
+  { id: 'roads',         label: 'Roads & Streets',      emoji: '🛣', desc: 'Highway ways, area roads, junction nodes & all OSM tags' },
   { id: 'railways',      label: 'Railways & Transit',   emoji: '🚂', desc: 'Rail lines & stations' },
   { id: 'power',         label: 'Power Infrastructure', emoji: '⚡', desc: 'Lines, substations, power plants' },
   { id: 'cycling',       label: 'Cycling Network',      emoji: '🚲', desc: 'Bike lanes & dedicated paths' },
@@ -214,11 +214,11 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
 ];
 
-async function fetchOverpass(query: string): Promise<Record<string, unknown>> {
+async function fetchOverpass(query: string, timeoutMs = 30_000): Promise<Record<string, unknown>> {
   let lastErr: Error = new Error('Overpass: no endpoints available');
   for (const url of OVERPASS_ENDPOINTS) {
     const ctrl  = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 30_000);
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
       const res = await fetch(url, {
         method:  'POST',
@@ -241,12 +241,27 @@ async function fetchOverpass(query: string): Promise<Record<string, unknown>> {
   throw lastErr;
 }
 
+/** Roads: ways + area:highway polygons + highway-tagged nodes (signals, crossings, etc.) */
+function roadsOverpassQuery(bb: string, mode: 'count' | 'full'): string {
+  const body = `(way["highway"](${bb});way["area:highway"](${bb});node["highway"](${bb});)`;
+  if (mode === 'count') {
+    return `[out:json][timeout:25];${body};out count;`;
+  }
+  return `[out:json][timeout:180][maxsize:536870912];${body};out body;>;out skel qt;`;
+}
+
+const ROAD_DBF_PRIORITY = [
+  '@id', 'highway', 'name', 'ref', 'int_ref', 'maxspeed', 'lanes', 'width', 'surface',
+  'oneway', 'bridge', 'tunnel', 'layer', 'access', 'service', 'junction', 'lit',
+  'bicycle', 'foot', 'motor_vehicle', 'hgv', 'sidewalk', 'cycleway', 'area:highway',
+];
+
 // ─── Count queries (fast — scan only) ────────────────────────────────────────
 async function countOSM(layerId: string, b: Bbox): Promise<number> {
   const bb = `${b.s.toFixed(6)},${b.w.toFixed(6)},${b.n.toFixed(6)},${b.e.toFixed(6)}`;
   const q: Record<string, string> = {
     buildings:       `[out:json][timeout:15];(way["building"](${bb});relation["building"](${bb}););out count;`,
-    roads:           `[out:json][timeout:15];way["highway"](${bb});out count;`,
+    roads:           roadsOverpassQuery(bb, 'count'),
     pois:            `[out:json][timeout:15];(node["amenity"](${bb});node["shop"](${bb});node["tourism"](${bb}););out count;`,
     parks:           `[out:json][timeout:15];(way["leisure"~"park|garden|nature_reserve"](${bb}););out count;`,
     water:           `[out:json][timeout:15];(way["natural"="water"](${bb});way["waterway"](${bb}););out count;`,
@@ -320,7 +335,7 @@ function buildOverpassQuery(id: string, b: Bbox): string {
   const hd = '[out:json][timeout:30];';
   const m: Record<string, string> = {
     buildings:       `${hd}(way["building"](${bb});relation["building"](${bb}););out body;>;out skel qt;`,
-    roads:           `${hd}way["highway"](${bb});out body;>;out skel qt;`,
+    roads:           roadsOverpassQuery(bb, 'full'),
     pois:            `${hd}(node["amenity"](${bb});node["shop"](${bb});node["tourism"](${bb}););out body;`,
     parks:           `${hd}(way["leisure"~"park|garden|nature_reserve"](${bb}););out body;>;out skel qt;`,
     water:           `${hd}(way["natural"="water"](${bb});way["waterway"](${bb});relation["natural"="water"](${bb}););out body;>;out skel qt;`,
@@ -429,7 +444,10 @@ async function getCount(id: string, b: Bbox): Promise<number> {
 async function getFeatures(id: string, b: Bbox): Promise<GeoFC> {
   let fc: GeoFC;
   if (OSM_IDS.has(id)) {
-    const raw = await fetchOverpass(buildOverpassQuery(id, b));
+    const raw = await fetchOverpass(
+      buildOverpassQuery(id, b),
+      id === 'roads' ? 180_000 : 45_000,
+    );
     fc = overpassToGeoJSON(raw);
   } else if (id === 'earthquakes') {
     const since = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10);
@@ -668,14 +686,11 @@ function _assembleShpShx(shpType: number, records: Uint8Array[]): { shp: Uint8Ar
 // Build DBF file from a list of property objects (same length as SHP records).
 // Uses a globally consistent field schema and dynamic field widths (not a fixed
 // 254-byte width) to keep files small and avoid signed-byte interpretation issues.
-function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
+function _buildDbf(propsList: GeoFeature['properties'][], priorityKeys: string[] = []): Uint8Array {
   const enc = new TextEncoder();
 
-  // Only keep fields that have real data in ≥ 5 % of features (minimum 2 features).
-  // This drops the long tail of rare OSM tags that are null for almost every feature,
-  // keeping the DBF clean and readable. Hard cap at 25 columns.
-  const MIN_FILL_RATE = 0.05;
-  const MAX_DBF_FIELDS = 25;
+  const MIN_FILL_RATE = 0.02;
+  const MAX_DBF_FIELDS = 40;
   const n = propsList.length;
   const minCount = Math.max(2, Math.ceil(n * MIN_FILL_RATE));
 
@@ -687,12 +702,17 @@ function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
       }
     }
   }
-  // Sort by frequency descending, filter by fill-rate threshold, take top MAX_DBF_FIELDS
-  const topKeys = Array.from(keyCounts.entries())
+
+  const topKeys: string[] = [];
+  for (const pk of priorityKeys) {
+    if (keyCounts.has(pk) && !topKeys.includes(pk)) topKeys.push(pk);
+  }
+  for (const [k] of Array.from(keyCounts.entries())
     .filter(([, count]) => count >= minCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, MAX_DBF_FIELDS)
-    .map(([k]) => k);
+    .sort((a, b) => b[1] - a[1])) {
+    if (topKeys.length >= MAX_DBF_FIELDS) break;
+    if (!topKeys.includes(k)) topKeys.push(k);
+  }
 
   // Build global field schema: raw property key → sanitised 10-char DBF name
   const schema = new Map<string, string>();
@@ -766,7 +786,7 @@ function _buildDbf(propsList: GeoFeature['properties'][]): Uint8Array {
   return u8;
 }
 
-async function shpZip(fc: GeoFC, _filename: string): Promise<Blob> {
+async function shpZip(fc: GeoFC, _filename: string, layerId?: string): Promise<Blob> {
   const JSZip = (await import('jszip')).default;
   const zip   = new JSZip();
   const yield_ = () => new Promise<void>(r => setTimeout(r, 0));
@@ -804,7 +824,7 @@ async function shpZip(fc: GeoFC, _filename: string): Promise<Blob> {
     await yield_();
     const { shp, shx } = _assembleShpShx(shpType, records);
     await yield_();
-    const dbf = _buildDbf(props); // props.length === records.length (guaranteed by push())
+    const dbf = _buildDbf(props, layerId === 'roads' ? ROAD_DBF_PRIORITY : []);
     zip.file(`${name}.shp`, shp);
     zip.file(`${name}.shx`, shx);
     zip.file(`${name}.dbf`, dbf);
@@ -1064,7 +1084,7 @@ export default function GISDownloaderPage() {
         // Shapefile binary generation is CPU-intensive. Yield to the browser
         // first so the loading spinner renders, then run the conversion.
         await new Promise<void>(r => setTimeout(r, 50));
-        const blob = await shpZip(fc, name);
+        const blob = await shpZip(fc, name, layerId);
         downloadBlob(blob, `${name}.zip`, 'application/zip');
       } else {
         // GeoJSON: normalise schema so every feature has the same columns
@@ -1098,7 +1118,7 @@ export default function GISDownloaderPage() {
 
           if (format === 'shapefile') {
             await new Promise<void>(r => setTimeout(r, 50)); // yield before heavy work
-            const layerBlob = await shpZip(fc, layer.id);
+            const layerBlob = await shpZip(fc, layer.id, layer.id);
             const layerZip  = await JSZip.loadAsync(layerBlob);
             layerZip.forEach((relPath, file) => {
               zip.file(`${layer.id}/${relPath}`, file.async('uint8array'));
