@@ -3,7 +3,7 @@ import { getFinnhubApiKey } from './env';
 import { getRedis } from './redis';
 
 const FINNHUB = 'https://finnhub.io/api/v1';
-export const SYMBOLS_REDIS_KEY = 'stock-screener:symbols:v1';
+export const SYMBOLS_REDIS_KEY = 'stock-screener:symbols:v2';
 const SYMBOLS_TTL_SEC = 30 * 24 * 60 * 60;
 
 export interface UsSymbol {
@@ -19,6 +19,13 @@ interface FinnhubSymbolRow {
   displaySymbol?: string;
   type?: string;
   mic?: string;
+}
+
+/** Major US listing venues — skips OTC/pink sheets unless STOCK_SCREENER_INCLUDE_OTC=true */
+const MAJOR_MICS = new Set(['XNAS', 'XNYS', 'ARCX', 'XNCM', 'XNMS', 'XASE']);
+
+function includeOtc(): boolean {
+  return process.env.STOCK_SCREENER_INCLUDE_OTC?.trim() === 'true';
 }
 
 const EQUITY_TYPES = new Set([
@@ -68,6 +75,7 @@ async function fetchFromFinnhub(apiKey: string): Promise<UsSymbol[]> {
 
   for (const row of rows) {
     if (!isCommonEquity(row)) continue;
+    if (!includeOtc() && row.mic && !MAJOR_MICS.has(row.mic)) continue;
     const symbol = (row.displaySymbol ?? row.symbol)?.trim();
     if (!symbol || symbol.length > 8) continue;
     if (seen.has(symbol)) continue;
