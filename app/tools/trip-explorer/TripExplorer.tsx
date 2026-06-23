@@ -60,7 +60,8 @@ interface PlanSectionDef {
 }
 
 interface PlaceDetail { title: string; extract: string; thumbnail?: { source: string }; content_urls?: { desktop: { page: string } }; }
-interface OsmWikiInfo { title: string; extract: string; url: string; thumbnail?: string; }
+interface PlaceLocationContext { label: string; city: string; region: string; country: string; }
+interface PlaceBlurb { text: string; sourceLabel: string; url?: string; thumbnail?: string; wikiTitle?: string; }
 interface Weather { temp: number; code: number; wind: number; }
 interface DailyForecast { date: string; maxTemp: number; minTemp: number; code: number; precipProb: number; }
 interface CountryInfo { name: string; flag: string; currencies: string; languages: string; timezones: string; drivingSide: string; }
@@ -199,46 +200,118 @@ async function fetchCommonsPhotos(name: string): Promise<string[]> {
   } catch { return []; }
 }
 
-// Reverse geocode coordinates to get city name (Nominatim)
-async function reverseGeocodeCity(lat: number, lon: number): Promise<string> {
+// Reverse geocode coordinates to city + region context for search links
+async function reverseGeocodeContext(lat: number, lon: number): Promise<PlaceLocationContext> {
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&accept-language=en`);
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=14&accept-language=en&addressdetails=1`);
     const d = await r.json();
-    return d.address?.city ?? d.address?.town ?? d.address?.village ?? d.address?.county ?? '';
-  } catch { return ''; }
+    const a = d.address ?? {};
+    const city = a.city ?? a.town ?? a.village ?? a.municipality ?? a.county ?? '';
+    const region = a.state ?? a.region ?? '';
+    const country = a.country ?? '';
+    return { label: [city, region, country].filter(Boolean).join(', '), city, region, country };
+  } catch {
+    return { label: '', city: '', region: '', country: '' };
+  }
 }
 
-// For OSM places: search Wikipedia for a matching article — city-qualified to avoid wrong matches
-async function searchWikipediaByName(
-  name: string,
-  city: string,
-): Promise<{ title: string; extract: string; url: string; thumbnail?: string } | null> {
+function contextFromNominatimAddress(addr: Record<string, string> | undefined): PlaceLocationContext {
+  const city = addr?.city ?? addr?.town ?? addr?.village ?? addr?.municipality ?? '';
+  const region = addr?.state ?? addr?.region ?? '';
+  const country = addr?.country ?? '';
+  return { label: [city, region, country].filter(Boolean).join(', '), city, region, country };
+}
+
+function placeGoogleQuery(title: string, locationLabel: string): string {
+  const loc = locationLabel.trim();
+  return loc ? `${title.trim()} ${loc}` : title.trim();
+}
+
+function formatOsmTag(value: string): string {
+  return value.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function buildOsmTypeSummary(tags: Record<string, string>): string | null {
+  const parts: string[] = [];
+  if (tags.tourism) parts.push(formatOsmTag(tags.tourism));
+  if (tags.historic) parts.push(`Historic ${formatOsmTag(tags.historic)}`);
+  if (tags.amenity) parts.push(formatOsmTag(tags.amenity));
+  if (tags.leisure) parts.push(formatOsmTag(tags.leisure));
+  if (tags.shop) parts.push(`${formatOsmTag(tags.shop)} shop`);
+  if (tags.brand) parts.push(tags.brand);
+  if (tags.operator) parts.push(`Operated by ${tags.operator}`);
+  if (tags.denomination) parts.push(tags.denomination);
+  if (tags.religion) parts.push(formatOsmTag(tags.religion));
+  if (tags.fee === 'yes') parts.push('Admission fee');
+  if (tags.fee === 'no') parts.push('Free entry');
+  if (tags.wheelchair === 'yes') parts.push('Wheelchair accessible');
+  const unique = [...new Set(parts.filter(Boolean))];
+  return unique.length ? unique.join(' · ') : null;
+}
+
+async function fetchWikidataBlurb(qid: string): Promise<PlaceBlurb | null> {
   try {
-    // Search with city context first ("Eiffel Tower Paris"), fall back to name alone
-    const queries = city ? [`${name} ${city}`, name] : [name];
-    for (const q of queries) {
-      const r1 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srprop=snippet&srlimit=3&format=json&origin=*`);
-      const d1 = await r1.json();
-      const hits: { title: string; snippet: string }[] = d1.query?.search ?? [];
-      if (!hits.length) continue;
-
-      // Pick the hit whose title/snippet contains the city name (if we have one)
-      const best = city
-        ? hits.find(h => h.title.toLowerCase().includes(city.toLowerCase()) || h.snippet.toLowerCase().includes(city.toLowerCase())) ?? hits[0]
-        : hits[0];
-
-      const r2 = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(best.title)}`);
-      const d2 = await r2.json();
-      if (!d2.extract) continue;
+    const id = /^Q\d+$/i.test(qid) ? qid.toUpperCase() : `Q${qid}`;
+    const r = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${id}&props=descriptions|labels|sitelinks&languages=en&format=json&origin=*`);
+    const entity = (await r.json()).entities?.[id];
+    if (!entity) return null;
+    const desc = entity.descriptions?.en?.value as string | undefined;
+    const wikiTitle = entity.sitelinks?.enwiki?.title as string | undefined;
+    if (wikiTitle) {
+      const summary = await fetchWikiSummary(wikiTitle);
+      if (summary.extract) {
+        return {
+          text: summary.extract,
+          sourceLabel: 'Wikipedia',
+          url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`,
+          thumbnail: summary.thumbnail?.source,
+          wikiTitle,
+        };
+      }
+    }
+    if (desc) {
       return {
-        title: d2.title ?? best.title,
-        extract: d2.extract,
-        url: d2.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(best.title)}`,
-        thumbnail: d2.thumbnail?.source,
+        text: desc,
+        sourceLabel: 'Wikidata',
+        url: `https://www.wikidata.org/wiki/${id}`,
       };
     }
-    return null;
+    const label = entity.labels?.en?.value as string | undefined;
+    return label ? { text: label, sourceLabel: 'Wikidata', url: `https://www.wikidata.org/wiki/${id}` } : null;
   } catch { return null; }
+}
+
+/** OSM place blurb: prefer on-tag data, linked Wikipedia/Wikidata — not fuzzy name search */
+async function resolveOsmPlaceBlurb(place: WikiPlace): Promise<PlaceBlurb | null> {
+  const tags = place.osmTags ?? {};
+
+  if (tags.description) {
+    return { text: tags.description, sourceLabel: 'OpenStreetMap' };
+  }
+
+  if (tags.wikipedia) {
+    const title = tags.wikipedia.replace(/^[a-z]{2}:/i, '');
+    try {
+      const summary = await fetchWikiSummary(title);
+      if (summary.extract) {
+        return {
+          text: summary.extract,
+          sourceLabel: 'Wikipedia',
+          url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+          thumbnail: summary.thumbnail?.source,
+          wikiTitle: title,
+        };
+      }
+    } catch { /* fall through */ }
+  }
+
+  if (tags.wikidata) {
+    const wd = await fetchWikidataBlurb(tags.wikidata);
+    if (wd) return wd;
+  }
+
+  const summary = buildOsmTypeSummary(tags);
+  return summary ? { text: summary, sourceLabel: 'Place details' } : null;
 }
 
 const OVERPASS_ENDPOINTS = [
@@ -427,7 +500,9 @@ export default function TripExplorer() {
   const [detail, setDetail] = useState<PlaceDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailPhotos, setDetailPhotos] = useState<string[]>([]);
-  const [osmWikiInfo, setOsmWikiInfo] = useState<OsmWikiInfo | null>(null);
+  const [placeBlurb, setPlaceBlurb] = useState<PlaceBlurb | null>(null);
+  const [locationContext, setLocationContext] = useState<PlaceLocationContext | null>(null);
+  const [selectedSearchLoc, setSelectedSearchLoc] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -597,6 +672,7 @@ export default function TripExplorer() {
   const discover = useCallback(async (lat: number, lon: number, rad: number, catId: string, zonePoly?: string) => {
     setDiscovering(true); setSelected(null); setDetail(null); setOsmError(false); setWikiError(false);
     loadWeather(lat, lon);
+    reverseGeocodeContext(lat, lon).then(ctx => { if (ctx.label) setLocationContext(ctx); });
     if (wikiOverlay) fetchWikiOverlay(lat, lon, rad);
 
     const fetchOsm = async (template: string, color: string, id: string) => {
@@ -674,46 +750,49 @@ export default function TripExplorer() {
   }, [runDiscover]);
 
   const handlePlaceClick = useCallback(async (place: WikiPlace) => {
-    setSelected(place); setDetail(null); setDetailPhotos([]); setOsmWikiInfo(null);
+    setSelected(place); setDetail(null); setDetailPhotos([]); setPlaceBlurb(null);
     setDetailLoading(true);
     try {
+      const ctx = locationContext ?? await reverseGeocodeContext(place.lat, place.lon);
+      const searchLoc = ctx.label || locationContext?.label || '';
+      setSelectedSearchLoc(searchLoc);
+
       if (place.source === 'wiki') {
-        // Fetch summary + photos in parallel
         const [summary, photos] = await Promise.all([
           fetchWikiSummary(place.title),
           fetchWikiPhotos(place.title),
         ]);
         setDetail(summary);
-        // Merge Wikipedia article photos + Commons photos (deduplicated)
-        const commonsPhotos = await fetchCommonsPhotos(place.title);
+        const commonsPhotos = await fetchCommonsPhotos(placeGoogleQuery(place.title, searchLoc));
         const all = [...new Set([...photos, ...commonsPhotos])].filter(Boolean);
         setDetailPhotos(all);
       } else {
-        // Resolve city: OSM tags first, then reverse geocode
         const city =
           place.osmTags?.['addr:city'] ??
           place.osmTags?.['addr:town'] ??
           place.osmTags?.['addr:suburb'] ??
           place.osmTags?.['addr:municipality'] ??
-          await reverseGeocodeCity(place.lat, place.lon);
+          ctx.city;
 
-        // OSM place — search Wikipedia (city-qualified) + fetch Commons photos in parallel
-        const [wikiInfo, commonsPhotos] = await Promise.all([
-          searchWikipediaByName(place.title, city),
-          fetchCommonsPhotos(`${place.title} ${city}`.trim()),
+        const [blurb, commonsPhotos] = await Promise.all([
+          resolveOsmPlaceBlurb(place),
+          fetchCommonsPhotos(placeGoogleQuery(place.title, searchLoc || city)),
         ]);
-        if (wikiInfo) {
-          setOsmWikiInfo(wikiInfo);
-          // Also fetch Wikipedia article photos
-          const wikiPhotos = await fetchWikiPhotos(wikiInfo.title);
-          setDetailPhotos([...new Set([...wikiPhotos, ...commonsPhotos])].filter(Boolean));
+        if (blurb) {
+          setPlaceBlurb(blurb);
+          if (blurb.wikiTitle) {
+            const wikiPhotos = await fetchWikiPhotos(blurb.wikiTitle);
+            setDetailPhotos([...new Set([...wikiPhotos, ...commonsPhotos])].filter(Boolean));
+          } else {
+            setDetailPhotos(commonsPhotos);
+          }
         } else {
           setDetailPhotos(commonsPhotos);
         }
       }
     } catch { /* silent */ }
     finally { setDetailLoading(false); }
-  }, []);
+  }, [locationContext]);
 
   const geocode = useCallback(async (query: string) => {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`);
@@ -721,6 +800,8 @@ export default function TripExplorer() {
     if (!data[0]) return null;
     const lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
     const cc = data[0].address?.country_code;
+    const ctx = contextFromNominatimAddress(data[0].address);
+    if (ctx.label) setLocationContext(ctx);
     setMapCenter([lat, lon]); setMapZoom(13);
     if (cc) fetchCountryInfo(cc).then(c => { if (c) setWeather(null); });
     return { lat, lon, cc };
@@ -915,6 +996,8 @@ export default function TripExplorer() {
       if (!geoData[0]) throw new Error('Not found');
       const lat = parseFloat(geoData[0].lat), lon = parseFloat(geoData[0].lon);
       const cc = geoData[0].address?.country_code;
+      const ctx = contextFromNominatimAddress(geoData[0].address);
+      if (ctx.label) setLocationContext(ctx);
       setMapCenter([lat, lon]); setMapZoom(13);
       fetchWeather(lat, lon).then(w => { if (w) setPlanWeather(w); });
       if (cc) fetchCountryInfo(cc).then(c => { if (c) setPlanCountry(c); });
@@ -1011,17 +1094,21 @@ export default function TripExplorer() {
   };
 
   // ── Action buttons shared renderer ────────────────────────────────────────
-  const renderActions = (wikiUrl?: string) => (
+  const renderActions = (wikiUrl?: string) => {
+    const locLabel = selectedSearchLoc || locationContext?.label || (tab === 'plan' ? planCity : '');
+    const googleQ = placeGoogleQuery(selected!.title, locLabel);
+    return (
     <div className={styles.detailActions}>
       <button type="button" className={styles.actionBtn} onClick={() => openDirections(selected!.lat, selected!.lon)}><Navigation size={13} /> Directions</button>
       <a href={`https://www.google.com/maps/search/?api=1&query=${selected!.lat},${selected!.lon}`} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline}><ExternalLink size={12} /> Maps</a>
       {wikiUrl && <a href={wikiUrl} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline}><BookOpen size={12} /> Wikipedia</a>}
-      <a href={`https://www.google.com/search?q=${encodeURIComponent(selected!.title)}`} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline}><Globe2 size={12} /> Google</a>
-      <a href={`https://www.google.com/search?q=${encodeURIComponent(selected!.title)}&tbm=isch`} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline}><Image size={12} /> Photos</a>
+      <a href={`https://www.google.com/search?q=${encodeURIComponent(googleQ)}`} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline} title={locLabel ? `Search: ${googleQ}` : undefined}><Globe2 size={12} /> Google</a>
+      <a href={`https://www.google.com/search?q=${encodeURIComponent(googleQ)}&tbm=isch`} target="_blank" rel="noopener noreferrer" className={styles.actionBtnOutline} title={locLabel ? `Photos: ${googleQ}` : undefined}><Image size={12} /> Photos</a>
       <button type="button" className={`${styles.actionBtnOutline} ${isFav(selected!.uid) ? styles.actionBtnFav : ''}`} onClick={() => toggleFav(selected!)}><Heart size={12} fill={isFav(selected!.uid) ? 'currentColor' : 'none'} /> {isFav(selected!.uid) ? 'Saved' : 'Save'}</button>
       <button type="button" className={styles.actionBtnOutline} onClick={handleShare}><Share2 size={12} /> {copied ? 'Copied!' : 'Share'}</button>
     </div>
-  );
+    );
+  };
 
   const renderDetail = () => {
     if (!selected) return null;
@@ -1038,7 +1125,7 @@ export default function TripExplorer() {
         )}
 
         <div className={styles.detailPanel}>
-          <button type="button" className={styles.backBtn} onClick={() => { setSelected(null); setDetail(null); setDetailPhotos([]); setOsmWikiInfo(null); setLightboxSrc(null); }}>
+          <button type="button" className={styles.backBtn} onClick={() => { setSelected(null); setDetail(null); setDetailPhotos([]); setPlaceBlurb(null); setSelectedSearchLoc(''); setLightboxSrc(null); }}>
             <ArrowLeft size={14} /> {backLabel}
           </button>
 
@@ -1067,10 +1154,10 @@ export default function TripExplorer() {
 
               {/* Photo strip */}
               {renderPhotoStrip(
-                selected.source === 'wiki' ? detail?.thumbnail?.source : osmWikiInfo?.thumbnail
+                selected.source === 'wiki' ? detail?.thumbnail?.source : placeBlurb?.thumbnail
               )}
 
-              {/* Wikipedia extract (wiki places) */}
+              {/* Wikipedia extract (wiki-sourced places from geosearch) */}
               {selected.source === 'wiki' && detail?.extract && (
                 <p className={styles.detailExtract}>{detail.extract}</p>
               )}
@@ -1078,20 +1165,31 @@ export default function TripExplorer() {
               {/* OSM structured tags */}
               {selected.source === 'osm' && selected.osmTags && (
                 <div className={styles.osmMeta}>
+                  {(selected.osmTags.tourism || selected.osmTags.historic || selected.osmTags.amenity || selected.osmTags.leisure) && (
+                    <div className={styles.osmRow}>
+                      <span className={styles.osmKey}>Type</span>
+                      <span>{[selected.osmTags.tourism, selected.osmTags.historic, selected.osmTags.amenity, selected.osmTags.leisure].filter(Boolean).map(formatOsmTag).join(' · ')}</span>
+                    </div>
+                  )}
+                  {selected.osmTags.brand && <div className={styles.osmRow}><span className={styles.osmKey}>Brand</span><span>{selected.osmTags.brand}</span></div>}
                   {selected.osmTags.cuisine && <div className={styles.osmRow}><span className={styles.osmKey}>Cuisine</span><span>{selected.osmTags.cuisine.replace(/_/g, ' ')}</span></div>}
                   {selected.osmTags.opening_hours && <div className={styles.osmRow}><span className={styles.osmKey}>Hours</span><span>{selected.osmTags.opening_hours}</span></div>}
                   {(selected.osmTags['addr:street'] || selected.osmTags['addr:housenumber']) && <div className={styles.osmRow}><span className={styles.osmKey}>Address</span><span>{[selected.osmTags['addr:housenumber'], selected.osmTags['addr:street'], selected.osmTags['addr:city']].filter(Boolean).join(', ')}</span></div>}
                   {(selected.osmTags.phone || selected.osmTags['contact:phone']) && <div className={styles.osmRow}><span className={styles.osmKey}>Phone</span><a href={`tel:${selected.osmTags.phone ?? selected.osmTags['contact:phone']}`} className={styles.osmLink}>{selected.osmTags.phone ?? selected.osmTags['contact:phone']}</a></div>}
                   {(selected.osmTags.website || selected.osmTags['contact:website']) && <div className={styles.osmRow}><span className={styles.osmKey}>Web</span><a href={selected.osmTags.website ?? selected.osmTags['contact:website']} target="_blank" rel="noopener noreferrer" className={styles.osmLink}>{(selected.osmTags.website ?? selected.osmTags['contact:website'] ?? '').replace(/^https?:\/\/(www\.)?/, '').substring(0, 32)}</a></div>}
                   {selected.osmTags.stars && <div className={styles.osmRow}><span className={styles.osmKey}>Stars</span><span className={styles.starRow}>{Array.from({ length: Math.min(5, parseInt(selected.osmTags.stars)) }).map((_, i) => <span key={i} className={styles.starFilled}>★</span>)}</span></div>}
+                  {selected.osmTags.wheelchair === 'yes' && <div className={styles.osmRow}><span className={styles.osmKey}>Access</span><span>Wheelchair accessible</span></div>}
                 </div>
               )}
 
-              {/* Wikipedia article found for OSM place */}
-              {selected.source === 'osm' && osmWikiInfo && (
+              {/* OSM / Wikidata blurb (only when linked or on-tag — not fuzzy Wikipedia) */}
+              {selected.source === 'osm' && placeBlurb && (
                 <div className={styles.osmWikiBlurb}>
-                  <span className={styles.osmWikiLabel}><BookOpen size={11} /> Wikipedia</span>
-                  <p className={styles.osmWikiExtract}>{osmWikiInfo.extract}</p>
+                  <span className={styles.osmWikiLabel}><Info size={11} /> {placeBlurb.sourceLabel}</span>
+                  <p className={styles.osmWikiExtract}>{placeBlurb.text}</p>
+                  {placeBlurb.url && placeBlurb.sourceLabel !== 'Wikipedia' && (
+                    <a href={placeBlurb.url} target="_blank" rel="noopener noreferrer" className={styles.osmLink} style={{ fontSize: 11.5, marginTop: 6, display: 'inline-block' }}>More on {placeBlurb.sourceLabel} →</a>
+                  )}
                 </div>
               )}
 
@@ -1099,7 +1197,7 @@ export default function TripExplorer() {
               {renderActions(
                 selected.source === 'wiki'
                   ? detail?.content_urls?.desktop?.page
-                  : osmWikiInfo?.url
+                  : placeBlurb?.sourceLabel === 'Wikipedia' ? placeBlurb.url : undefined
               )}
             </div>
           )}
