@@ -31,6 +31,7 @@ async function finnhubGet<T>(path: string, apiKey: string): Promise<T | null> {
   const url = `${FINNHUB}${path}${path.includes('?') ? '&' : '?'}token=${apiKey}`;
   try {
     const res = await fetch(url, { next: { revalidate: 0 } });
+    if (res.status === 401 || res.status === 403) return null;
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {

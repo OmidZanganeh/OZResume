@@ -22,6 +22,29 @@ async function loadFresh(): Promise<MarketDataResult> {
   const fmpKey = process.env.FMP_API_KEY?.trim();
 
   if (finnhubKey) {
+    const probe = await fetch(
+      `https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=${finnhubKey}`,
+    );
+    if (probe.status === 401 || probe.status === 403) {
+      const stale = await readRedisSnapshot();
+      if (stale) {
+        const { expiresAt, ...rest } = stale.data;
+        return {
+          ...rest,
+          fromCache: true,
+          expiresAt,
+          warning: 'Invalid Finnhub API key — serving cached snapshot.',
+        };
+      }
+      return {
+        stocks: MOCK_STOCKS,
+        source: 'mock',
+        cachedAt: new Date().toISOString(),
+        fromCache: false,
+        warning: 'Invalid Finnhub API key. Check FINNHUB_API_KEY in Vercel / .env.local.',
+      };
+    }
+
     const stocks = await fetchStocksFromFinnhub(SCREEN_TICKERS, finnhubKey);
     if (stocks.length >= 50) {
       return {

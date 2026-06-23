@@ -7,7 +7,8 @@
     "build:gym": "npm install --prefix \"Gym Webapp\" --include=dev && npm run build --prefix \"Gym Webapp\"",
     "build": "npm run build:gym && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "warm:stocks": "npx tsx scripts/warm-stock-screener-cache.ts"
   },
   "dependencies": {
     "@mapbox/shp-write": "^0.4.3",
