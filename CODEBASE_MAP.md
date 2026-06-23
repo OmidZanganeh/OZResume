@@ -40,7 +40,7 @@
 | `/tools/elevation-profile` | `page.tsx`, `ElevationMap.tsx` |
 | `/tools/geocoder` | `page.tsx`, `GeocoderMap.tsx` |
 | `/tools/census` | `page.tsx`, `CensusMap.tsx` |
-| `/tools/stock-screener` | `page.tsx`, `StockScreener.tsx`, `historical.ts`, `DateTimeline.tsx`, `BacktestPanel.tsx`, `mockStocks.ts` |
+| `/tools/stock-screener` | `page.tsx`, `StockScreener.tsx`, `historical.ts`, `DateTimeline.tsx`, `BacktestPanel.tsx`, `tickers.ts`, `mockStocks.ts` (fallback) |
 
 ## API routes (`app/api/*/route.ts`)
 
@@ -62,6 +62,7 @@
 | `gym-flow/exercises/search` | API Ninjas proxy — returns up to 10 exercises matching `name`/`muscle`/`type`/`difficulty`. Requires `EXERCISE_NINJAS_API_KEY` env var. Auth-gated. |
 | `gym-flow/nutrition/search` | USDA + OFF text search; **8–14 digit query** also hits OFF `/product/{code}` (barcode) and merges first. Client splits compound queries (`and`/`&`/`,`/`+`) and calls this route once per part — see `utils/nutritionQueryParser.ts`. |
 | `gym-flow/nutrition/item` | USDA FDC or Open Food Facts product detail; codes `usda:{fdcId}` vs barcode (US + world OFF hosts) |
+| `stock-screener` | Finnhub/FMP proxy — cached 6h snapshot of 115 tech & finance tickers for `/tools/stock-screener` |
 
 ## Shared UI components (`app/components/`)
 

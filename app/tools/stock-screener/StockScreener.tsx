@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Loader2, AlertTriangle } from 'lucide-react';
 import FilterSidebar from './FilterSidebar';
 import StockCard from './StockCard';
 import DateTimeline from './DateTimeline';
@@ -13,6 +13,15 @@ import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filt
 import type { ScreenerState } from './filters';
 import { buildAllSnapshots, computeBacktest, formatAsOfDate } from './historical';
 import styles from './StockScreener.module.css';
+
+type DataSource = 'finnhub' | 'fmp' | 'mock' | 'loading';
+
+interface MarketPayload {
+  stocks: Stock[];
+  source: DataSource;
+  cachedAt?: string;
+  warning?: string;
+}
 
 export type SortMode =
   | 'ticker'
@@ -61,6 +70,45 @@ export default function StockScreener() {
   const [screenerState, setScreenerState] = useState<ScreenerState>(DEFAULT_SCREENER_STATE);
   const [daysAgo, setDaysAgo] = useState(0);
   const [sortMode, setSortMode] = useState<SortMode>('ticker');
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [dataSource, setDataSource] = useState<DataSource>('loading');
+  const [dataWarning, setDataWarning] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMarketData() {
+      setDataSource('loading');
+      setLoadError(null);
+
+      try {
+        const res = await fetch('/api/stock-screener');
+        if (!res.ok) throw new Error(`API error ${res.status}`);
+
+        const data = (await res.json()) as MarketPayload;
+        if (cancelled) return;
+
+        const list = Array.isArray(data.stocks) && data.stocks.length > 0
+          ? data.stocks
+          : MOCK_STOCKS.filter(s => s.sector === 'Tech' || s.sector === 'Finance');
+
+        setStocks(list);
+        setDataSource(data.source ?? 'mock');
+        setDataWarning(data.warning ?? null);
+      } catch (err) {
+        if (cancelled) return;
+        const fallback = MOCK_STOCKS.filter(s => s.sector === 'Tech' || s.sector === 'Finance');
+        setStocks(fallback.length > 0 ? fallback : MOCK_STOCKS);
+        setDataSource('mock');
+        setDataWarning('Could not reach market API — using demo data.');
+        setLoadError(err instanceof Error ? err.message : 'Load failed');
+      }
+    }
+
+    loadMarketData();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -77,30 +125,31 @@ export default function StockScreener() {
   }, [isHistorical]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const snapshots = useMemo(
-    () => buildAllSnapshots(MOCK_STOCKS, daysAgo, rsiPeriod),
-    [daysAgo, rsiPeriod],
+    () => buildAllSnapshots(stocks, daysAgo, rsiPeriod),
+    [stocks, daysAgo, rsiPeriod],
   );
 
   const matchingSet = useMemo(() => {
-    const matched = MOCK_STOCKS.filter(s =>
+    const matched = stocks.filter(s =>
       passesScreen(s, snapshots.get(s.ticker)!, screenerState),
     );
     return new Set(matched.map(s => s.ticker));
-  }, [screenerState, snapshots]);
+  }, [stocks, screenerState, snapshots]);
 
   const backtest = useMemo(() => {
     if (!isHistorical) return null;
-    return computeBacktest(MOCK_STOCKS, snapshots, matchingSet);
-  }, [isHistorical, snapshots, matchingSet]);
+    return computeBacktest(stocks, snapshots, matchingSet);
+  }, [isHistorical, stocks, snapshots, matchingSet]);
 
   const sortedStocks = useMemo(
-    () => sortStocks(MOCK_STOCKS, sortMode, snapshots),
-    [sortMode, snapshots],
+    () => sortStocks(stocks, sortMode, snapshots),
+    [stocks, sortMode, snapshots],
   );
 
   const matchCount = matchingSet.size;
-  const total = MOCK_STOCKS.length;
+  const total = stocks.length;
   const activeFilters = enabledFilterCount(screenerState);
+  const isLoading = dataSource === 'loading';
 
   return (
     <div className={styles.root}>
@@ -113,6 +162,28 @@ export default function StockScreener() {
       </header>
 
       <DateTimeline daysAgo={daysAgo} onChange={setDaysAgo} />
+
+      {(isLoading || dataWarning || loadError) && (
+        <div className={styles.dataBanner} role="status">
+          {isLoading && (
+            <span className={styles.dataBannerLoading}>
+              <Loader2 size={14} className={styles.spinIcon} />
+              Loading live market data (115 tech &amp; finance stocks)…
+            </span>
+          )}
+          {!isLoading && dataWarning && (
+            <span className={styles.dataBannerWarn}>
+              <AlertTriangle size={14} />
+              {dataWarning}
+            </span>
+          )}
+          {!isLoading && dataSource !== 'mock' && !dataWarning && (
+            <span className={styles.dataBannerOk}>
+              Live data via {dataSource === 'finnhub' ? 'Finnhub' : 'FMP'} · {total} stocks
+            </span>
+          )}
+        </div>
+      )}
 
       <div className={styles.layout}>
         <FilterSidebar
@@ -162,24 +233,30 @@ export default function StockScreener() {
           </div>
 
           <div className={styles.grid} role="list">
-            {sortedStocks.map(stock => {
-              const snap = snapshots.get(stock.ticker)!;
-              return (
-                <StockCard
-                  key={stock.ticker}
-                  stock={stock}
-                  metrics={snap}
-                  visible={matchingSet.has(stock.ticker)}
-                  isHistorical={isHistorical}
-                  returnToTodayPct={snap.returnToTodayPct}
-                  priceThen={snap.priceThen}
-                  rsiPeriod={rsiPeriod}
-                />
-              );
-            })}
+            {isLoading ? (
+              Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className={styles.cardSkeleton} aria-hidden />
+              ))
+            ) : (
+              sortedStocks.map(stock => {
+                const snap = snapshots.get(stock.ticker)!;
+                return (
+                  <StockCard
+                    key={stock.ticker}
+                    stock={stock}
+                    metrics={snap}
+                    visible={matchingSet.has(stock.ticker)}
+                    isHistorical={isHistorical}
+                    returnToTodayPct={snap.returnToTodayPct}
+                    priceThen={snap.priceThen}
+                    rsiPeriod={rsiPeriod}
+                  />
+                );
+              })
+            )}
           </div>
 
-          {matchCount === 0 && (
+          {!isLoading && matchCount === 0 && (
             <p className={styles.emptyState}>
               No stocks match{activeFilters > 0 ? ' your active filters' : ''}
               {isHistorical ? ' at that date' : ''}. Try enabling fewer filters or widening ranges.

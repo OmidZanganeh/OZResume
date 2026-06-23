@@ -3,10 +3,10 @@
 import { RotateCcw } from 'lucide-react';
 import FilterRow from './FilterRow';
 import {
-  FILTER_DEFS, RSI_PERIODS, ALL_SECTORS,
+  FILTER_CATEGORIES, filtersByCategory, RSI_PERIODS, ALL_SECTORS,
   DEFAULT_SCREENER_STATE, isDefaultState, enabledFilterCount,
 } from './filters';
-import type { ScreenerState } from './filters';
+import type { ScreenerState, FilterId } from './filters';
 import type { Sector } from './types';
 import styles from './StockScreener.module.css';
 
@@ -17,7 +17,7 @@ interface Props {
 }
 
 export default function FilterSidebar({ state, onChange, isHistorical }: Props) {
-  const setFilter = (id: typeof FILTER_DEFS[number]['id'], range: ScreenerState['filters'][typeof id]) => {
+  const setFilter = (id: FilterId, range: ScreenerState['filters'][FilterId]) => {
     onChange({ ...state, filters: { ...state.filters, [id]: range } });
   };
 
@@ -56,67 +56,89 @@ export default function FilterSidebar({ state, onChange, isHistorical }: Props) 
         </p>
       )}
 
-      <div className={styles.rsiPeriodBlock}>
-        <span className={styles.rsiPeriodLabel}>RSI Period</span>
-        <div className={styles.rsiPeriodBtns}>
-          {RSI_PERIODS.map(p => (
-            <button
-              key={p}
-              type="button"
-              className={`${styles.rsiPeriodBtn} ${state.rsiPeriod === p ? styles.rsiPeriodBtnActive : ''}`}
-              onClick={() => onChange({ ...state, rsiPeriod: p })}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-        <p className={styles.sliderHint}>Standard lookbacks — shorter = more reactive</p>
-      </div>
-
-      <div className={styles.filterList}>
-        {FILTER_DEFS.map(def => (
-          <FilterRow
-            key={def.id}
-            def={def}
-            range={state.filters[def.id]}
-            rsiPeriod={def.id === 'rsi' ? state.rsiPeriod : undefined}
-            onChange={r => setFilter(def.id, r)}
-          />
-        ))}
-      </div>
-
-      <div className={`${styles.filterRow} ${state.sectorFilterEnabled ? styles.filterRowOn : styles.filterRowOff}`}>
-        <label className={styles.filterToggle}>
-          <input
-            type="checkbox"
-            checked={state.sectorFilterEnabled}
-            onChange={e => onChange({ ...state, sectorFilterEnabled: e.target.checked })}
-          />
-          <span className={styles.filterCheck} aria-hidden />
-          <span className={styles.filterName}>Sector</span>
-        </label>
-        {state.sectorFilterEnabled && (
-          <div className={styles.sectorChips}>
-            {ALL_SECTORS.map(sector => (
-              <button
-                key={sector}
-                type="button"
-                className={`${styles.sectorChip} ${state.sectors.includes(sector) ? styles.sectorChipOn : ''}`}
-                onClick={() => toggleSector(sector)}
-              >
-                {sector}
-              </button>
-            ))}
-            {state.sectors.length === 0 && (
-              <p className={styles.sectorHint}>Select one or more sectors</p>
-            )}
+      {FILTER_CATEGORIES.map(cat => (
+        <section key={cat.id} className={styles.filterCategory}>
+          <div className={styles.categoryHead}>
+            <h3 className={`${styles.categoryTitle} ${cat.id === 'fundamental' ? styles.catFundamental : styles.catTechnical}`}>
+              {cat.label}
+            </h3>
+            <p className={styles.categoryDesc}>{cat.description}</p>
           </div>
-        )}
-      </div>
+
+          {cat.id === 'technical' && (
+            <div className={styles.rsiPeriodBlock}>
+              <span className={styles.rsiPeriodLabel}>RSI Period</span>
+              <div className={styles.rsiPeriodBtns}>
+                {RSI_PERIODS.map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`${styles.rsiPeriodBtn} ${state.rsiPeriod === p ? styles.rsiPeriodBtnActive : ''}`}
+                    onClick={() => onChange({ ...state, rsiPeriod: p })}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <p className={styles.sliderHint}>
+                Lookback window for RSI — 14 is the industry default; shorter periods react faster to price moves.
+              </p>
+            </div>
+          )}
+
+          <div className={styles.filterList}>
+            {filtersByCategory(cat.id).map(def => (
+              <FilterRow
+                key={def.id}
+                def={def}
+                range={state.filters[def.id]}
+                rsiPeriod={def.id === 'rsi' ? state.rsiPeriod : undefined}
+                onChange={r => setFilter(def.id, r)}
+              />
+            ))}
+          </div>
+
+          {cat.id === 'fundamental' && (
+            <div className={`${styles.filterRow} ${state.sectorFilterEnabled ? styles.filterRowOn : styles.filterRowOff}`}>
+              <label className={styles.filterToggle}>
+                <input
+                  type="checkbox"
+                  checked={state.sectorFilterEnabled}
+                  onChange={e => onChange({ ...state, sectorFilterEnabled: e.target.checked })}
+                />
+                <span className={styles.filterCheck} aria-hidden />
+                <span className={styles.filterName}>Sector</span>
+              </label>
+              <p className={styles.filterExplanation}>
+                Limit results to one or more industries. Different sectors have different typical valuations — compare peers within the same sector for meaningful screens.
+              </p>
+              {state.sectorFilterEnabled && (
+                <div className={styles.sectorChips}>
+                  {ALL_SECTORS.map(sector => (
+                    <button
+                      key={sector}
+                      type="button"
+                      className={`${styles.sectorChip} ${state.sectors.includes(sector) ? styles.sectorChipOn : ''}`}
+                      onClick={() => toggleSector(sector)}
+                    >
+                      {sector}
+                    </button>
+                  ))}
+                  {state.sectors.length === 0 && (
+                    <p className={styles.sectorHint}>Select one or more sectors</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      ))}
 
       <div className={styles.legend}>
-        <p className={styles.legendTitle}>Tip</p>
-        <p className={styles.legendTip}>Toggle off any filter you don&apos;t want applied. Disabled filters are ignored.</p>
+        <p className={styles.legendTitle}>How to use</p>
+        <p className={styles.legendTip}>
+          Check a filter to enable it, then set min/max. Unchecked filters are completely ignored — mix fundamental quality screens with technical momentum rules as you like.
+        </p>
       </div>
     </aside>
   );

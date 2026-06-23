@@ -1,31 +1,65 @@
 export type Sector = 'Tech' | 'Healthcare' | 'Finance' | 'Energy' | 'Consumer';
 
 export interface StockMetrics {
+  // Valuation
   peRatio: number;
+  forwardPe: number;
+  pegRatio: number;
+  pbRatio: number;
+  psRatio: number;
+  pcfRatio: number;
+  evToEbitda: number;
+  // Growth
   epsGrowth: number;
+  revenueGrowth: number;
+  // Profitability
+  profitMargin: number;
+  grossMargin: number;
+  operatingMargin: number;
+  roe: number;
+  roa: number;
+  roic: number;
+  // Financial health
   debtToEquity: number;
-  rsi: number;
+  debtToAssets: number;
+  currentRatio: number;
+  quickRatio: number;
+  interestCoverage: number;
+  // Shareholder returns
+  dividendYield: number;
+  payoutRatio: number;
+  freeCashFlowYield: number;
+  // Size & price
   price: number;
   marketCap: number;
-  dividendYield: number;
-  roe: number;
-  profitMargin: number;
-  revenueGrowth: number;
-  beta: number;
-  pbRatio: number;
-  currentRatio: number;
-  avgVolume: number;
+  // Technical — momentum
+  rsi: number;
+  priceChange1m: number;
+  priceChange3m: number;
+  priceChange6m: number;
   priceChange52w: number;
+  priceVs52wHigh: number;
+  priceVs52wLow: number;
+  // Technical — volume & volatility
+  avgVolume: number;
+  relativeVolume: number;
+  volatility30d: number;
+  atrPercent: number;
+  beta: number;
+  // Technical — indicators
+  sma50Distance: number;
+  sma200Distance: number;
+  macdSignal: number;
+  stochastic: number;
+  williamsR: number;
+  adx: number;
 }
 
-/** Anchor snapshot — represents fundamentals & price today */
 export interface Stock extends StockMetrics {
   ticker: string;
   companyName: string;
   sector: Sector;
-  /** RSI(14) anchor — other periods derived from this */
   rsi14: number;
-  /** Fictional annualized total return used to back-calculate historical prices */
   annualizedReturn: number;
 }
 
@@ -37,15 +71,6 @@ export interface StockSnapshot extends StockMetrics {
   returnToTodayPct: number;
 }
 
-/** @deprecated use ScreenerState from filters.ts */
-export interface ScreenerFilters {
-  maxPe: number;
-  minEpsGrowth: number;
-  maxDebtEquity: number;
-  maxRsi: number;
-}
-
-/** How far back the date slider goes */
 export const HISTORY_DAYS = 730;
 
 export interface BacktestSummary {

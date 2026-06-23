@@ -26,6 +26,8 @@ export default function FilterRow({ def, range, onChange, rsiPeriod }: Props) {
         <span className={styles.filterName}>{label}</span>
       </label>
 
+      <p className={styles.filterExplanation}>{def.explanation}</p>
+
       {range.enabled && (
         <div className={styles.filterSliders}>
           <MetricSlider
@@ -39,7 +41,6 @@ export default function FilterRow({ def, range, onChange, rsiPeriod }: Props) {
           />
           <MetricSlider
             label="Max"
-            hint={def.hint}
             min={def.min}
             max={def.max}
             step={def.step}

@@ -1,4 +1,5 @@
 import type { StockMetrics } from './types';
+import { formatMarketCap } from './metricFormat';
 
 export type MetricTone = 'good' | 'warn' | 'bad' | 'neutral';
 
@@ -32,11 +33,6 @@ export function returnTone(v: number): MetricTone {
   return 'neutral';
 }
 
-export function formatMarketCap(m: number): string {
-  if (m >= 1000) return `$${(m / 1000).toFixed(1)}B`;
-  return `$${m.toFixed(0)}M`;
-}
-
 export const CARD_METRICS: {
   key: keyof StockMetrics;
   label: string;
@@ -45,10 +41,10 @@ export const CARD_METRICS: {
 }[] = [
   { key: 'peRatio', label: 'P/E', format: v => v.toFixed(1), tone: peTone },
   { key: 'epsGrowth', label: 'EPS', format: v => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`, tone: epsTone },
+  { key: 'roe', label: 'ROE', format: v => `${v.toFixed(0)}%` },
   { key: 'debtToEquity', label: 'D/E', format: v => v.toFixed(2), tone: debtTone },
   { key: 'rsi', label: 'RSI', format: (v, p) => p ? `${v.toFixed(0)} (${p})` : v.toFixed(0), tone: rsiTone },
   { key: 'price', label: 'Price', format: v => `$${v.toFixed(0)}` },
   { key: 'marketCap', label: 'Mkt Cap', format: v => formatMarketCap(v) },
-  { key: 'roe', label: 'ROE', format: v => `${v.toFixed(0)}%` },
-  { key: 'beta', label: 'Beta', format: v => v.toFixed(2) },
+  { key: 'priceChange52w', label: '52W', format: v => `${v > 0 ? '+' : ''}${v.toFixed(0)}%`, tone: returnTone },
 ];
