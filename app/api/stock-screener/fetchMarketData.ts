@@ -3,6 +3,7 @@ import { SCREEN_TICKERS } from '@/app/tools/stock-screener/tickers';
 import { MOCK_STOCKS } from '@/app/tools/stock-screener/mockStocks';
 import { fetchStocksFromFinnhub } from './finnhub';
 import { fetchStocksFromFmpQuotesOnly } from './fmp';
+import { getFinnhubApiKey } from './env';
 import {
   FRESH_TTL_MS,
   readRedisSnapshot,
@@ -18,7 +19,7 @@ let memoryCache: { result: MarketDataResult; expiresAt: number } | null = null;
 let inflight: Promise<MarketDataResult> | null = null;
 
 async function loadFresh(): Promise<MarketDataResult> {
-  const finnhubKey = process.env.FINNHUB_API_KEY?.trim();
+  const finnhubKey = getFinnhubApiKey();
   const fmpKey = process.env.FMP_API_KEY?.trim();
 
   if (finnhubKey) {
@@ -41,7 +42,7 @@ async function loadFresh(): Promise<MarketDataResult> {
         source: 'mock',
         cachedAt: new Date().toISOString(),
         fromCache: false,
-        warning: 'Invalid Finnhub API key. Check FINNHUB_API_KEY in Vercel / .env.local.',
+        warning: 'Invalid Finnhub API key. Check FINNHUB_API_KEY or X_Finnhub_Secret in Vercel / .env.local.',
       };
     }
 
@@ -83,7 +84,7 @@ async function loadFresh(): Promise<MarketDataResult> {
     cachedAt: new Date().toISOString(),
     fromCache: false,
     warning: !finnhubKey && !fmpKey
-      ? 'No API key configured — showing demo data. Set FINNHUB_API_KEY in .env.local.'
+      ? 'No API key configured — showing demo data. Set FINNHUB_API_KEY (or X_Finnhub_Secret) in .env.local.'
       : 'Live API fetch failed — showing demo data.',
   };
 }

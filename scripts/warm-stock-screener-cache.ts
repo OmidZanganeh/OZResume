@@ -31,10 +31,14 @@ function loadEnvLocal() {
 loadEnvLocal();
 
 async function main() {
-  const hasFinnhub = Boolean(process.env.FINNHUB_API_KEY?.trim());
+  const hasFinnhub = Boolean(
+    process.env.FINNHUB_API_KEY?.trim() ||
+    process.env.X_Finnhub_Secret?.trim() ||
+    process.env.X_FINNHUB_SECRET?.trim(),
+  );
   const hasRedis = Boolean(process.env.REDIS_URL?.trim());
 
-  console.log(`FINNHUB_API_KEY: ${hasFinnhub ? 'yes' : 'MISSING'}`);
+  console.log(`Finnhub key: ${hasFinnhub ? 'yes (FINNHUB_API_KEY or X_Finnhub_Secret)' : 'MISSING'}`);
   console.log(`REDIS_URL: ${hasRedis ? 'yes' : 'MISSING (will only cache in memory)'}`);
   console.log('Fetching ~262 stocks — ~10 min at Finnhub free rate limits…\n');
 
