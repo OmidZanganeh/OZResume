@@ -58,7 +58,14 @@ interface OsmWikiInfo { title: string; extract: string; url: string; thumbnail?:
 interface Weather { temp: number; code: number; wind: number; }
 interface DailyForecast { date: string; maxTemp: number; minTemp: number; code: number; precipProb: number; }
 interface CountryInfo { name: string; flag: string; currencies: string; languages: string; timezones: string; drivingSide: string; }
-interface OsmElement { id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string>; }
+interface OsmElement {
+  type: 'node' | 'way' | 'relation';
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
 interface PlanResult { sectionId: string; places: WikiPlace[]; loading: boolean; error: boolean; }
 
 // ─── Data ────────────────────────────────────────────────────────────────────
