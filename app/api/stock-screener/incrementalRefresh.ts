@@ -1,6 +1,6 @@
 import type { Stock } from '@/app/tools/stock-screener/types';
 import { getFinnhubApiKey } from './env';
-import { getUsSymbolUniverse, inferSector, type UsSymbol } from './symbols';
+import { getSymbolUniverse, inferSector, type UsSymbol } from './symbols';
 import { fetchStocksBatch } from './finnhub';
 import {
   FRESH_TTL_MS,
@@ -27,7 +27,7 @@ export async function runIncrementalBatch(reset = false): Promise<BatchResult> {
   const apiKey = getFinnhubApiKey();
   if (!apiKey) throw new Error('No Finnhub API key');
 
-  const universe = await getUsSymbolUniverse();
+  const universe = await getSymbolUniverse();
   const total = universe.length;
 
   const existingSnap = await readRedisSnapshot();

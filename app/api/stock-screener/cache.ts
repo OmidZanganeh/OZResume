@@ -1,12 +1,11 @@
 import type { Stock } from '@/app/tools/stock-screener/types';
 import { getRedis } from './redis';
+import { CURSOR_REDIS_KEY, SNAPSHOT_REDIS_KEY } from './symbols';
 
 /** How long a completed snapshot stays fresh before a new full refresh cycle. */
 export const FRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const STALE_RETENTION_SEC = 30 * 24 * 60 * 60;
-export const SNAPSHOT_KEY = 'stock-screener:snapshot:v3';
-export const CURSOR_KEY = 'stock-screener:refresh-cursor';
 
 export interface MarketDataResult {
   stocks: Stock[];
@@ -30,7 +29,7 @@ export async function readRedisSnapshot(): Promise<{ data: StoredSnapshot; fresh
   if (!client) return null;
 
   try {
-    const raw = await client.get(SNAPSHOT_KEY);
+    const raw = await client.get(SNAPSHOT_REDIS_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw) as StoredSnapshot;
     if (!Array.isArray(data.stocks) || data.stocks.length === 0) return null;
@@ -45,7 +44,7 @@ export async function readRedisCursor(): Promise<number> {
   const client = getRedis();
   if (!client) return 0;
   try {
-    const v = await client.get(CURSOR_KEY);
+    const v = await client.get(CURSOR_REDIS_KEY);
     return v ? Number(v) : 0;
   } catch {
     return 0;
@@ -56,7 +55,7 @@ export async function writeRedisCursor(cursor: number): Promise<void> {
   const client = getRedis();
   if (!client) return;
   try {
-    await client.set(CURSOR_KEY, String(cursor));
+    await client.set(CURSOR_REDIS_KEY, String(cursor));
   } catch {
     // non-fatal
   }
@@ -78,7 +77,7 @@ export async function writeRedisSnapshot(result: MarketDataResult & {
   };
 
   try {
-    await client.setex(SNAPSHOT_KEY, STALE_RETENTION_SEC, JSON.stringify(payload));
+    await client.setex(SNAPSHOT_REDIS_KEY, STALE_RETENTION_SEC, JSON.stringify(payload));
   } catch {
     // non-fatal
   }

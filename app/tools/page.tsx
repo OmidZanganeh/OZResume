@@ -188,7 +188,7 @@ const TOOLS = [
     href: '/tools/stock-screener',
     icon: <IconCandlestick />,
     title: 'Stock Screener Dashboard',
-    desc: 'Filter a universe of mock equities by P/E, EPS growth, debt-to-equity, and RSI. Real-time sliders, color-coded metrics, and animated results grid.',
+    desc: 'Screen all S&P 500 stocks by P/E, EPS growth, debt-to-equity, RSI, and 40+ fundamental and technical filters.',
     tags: ['Finance', 'Interactive', 'Dashboard'],
   },
 ];

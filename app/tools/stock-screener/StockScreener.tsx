@@ -203,7 +203,7 @@ export default function StockScreener() {
           {isLoading && (
             <span className={styles.dataBannerLoading}>
               <Loader2 size={14} className={styles.spinIcon} />
-              Loading US market data (weekly cache)…
+              Loading S&P 500 data (weekly cache)…
             </span>
           )}
           {!isLoading && dataWarning && (
@@ -214,7 +214,7 @@ export default function StockScreener() {
           )}
           {!isLoading && dataSource !== 'mock' && !dataWarning && (
             <span className={styles.dataBannerOk}>
-              Live data via Finnhub · {total}{totalSymbols ? ` / ${totalSymbols}` : ''} US stocks · weekly refresh
+              Live data via Finnhub · {total}{totalSymbols ? ` / ${totalSymbols}` : ''} S&P 500 · weekly refresh
               {cacheLabel ? ` · ${cacheLabel}` : ''}
             </span>
           )}

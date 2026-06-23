@@ -1,47 +1,18 @@
 import type { Sector } from '@/app/tools/stock-screener/types';
-import { getFinnhubApiKey } from './env';
 import { getRedis } from './redis';
 
-const FINNHUB = 'https://finnhub.io/api/v1';
-export const SYMBOLS_REDIS_KEY = 'stock-screener:symbols:v2';
+export const SYMBOLS_REDIS_KEY = 'stock-screener:symbols:sp500';
+export const SNAPSHOT_REDIS_KEY = 'stock-screener:snapshot:sp500';
+export const CURSOR_REDIS_KEY = 'stock-screener:cursor:sp500';
+
 const SYMBOLS_TTL_SEC = 30 * 24 * 60 * 60;
+const SP500_DATASET_URL =
+  'https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv';
 
 export interface UsSymbol {
   symbol: string;
   name: string;
   sector: Sector;
-  mic?: string;
-}
-
-interface FinnhubSymbolRow {
-  symbol: string;
-  description?: string;
-  displaySymbol?: string;
-  type?: string;
-  mic?: string;
-}
-
-/** Major US listing venues — skips OTC/pink sheets unless STOCK_SCREENER_INCLUDE_OTC=true */
-const MAJOR_MICS = new Set(['XNAS', 'XNYS', 'ARCX', 'XNCM', 'XNMS', 'XASE']);
-
-function includeOtc(): boolean {
-  return process.env.STOCK_SCREENER_INCLUDE_OTC?.trim() === 'true';
-}
-
-const EQUITY_TYPES = new Set([
-  'common stock',
-  'adr',
-  'eqs',
-]);
-
-function isCommonEquity(row: FinnhubSymbolRow): boolean {
-  const t = (row.type ?? '').toLowerCase().trim();
-  if (!t) return false;
-  if (t.includes('etf') || t.includes('etn') || t.includes('fund')) return false;
-  if (t.includes('warrant') || t.includes('right') || t.includes('unit')) return false;
-  if (t.includes('bond') || t.includes('note') || t.includes('preferred')) return false;
-  if (EQUITY_TYPES.has(t)) return true;
-  return t.includes('common stock');
 }
 
 /** Rough sector guess from company name — used when Finnhub has no GICS field. */
@@ -64,54 +35,76 @@ export function inferSector(name: string, metric?: Record<string, number>): Sect
   return 'Consumer';
 }
 
-async function fetchFromFinnhub(apiKey: string): Promise<UsSymbol[]> {
-  const res = await fetch(`${FINNHUB}/stock/symbol?exchange=US&token=${apiKey}`);
-  if (!res.ok) throw new Error(`Finnhub symbol list failed (${res.status})`);
-  const rows = (await res.json()) as FinnhubSymbolRow[];
-  if (!Array.isArray(rows)) throw new Error('Invalid Finnhub symbol response');
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]!;
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (ch === ',' && !inQuotes) {
+      out.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
 
-  const seen = new Set<string>();
+function gicsToSector(gics: string): Sector {
+  const g = gics.toLowerCase();
+  if (g.includes('information technology')) return 'Tech';
+  if (g.includes('health care')) return 'Healthcare';
+  if (g.includes('financial')) return 'Finance';
+  if (g.includes('energy')) return 'Energy';
+  return 'Consumer';
+}
+
+async function fetchSp500FromDataset(): Promise<UsSymbol[]> {
+  const res = await fetch(SP500_DATASET_URL, { next: { revalidate: 86400 } });
+  if (!res.ok) throw new Error(`S&P 500 list fetch failed (${res.status})`);
+  const lines = (await res.text()).trim().split(/\r?\n/).slice(1);
   const out: UsSymbol[] = [];
 
-  for (const row of rows) {
-    if (!isCommonEquity(row)) continue;
-    if (!includeOtc() && row.mic && !MAJOR_MICS.has(row.mic)) continue;
-    const symbol = (row.displaySymbol ?? row.symbol)?.trim();
-    if (!symbol || symbol.length > 8) continue;
-    if (seen.has(symbol)) continue;
-    seen.add(symbol);
-
-    const name = (row.description ?? symbol).trim();
+  for (const line of lines) {
+    const cols = parseCsvLine(line);
+    const symbol = cols[0]?.trim();
+    const name = cols[1]?.trim();
+    const gics = cols[2]?.trim();
+    if (!symbol || !name) continue;
     out.push({
-      symbol,
+      symbol: symbol.replace(/\./g, '-'),
       name,
-      sector: inferSector(name),
-      mic: row.mic,
+      sector: gicsToSector(gics ?? ''),
     });
   }
 
+  if (out.length < 400) throw new Error('S&P 500 list returned too few symbols');
   out.sort((a, b) => a.symbol.localeCompare(b.symbol));
   return out;
 }
 
-export async function getUsSymbolUniverse(): Promise<UsSymbol[]> {
+/** S&P 500 symbol list for the screener. */
+export async function getSymbolUniverse(): Promise<UsSymbol[]> {
   const client = getRedis();
   if (client) {
     try {
       const raw = await client.get(SYMBOLS_REDIS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as UsSymbol[];
-        if (Array.isArray(parsed) && parsed.length > 100) return parsed;
+        if (Array.isArray(parsed) && parsed.length >= 400) return parsed;
       }
     } catch {
-      // fall through to Finnhub
+      // fall through
     }
   }
 
-  const apiKey = getFinnhubApiKey();
-  if (!apiKey) throw new Error('No Finnhub API key');
-
-  const symbols = await fetchFromFinnhub(apiKey);
+  const symbols = await fetchSp500FromDataset();
 
   if (client && symbols.length > 0) {
     try {

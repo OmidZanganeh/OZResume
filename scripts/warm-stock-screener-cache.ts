@@ -1,7 +1,5 @@
 /**
- * Fetches full US common-stock universe into Redis (incremental batches).
- * Run: npm run warm:stocks
- * Takes 1–3 hours for ~5k symbols at Finnhub free rate limits.
+ * Warm S&P 500 fundamentals into Redis. Run: npm run warm:stocks
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -37,13 +35,12 @@ async function main() {
 
   console.log(`Finnhub key: ${hasKey ? 'yes' : 'MISSING'}`);
   console.log(`REDIS_URL: ${hasRedis ? 'yes' : 'MISSING'}`);
-  console.log('Loading full US symbol list + fundamentals in batches…\n');
 
-  const { getUsSymbolUniverse } = await import('../app/api/stock-screener/symbols');
+  const { getSymbolUniverse } = await import('../app/api/stock-screener/symbols');
   const { runIncrementalBatch } = await import('../app/api/stock-screener/incrementalRefresh');
 
-  const universe = await getUsSymbolUniverse();
-  console.log(`Universe: ${universe.length} US common stocks / ADRs\n`);
+  const universe = await getSymbolUniverse();
+  console.log(`S&P 500: ${universe.length} symbols\n`);
 
   let batchNum = 0;
   while (true) {
@@ -57,7 +54,7 @@ async function main() {
     if (batch.complete) break;
   }
 
-  console.log('\nDone — Redis snapshot ready for all users.');
+  console.log('\nDone — Redis snapshot ready.');
 }
 
 main().catch(err => {

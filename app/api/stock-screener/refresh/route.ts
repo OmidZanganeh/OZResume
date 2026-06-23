@@ -14,7 +14,7 @@ function isAuthorized(req: NextRequest): boolean {
 
 /**
  * Incremental cache warm — one batch per call (~150 symbols).
- * Chain with ?continue=1 or cron; full US universe takes many batches.
+ * Chain with ?continue=1 or cron; S&P 500 (~503) finishes in ~4 batches.
  */
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
