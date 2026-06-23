@@ -461,6 +461,8 @@ export default function TripExplorer() {
   useEffect(() => {
     setFavorites(loadFavs());
     setItinerary(loadItinerary());
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     try {
       const p = new URLSearchParams(window.location.search);
       const lat = parseFloat(p.get('lat') || ''), lon = parseFloat(p.get('lon') || '');
@@ -483,6 +485,7 @@ export default function TripExplorer() {
         }
       }
     } catch { /* ignore */ }
+    return () => { document.body.style.overflow = prevOverflow; };
   }, []);
 
   const getCat = useCallback((id: string) => EXPLORE_CATEGORIES.find(c => c.id === id), []);

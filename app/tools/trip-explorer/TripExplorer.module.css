@@ -1,13 +1,16 @@
 /* ── Root ──────────────────────────────────────────────────────────────────── */
 .root {
+  /* position: fixed + inset: 0 locks to the visual viewport, which correctly
+     accounts for html { zoom: 1.2 } in globals.css. height: 100dvh overflows. */
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  min-height: 100svh;
+  overflow: hidden;
   background: #0d1117;
   color: #e2e8f0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  overflow: hidden;
+  z-index: 1;
 }
 
 /* ── Header ────────────────────────────────────────────────────────────────── */
@@ -591,7 +594,7 @@
 @keyframes shimmer { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
 
 /* ── Map ───────────────────────────────────────────────────────────────────── */
-.mapWrap { flex: 1; min-width: 0; position: relative; }
+.mapWrap { flex: 1; min-width: 0; min-height: 0; position: relative; }
 .mapLoading { display: flex; align-items: center; justify-content: center; gap: 10px; height: 100%; background: #0d1117; color: rgba(255,255,255,0.38); font-size: 14px; }
 .mapLoadingDot { width: 8px; height: 8px; border-radius: 50%; background: #4f8ef7; animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 0%,100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
@@ -646,9 +649,9 @@
 .mobileViewToggle { display: none; }
 
 @media (max-width: 700px) {
-  /* Layout: map stacked above panel */
-  .body { flex-direction: column; }
-  .mapWrap { height: 38vh; flex: none; position: relative; }
+  /* Layout: map stacked above panel — both share remaining height */
+  .body { flex-direction: column; min-height: 0; }
+  .mapWrap { flex: 1; min-height: 0; max-height: 45%; position: relative; }
   .panel { width: 100%; border-right: none; border-top: 1px solid rgba(255,255,255,0.06); flex: 1; min-height: 0; }
 
   /* List-view mode: map hidden, panel full height */
