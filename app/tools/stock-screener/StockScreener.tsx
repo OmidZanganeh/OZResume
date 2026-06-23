@@ -199,7 +199,7 @@ export default function StockScreener() {
           {isLoading && (
             <span className={styles.dataBannerLoading}>
               <Loader2 size={14} className={styles.spinIcon} />
-              Loading live market data (115 tech &amp; finance stocks)…
+              Loading live market data (116 tech &amp; finance stocks)…
             </span>
           )}
           {!isLoading && dataWarning && (
