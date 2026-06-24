@@ -26,6 +26,7 @@ function kickRefreshChain() {
 }
 
 function remember(result: MarketDataResult) {
+  if (result.refreshComplete === false) return;
   memoryCache = {
     result: { ...result, fromCache: true },
     expiresAt: Date.now() + MEMORY_TTL_MS,
@@ -34,6 +35,7 @@ function remember(result: MarketDataResult) {
 
 function fromMemory(): MarketDataResult | null {
   if (!memoryCache || memoryCache.expiresAt <= Date.now()) return null;
+  if (memoryCache.result.refreshComplete === false) return null;
   return memoryCache.result;
 }
 
@@ -44,7 +46,8 @@ export async function getMarketStocks(): Promise<MarketDataResult> {
 
   const stored = await loadMarketFromStore();
   if (stored) {
-    remember(stored);
+    if (!stored.refreshComplete) kickRefreshChain();
+    else remember(stored);
     return stored;
   }
 
