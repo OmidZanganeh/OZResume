@@ -8,10 +8,12 @@ export const maxDuration = 120;
 export async function GET() {
   try {
     const result = await getMarketStocks();
+    const cacheControl =
+      result.refreshComplete === false
+        ? 'no-store'
+        : 'public, s-maxage=604800, stale-while-revalidate=86400';
     return NextResponse.json(result, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=604800, stale-while-revalidate=86400',
-      },
+      headers: { 'Cache-Control': cacheControl },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to load market data';
