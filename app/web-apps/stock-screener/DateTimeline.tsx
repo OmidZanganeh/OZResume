@@ -28,7 +28,7 @@ export default function DateTimeline({ daysAgo, onChange }: Props) {
           <strong className={styles.dateBarValue}>{formatAsOfDate(daysAgo)}</strong>
           {!isToday && (
             <span className={styles.dateBarHint}>
-              — metrics reflect this date; growth shows change to today
+              — past prices from Finnhub return windows; growth shows change to today
             </span>
           )}
         </div>
@@ -61,7 +61,7 @@ export default function DateTimeline({ daysAgo, onChange }: Props) {
           value={sliderPos}
           onChange={e => onChange(HISTORY_DAYS - parseInt(e.target.value, 10))}
           style={{ '--pct': `${pct}%` } as React.CSSProperties}
-          aria-label="Screening date — drag left for older dates, right for today"
+          aria-label="Screening date — drag left for up to 1 year ago, right for today"
         />
         <span className={styles.dateBound}>Today</span>
       </div>

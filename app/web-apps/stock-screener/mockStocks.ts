@@ -64,11 +64,9 @@ function buildStocks(): Stock[] {
       const nameIdx = Math.floor(rng() * names.length);
       const companyName = names.splice(nameIdx, 1)[0] ?? `${sector} Corp ${i + 1}`;
       const price = range(rng, 18, 420, 2);
-      const annualizedReturn = range(rng, -18, 52, 1);
       const sharesM = range(rng, 50, 8000, 0);
       const marketCap = Math.round(price * sharesM);
       const peRatio = range(rng, 5, 100, 1);
-      const rsi14 = range(rng, 10, 90, 0);
       const priceChange52w = range(rng, -45, 120, 1);
 
       stocks.push({
@@ -100,8 +98,6 @@ function buildStocks(): Stock[] {
         freeCashFlowYield: range(rng, -3, 15, 1),
         price,
         marketCap,
-        rsi14,
-        rsi: rsi14,
         priceChange1m: range(rng, -25, 35, 1),
         priceChange3m: range(rng, -35, 50, 1),
         priceChange6m: range(rng, -40, 70, 1),
@@ -109,17 +105,9 @@ function buildStocks(): Stock[] {
         priceVs52wHigh: range(rng, -55, 0, 1),
         priceVs52wLow: range(rng, 0, 150, 1),
         avgVolume: range(rng, 0.2, 25, 1),
-        relativeVolume: range(rng, 0.3, 3.5, 1),
         volatility30d: range(rng, 8, 65, 1),
         atrPercent: range(rng, 1, 12, 1),
         beta: range(rng, 0.4, 2.4, 2),
-        sma50Distance: range(rng, -25, 25, 1),
-        sma200Distance: range(rng, -35, 35, 1),
-        macdSignal: range(rng, -4, 4, 2),
-        stochastic: range(rng, 5, 95, 0),
-        williamsR: range(rng, -95, -5, 0),
-        adx: range(rng, 8, 55, 0),
-        annualizedReturn,
       });
       idx++;
     }

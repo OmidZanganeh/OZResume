@@ -47,7 +47,7 @@ export const apps: WebAppListing[] = [
     title: "Stock Screener",
     subtitle: "S&P 500 fundamental & technical screener",
     description:
-      "Screen all S&P 500 stocks with 40+ filters — P/E, EPS growth, debt ratios, RSI, margins, and more. Live Finnhub data with weekly cache.",
+      "Screen S&P 500 stocks with Finnhub fundamentals and momentum filters. Slide back up to 1 year for return-based backtests; live data refreshes weekly.",
     tech: ["Next.js", "Finnhub", "TypeScript"],
     href: "/web-apps/stock-screener",
     urlAbsolute: `${siteUrl}/web-apps/stock-screener`,

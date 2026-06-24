@@ -11,7 +11,6 @@ export interface FilterRange {
 }
 
 export interface ScreenerState {
-  rsiPeriod: number;
   filters: Record<FilterId, FilterRange>;
   sectorFilterEnabled: boolean;
   sectors: Sector[];
@@ -31,11 +30,9 @@ export interface FilterDef {
   metricKey: FilterId;
 }
 
-export const RSI_PERIODS = [7, 9, 14, 21, 28] as const;
-
 export const ALL_SECTORS: Sector[] = ['Tech', 'Healthcare', 'Finance', 'Energy', 'Consumer'];
 
-export const DEFAULT_ENABLED: FilterId[] = ['peRatio', 'epsGrowth', 'debtToEquity', 'rsi'];
+export const DEFAULT_ENABLED: FilterId[] = ['peRatio', 'epsGrowth', 'debtToEquity'];
 
 export const FILTER_CATEGORIES: {
   id: FilterCategory;
@@ -55,7 +52,6 @@ export const FILTER_CATEGORIES: {
 ];
 
 const pct = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(0)}%`;
-const pct1 = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 const dol = (v: number) => `$${v.toFixed(0)}`;
 const mcap = (v: number) => (v >= 1000 ? `$${(v / 1000).toFixed(1)}B` : `$${v.toFixed(0)}M`);
 
@@ -197,11 +193,6 @@ export const FILTER_DEFS: FilterDef[] = [
     min: 0, max: 500, step: 1, defaultMin: 0, defaultMax: 500, format: dol, metricKey: 'price',
   },
   {
-    id: 'rsi', category: 'technical', label: 'RSI',
-    explanation: 'Relative Strength Index on weekly closing prices (0–100). Below 30 is often oversold; above 70 overbought. Period selector applies to weekly bars. Data refreshes weekly.',
-    min: 0, max: 100, step: 1, defaultMin: 0, defaultMax: 100, format: v => v.toFixed(0), metricKey: 'rsi',
-  },
-  {
     id: 'priceChange1m', category: 'technical', label: '1-Month Change',
     explanation: 'Percentage price change over the last month. Captures very recent momentum — positive values indicate short-term strength; large negatives may flag pullbacks or reversals.',
     min: -40, max: 60, step: 1, defaultMin: -40, defaultMax: 60, format: pct, metricKey: 'priceChange1m',
@@ -231,27 +222,11 @@ export const FILTER_DEFS: FilterDef[] = [
     explanation: 'How far above the 52-week low the stock trades (positive %). Large values show recovery from lows; small values may indicate stocks still near troubled levels.',
     min: 0, max: 200, step: 1, defaultMin: 0, defaultMax: 200, format: pct, metricKey: 'priceVs52wLow',
   },
-  {
-    id: 'sma50Distance', category: 'technical', label: 'Distance from 50-Day SMA',
-    explanation: 'Percent above or below the 50-day simple moving average. Positive = trading above intermediate trend; negative = below. Used for trend-following entry and exit rules.',
-    min: -30, max: 30, step: 0.5, defaultMin: -30, defaultMax: 30, format: pct1, metricKey: 'sma50Distance',
-  },
-  {
-    id: 'sma200Distance', category: 'technical', label: 'Distance from 200-Day SMA',
-    explanation: 'Percent above or below the 200-day SMA — the classic long-term trend line. Many investors consider above 200-SMA bullish and below bearish for the primary trend.',
-    min: -40, max: 40, step: 0.5, defaultMin: -40, defaultMax: 40, format: pct1, metricKey: 'sma200Distance',
-  },
-
   // ── Technical: Volume & volatility ────────────────────────────────────────
   {
     id: 'avgVolume', category: 'technical', label: 'Avg Daily Volume',
     explanation: 'Average shares traded per day (millions). Higher volume means better liquidity and tighter spreads — important for larger positions and faster entries/exits.',
     min: 0, max: 50, step: 0.1, defaultMin: 0, defaultMax: 50, format: v => `${v.toFixed(1)}M`, metricKey: 'avgVolume',
-  },
-  {
-    id: 'relativeVolume', category: 'technical', label: 'Relative Volume',
-    explanation: 'Today\'s volume divided by average volume. Above 1.5× signals unusual activity — often accompanies breakouts, earnings reactions, or institutional interest.',
-    min: 0, max: 5, step: 0.1, defaultMin: 0, defaultMax: 5, format: v => `${v.toFixed(1)}×`, metricKey: 'relativeVolume',
   },
   {
     id: 'volatility30d', category: 'technical', label: '30-Day Volatility',
@@ -268,28 +243,6 @@ export const FILTER_DEFS: FilterDef[] = [
     explanation: 'Sensitivity to market moves vs the S&P 500. Beta 1.0 moves with the market; >1 is more volatile; <1 is defensive. Low-beta screens reduce portfolio market risk.',
     min: 0, max: 3, step: 0.05, defaultMin: 0, defaultMax: 3, format: v => v.toFixed(2), metricKey: 'beta',
   },
-
-  // ── Technical: Indicators ─────────────────────────────────────────────────
-  {
-    id: 'macdSignal', category: 'technical', label: 'MACD Histogram',
-    explanation: 'MACD line minus signal line. Positive histogram suggests bullish momentum building; negative suggests bearish momentum. Zero crossovers are common trade triggers.',
-    min: -5, max: 5, step: 0.1, defaultMin: -5, defaultMax: 5, format: v => v.toFixed(2), metricKey: 'macdSignal',
-  },
-  {
-    id: 'stochastic', category: 'technical', label: 'Stochastic %K',
-    explanation: 'Compares the close to the recent high-low range (0–100). Below 20 = oversold zone; above 80 = overbought. Often paired with RSI for confirmation.',
-    min: 0, max: 100, step: 1, defaultMin: 0, defaultMax: 100, format: v => v.toFixed(0), metricKey: 'stochastic',
-  },
-  {
-    id: 'williamsR', category: 'technical', label: 'Williams %R',
-    explanation: 'Momentum oscillator from 0 to -100. Readings from 0 to -20 are overbought; -80 to -100 oversold. Similar to stochastic but inverted on the scale.',
-    min: -100, max: 0, step: 1, defaultMin: -100, defaultMax: 0, format: v => v.toFixed(0), metricKey: 'williamsR',
-  },
-  {
-    id: 'adx', category: 'technical', label: 'ADX (Trend Strength)',
-    explanation: 'Average Directional Index measures trend strength, not direction (0–100). Above 25 suggests a strong trend worth trading; below 20 indicates a choppy, range-bound market.',
-    min: 0, max: 60, step: 1, defaultMin: 0, defaultMax: 60, format: v => v.toFixed(0), metricKey: 'adx',
-  },
 ];
 
 function buildDefaultFilters(): Record<FilterId, FilterRange> {
@@ -305,7 +258,6 @@ function buildDefaultFilters(): Record<FilterId, FilterRange> {
 }
 
 export const DEFAULT_SCREENER_STATE: ScreenerState = {
-  rsiPeriod: 14,
   filters: buildDefaultFilters(),
   sectorFilterEnabled: false,
   sectors: [],
@@ -316,7 +268,6 @@ export function filtersByCategory(category: FilterCategory): FilterDef[] {
 }
 
 export function isDefaultState(state: ScreenerState): boolean {
-  if (state.rsiPeriod !== 14) return false;
   if (state.sectorFilterEnabled) return false;
   if (state.sectors.length > 0) return false;
   return FILTER_DEFS.every(def => {

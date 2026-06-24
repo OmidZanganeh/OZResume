@@ -51,25 +51,24 @@ function sortStocks(
   stocks: Stock[],
   sortMode: SortMode,
   snapshots: ReturnType<typeof buildAllSnapshots>,
+  isHistorical: boolean,
 ): Stock[] {
   const list = [...stocks];
   switch (sortMode) {
     case 'return-desc':
       return list.sort((a, b) =>
-        snapshots.get(b.ticker)!.returnToTodayPct - snapshots.get(a.ticker)!.returnToTodayPct,
+        (isHistorical ? snapshots.get(b.ticker)!.returnToTodayPct : b.priceChange52w)
+        - (isHistorical ? snapshots.get(a.ticker)!.returnToTodayPct : a.priceChange52w),
       );
     case 'return-asc':
       return list.sort((a, b) =>
-        snapshots.get(a.ticker)!.returnToTodayPct - snapshots.get(b.ticker)!.returnToTodayPct,
+        (isHistorical ? snapshots.get(a.ticker)!.returnToTodayPct : a.priceChange52w)
+        - (isHistorical ? snapshots.get(b.ticker)!.returnToTodayPct : b.priceChange52w),
       );
     case 'pe-asc':
-      return list.sort((a, b) =>
-        snapshots.get(a.ticker)!.peRatio - snapshots.get(b.ticker)!.peRatio,
-      );
+      return list.sort((a, b) => a.peRatio - b.peRatio);
     case 'eps-desc':
-      return list.sort((a, b) =>
-        snapshots.get(b.ticker)!.epsGrowth - snapshots.get(a.ticker)!.epsGrowth,
-      );
+      return list.sort((a, b) => b.epsGrowth - a.epsGrowth);
     default:
       return list.sort((a, b) => a.ticker.localeCompare(b.ticker));
   }
@@ -92,9 +91,9 @@ export default function StockScreener() {
     function applyPayload(data: MarketPayload) {
       const list = Array.isArray(data.stocks) && data.stocks.length > 0
         ? data.stocks
-          : MOCK_STOCKS;
+        : MOCK_STOCKS;
 
-        setStocks(list);
+      setStocks(list);
       setDataSource(data.source ?? 'mock');
       setDataWarning(data.warning ?? null);
       setTotalSymbols(data.totalSymbols);
@@ -116,7 +115,6 @@ export default function StockScreener() {
         applyPayload(sessionHit as MarketPayload);
         setDataSource((sessionHit.source as DataSource) ?? 'mock');
         setLoadError(null);
-        // Still revalidate in background without blocking UI
       } else {
         setDataSource('loading');
       }
@@ -132,8 +130,7 @@ export default function StockScreener() {
       } catch (err) {
         if (cancelled) return;
         if (hadCachedStocks) return;
-        const fallback = MOCK_STOCKS;
-        setStocks(fallback.length > 0 ? fallback : MOCK_STOCKS);
+        setStocks(MOCK_STOCKS);
         setDataSource('mock');
         setDataWarning('Could not reach market API — using demo data.');
         setLoadError(err instanceof Error ? err.message : 'Load failed');
@@ -152,7 +149,6 @@ export default function StockScreener() {
   }, []);
 
   const isHistorical = daysAgo > 0;
-  const { rsiPeriod } = screenerState;
 
   useEffect(() => {
     if (isHistorical && sortMode === 'ticker') setSortMode('return-desc');
@@ -160,8 +156,8 @@ export default function StockScreener() {
   }, [isHistorical]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const snapshots = useMemo(
-    () => buildAllSnapshots(stocks, daysAgo, rsiPeriod),
-    [stocks, daysAgo, rsiPeriod],
+    () => buildAllSnapshots(stocks, daysAgo),
+    [stocks, daysAgo],
   );
 
   const matchingSet = useMemo(() => {
@@ -177,8 +173,8 @@ export default function StockScreener() {
   }, [isHistorical, stocks, snapshots, matchingSet]);
 
   const sortedStocks = useMemo(
-    () => sortStocks(stocks, sortMode, snapshots),
-    [stocks, sortMode, snapshots],
+    () => sortStocks(stocks, sortMode, snapshots, isHistorical),
+    [stocks, sortMode, snapshots, isHistorical],
   );
 
   const matchCount = matchingSet.size;
@@ -214,7 +210,7 @@ export default function StockScreener() {
           )}
           {!isLoading && dataSource !== 'mock' && !dataWarning && (
             <span className={styles.dataBannerOk}>
-              Live data via Finnhub · {total}{totalSymbols ? ` / ${totalSymbols}` : ''} S&P 500 · weekly refresh
+              Live Finnhub data · {total}{totalSymbols ? ` / ${totalSymbols}` : ''} S&P 500 · weekly refresh
               {cacheLabel ? ` · ${cacheLabel}` : ''}
             </span>
           )}
@@ -238,8 +234,8 @@ export default function StockScreener() {
                 {activeFilters === 0
                   ? 'No filters active — showing all stocks. Enable filters in the sidebar.'
                   : isHistorical
-                    ? `${activeFilters} filter${activeFilters !== 1 ? 's' : ''} on past data · RSI(${rsiPeriod})`
-                    : `${activeFilters} active filter${activeFilters !== 1 ? 's' : ''} · RSI(${rsiPeriod})`}
+                    ? `${activeFilters} filter${activeFilters !== 1 ? 's' : ''} on past data (up to 1 year)`
+                    : `${activeFilters} active filter${activeFilters !== 1 ? 's' : ''}`}
               </p>
             </div>
             <div className={styles.countBadge} aria-live="polite">
@@ -285,7 +281,6 @@ export default function StockScreener() {
                     isHistorical={isHistorical}
                     returnToTodayPct={snap.returnToTodayPct}
                     priceThen={snap.priceThen}
-                    rsiPeriod={rsiPeriod}
                   />
                 );
               })

@@ -1,7 +1,6 @@
 import type { Stock } from '@/app/web-apps/stock-screener/types';
 import type { TickerEntry } from '@/app/web-apps/stock-screener/tickers';
-import { approximateRSIFromRange } from '@/app/web-apps/stock-screener/rsi';
-import { num, round, chunk } from './utils';
+import { num, pct, round, chunk } from './utils';
 
 const FMP = 'https://financialmodelingprep.com';
 
@@ -10,17 +9,12 @@ interface FmpQuote {
   name?: string;
   price?: number;
   pe?: number;
-  eps?: number;
   marketCap?: number;
   yearHigh?: number;
   yearLow?: number;
-  priceAvg50?: number;
-  priceAvg200?: number;
   volume?: number;
   avgVolume?: number;
   beta?: number;
-  changesPercentage?: number;
-  change?: number;
 }
 
 interface FmpRatios {
@@ -64,38 +58,29 @@ function mapFmpToStock(
   quote: FmpQuote,
   ratios: FmpRatios | null,
 ): Stock {
-  const price = num(quote.price, 1);
-  const high52 = num(quote.yearHigh, price * 1.15);
-  const low52 = num(quote.yearLow, price * 0.85);
-  const avg50 = num(quote.priceAvg50, price);
-  const avg200 = num(quote.priceAvg200, price);
+  const price = num(quote.price, 0);
+  const high52 = num(quote.yearHigh, 0);
+  const low52 = num(quote.yearLow, 0);
   const marketCapRaw = num(quote.marketCap, 0);
   const marketCap = marketCapRaw > 1e9 ? Math.round(marketCapRaw / 1e6) : Math.round(marketCapRaw);
 
   const peRatio = num(ratios?.priceToEarningsRatio ?? quote.pe, 0);
-  const rsi14 = approximateRSIFromRange(price, low52, high52);
-  const priceChange52w = low52 > 0 ? round(((price - low52) / low52) * 100 * 0.6, 1) : 0;
-
-  const pct = (v: unknown) => {
-    const n = num(v, 0);
-    return Math.abs(n) <= 1.5 ? round(n * 100, 1) : round(n, 1);
-  };
-
-  const epsGrowth = quote.eps && quote.pe ? round((num(quote.eps) / Math.max(0.01, num(quote.eps) * 0.9) - 1) * 100, 1) : 0;
+  const epsGrowth = 0;
+  const pegRatio = num(ratios?.priceToEarningsGrowthRatio, 0);
 
   return {
     ticker: entry.symbol,
     companyName: quote.name ?? entry.name,
     sector: entry.sector,
     peRatio: round(peRatio, 1),
-    forwardPe: round(peRatio * 0.95, 1),
-    pegRatio: round(num(ratios?.priceToEarningsGrowthRatio, 0), 1),
+    forwardPe: 0,
+    pegRatio: round(pegRatio, 1),
     pbRatio: round(num(ratios?.priceToBookRatio, 0), 1),
     psRatio: round(num(ratios?.priceToSalesRatio, 0), 1),
     pcfRatio: round(num(ratios?.priceToFreeCashFlowRatio, 0), 1),
     evToEbitda: round(num(ratios?.enterpriseValueMultiple, 0), 1),
     epsGrowth,
-    revenueGrowth: round(epsGrowth * 0.7, 1),
+    revenueGrowth: 0,
     profitMargin: pct(ratios?.netProfitMargin),
     grossMargin: pct(ratios?.grossProfitMargin),
     operatingMargin: pct(ratios?.operatingProfitMargin),
@@ -112,28 +97,16 @@ function mapFmpToStock(
     freeCashFlowYield: pct(ratios?.freeCashFlowYield),
     price: round(price, 2),
     marketCap,
-    rsi14,
-    rsi: rsi14,
-    priceChange1m: round(num(quote.changesPercentage, 0) * 2, 1),
-    priceChange3m: round(priceChange52w * 0.25, 1),
-    priceChange6m: round(priceChange52w * 0.5, 1),
-    priceChange52w: priceChange52w,
+    priceChange1m: 0,
+    priceChange3m: 0,
+    priceChange6m: 0,
+    priceChange52w: 0,
     priceVs52wHigh: high52 > 0 ? round(((price - high52) / high52) * 100, 1) : 0,
     priceVs52wLow: low52 > 0 ? round(((price - low52) / low52) * 100, 1) : 0,
     avgVolume: round(num(quote.avgVolume, 0) / 1_000_000, 1),
-    relativeVolume: quote.avgVolume
-      ? round(num(quote.volume, 0) / num(quote.avgVolume, 1), 1)
-      : 1,
-    volatility30d: round(Math.abs(num(quote.changesPercentage, 2)) * 8, 1),
-    atrPercent: round(Math.abs(num(quote.change, 1)) / Math.max(price, 1) * 100 * 5, 1),
-    beta: round(num(quote.beta, 1), 2),
-    sma50Distance: avg50 > 0 ? round(((price - avg50) / avg50) * 100, 1) : 0,
-    sma200Distance: avg200 > 0 ? round(((price - avg200) / avg200) * 100, 1) : 0,
-    macdSignal: round(num(quote.changesPercentage, 0) * 0.1, 2),
-    stochastic: round(rsi14, 0),
-    williamsR: round(-(100 - rsi14), 0),
-    adx: 25,
-    annualizedReturn: priceChange52w,
+    volatility30d: 0,
+    atrPercent: 0,
+    beta: round(num(quote.beta, 0), 2),
   };
 }
 
@@ -164,7 +137,6 @@ export async function fetchStocksFromFmp(
     const entry = bySymbol.get(sym) ?? bySymbol.get(sym.replace('.', '-'));
     if (!entry) continue;
 
-    // Ratios are per-symbol — fetch only when quote succeeded (budget ~1 call/stock, batched slowly)
     const ratios = await fmpGet<FmpRatios[]>(
       `/api/v3/ratios-ttm/${encodeURIComponent(sym)}`,
       apiKey,

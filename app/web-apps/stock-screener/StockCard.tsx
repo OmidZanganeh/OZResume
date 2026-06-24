@@ -11,7 +11,6 @@ interface Props {
   isHistorical: boolean;
   returnToTodayPct: number;
   priceThen: number;
-  rsiPeriod: number;
 }
 
 function toneClass(tone: MetricTone): string {
@@ -28,7 +27,7 @@ function fmtReturn(v: number): string {
 }
 
 export default function StockCard({
-  stock, metrics, visible, isHistorical, returnToTodayPct, priceThen, rsiPeriod,
+  stock, metrics, visible, isHistorical, returnToTodayPct, priceThen,
 }: Props) {
   return (
     <article
@@ -62,9 +61,9 @@ export default function StockCard({
       <dl className={styles.metricGrid}>
         {CARD_METRICS.map(({ key, label, format, tone }) => (
           <div key={key} className={styles.metricItem}>
-            <dt>{key === 'rsi' ? `RSI (${rsiPeriod})` : label}</dt>
+            <dt>{label}</dt>
             <dd className={tone ? toneClass(tone(metrics[key])) : styles.metricNeutral}>
-              {format(metrics[key], rsiPeriod)}
+              {format(metrics[key])}
             </dd>
           </div>
         ))}

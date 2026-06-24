@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendingDown, TrendingUp, Target } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import type { BacktestSummary } from './types';
 import { formatAsOfDate } from './historical';
 import styles from './StockScreener.module.css';
@@ -17,45 +17,41 @@ function fmtPct(v: number): string {
 export default function BacktestPanel({ daysAgo, backtest }: Props) {
   if (daysAgo <= 0 || !backtest) return null;
 
-  const { matchedCount, matchedAvgReturn, universeAvgReturn, alpha } = backtest;
-  const alphaGood = alpha > 0;
-
   return (
-    <div className={styles.backtestPanel}>
+    <section className={styles.backtestPanel} aria-label="Backtest summary">
       <div className={styles.backtestHead}>
-        <Target size={16} />
-        <span>
+        <TrendingUp size={16} />
+        <p>
           Backtest from <strong>{formatAsOfDate(daysAgo)}</strong>
-          {matchedCount > 0
-            ? <> — {matchedCount} stock{matchedCount !== 1 ? 's' : ''} would have passed your filters</>
-            : <> — no stocks match at that date</>
-          }
-        </span>
+          {' '}— if you bought every stock matching your filters then, held to today:
+        </p>
       </div>
-
-      {matchedCount > 0 && (
-        <div className={styles.backtestStats}>
-          <div className={styles.backtestStat}>
-            <span className={styles.backtestStatLabel}>Matched avg return</span>
-            <span className={matchedAvgReturn >= 0 ? styles.statUp : styles.statDown}>
-              {matchedAvgReturn >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-              {fmtPct(matchedAvgReturn)}
-            </span>
-          </div>
-          <div className={styles.backtestStat}>
-            <span className={styles.backtestStatLabel}>All stocks avg</span>
-            <span className={universeAvgReturn >= 0 ? styles.statUp : styles.statDown}>
-              {fmtPct(universeAvgReturn)}
-            </span>
-          </div>
-          <div className={styles.backtestStat}>
-            <span className={styles.backtestStatLabel}>Filter edge (α)</span>
-            <span className={alphaGood ? styles.statUp : styles.statDown}>
-              {fmtPct(alpha)}
-            </span>
-          </div>
+      <div className={styles.backtestStats}>
+        <div className={styles.backtestStat}>
+          <span className={styles.backtestStatLabel}>Matched</span>
+          <span>{backtest.matchedCount}</span>
         </div>
-      )}
-    </div>
+        <div className={styles.backtestStat}>
+          <span className={styles.backtestStatLabel}>Avg return</span>
+          <span className={backtest.matchedAvgReturn >= 0 ? styles.growthUp : styles.growthDown}>
+            {fmtPct(backtest.matchedAvgReturn)}
+          </span>
+        </div>
+        <div className={styles.backtestStat}>
+          <span className={styles.backtestStatLabel}>S&P avg</span>
+          <span>{fmtPct(backtest.universeAvgReturn)}</span>
+        </div>
+        <div className={styles.backtestStat}>
+          <span className={styles.backtestStatLabel}>Alpha</span>
+          <span className={
+            backtest.alpha > 2 ? styles.growthUp
+              : backtest.alpha < -2 ? styles.growthDown
+                : styles.growthFlat
+          }>
+            {fmtPct(backtest.alpha)}
+          </span>
+        </div>
+      </div>
+    </section>
   );
 }

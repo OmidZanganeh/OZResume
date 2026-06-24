@@ -2,7 +2,7 @@ import type { Sector } from '@/app/web-apps/stock-screener/types';
 import { getRedis } from './redis';
 
 export const SYMBOLS_REDIS_KEY = 'stock-screener:symbols:sp500';
-export const SNAPSHOT_REDIS_KEY = 'stock-screener:snapshot:sp500';
+export const SNAPSHOT_REDIS_KEY = 'stock-screener:snapshot:sp500:v2';
 export const CURSOR_REDIS_KEY = 'stock-screener:cursor:sp500';
 
 const SYMBOLS_TTL_SEC = 30 * 24 * 60 * 60;

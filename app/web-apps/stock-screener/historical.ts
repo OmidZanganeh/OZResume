@@ -16,14 +16,7 @@ function tickerSeed(ticker: string): number {
   return h;
 }
 
-export function rsiForPeriod(stock: Stock, period: number, rsi14Value: number): number {
-  const s = tickerSeed(stock.ticker);
-  const periodDelta = 14 - period;
-  const adjusted = rsi14Value + periodDelta * (1.8 + (s % 5) * 0.35) + ((s % 11) - 5) * 0.2;
-  return round(clamp(adjusted, 0, 100), 0);
-}
-
-/** Drift a metric backward in time with deterministic noise */
+/** Drift a metric backward in time with deterministic noise (fundamentals at past dates). */
 function hist(
   base: number,
   years: number,
@@ -38,7 +31,7 @@ function hist(
   return round(clamp(base - years * (returnBias * scale + noise), min, max), decimals);
 }
 
-const METRIC_BOUNDS: Record<Exclude<FilterId, 'rsi'>, { min: number; max: number; dec: number; scale: number }> = {
+const METRIC_BOUNDS: Record<FilterId, { min: number; max: number; dec: number; scale: number }> = {
   peRatio: { min: 5, max: 100, dec: 1, scale: 12 },
   forwardPe: { min: 4, max: 90, dec: 1, scale: 10 },
   pegRatio: { min: 0.2, max: 5, dec: 1, scale: 0.8 },
@@ -48,60 +41,51 @@ const METRIC_BOUNDS: Record<Exclude<FilterId, 'rsi'>, { min: number; max: number
   evToEbitda: { min: 3, max: 40, dec: 1, scale: 3 },
   epsGrowth: { min: -20, max: 100, dec: 1, scale: 35 },
   revenueGrowth: { min: -20, max: 80, dec: 1, scale: 25 },
-  profitMargin: { min: -15, max: 50, dec: 1, scale: 10 },
-  grossMargin: { min: 10, max: 90, dec: 1, scale: 8 },
-  operatingMargin: { min: -20, max: 45, dec: 1, scale: 9 },
-  roe: { min: -20, max: 60, dec: 1, scale: 18 },
-  roa: { min: -15, max: 30, dec: 1, scale: 12 },
-  roic: { min: -10, max: 40, dec: 1, scale: 14 },
-  debtToEquity: { min: 0, max: 5, dec: 2, scale: 0.6 },
+  profitMargin: { min: -15, max: 50, dec: 1, scale: 8 },
+  grossMargin: { min: 0, max: 90, dec: 1, scale: 10 },
+  operatingMargin: { min: -20, max: 45, dec: 1, scale: 8 },
+  roe: { min: -20, max: 60, dec: 1, scale: 15 },
+  roa: { min: -15, max: 30, dec: 1, scale: 6 },
+  roic: { min: -10, max: 40, dec: 1, scale: 8 },
+  debtToEquity: { min: 0, max: 5, dec: 2, scale: 0.8 },
   debtToAssets: { min: 0, max: 90, dec: 1, scale: 12 },
-  currentRatio: { min: 0.3, max: 5, dec: 1, scale: 0.5 },
-  quickRatio: { min: 0.2, max: 4, dec: 1, scale: 0.4 },
+  currentRatio: { min: 0, max: 5, dec: 1, scale: 0.6 },
+  quickRatio: { min: 0, max: 4, dec: 1, scale: 0.5 },
   interestCoverage: { min: 0, max: 30, dec: 1, scale: 5 },
-  dividendYield: { min: 0, max: 12, dec: 2, scale: 1.2 },
-  payoutRatio: { min: 0, max: 120, dec: 0, scale: 15 },
+  dividendYield: { min: 0, max: 12, dec: 2, scale: 1.5 },
+  payoutRatio: { min: 0, max: 120, dec: 0, scale: 20 },
   freeCashFlowYield: { min: -5, max: 20, dec: 1, scale: 4 },
-  price: { min: 5, max: 500, dec: 2, scale: 40 },
-  marketCap: { min: 100, max: 500_000, dec: 0, scale: 50_000 },
-  priceChange1m: { min: -40, max: 60, dec: 1, scale: 20 },
-  priceChange3m: { min: -50, max: 80, dec: 1, scale: 28 },
-  priceChange6m: { min: -55, max: 100, dec: 1, scale: 35 },
+  price: { min: 1, max: 5000, dec: 2, scale: 80 },
+  marketCap: { min: 0, max: 500_000, dec: 0, scale: 15_000 },
+  priceChange1m: { min: -40, max: 60, dec: 1, scale: 15 },
+  priceChange3m: { min: -50, max: 80, dec: 1, scale: 20 },
+  priceChange6m: { min: -55, max: 100, dec: 1, scale: 25 },
   priceChange52w: { min: -60, max: 150, dec: 1, scale: 45 },
-  priceVs52wHigh: { min: -60, max: 0, dec: 1, scale: 15 },
+  priceVs52wHigh: { min: -60, max: 0, dec: 1, scale: 12 },
   priceVs52wLow: { min: 0, max: 200, dec: 1, scale: 30 },
-  avgVolume: { min: 0.1, max: 50, dec: 1, scale: 5 },
-  relativeVolume: { min: 0.2, max: 5, dec: 1, scale: 0.8 },
+  avgVolume: { min: 0, max: 50, dec: 1, scale: 4 },
   volatility30d: { min: 5, max: 80, dec: 1, scale: 12 },
   atrPercent: { min: 0.5, max: 15, dec: 1, scale: 2 },
   beta: { min: 0, max: 3, dec: 2, scale: 0.4 },
-  sma50Distance: { min: -30, max: 30, dec: 1, scale: 12 },
-  sma200Distance: { min: -40, max: 40, dec: 1, scale: 15 },
-  macdSignal: { min: -5, max: 5, dec: 2, scale: 1.5 },
-  stochastic: { min: 0, max: 100, dec: 0, scale: 20 },
-  williamsR: { min: -100, max: 0, dec: 0, scale: 18 },
-  adx: { min: 0, max: 60, dec: 0, scale: 10 },
 };
 
-function metricsAtDaysAgoRaw(stock: Stock, daysAgo: number): Omit<StockMetrics, 'rsi'> & { rsi14: number } {
-  const keys = Object.keys(METRIC_BOUNDS) as (Exclude<FilterId, 'rsi'>)[];
+function metricsAtDaysAgo(stock: Stock, daysAgo: number): StockMetrics {
+  const keys = Object.keys(METRIC_BOUNDS) as FilterId[];
   if (daysAgo <= 0) {
-    const out = {} as Omit<StockMetrics, 'rsi'> & { rsi14: number };
+    const out = {} as StockMetrics;
     for (const k of keys) out[k] = stock[k];
-    out.rsi14 = stock.rsi14;
     return out;
   }
 
   const years = daysAgo / 365.25;
   const s = tickerSeed(stock.ticker);
-  const returnBias = stock.annualizedReturn / 100;
-  const out = {} as Omit<StockMetrics, 'rsi'> & { rsi14: number };
+  const returnBias = stock.priceChange52w / 100;
+  const out = {} as StockMetrics;
 
   for (const k of keys) {
     const b = METRIC_BOUNDS[k];
     out[k] = hist(stock[k], years, s + k.length * 7, returnBias, b.scale, b.min, b.max, b.dec);
   }
-  out.rsi14 = hist(stock.rsi14, years, s, returnBias, 22, 0, 100, 0);
   return out;
 }
 
@@ -121,10 +105,27 @@ export function formatAsOfDate(daysAgo: number): string {
   });
 }
 
-export function metricsAtDaysAgo(stock: Stock, daysAgo: number, rsiPeriod: number): StockMetrics {
-  const raw = metricsAtDaysAgoRaw(stock, daysAgo);
-  const rsi = rsiForPeriod(stock, rsiPeriod, raw.rsi14);
-  return { ...raw, rsi };
+/** Interpolate Finnhub return windows (1m / 3m / 6m / 52w) — valid up to 365 days. */
+function returnPctForDaysAgo(stock: Stock, daysAgo: number): number {
+  const r1 = stock.priceChange1m;
+  const r3 = stock.priceChange3m;
+  const r6 = stock.priceChange6m;
+  const r52 = stock.priceChange52w;
+
+  if (daysAgo >= 300) return r52;
+  if (daysAgo >= 150) {
+    const t = (daysAgo - 180) / (365 - 180);
+    return r6 + t * (r52 - r6);
+  }
+  if (daysAgo >= 60) {
+    const t = (daysAgo - 90) / (180 - 90);
+    return r3 + t * (r6 - r3);
+  }
+  if (daysAgo >= 20) {
+    const t = (daysAgo - 30) / (90 - 30);
+    return r1 + t * (r3 - r1);
+  }
+  return r1 * (daysAgo / 30);
 }
 
 export function priceReturnAtDaysAgo(stock: Stock, daysAgo: number): {
@@ -134,21 +135,20 @@ export function priceReturnAtDaysAgo(stock: Stock, daysAgo: number): {
   if (daysAgo <= 0) {
     return { priceThen: stock.price, returnToTodayPct: 0 };
   }
-  const years = daysAgo / 365.25;
-  const priceThen = stock.price / Math.pow(1 + stock.annualizedReturn / 100, years);
-  const returnToTodayPct = round(((stock.price - priceThen) / priceThen) * 100, 1);
-  return { priceThen: round(priceThen, 2), returnToTodayPct };
+
+  const ret = returnPctForDaysAgo(stock, daysAgo);
+  const priceThen = stock.price / (1 + ret / 100);
+  return { priceThen: round(priceThen, 2), returnToTodayPct: round(ret, 1) };
 }
 
-export function buildSnapshot(stock: Stock, daysAgo: number, rsiPeriod: number): StockSnapshot {
-  const metrics = metricsAtDaysAgo(stock, daysAgo, rsiPeriod);
+export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
+  const metrics = metricsAtDaysAgo(stock, daysAgo);
   const { priceThen, returnToTodayPct } = priceReturnAtDaysAgo(stock, daysAgo);
   return {
     ticker: stock.ticker,
     ...metrics,
     priceThen,
     priceToday: stock.price,
-    rsiPeriod,
     returnToTodayPct,
   };
 }
@@ -156,9 +156,8 @@ export function buildSnapshot(stock: Stock, daysAgo: number, rsiPeriod: number):
 export function buildAllSnapshots(
   stocks: Stock[],
   daysAgo: number,
-  rsiPeriod: number,
 ): Map<string, StockSnapshot> {
-  return new Map(stocks.map(s => [s.ticker, buildSnapshot(s, daysAgo, rsiPeriod)]));
+  return new Map(stocks.map(s => [s.ticker, buildSnapshot(s, daysAgo)]));
 }
 
 export function computeBacktest(

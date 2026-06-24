@@ -32,46 +32,35 @@ export interface StockMetrics {
   // Size & price
   price: number;
   marketCap: number;
-  // Technical — momentum
-  rsi: number;
+  // Momentum (Finnhub return windows)
   priceChange1m: number;
   priceChange3m: number;
   priceChange6m: number;
   priceChange52w: number;
   priceVs52wHigh: number;
   priceVs52wLow: number;
-  // Technical — volume & volatility
+  // Volume & volatility
   avgVolume: number;
-  relativeVolume: number;
   volatility30d: number;
   atrPercent: number;
   beta: number;
-  // Technical — indicators
-  sma50Distance: number;
-  sma200Distance: number;
-  macdSignal: number;
-  stochastic: number;
-  williamsR: number;
-  adx: number;
 }
 
 export interface Stock extends StockMetrics {
   ticker: string;
   companyName: string;
   sector: Sector;
-  rsi14: number;
-  annualizedReturn: number;
 }
 
 export interface StockSnapshot extends StockMetrics {
   ticker: string;
   priceThen: number;
   priceToday: number;
-  rsiPeriod: number;
   returnToTodayPct: number;
 }
 
-export const HISTORY_DAYS = 730;
+/** Max lookback — ~1 year; prices derived from Finnhub return windows. */
+export const HISTORY_DAYS = 365;
 
 export interface BacktestSummary {
   matchedCount: number;

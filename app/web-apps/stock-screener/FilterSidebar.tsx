@@ -3,7 +3,7 @@
 import { RotateCcw } from 'lucide-react';
 import FilterRow from './FilterRow';
 import {
-  FILTER_CATEGORIES, filtersByCategory, RSI_PERIODS, ALL_SECTORS,
+  FILTER_CATEGORIES, filtersByCategory, ALL_SECTORS,
   DEFAULT_SCREENER_STATE, isDefaultState, enabledFilterCount,
 } from './filters';
 import type { ScreenerState, FilterId } from './filters';
@@ -52,7 +52,7 @@ export default function FilterSidebar({ state, onChange, isHistorical }: Props) 
 
       {isHistorical && (
         <p className={styles.historicalNote}>
-          Filters apply to <strong>past</strong> values at the selected date.
+          Filters apply to <strong>past</strong> values at the selected date (up to 1 year). Past prices use Finnhub return windows.
         </p>
       )}
 
@@ -65,34 +65,12 @@ export default function FilterSidebar({ state, onChange, isHistorical }: Props) 
             <p className={styles.categoryDesc}>{cat.description}</p>
           </div>
 
-          {cat.id === 'technical' && (
-            <div className={styles.rsiPeriodBlock}>
-              <span className={styles.rsiPeriodLabel}>RSI Period</span>
-              <div className={styles.rsiPeriodBtns}>
-                {RSI_PERIODS.map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    className={`${styles.rsiPeriodBtn} ${state.rsiPeriod === p ? styles.rsiPeriodBtnActive : ''}`}
-                    onClick={() => onChange({ ...state, rsiPeriod: p })}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-              <p className={styles.sliderHint}>
-                Lookback window for RSI — 14 is the industry default; shorter periods react faster to price moves.
-              </p>
-            </div>
-          )}
-
           <div className={styles.filterList}>
             {filtersByCategory(cat.id).map(def => (
               <FilterRow
                 key={def.id}
                 def={def}
                 range={state.filters[def.id]}
-                rsiPeriod={def.id === 'rsi' ? state.rsiPeriod : undefined}
                 onChange={r => setFilter(def.id, r)}
               />
             ))}

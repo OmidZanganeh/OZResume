@@ -8,12 +8,9 @@ interface Props {
   def: FilterDef;
   range: FilterRange;
   onChange: (range: FilterRange) => void;
-  rsiPeriod?: number;
 }
 
-export default function FilterRow({ def, range, onChange, rsiPeriod }: Props) {
-  const label = def.id === 'rsi' && rsiPeriod ? `RSI (${rsiPeriod})` : def.label;
-
+export default function FilterRow({ def, range, onChange }: Props) {
   return (
     <div className={`${styles.filterRow} ${range.enabled ? styles.filterRowOn : styles.filterRowOff}`}>
       <label className={styles.filterToggle}>
@@ -23,7 +20,7 @@ export default function FilterRow({ def, range, onChange, rsiPeriod }: Props) {
           onChange={e => onChange({ ...range, enabled: e.target.checked })}
         />
         <span className={styles.filterCheck} aria-hidden />
-        <span className={styles.filterName}>{label}</span>
+        <span className={styles.filterName}>{def.label}</span>
       </label>
 
       <p className={styles.filterExplanation}>{def.explanation}</p>
