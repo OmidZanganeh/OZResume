@@ -2,6 +2,9 @@ import type { Stock } from '@/app/web-apps/stock-screener/types';
 import { getRedis } from './redis';
 import { CURSOR_REDIS_KEY, SNAPSHOT_REDIS_KEY } from './symbols';
 
+/** Pre-v2 snapshot — read if v2 missing so deploys don't cold-start empty. */
+const LEGACY_SNAPSHOT_REDIS_KEY = 'stock-screener:snapshot:sp500';
+
 /** How long a completed snapshot stays fresh before a new full refresh cycle. */
 export const FRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -28,16 +31,19 @@ export async function readRedisSnapshot(): Promise<{ data: StoredSnapshot; fresh
   const client = getRedis();
   if (!client) return null;
 
-  try {
-    const raw = await client.get(SNAPSHOT_REDIS_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as StoredSnapshot;
-    if (!Array.isArray(data.stocks) || data.stocks.length === 0) return null;
-    const fresh = Boolean(data.refreshComplete) && Date.now() < new Date(data.expiresAt).getTime();
-    return { data, fresh };
-  } catch {
-    return null;
+  for (const key of [SNAPSHOT_REDIS_KEY, LEGACY_SNAPSHOT_REDIS_KEY]) {
+    try {
+      const raw = await client.get(key);
+      if (!raw) continue;
+      const data = JSON.parse(raw) as StoredSnapshot;
+      if (!Array.isArray(data.stocks) || data.stocks.length === 0) continue;
+      const fresh = Boolean(data.refreshComplete) && Date.now() < new Date(data.expiresAt).getTime();
+      return { data, fresh };
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 export async function readRedisCursor(): Promise<number> {

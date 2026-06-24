@@ -8,6 +8,22 @@ export type { MarketDataResult };
 const MEMORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 let memoryCache: { result: MarketDataResult; expiresAt: number } | null = null;
+let refreshKickStarted = false;
+
+function kickRefreshChain() {
+  if (refreshKickStarted || !getFinnhubApiKey()) return;
+  refreshKickStarted = true;
+
+  const base =
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'https://omidzanganeh.com';
+  const q = new URLSearchParams({ reset: '1', continue: '1' });
+  const secret = process.env.CRON_SECRET?.trim();
+  if (secret) q.set('secret', secret);
+
+  fetch(`${base}/api/stock-screener/refresh?${q}`, { cache: 'no-store' }).catch(() => {});
+}
 
 function remember(result: MarketDataResult) {
   memoryCache = {
@@ -41,11 +57,13 @@ export async function getMarketStocks(): Promise<MarketDataResult> {
     };
   }
 
+  kickRefreshChain();
+
   return {
     stocks: MOCK_STOCKS,
     source: 'mock',
     cachedAt: new Date().toISOString(),
-    warning: 'Market cache empty — run npm run warm:stocks or wait for weekly refresh cron.',
+    warning: 'Building market cache — live data loads in a few minutes. Refresh this page shortly.',
   };
 }
 
