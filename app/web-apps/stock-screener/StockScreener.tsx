@@ -514,7 +514,7 @@ export default function StockScreener() {
                   ? 'All factors for your saved tickers — same columns as the full screener.'
                   : isHistorical
                     ? 'Weekly closing prices and returns since that date. Filters use today’s live fundamentals.'
-                    : 'Live Finnhub snapshot — drag the timeline to explore up to 1 year back.'}
+                    : 'Live Finnhub snapshot — drag the timeline to explore up to 10 years back.'}
                 {viewMode === 'universe' && isHistorical && dataSource !== 'mock' && (
                   <> · Click ◉ to pick a pattern{weeklyReadyCount < total ? ' (weekly prices load on first click)' : ''}</>
                 )}

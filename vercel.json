@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/stock-screener/weekly-bulk/refresh?continue=1",
+      "schedule": "0 5 * * 0"
+    },
+    {
       "path": "/api/stock-screener/refresh?continue=1",
       "schedule": "0 6 * * 0"
     }

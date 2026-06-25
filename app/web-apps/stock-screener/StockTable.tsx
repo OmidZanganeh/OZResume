@@ -295,7 +295,7 @@ export default function StockTable({
       </table>
       {isHistorical && (
         <p className={styles.tableFoot}>
-          Price and momentum use weekly closes when cached; otherwise Finnhub return windows (price-only, no fundamentals).
+          Price and momentum use bulk weekly closes (up to 10 years) when cached; otherwise Finnhub return windows (price-only).
           Fundamentals stay on Today view only.
         </p>
       )}

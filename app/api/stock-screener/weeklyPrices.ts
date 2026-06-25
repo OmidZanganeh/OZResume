@@ -1,8 +1,11 @@
 import type { WeeklyBar } from '@/app/web-apps/stock-screener/types';
+import { WEEKS_TO_STORE } from './historyConstants';
 import { round, sleep } from './utils';
 
+export { WEEKS_TO_STORE };
+export { sleep };
+
 const FINNHUB = 'https://finnhub.io/api/v1';
-const WEEKS_TO_STORE = 54;
 
 interface CandlePayload {
   s?: string;
@@ -22,9 +25,10 @@ function newestFirstBars(timestamps: number[], closes: number[]): WeeklyBar[] {
 async function fetchFinnhubWeeklyBars(
   symbol: string,
   apiKey: string,
+  yearsBack: number,
 ): Promise<WeeklyBar[] | null> {
   const to = Math.floor(Date.now() / 1000);
-  const from = to - 400 * 86400;
+  const from = to - Math.ceil(yearsBack * 365.25 * 86400);
   const url =
     `${FINNHUB}/stock/candle?symbol=${encodeURIComponent(symbol)}` +
     `&resolution=W&from=${from}&to=${to}&token=${apiKey}`;
@@ -45,10 +49,14 @@ function yahooSymbol(symbol: string): string {
   return symbol.replace(/-/g, '.');
 }
 
-async function fetchYahooWeeklyBars(symbol: string): Promise<WeeklyBar[] | null> {
+/** Yahoo weekly chart — primary source for bulk 10y+ history. */
+export async function fetchYahooWeeklyBars(
+  symbol: string,
+  yearsBack: number,
+): Promise<WeeklyBar[] | null> {
   const yahooSym = yahooSymbol(symbol);
   const to = Math.floor(Date.now() / 1000);
-  const from = to - 400 * 86400;
+  const from = to - Math.ceil(yearsBack * 365.25 * 86400);
   const url =
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}` +
     `?period1=${from}&period2=${to}&interval=1wk`;
@@ -71,14 +79,15 @@ async function fetchYahooWeeklyBars(symbol: string): Promise<WeeklyBar[] | null>
   }
 }
 
-/** Real weekly bars — newest first. Finnhub if available, else Yahoo. */
+/** Single-symbol weekly bars (on-demand). Yahoo first for depth, Finnhub fallback. */
 export async function fetchWeeklyHistory(
   symbol: string,
   finnhubApiKey: string,
+  yearsBack = 12,
 ): Promise<WeeklyBar[] | null> {
-  const finnhub = await fetchFinnhubWeeklyBars(symbol, finnhubApiKey);
-  if (finnhub) return finnhub;
+  const yahoo = await fetchYahooWeeklyBars(symbol, yearsBack);
+  if (yahoo) return yahoo;
 
   await sleep(120);
-  return fetchYahooWeeklyBars(symbol);
+  return fetchFinnhubWeeklyBars(symbol, finnhubApiKey, yearsBack);
 }

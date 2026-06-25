@@ -88,7 +88,7 @@ export default function DateTimeline({ daysAgo, onChange }: Props) {
             if (e.key === 'Enter') commitSlider(parseInt((e.target as HTMLInputElement).value, 10));
           }}
           style={{ '--pct': `${pct}%` } as React.CSSProperties}
-          aria-label="Screening date — drag left for up to 1 year ago, right for today"
+          aria-label="Screening date — drag left for up to 10 years ago, right for today"
         />
         <span className={styles.dateBound}>Today</span>
       </div>

@@ -21,7 +21,8 @@ function barIndexNearTs(bars: WeeklyBar[], targetTs: number, allowLoose = false)
     }
   }
   if (bestDiff <= MAX_BAR_DRIFT_SEC) return bestIdx;
-  if (allowLoose && bestDiff <= 35 * 86400) return bestIdx;
+  const looseDays = bars.length > 400 ? 14 : 35;
+  if (allowLoose && bestDiff <= looseDays * 86400) return bestIdx;
   return null;
 }
 

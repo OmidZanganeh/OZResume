@@ -35,13 +35,6 @@ export async function runIncrementalBatch(reset = false): Promise<BatchResult> {
   const snapComplete = existingSnap?.data.refreshComplete ?? false;
 
   if (!reset && snapComplete && snapFresh) {
-    const hasWeekly = existingSnap!.data.stocks.some(
-      s => Array.isArray(s.weeklyHistory) && s.weeklyHistory.length > 0,
-    );
-    if (!hasWeekly) reset = true;
-  }
-
-  if (!reset && snapComplete && snapFresh) {
     return {
       complete: true,
       fetched: existingSnap!.data.stocks.length,

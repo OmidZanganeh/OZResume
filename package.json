@@ -8,7 +8,8 @@
     "build": "npm run build:gym && next build",
     "start": "next start",
     "lint": "eslint",
-    "warm:stocks": "npx tsx scripts/warm-stock-screener-cache.ts"
+    "warm:stocks": "npx tsx scripts/warm-stock-screener-cache.ts",
+    "warm:weekly": "npx tsx scripts/bulk-weekly-history.ts"
   },
   "dependencies": {
     "@mapbox/shp-write": "^0.4.3",

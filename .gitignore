@@ -50,4 +50,7 @@ next-env.d.ts
 /archive/*
 !/archive/README.md
 
+# Bulk weekly price cache (generate with npm run warm:weekly)
+/data/sp500-weekly-bulk.json
+
 .vercel

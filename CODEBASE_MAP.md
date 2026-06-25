@@ -40,7 +40,7 @@
 | `/tools/elevation-profile` | `page.tsx`, `ElevationMap.tsx` |
 | `/tools/geocoder` | `page.tsx`, `GeocoderMap.tsx` |
 | `/tools/census` | `page.tsx`, `CensusMap.tsx` |
-| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 screener; sortable factor table, 1y timeline, pattern similarity (past winner → today matches) |
+| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 screener; sortable factor table, 10y timeline, pattern similarity, watchlists |
 
 ## API routes (`app/api/*/route.ts`)
 
@@ -128,8 +128,11 @@
 | `historical.ts` | Snapshots at `daysAgo`; weekly price + Finnhub fallback for display |
 | `weeklyMomentum.ts` | 16 weekly-derived factors for pattern match |
 | `snapshotCache.ts` | Async chunked snapshot builds for timeline |
-| `../api/stock-screener/weekly/` | On-demand weekly bar fetch for pattern pick |
-| `../api/stock-screener/` | Finnhub fetch, Redis weekly cache |
+| `../api/stock-screener/weekly-bulk/` | Incremental Yahoo weekly bulk refresh (10y+ history) |
+| `../api/stock-screener/weekly/` | On-demand weekly bar fetch (bulk cache first) |
+| `../api/stock-screener/weeklyBulk.ts` | Redis bulk store + merge into stocks |
+| `scripts/bulk-weekly-history.ts` | `npm run warm:weekly` — full 12y weekly download |
+| `../api/stock-screener/` | Finnhub live snapshot + Redis cache |
 
 ## Out of index / ignore
 

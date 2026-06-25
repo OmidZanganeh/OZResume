@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { WeeklyBar } from '@/app/web-apps/stock-screener/types';
 import { getFinnhubApiKey } from '../env';
+import { barsForTicker, readWeeklyBulk } from '../weeklyBulk';
 import { fetchWeeklyHistory } from '../weeklyPrices';
+import { WEEKLY_DOWNLOAD_YEARS } from '../historyConstants';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -10,7 +11,7 @@ function finnhubSymbol(symbol: string): string {
   return symbol.replace(/\./g, '-');
 }
 
-/** Lazy-load weekly closes for pattern matching (one or more tickers). */
+/** Lazy-load weekly closes — bulk cache first, then live Yahoo/Finnhub. */
 export async function GET(req: NextRequest) {
   const symbol = req.nextUrl.searchParams.get('symbol')?.trim().toUpperCase();
   const symbolsParam = req.nextUrl.searchParams.get('symbols')?.trim();
@@ -25,19 +26,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Provide symbol= or symbols=' }, { status: 400 });
   }
 
-  const apiKey = getFinnhubApiKey();
-  if (!apiKey) {
-    return NextResponse.json({ error: 'No Finnhub API key' }, { status: 503 });
+  const bulk = await readWeeklyBulk();
+  const results: Record<string, import('@/app/web-apps/stock-screener/types').WeeklyBar[]> = {};
+
+  const missing: string[] = [];
+  for (const ticker of tickers) {
+    const fromBulk = barsForTicker(bulk, ticker);
+    if (fromBulk?.length) results[ticker] = fromBulk;
+    else missing.push(ticker);
   }
 
-  const results: Record<string, WeeklyBar[]> = {};
-
-  for (const ticker of tickers) {
-    const sym = finnhubSymbol(ticker);
-    const weeklyHistory = await fetchWeeklyHistory(sym, apiKey);
-    if (weeklyHistory?.length) {
-      results[ticker] = weeklyHistory;
-    }
+  const apiKey = getFinnhubApiKey();
+  for (const ticker of missing) {
+    if (!apiKey) continue;
+    const weeklyHistory = await fetchWeeklyHistory(
+      finnhubSymbol(ticker),
+      apiKey,
+      WEEKLY_DOWNLOAD_YEARS,
+    );
+    if (weeklyHistory?.length) results[ticker] = weeklyHistory;
   }
 
   if (tickers.length === 1) {

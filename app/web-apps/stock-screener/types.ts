@@ -56,7 +56,7 @@ export interface Stock extends StockMetrics {
   ticker: string;
   companyName: string;
   sector: Sector;
-  /** Weekly OHLC closes, newest first (~1 year). */
+  /** Weekly closing prices, newest first (~12y download, 10y+ timeline). */
   weeklyHistory?: WeeklyBar[];
 }
 
@@ -69,8 +69,8 @@ export interface StockSnapshot extends StockMetrics {
   priceSource?: 'weekly' | 'finnhub' | 'none';
 }
 
-/** Max lookback — ~1 year; prices from cached weekly closes when available. */
-export const HISTORY_DAYS = 365;
+export { HISTORY_DAYS } from '@/app/api/stock-screener/historyConstants';
+
 /** Slider snaps to weekly steps — fewer updates, smoother interaction. */
 export const HISTORY_STEP_DAYS = 7;
 
