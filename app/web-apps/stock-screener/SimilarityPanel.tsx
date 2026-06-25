@@ -6,10 +6,14 @@ import type { SimilarityMatch } from './similarity';
 import { formatAsOfDate } from './historical';
 import styles from './StockScreener.module.css';
 
+export interface ReferenceEntry {
+  stock: Stock;
+  snapshot: StockSnapshot;
+}
+
 interface Props {
   daysAgo: number;
-  reference: Stock;
-  referenceSnapshot: StockSnapshot;
+  references: ReferenceEntry[];
   topMatches: SimilarityMatch[];
   onClear: () => void;
 }
@@ -20,12 +24,13 @@ function fmtReturn(v: number): string {
 
 export default function SimilarityPanel({
   daysAgo,
-  reference,
-  referenceSnapshot,
+  references,
   topMatches,
   onClear,
 }: Props) {
-  if (daysAgo <= 0 || topMatches.length === 0) return null;
+  if (daysAgo <= 0 || references.length === 0 || topMatches.length === 0) return null;
+
+  const multi = references.length > 1;
 
   return (
     <section className={styles.similarityPanel} aria-label="Pattern similarity">
@@ -34,16 +39,37 @@ export default function SimilarityPanel({
         <div>
           <h2 className={styles.similarityTitle}>Pattern match — buy candidates today</h2>
           <p className={styles.similaritySub}>
-            Reference: <strong>{reference.ticker}</strong> on {formatAsOfDate(daysAgo)}
-            {' '}(${referenceSnapshot.priceThen.toFixed(2)} → ${reference.price.toFixed(2)},
-            {' '}{fmtReturn(referenceSnapshot.returnToTodayPct)} since then).
-            Stocks below have the <strong>closest factor profile today</strong> to that past setup.
+            {multi ? (
+              <>
+                <strong>{references.length} references</strong> on {formatAsOfDate(daysAgo)}
+                {' '}— composite profile averaged from:
+              </>
+            ) : (
+              <>
+                Reference: <strong>{references[0]!.stock.ticker}</strong> on {formatAsOfDate(daysAgo)}
+                {' '}(${references[0]!.snapshot.priceThen.toFixed(2)} → ${references[0]!.stock.price.toFixed(2)},
+                {' '}{fmtReturn(references[0]!.snapshot.returnToTodayPct)} since then).
+              </>
+            )}
+            {' '}Stocks below have the <strong>closest factor profile today</strong>
+            {multi ? ' to that blended past setup' : ' to that past setup'}.
           </p>
         </div>
         <button type="button" className={styles.similarityClear} onClick={onClear}>
-          Clear pattern
+          Clear {multi ? 'patterns' : 'pattern'}
         </button>
       </div>
+
+      {multi && (
+        <div className={styles.referenceChips}>
+          {references.map(({ stock, snapshot }) => (
+            <span key={stock.ticker} className={styles.referenceChip}>
+              <strong>{stock.ticker}</strong>
+              <span>{fmtReturn(snapshot.returnToTodayPct)}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className={styles.similarityGrid}>
         {topMatches.slice(0, 8).map((m, i) => (
@@ -57,7 +83,10 @@ export default function SimilarityPanel({
 
       <p className={styles.similarityFoot}>
         <Crosshair size={12} />
-        Similarity weights valuation, growth, momentum, volatility, and size. Not investment advice — verify before trading.
+        {multi
+          ? 'Multi-pattern match uses the average factor profile of all selected references.'
+          : 'Similarity weights valuation, growth, momentum, volatility, and size.'}
+        {' '}Not investment advice — verify before trading.
       </p>
     </section>
   );

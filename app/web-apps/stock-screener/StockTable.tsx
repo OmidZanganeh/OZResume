@@ -23,7 +23,7 @@ interface Props {
   rows: TableRow[];
   isHistorical: boolean;
   showSimilarity: boolean;
-  referenceTicker: string | null;
+  referenceTickers: ReadonlySet<string>;
   sortColumn: TableColumnId;
   sortDir: SortDir;
   onSort: (col: TableColumnId) => void;
@@ -51,7 +51,7 @@ export default function StockTable({
   rows,
   isHistorical,
   showSimilarity,
-  referenceTicker,
+  referenceTickers,
   sortColumn,
   sortDir,
   onSort,
@@ -109,7 +109,7 @@ export default function StockTable({
         </thead>
         <tbody>
           {rows.map(row => {
-            const isRef = referenceTicker === row.stock.ticker;
+            const isRef = referenceTickers.has(row.stock.ticker);
             const highMatch = (row.similarity ?? 0) >= 75;
             return (
               <tr
@@ -127,7 +127,7 @@ export default function StockTable({
                       type="button"
                       className={`${styles.patternBtn} ${isRef ? styles.patternBtnOn : ''}`}
                       onClick={() => onSelectReference(row.stock.ticker)}
-                      title={`Use ${row.stock.ticker} as pattern on this date`}
+                      title={`${isRef ? 'Remove' : 'Add'} ${row.stock.ticker} as pattern on this date`}
                       aria-pressed={isRef}
                     >
                       ◉
@@ -168,7 +168,7 @@ export default function StockTable({
       {isHistorical && (
         <p className={styles.tableFoot}>
           * Estimated at selected date (price from Finnhub returns; fundamentals adjusted from current snapshot).
-          Click ◉ to pick a past winner and find similar setups today.
+          Click ◉ to add past winners (select multiple for a blended pattern match).
         </p>
       )}
     </div>

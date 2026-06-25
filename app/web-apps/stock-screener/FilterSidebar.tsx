@@ -53,7 +53,7 @@ export default function FilterSidebar({ state, onChange, isHistorical }: Props) 
       {isHistorical && (
         <p className={styles.historicalNote}>
           Table values update for the <strong>selected date</strong>. Filters apply to those estimated factors.
-          Use ◉ on a row to match today&apos;s similar profiles.
+          Click ◉ on multiple rows to blend past winners into one pattern match.
         </p>
       )}
 

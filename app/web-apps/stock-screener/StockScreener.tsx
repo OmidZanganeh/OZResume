@@ -9,7 +9,7 @@ import {
   useCallback,
 } from 'react';
 import Link from 'next/link';
-import { BarChart3, Loader2, AlertTriangle } from 'lucide-react';
+import { BarChart3, Loader2, AlertTriangle, Download } from 'lucide-react';
 import FilterSidebar from './FilterSidebar';
 import StockTable, { sortRows, type SortDir } from './StockTable';
 import type { TableColumnId } from './tableColumns';
@@ -27,6 +27,8 @@ import {
   formatAsOfDate,
 } from './historical';
 import { rankSimilarityToday, similarityScoresToday } from './similarity';
+import { visibleColumns } from './tableColumns';
+import { downloadScreenerCsv, screenerCsvFilename } from './exportCsv';
 import {
   readSessionMarketCache,
   writeSessionMarketCache,
@@ -56,7 +58,7 @@ export default function StockScreener() {
     startDateTransition(() => setDaysAgo(next));
   }, []);
 
-  const [referenceTicker, setReferenceTicker] = useState<string | null>(null);
+  const [referenceTickers, setReferenceTickers] = useState<Set<string>>(() => new Set());
   const [sortColumn, setSortColumn] = useState<TableColumnId>('ticker');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -135,7 +137,7 @@ export default function StockScreener() {
 
   useEffect(() => {
     if (!isHistorical) {
-      setReferenceTicker(null);
+      setReferenceTickers(new Set());
       setSortColumn('ticker');
       setSortDir('asc');
     } else {
@@ -162,20 +164,39 @@ export default function StockScreener() {
     return m;
   }, [todaySnapshots]);
 
-  const referenceSnapshot = referenceTicker ? snapshots.get(referenceTicker) : undefined;
-  const showSimilarity = Boolean(isHistorical && referenceTicker && referenceSnapshot);
+  const referenceSnapshots = useMemo(() => {
+    return [...referenceTickers]
+      .map(ticker => {
+        const stock = stocks.find(s => s.ticker === ticker);
+        const snapshot = snapshots.get(ticker);
+        if (!stock || !snapshot) return null;
+        return { stock, snapshot };
+      })
+      .filter((e): e is NonNullable<typeof e> => e != null);
+  }, [referenceTickers, stocks, snapshots]);
+
+  const showSimilarity = Boolean(isHistorical && referenceSnapshots.length > 0);
 
   const similarityMap = useMemo(() => {
-    if (!showSimilarity || !referenceSnapshot || !referenceTicker) {
+    if (!showSimilarity || referenceSnapshots.length === 0) {
       return new Map<string, number>();
     }
-    return similarityScoresToday(referenceSnapshot, todayMetrics, referenceTicker);
-  }, [showSimilarity, referenceSnapshot, referenceTicker, todayMetrics]);
+    return similarityScoresToday(
+      referenceSnapshots.map(r => r.snapshot),
+      todayMetrics,
+      referenceTickers,
+    );
+  }, [showSimilarity, referenceSnapshots, todayMetrics, referenceTickers]);
 
   const topMatches = useMemo(() => {
-    if (!showSimilarity || !referenceSnapshot || !referenceTicker) return [];
-    return rankSimilarityToday(referenceSnapshot, todayMetrics, referenceTicker, 12);
-  }, [showSimilarity, referenceSnapshot, referenceTicker, todayMetrics]);
+    if (!showSimilarity || referenceSnapshots.length === 0) return [];
+    return rankSimilarityToday(
+      referenceSnapshots.map(r => r.snapshot),
+      todayMetrics,
+      referenceTickers,
+      12,
+    );
+  }, [showSimilarity, referenceSnapshots, todayMetrics, referenceTickers]);
 
   const matchingSet = useMemo(() => {
     const matched = stocks.filter(s =>
@@ -211,20 +232,32 @@ export default function StockScreener() {
   }, []);
 
   const handleSelectReference = useCallback((ticker: string) => {
-    setReferenceTicker(prev => (prev === ticker ? null : ticker));
-    if (ticker) {
-      setSortColumn('similarity');
-      setSortDir('desc');
-    }
+    setReferenceTickers(prev => {
+      const next = new Set(prev);
+      if (next.has(ticker)) next.delete(ticker);
+      else next.add(ticker);
+      return next;
+    });
+    setSortColumn('similarity');
+    setSortDir('desc');
   }, []);
+
+  const exportColumns = useMemo(
+    () => visibleColumns(isHistorical, showSimilarity),
+    [isHistorical, showSimilarity],
+  );
+
+  const handleDownloadCsv = useCallback(() => {
+    downloadScreenerCsv(tableRows, exportColumns, {
+      filteredOnly: true,
+      filename: screenerCsvFilename(deferredDaysAgo),
+    });
+  }, [tableRows, exportColumns, deferredDaysAgo]);
 
   const matchCount = matchingSet.size;
   const total = stocks.length;
   const activeFilters = enabledFilterCount(screenerState);
   const isLoading = dataSource === 'loading';
-  const referenceStock = referenceTicker
-    ? stocks.find(s => s.ticker === referenceTicker)
-    : undefined;
 
   return (
     <div className={styles.root}>
@@ -276,7 +309,7 @@ export default function StockScreener() {
               </h1>
               <p className={styles.resultsSub}>
                 {isHistorical
-                  ? 'All factors reflect the selected date. Pick a strong past performer (◉) to find similar setups today.'
+                  ? 'All factors reflect the selected date. Click ◉ on one or more past winners to find similar setups today.'
                   : 'Live Finnhub snapshot — drag the timeline to explore up to 1 year back.'}
                 {activeFilters > 0 && ` · ${activeFilters} filter${activeFilters !== 1 ? 's' : ''} active`}
                 {isTimelineStale && (
@@ -284,23 +317,34 @@ export default function StockScreener() {
                 )}
               </p>
             </div>
-            <div className={styles.countBadge} aria-live="polite">
-              <span className={styles.countMatch}>{matchCount}</span>
-              <span className={styles.countSep}>/</span>
-              <span className={styles.countTotal}>{total}</span>
-              <span className={styles.countLabel}>shown</span>
+            <div className={styles.headerActions}>
+              <button
+                type="button"
+                className={styles.downloadBtn}
+                onClick={handleDownloadCsv}
+                disabled={isLoading || matchCount === 0}
+                title="Download filtered results as CSV (raw numbers for spreadsheets)"
+              >
+                <Download size={14} />
+                CSV
+              </button>
+              <div className={styles.countBadge} aria-live="polite">
+                <span className={styles.countMatch}>{matchCount}</span>
+                <span className={styles.countSep}>/</span>
+                <span className={styles.countTotal}>{total}</span>
+                <span className={styles.countLabel}>shown</span>
+              </div>
             </div>
           </div>
 
           <BacktestPanel daysAgo={deferredDaysAgo} backtest={backtest} />
 
-          {showSimilarity && referenceStock && referenceSnapshot && (
+          {showSimilarity && (
             <SimilarityPanel
               daysAgo={deferredDaysAgo}
-              reference={referenceStock}
-              referenceSnapshot={referenceSnapshot}
+              references={referenceSnapshots}
               topMatches={topMatches}
-              onClear={() => setReferenceTicker(null)}
+              onClear={() => setReferenceTickers(new Set())}
             />
           )}
 
@@ -308,7 +352,7 @@ export default function StockScreener() {
             rows={tableRows}
             isHistorical={isHistorical}
             showSimilarity={showSimilarity}
-            referenceTicker={referenceTicker}
+            referenceTickers={referenceTickers}
             sortColumn={sortColumn}
             sortDir={sortDir}
             onSort={handleSort}

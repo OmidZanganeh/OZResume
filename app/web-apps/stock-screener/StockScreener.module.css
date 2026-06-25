@@ -657,6 +657,37 @@
   color: rgba(255, 255, 255, 0.38);
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.downloadBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8edf5;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.downloadBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .countBadge {
   display: flex;
   align-items: baseline;
@@ -1102,6 +1133,29 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.referenceChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.referenceChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.referenceChip strong {
+  color: #fbbf24;
+  font-weight: 700;
 }
 
 .similarityCard {
