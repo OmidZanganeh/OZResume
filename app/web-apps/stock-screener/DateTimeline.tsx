@@ -44,7 +44,7 @@ export default function DateTimeline({ daysAgo, onChange }: Props) {
           <strong className={styles.dateBarValue}>{formatAsOfDate(displayDaysAgo)}</strong>
           {displayDaysAgo > 0 && (
             <span className={styles.dateBarHint}>
-              — past prices from Finnhub return windows; growth shows change to today
+              — weekly closing prices; growth shows change to today
             </span>
           )}
         </div>

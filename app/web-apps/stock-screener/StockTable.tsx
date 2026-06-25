@@ -167,7 +167,7 @@ export default function StockTable({
       </table>
       {isHistorical && (
         <p className={styles.tableFoot}>
-          * Estimated at selected date (price from Finnhub returns; fundamentals adjusted from current snapshot).
+          * Fundamentals at selected date are estimated; <strong>prices are real weekly closes</strong> when cached.
           Click ◉ to add past winners (select multiple for a blended pattern match).
         </p>
       )}

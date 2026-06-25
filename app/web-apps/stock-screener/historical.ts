@@ -1,4 +1,5 @@
 import type { Stock, StockMetrics, StockSnapshot, BacktestSummary } from './types';
+import { closestWeeklyBar } from './weeklyLookup';
 
 function round(v: number, d: number): number {
   const f = 10 ** d;
@@ -151,7 +152,7 @@ export function formatAsOfDate(daysAgo: number): string {
   });
 }
 
-/** Interpolate Finnhub return windows (1m / 3m / 6m / 52w) — valid up to 365 days. */
+/** Interpolate Finnhub return windows — fallback when weeklyCloses missing. */
 function returnPctForDaysAgo(stock: Stock, daysAgo: number): number {
   const r1 = stock.priceChange1m;
   const r3 = stock.priceChange3m;
@@ -174,6 +175,24 @@ function returnPctForDaysAgo(stock: Stock, daysAgo: number): number {
   return r1 * (daysAgo / 30);
 }
 
+function priceFromWeeklyHistory(
+  stock: Stock,
+  daysAgo: number,
+): { priceThen: number; returnToTodayPct: number } | null {
+  const series = stock.weeklyHistory;
+  if (!series?.length) return null;
+
+  const targetTs = Math.floor(daysAgoToDate(daysAgo).getTime() / 1000);
+  const bar = closestWeeklyBar(series, targetTs);
+  const priceToday = stock.price;
+  if (!bar || priceToday <= 0) return null;
+
+  return {
+    priceThen: round(bar.c, 2),
+    returnToTodayPct: round(((priceToday - bar.c) / bar.c) * 100, 1),
+  };
+}
+
 export function priceReturnAtDaysAgo(stock: Stock, daysAgo: number): {
   priceThen: number;
   returnToTodayPct: number;
@@ -181,6 +200,9 @@ export function priceReturnAtDaysAgo(stock: Stock, daysAgo: number): {
   if (daysAgo <= 0) {
     return { priceThen: stock.price, returnToTodayPct: 0 };
   }
+
+  const fromWeekly = priceFromWeeklyHistory(stock, daysAgo);
+  if (fromWeekly) return fromWeekly;
 
   const ret = returnPctForDaysAgo(stock, daysAgo);
   const priceThen = stock.price / (1 + ret / 100);

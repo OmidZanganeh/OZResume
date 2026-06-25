@@ -1,6 +1,7 @@
 import type { Stock, Sector } from '@/app/web-apps/stock-screener/types';
 import { inferSector } from './symbols';
 import { num, pct, round, sleep } from './utils';
+import { fetchWeeklyHistory } from './weeklyPrices';
 
 export interface SymbolInput {
   symbol: string;
@@ -157,10 +158,15 @@ async function fetchOneMetricOnly(entry: SymbolInput, apiKey: string): Promise<S
   const livePrice = num(quote?.c, 0);
   if (livePrice <= 0) return null;
 
-  return mapFinnhubToStock(entry, metric, livePrice);
+  const stock = mapFinnhubToStock(entry, metric, livePrice);
+  const weeklyHistory = await fetchWeeklyHistory(sym, apiKey);
+  if (weeklyHistory?.length) {
+    stock.weeklyHistory = weeklyHistory;
+  }
+  return stock;
 }
 
-/** ~2 Finnhub calls/symbol (quote + metrics) — stay under 60/min. */
+/** ~2 Finnhub calls + weekly history per symbol — stay under rate limits. */
 export async function fetchStocksBatch(
   entries: SymbolInput[],
   apiKey: string,

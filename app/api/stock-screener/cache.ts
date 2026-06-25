@@ -31,7 +31,7 @@ export async function readRedisSnapshot(): Promise<{ data: StoredSnapshot; fresh
   const client = getRedis();
   if (!client) return null;
 
-  for (const key of [SNAPSHOT_REDIS_KEY, LEGACY_SNAPSHOT_REDIS_KEY]) {
+  for (const key of [SNAPSHOT_REDIS_KEY, 'stock-screener:snapshot:sp500:v2', LEGACY_SNAPSHOT_REDIS_KEY]) {
     try {
       const raw = await client.get(key);
       if (!raw) continue;

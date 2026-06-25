@@ -46,10 +46,18 @@ export interface StockMetrics {
   beta: number;
 }
 
+export interface WeeklyBar {
+  /** Unix seconds (week bar date). */
+  t: number;
+  c: number;
+}
+
 export interface Stock extends StockMetrics {
   ticker: string;
   companyName: string;
   sector: Sector;
+  /** Weekly OHLC closes, newest first (~1 year). */
+  weeklyHistory?: WeeklyBar[];
 }
 
 export interface StockSnapshot extends StockMetrics {
@@ -59,7 +67,7 @@ export interface StockSnapshot extends StockMetrics {
   returnToTodayPct: number;
 }
 
-/** Max lookback — ~1 year; prices derived from Finnhub return windows. */
+/** Max lookback — ~1 year; prices from cached weekly closes when available. */
 export const HISTORY_DAYS = 365;
 /** Slider snaps to weekly steps — fewer updates, smoother interaction. */
 export const HISTORY_STEP_DAYS = 7;
