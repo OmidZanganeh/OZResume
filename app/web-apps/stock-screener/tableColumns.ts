@@ -1,6 +1,7 @@
 import type { StockMetrics } from './types';
 import { FILTER_DEFS } from './filters';
 import { formatMarketCap } from './metricFormat';
+import { formatAsOfDate } from './timelineDate';
 
 export type TableColumnId =
   | 'ticker'
@@ -8,6 +9,7 @@ export type TableColumnId =
   | 'sector'
   | 'price'
   | 'returnToTodayPct'
+  | 'returnToTargetPct'
   | 'similarity'
   | keyof StockMetrics;
 
@@ -76,6 +78,23 @@ export const CONTEXT_COLUMNS: TableColumn[] = [
     sortable: true,
   },
 ];
+
+const pctFormat = (v: number) => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—');
+
+export function buildReturnTargetColumn(returnTargetDaysAgo: number): TableColumn {
+  return {
+    id: 'returnToTargetPct',
+    label:
+      returnTargetDaysAgo <= 0
+        ? 'Return → Today (target)'
+        : `Return → ${formatAsOfDate(returnTargetDaysAgo)}`,
+    shortLabel: 'Ret→Date',
+    align: 'right',
+    historicalOnly: true,
+    format: pctFormat,
+    sortable: true,
+  };
+}
 
 export const METRIC_COLUMNS: TableColumn[] = FILTER_DEFS.map(def => ({
   id: def.id,
@@ -153,12 +172,14 @@ export const HISTORICAL_TECH_COLUMNS: TableColumn[] = [
 export function visibleColumns(
   isHistorical: boolean,
   showSimilarity: boolean,
+  returnTargetDaysAgo = 0,
 ): TableColumn[] {
   if (isHistorical) {
     const cols: TableColumn[] = [
       ...IDENTITY_COLUMNS,
       CONTEXT_COLUMNS.find(c => c.id === 'price')!,
       CONTEXT_COLUMNS.find(c => c.id === 'returnToTodayPct')!,
+      buildReturnTargetColumn(returnTargetDaysAgo),
       ...HISTORICAL_TECH_COLUMNS,
     ];
     if (showSimilarity) {
@@ -182,6 +203,7 @@ export function columnSortValue(
     sector: string;
     snapshot: { returnToTodayPct?: number } & StockMetrics;
     similarity?: number;
+    returnToTargetPct?: number;
   },
 ): string | number {
   if (col === 'ticker') return row.ticker;
@@ -191,6 +213,9 @@ export function columnSortValue(
     return Number.isFinite(row.snapshot.returnToTodayPct)
       ? row.snapshot.returnToTodayPct!
       : -Infinity;
+  }
+  if (col === 'returnToTargetPct') {
+    return Number.isFinite(row.returnToTargetPct) ? row.returnToTargetPct! : -Infinity;
   }
   if (col === 'similarity') return row.similarity ?? -1;
   if (col === 'price') {

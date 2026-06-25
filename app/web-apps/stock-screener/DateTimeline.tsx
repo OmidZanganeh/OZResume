@@ -2,13 +2,15 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatAsOfDate, daysAgoToDate } from './timelineDate';
+import { formatAsOfDate, daysAgoToDate, toIsoDate, isoDateToDaysAgo } from './timelineDate';
 import { HISTORY_DAYS, HISTORY_STEP_DAYS } from './types';
 import styles from './StockScreener.module.css';
 
 interface Props {
   daysAgo: number;
   onChange: (daysAgo: number) => void;
+  returnTargetDaysAgo?: number;
+  onReturnTargetChange?: (daysAgo: number) => void;
 }
 
 function snapDaysAgo(days: number): number {
@@ -17,10 +19,24 @@ function snapDaysAgo(days: number): number {
   return Math.min(HISTORY_DAYS, Math.max(HISTORY_STEP_DAYS, snapped));
 }
 
-export default function DateTimeline({ daysAgo, onChange }: Props) {
+function snapReturnTarget(days: number): number {
+  return Math.max(0, Math.round(days / HISTORY_STEP_DAYS) * HISTORY_STEP_DAYS);
+}
+
+export default function DateTimeline({
+  daysAgo,
+  onChange,
+  returnTargetDaysAgo = 0,
+  onReturnTargetChange,
+}: Props) {
   const [dragPos, setDragPos] = useState<number | null>(null);
   const draggingRef = useRef(false);
   const isToday = daysAgo <= 0 && dragPos === null;
+  const showReturnTarget = daysAgo > 0 && onReturnTargetChange != null;
+  const screenDateIso = toIsoDate(daysAgoToDate(daysAgo));
+  const todayIso = toIsoDate(new Date());
+  const targetIso =
+    returnTargetDaysAgo <= 0 ? todayIso : toIsoDate(daysAgoToDate(returnTargetDaysAgo));
   const sliderPos = dragPos ?? (HISTORY_DAYS - daysAgo);
   const displayDaysAgo = HISTORY_DAYS - sliderPos;
   const pct = (sliderPos / HISTORY_DAYS) * 100;
@@ -92,6 +108,31 @@ export default function DateTimeline({ daysAgo, onChange }: Props) {
         />
         <span className={styles.dateBound}>Today</span>
       </div>
+
+      {showReturnTarget && (
+        <div className={styles.dateReturnRow}>
+          <label className={styles.dateReturnLabel} htmlFor="return-target-date">
+            Ret→Date column
+          </label>
+          <input
+            id="return-target-date"
+            type="date"
+            className={styles.dateTargetInput}
+            value={targetIso}
+            min={screenDateIso}
+            max={todayIso}
+            onChange={e => {
+              const next = snapReturnTarget(isoDateToDaysAgo(e.target.value));
+              if (next < daysAgo) onReturnTargetChange!(next);
+            }}
+            aria-label="Return target date — from screen-as-of date to this date"
+          />
+          <span className={styles.dateReturnHint}>
+            Return from {formatAsOfDate(displayDaysAgo)} to{' '}
+            <strong>{formatAsOfDate(returnTargetDaysAgo)}</strong>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

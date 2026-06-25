@@ -212,6 +212,30 @@ export function priceReturnAtDaysAgo(
   return { priceThen: null, returnToTodayPct: null, source: 'none' };
 }
 
+/** Weekly close at `daysAgo` (0 = live price). */
+export function priceAtDaysAgo(stock: Stock, daysAgo: number): number | null {
+  if (daysAgo <= 0) return stock.price > 0 ? stock.price : null;
+  const series = stock.weeklyHistory;
+  if (!series?.length) return null;
+  const idx = barIndexAtDaysAgo(series, daysAgo);
+  if (idx == null) return null;
+  const c = series[idx]!.c;
+  return c > 0 ? round(c, 2) : null;
+}
+
+/** Total return % from screen date (`fromDaysAgo`) to target date (`toDaysAgo`). */
+export function returnBetweenDaysAgo(
+  stock: Stock,
+  fromDaysAgo: number,
+  toDaysAgo: number,
+): number | null {
+  if (fromDaysAgo <= toDaysAgo) return 0;
+  const priceFrom = priceAtDaysAgo(stock, fromDaysAgo);
+  const priceTo = priceAtDaysAgo(stock, toDaysAgo);
+  if (priceFrom == null || priceTo == null || priceFrom <= 0) return null;
+  return round(((priceTo - priceFrom) / priceFrom) * 100, 1);
+}
+
 function historicalPriceMetrics(
   stock: Stock,
   daysAgo: number,

@@ -19,12 +19,15 @@ export interface TableRow {
   snapshot: StockSnapshot;
   visible: boolean;
   similarity?: number;
+  /** Return % from screen-as-of date to user-chosen target date. */
+  returnToTargetPct?: number;
 }
 
 interface Props {
   rows: TableRow[];
   isHistorical: boolean;
   showSimilarity: boolean;
+  returnTargetDaysAgo?: number;
   referenceTickers: ReadonlySet<string>;
   sortColumn: TableColumnId;
   sortDir: SortDir;
@@ -46,6 +49,10 @@ function cellValue(col: TableColumn, row: TableRow): string {
   if (col.id === 'sector') return row.stock.sector;
   if (col.id === 'returnToTodayPct') {
     const v = row.snapshot.returnToTodayPct;
+    return Number.isFinite(v) ? col.format(v) : '—';
+  }
+  if (col.id === 'returnToTargetPct') {
+    const v = row.returnToTargetPct;
     return Number.isFinite(v) ? col.format(v) : '—';
   }
   if (col.id === 'similarity') return row.similarity != null ? col.format(row.similarity) : '—';
@@ -146,7 +153,15 @@ function TableRowView({
                     ? styles.tdDown
                     : ''
                 : ''
-              : '',
+              : col.id === 'returnToTargetPct'
+                ? Number.isFinite(row.returnToTargetPct)
+                  ? row.returnToTargetPct > 0
+                    ? styles.tdUp
+                    : row.returnToTargetPct < 0
+                      ? styles.tdDown
+                      : ''
+                  : ''
+                : '',
             col.id === 'similarity' && highMatch ? styles.tdMatch : '',
           ].filter(Boolean).join(' ')}
         >
@@ -177,6 +192,7 @@ export default function StockTable({
   rows,
   isHistorical,
   showSimilarity,
+  returnTargetDaysAgo = 0,
   referenceTickers,
   sortColumn,
   sortDir,
@@ -189,8 +205,8 @@ export default function StockTable({
   onToggleWatchlist,
 }: Props) {
   const columns = useMemo(
-    () => visibleColumns(isHistorical, showSimilarity),
-    [isHistorical, showSimilarity],
+    () => visibleColumns(isHistorical, showSimilarity, returnTargetDaysAgo),
+    [isHistorical, showSimilarity, returnTargetDaysAgo],
   );
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -316,6 +332,7 @@ export function sortRows(
       sector: a.stock.sector,
       snapshot: a.snapshot,
       similarity: a.similarity,
+      returnToTargetPct: a.returnToTargetPct,
     });
     const bv = columnSortValue(sortColumn, {
       ticker: b.stock.ticker,
@@ -323,6 +340,7 @@ export function sortRows(
       sector: b.stock.sector,
       snapshot: b.snapshot,
       similarity: b.similarity,
+      returnToTargetPct: b.returnToTargetPct,
     });
     if (typeof av === 'string' && typeof bv === 'string') {
       return av.localeCompare(bv) * dir;

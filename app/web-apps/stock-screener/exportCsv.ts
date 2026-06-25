@@ -20,6 +20,9 @@ function rawCellValue(col: TableColumn, row: TableRow): string | number {
   if (col.id === 'returnToTodayPct') {
     return Number.isFinite(row.snapshot.returnToTodayPct) ? row.snapshot.returnToTodayPct : '';
   }
+  if (col.id === 'returnToTargetPct') {
+    return Number.isFinite(row.returnToTargetPct) ? row.returnToTargetPct! : '';
+  }
   if (col.id === 'similarity') return row.similarity ?? '';
   const metricVal = row.snapshot[col.id as keyof StockSnapshot];
   if (typeof metricVal === 'number') return metricVal;

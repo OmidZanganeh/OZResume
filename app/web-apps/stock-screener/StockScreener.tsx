@@ -20,6 +20,7 @@ import SimilarityPanel from './SimilarityPanel';
 import WatchlistPanel from './WatchlistPanel';
 import { MOCK_STOCKS } from './mockStocks';
 import type { Stock } from './types';
+import { HISTORY_STEP_DAYS } from './types';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
 import type { ScreenerState } from './filters';
 import {
@@ -27,6 +28,7 @@ import {
   computeBacktest,
   formatAsOfDate,
   priceMomentumProfile,
+  returnBetweenDaysAgo,
 } from './historical';
 import {
   buildSnapshotsAsync,
@@ -74,10 +76,18 @@ export default function StockScreener() {
   const [screenerState, setScreenerState] = useState<ScreenerState>(DEFAULT_SCREENER_STATE);
   const [daysAgo, setDaysAgo] = useState(0);
   const deferredDaysAgo = useDeferredValue(daysAgo);
+  const [returnTargetDaysAgo, setReturnTargetDaysAgo] = useState(0);
+  const deferredReturnTargetDaysAgo = useDeferredValue(returnTargetDaysAgo);
   const [isDatePending, startDateTransition] = useTransition();
   const setDaysAgoDeferred = useCallback((next: number) => {
     startDateTransition(() => setDaysAgo(next));
   }, []);
+
+  useEffect(() => {
+    if (daysAgo > 0 && returnTargetDaysAgo >= daysAgo) {
+      setReturnTargetDaysAgo(Math.max(0, daysAgo - HISTORY_STEP_DAYS));
+    }
+  }, [daysAgo, returnTargetDaysAgo]);
 
   const [referenceTickers, setReferenceTickers] = useState<Set<string>>(() => new Set());
   const [sortColumn, setSortColumn] = useState<TableColumnId>('ticker');
@@ -336,9 +346,24 @@ export default function StockScreener() {
       snapshot: activeSnapshots.get(stock.ticker)!,
       visible: matchingSet.has(stock.ticker),
       similarity: showSimilarity ? similarityMap.get(stock.ticker) : undefined,
+      returnToTargetPct:
+        isHistorical && deferredReturnTargetDaysAgo < activeDaysAgo
+          ? returnBetweenDaysAgo(stock, activeDaysAgo, deferredReturnTargetDaysAgo) ?? undefined
+          : undefined,
     }));
     return sortRows(rows, sortColumn, sortDir);
-  }, [stocks, activeSnapshots, matchingSet, showSimilarity, similarityMap, sortColumn, sortDir]);
+  }, [
+    stocks,
+    activeSnapshots,
+    matchingSet,
+    showSimilarity,
+    similarityMap,
+    sortColumn,
+    sortDir,
+    isHistorical,
+    deferredReturnTargetDaysAgo,
+    activeDaysAgo,
+  ]);
 
   const displayRows = useMemo(() => {
     if (viewMode !== 'watchlist') return tableRows;
@@ -424,8 +449,8 @@ export default function StockScreener() {
   }, [stocks, dataSource, referenceTickers]);
 
   const exportColumns = useMemo(
-    () => visibleColumns(isHistorical, showSimilarity),
-    [isHistorical, showSimilarity],
+    () => visibleColumns(isHistorical, showSimilarity, deferredReturnTargetDaysAgo),
+    [isHistorical, showSimilarity, deferredReturnTargetDaysAgo],
   );
 
   const handleDownloadCsv = useCallback(() => {
@@ -454,7 +479,12 @@ export default function StockScreener() {
         </div>
       </header>
 
-      <DateTimeline daysAgo={daysAgo} onChange={setDaysAgoDeferred} />
+      <DateTimeline
+        daysAgo={daysAgo}
+        onChange={setDaysAgoDeferred}
+        returnTargetDaysAgo={returnTargetDaysAgo}
+        onReturnTargetChange={daysAgo > 0 ? setReturnTargetDaysAgo : undefined}
+      />
 
       {(isLoading || dataWarning || loadError) && (
         <div className={styles.dataBanner} role="status">
@@ -559,6 +589,7 @@ export default function StockScreener() {
             rows={displayRows}
             isHistorical={isHistorical}
             showSimilarity={showSimilarity}
+            returnTargetDaysAgo={deferredReturnTargetDaysAgo}
             referenceTickers={referenceTickers}
             sortColumn={sortColumn}
             sortDir={sortDir}
