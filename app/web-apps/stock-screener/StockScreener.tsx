@@ -1,17 +1,32 @@
 'use client';
 
-import { useMemo, useState, useEffect, useDeferredValue, useTransition, useCallback } from 'react';
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useDeferredValue,
+  useTransition,
+  useCallback,
+} from 'react';
 import Link from 'next/link';
 import { BarChart3, Loader2, AlertTriangle } from 'lucide-react';
 import FilterSidebar from './FilterSidebar';
-import StockCard from './StockCard';
+import StockTable, { sortRows, type SortDir } from './StockTable';
+import type { TableColumnId } from './tableColumns';
 import DateTimeline from './DateTimeline';
 import BacktestPanel from './BacktestPanel';
+import SimilarityPanel from './SimilarityPanel';
 import { MOCK_STOCKS } from './mockStocks';
 import type { Stock } from './types';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
 import type { ScreenerState } from './filters';
-import { buildAllSnapshots, computeBacktest, formatAsOfDate } from './historical';
+import {
+  buildAllSnapshots,
+  buildTodaySnapshots,
+  computeBacktest,
+  formatAsOfDate,
+} from './historical';
+import { rankSimilarityToday, similarityScoresToday } from './similarity';
 import {
   readSessionMarketCache,
   writeSessionMarketCache,
@@ -32,48 +47,6 @@ interface MarketPayload {
   warning?: string;
 }
 
-export type SortMode =
-  | 'ticker'
-  | 'return-desc'
-  | 'return-asc'
-  | 'pe-asc'
-  | 'eps-desc';
-
-export const SORT_OPTIONS: { id: SortMode; label: string; historical?: boolean }[] = [
-  { id: 'ticker', label: 'Ticker A–Z' },
-  { id: 'return-desc', label: 'Return ↓ best', historical: true },
-  { id: 'return-asc', label: 'Return ↑ worst', historical: true },
-  { id: 'pe-asc', label: 'P/E low → high' },
-  { id: 'eps-desc', label: 'EPS growth high → low' },
-];
-
-function sortStocks(
-  stocks: Stock[],
-  sortMode: SortMode,
-  snapshots: ReturnType<typeof buildAllSnapshots>,
-  isHistorical: boolean,
-): Stock[] {
-  const list = [...stocks];
-  switch (sortMode) {
-    case 'return-desc':
-      return list.sort((a, b) =>
-        (isHistorical ? snapshots.get(b.ticker)!.returnToTodayPct : b.priceChange52w)
-        - (isHistorical ? snapshots.get(a.ticker)!.returnToTodayPct : a.priceChange52w),
-      );
-    case 'return-asc':
-      return list.sort((a, b) =>
-        (isHistorical ? snapshots.get(a.ticker)!.returnToTodayPct : a.priceChange52w)
-        - (isHistorical ? snapshots.get(b.ticker)!.returnToTodayPct : b.priceChange52w),
-      );
-    case 'pe-asc':
-      return list.sort((a, b) => a.peRatio - b.peRatio);
-    case 'eps-desc':
-      return list.sort((a, b) => b.epsGrowth - a.epsGrowth);
-    default:
-      return list.sort((a, b) => a.ticker.localeCompare(b.ticker));
-  }
-}
-
 export default function StockScreener() {
   const [screenerState, setScreenerState] = useState<ScreenerState>(DEFAULT_SCREENER_STATE);
   const [daysAgo, setDaysAgo] = useState(0);
@@ -82,7 +55,11 @@ export default function StockScreener() {
   const setDaysAgoDeferred = useCallback((next: number) => {
     startDateTransition(() => setDaysAgo(next));
   }, []);
-  const [sortMode, setSortMode] = useState<SortMode>('ticker');
+
+  const [referenceTicker, setReferenceTicker] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<TableColumnId>('ticker');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [dataSource, setDataSource] = useState<DataSource>('loading');
   const [dataWarning, setDataWarning] = useState<string | null>(null);
@@ -157,14 +134,48 @@ export default function StockScreener() {
   const isTimelineStale = daysAgo !== deferredDaysAgo || isDatePending;
 
   useEffect(() => {
-    if (isHistorical && sortMode === 'ticker') setSortMode('return-desc');
-    if (!isHistorical && (sortMode === 'return-desc' || sortMode === 'return-asc')) setSortMode('ticker');
-  }, [isHistorical]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!isHistorical) {
+      setReferenceTicker(null);
+      setSortColumn('ticker');
+      setSortDir('asc');
+    } else {
+      setSortColumn('returnToTodayPct');
+      setSortDir('desc');
+    }
+  }, [isHistorical]);
 
   const snapshots = useMemo(
     () => buildAllSnapshots(stocks, deferredDaysAgo),
     [stocks, deferredDaysAgo],
   );
+
+  const todaySnapshots = useMemo(
+    () => buildTodaySnapshots(stocks),
+    [stocks],
+  );
+
+  const todayMetrics = useMemo(() => {
+    const m = new Map<string, import('./types').StockMetrics>();
+    for (const [ticker, snap] of todaySnapshots) {
+      m.set(ticker, snap);
+    }
+    return m;
+  }, [todaySnapshots]);
+
+  const referenceSnapshot = referenceTicker ? snapshots.get(referenceTicker) : undefined;
+  const showSimilarity = Boolean(isHistorical && referenceTicker && referenceSnapshot);
+
+  const similarityMap = useMemo(() => {
+    if (!showSimilarity || !referenceSnapshot || !referenceTicker) {
+      return new Map<string, number>();
+    }
+    return similarityScoresToday(referenceSnapshot, todayMetrics, referenceTicker);
+  }, [showSimilarity, referenceSnapshot, referenceTicker, todayMetrics]);
+
+  const topMatches = useMemo(() => {
+    if (!showSimilarity || !referenceSnapshot || !referenceTicker) return [];
+    return rankSimilarityToday(referenceSnapshot, todayMetrics, referenceTicker, 12);
+  }, [showSimilarity, referenceSnapshot, referenceTicker, todayMetrics]);
 
   const matchingSet = useMemo(() => {
     const matched = stocks.filter(s =>
@@ -178,15 +189,42 @@ export default function StockScreener() {
     return computeBacktest(stocks, snapshots, matchingSet);
   }, [isHistorical, stocks, snapshots, matchingSet]);
 
-  const sortedStocks = useMemo(
-    () => sortStocks(stocks, sortMode, snapshots, isHistorical),
-    [stocks, sortMode, snapshots, isHistorical],
-  );
+  const tableRows = useMemo(() => {
+    const rows = stocks.map(stock => ({
+      stock,
+      snapshot: snapshots.get(stock.ticker)!,
+      visible: matchingSet.has(stock.ticker),
+      similarity: showSimilarity ? similarityMap.get(stock.ticker) : undefined,
+    }));
+    return sortRows(rows, sortColumn, sortDir);
+  }, [stocks, snapshots, matchingSet, showSimilarity, similarityMap, sortColumn, sortDir]);
+
+  const handleSort = useCallback((col: TableColumnId) => {
+    setSortColumn(prev => {
+      if (prev === col) {
+        setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+        return prev;
+      }
+      setSortDir(col === 'ticker' || col === 'companyName' || col === 'sector' ? 'asc' : 'desc');
+      return col;
+    });
+  }, []);
+
+  const handleSelectReference = useCallback((ticker: string) => {
+    setReferenceTicker(prev => (prev === ticker ? null : ticker));
+    if (ticker) {
+      setSortColumn('similarity');
+      setSortDir('desc');
+    }
+  }, []);
 
   const matchCount = matchingSet.size;
   const total = stocks.length;
   const activeFilters = enabledFilterCount(screenerState);
   const isLoading = dataSource === 'loading';
+  const referenceStock = referenceTicker
+    ? stocks.find(s => s.ticker === referenceTicker)
+    : undefined;
 
   return (
     <div className={styles.root}>
@@ -234,14 +272,13 @@ export default function StockScreener() {
           <div className={styles.resultsHeader}>
             <div>
               <h1 className={styles.resultsTitle}>
-                {isHistorical ? `Matches on ${formatAsOfDate(deferredDaysAgo)}` : 'Matching Assets'}
+                {isHistorical ? `Universe on ${formatAsOfDate(deferredDaysAgo)}` : 'S&P 500 Universe'}
               </h1>
               <p className={styles.resultsSub}>
-                {activeFilters === 0
-                  ? 'No filters active — showing all stocks. Enable filters in the sidebar.'
-                  : isHistorical
-                    ? `${activeFilters} filter${activeFilters !== 1 ? 's' : ''} · timeline uses historical prices`
-                    : `${activeFilters} active filter${activeFilters !== 1 ? 's' : ''}`}
+                {isHistorical
+                  ? 'All factors reflect the selected date. Pick a strong past performer (◉) to find similar setups today.'
+                  : 'Live Finnhub snapshot — drag the timeline to explore up to 1 year back.'}
+                {activeFilters > 0 && ` · ${activeFilters} filter${activeFilters !== 1 ? 's' : ''} active`}
                 {isTimelineStale && (
                   <span className={styles.dateBarHint}> · updating…</span>
                 )}
@@ -251,55 +288,37 @@ export default function StockScreener() {
               <span className={styles.countMatch}>{matchCount}</span>
               <span className={styles.countSep}>/</span>
               <span className={styles.countTotal}>{total}</span>
-              <span className={styles.countLabel}>assets</span>
+              <span className={styles.countLabel}>shown</span>
             </div>
           </div>
 
           <BacktestPanel daysAgo={deferredDaysAgo} backtest={backtest} />
 
-          <div className={styles.sortBar}>
-            <span className={styles.sortLabel}>Sort by</span>
-            <div className={styles.sortOptions}>
-              {SORT_OPTIONS.filter(o => !o.historical || isHistorical).map(opt => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className={`${styles.sortBtn} ${sortMode === opt.id ? styles.sortBtnActive : ''}`}
-                  onClick={() => setSortMode(opt.id)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {showSimilarity && referenceStock && referenceSnapshot && (
+            <SimilarityPanel
+              daysAgo={deferredDaysAgo}
+              reference={referenceStock}
+              referenceSnapshot={referenceSnapshot}
+              topMatches={topMatches}
+              onClear={() => setReferenceTicker(null)}
+            />
+          )}
 
-          <div className={styles.grid} role="list">
-            {isLoading ? (
-              Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className={styles.cardSkeleton} aria-hidden />
-              ))
-            ) : (
-              sortedStocks.map(stock => {
-                const snap = snapshots.get(stock.ticker)!;
-                return (
-                  <StockCard
-                    key={stock.ticker}
-                    stock={stock}
-                    metrics={snap}
-                    visible={matchingSet.has(stock.ticker)}
-                    isHistorical={isHistorical}
-                    returnToTodayPct={snap.returnToTodayPct}
-                    priceThen={snap.priceThen}
-                  />
-                );
-              })
-            )}
-          </div>
+          <StockTable
+            rows={tableRows}
+            isHistorical={isHistorical}
+            showSimilarity={showSimilarity}
+            referenceTicker={referenceTicker}
+            sortColumn={sortColumn}
+            sortDir={sortDir}
+            onSort={handleSort}
+            onSelectReference={handleSelectReference}
+            isLoading={isLoading}
+          />
 
           {!isLoading && matchCount === 0 && (
             <p className={styles.emptyState}>
-              No stocks match{activeFilters > 0 ? ' your active filters' : ''}
-              {isHistorical ? ' at that date' : ''}. Try enabling fewer filters or widening ranges.
+              No stocks match your filters{isHistorical ? ' at that date' : ''}. Widen ranges or disable filters.
             </p>
           )}
         </main>

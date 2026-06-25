@@ -5,7 +5,12 @@ function round(v: number, d: number): number {
   return Math.round(v * f) / f;
 }
 
-function metricsFromStock(stock: Stock, displayPrice: number): StockMetrics {
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, v));
+}
+
+/** Metrics as-of today (live Finnhub snapshot). */
+export function metricsFromStock(stock: Stock, displayPrice: number): StockMetrics {
   return {
     peRatio: stock.peRatio,
     forwardPe: stock.forwardPe,
@@ -42,6 +47,91 @@ function metricsFromStock(stock: Stock, displayPrice: number): StockMetrics {
     volatility30d: stock.volatility30d,
     atrPercent: stock.atrPercent,
     beta: stock.beta,
+  };
+}
+
+/**
+ * Estimate full factor profile at a past date.
+ * Price/momentum from Finnhub return windows; valuation scaled by price ratio;
+ * fundamentals drifted modestly backward (labeled estimated in UI).
+ */
+function estimateMetricsAtDaysAgo(
+  stock: Stock,
+  daysAgo: number,
+  priceThen: number,
+  returnToTodayPct: number,
+): StockMetrics {
+  if (daysAgo <= 0) return metricsFromStock(stock, stock.price);
+
+  const priceToday = Math.max(stock.price, 0.01);
+  const priceRatio = priceThen / priceToday;
+  const years = daysAgo / 365.25;
+  const fundDrift = 1 - Math.min(0.3, years * 0.1);
+
+  const peRatio = round(stock.peRatio * priceRatio, 1);
+  const forwardPe = round(stock.forwardPe * priceRatio, 1);
+  const pbRatio = round(stock.pbRatio * priceRatio, 1);
+  const psRatio = round(stock.psRatio * priceRatio, 1);
+  const pcfRatio = round(stock.pcfRatio * priceRatio, 1);
+  const evToEbitda = round(stock.evToEbitda * (0.65 + 0.35 * priceRatio), 1);
+
+  const epsGrowth = round(stock.epsGrowth * fundDrift, 1);
+  const revenueGrowth = round(stock.revenueGrowth * fundDrift, 1);
+  const pegRatio =
+    epsGrowth > 1 && peRatio > 0 ? round(peRatio / epsGrowth, 1) : round(stock.pegRatio, 1);
+
+  const subtractMomentum = (current: number, windowDays: number) =>
+    round(current - returnToTodayPct * Math.min(1, daysAgo / windowDays), 1);
+
+  const high52 =
+    stock.priceVs52wHigh <= 0
+      ? priceToday / (1 + stock.priceVs52wHigh / 100)
+      : priceToday * 1.12;
+  const low52 =
+    stock.priceVs52wLow >= 0
+      ? priceToday / (1 + stock.priceVs52wLow / 100)
+      : priceToday * 0.88;
+  const highT = high52 * Math.max(0.55, priceRatio);
+  const lowT = low52 * Math.min(1.35, priceRatio * 1.05);
+  const priceVs52wHigh = round(highT > 0 ? ((priceThen - highT) / highT) * 100 : stock.priceVs52wHigh, 1);
+  const priceVs52wLow = round(lowT > 0 ? ((priceThen - lowT) / lowT) * 100 : stock.priceVs52wLow, 1);
+
+  return {
+    peRatio,
+    forwardPe,
+    pegRatio,
+    pbRatio,
+    psRatio,
+    pcfRatio,
+    evToEbitda,
+    epsGrowth,
+    revenueGrowth,
+    profitMargin: round(stock.profitMargin * fundDrift, 1),
+    grossMargin: round(stock.grossMargin * fundDrift, 1),
+    operatingMargin: round(stock.operatingMargin * fundDrift, 1),
+    roe: round(stock.roe * fundDrift, 1),
+    roa: round(stock.roa * fundDrift, 1),
+    roic: round(stock.roic * fundDrift, 1),
+    debtToEquity: round(stock.debtToEquity * (1 + years * 0.04), 2),
+    debtToAssets: round(clamp(stock.debtToAssets * (1 + years * 0.03), 0, 95), 1),
+    currentRatio: round(stock.currentRatio, 1),
+    quickRatio: round(stock.quickRatio, 1),
+    interestCoverage: round(stock.interestCoverage, 1),
+    dividendYield: round(stock.dividendYield / Math.max(priceRatio, 0.2), 2),
+    payoutRatio: round(stock.payoutRatio, 0),
+    freeCashFlowYield: round(stock.freeCashFlowYield / Math.max(priceRatio, 0.2), 1),
+    price: priceThen,
+    marketCap: Math.round(stock.marketCap * priceRatio),
+    priceChange1m: subtractMomentum(stock.priceChange1m, 30),
+    priceChange3m: subtractMomentum(stock.priceChange3m, 90),
+    priceChange6m: subtractMomentum(stock.priceChange6m, 180),
+    priceChange52w: subtractMomentum(stock.priceChange52w, 365),
+    priceVs52wHigh,
+    priceVs52wLow,
+    avgVolume: round(stock.avgVolume, 1),
+    volatility30d: round(stock.volatility30d, 1),
+    atrPercent: round(stock.atrPercent, 1),
+    beta: round(stock.beta, 2),
   };
 }
 
@@ -99,9 +189,14 @@ export function priceReturnAtDaysAgo(stock: Stock, daysAgo: number): {
 
 export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
   const { priceThen, returnToTodayPct } = priceReturnAtDaysAgo(stock, daysAgo);
+  const metrics =
+    daysAgo <= 0
+      ? metricsFromStock(stock, stock.price)
+      : estimateMetricsAtDaysAgo(stock, daysAgo, priceThen, returnToTodayPct);
+
   return {
     ticker: stock.ticker,
-    ...metricsFromStock(stock, daysAgo <= 0 ? stock.price : priceThen),
+    ...metrics,
     priceThen,
     priceToday: stock.price,
     returnToTodayPct,
@@ -117,6 +212,11 @@ export function buildAllSnapshots(
     map.set(stock.ticker, buildSnapshot(stock, daysAgo));
   }
   return map;
+}
+
+/** Today's live profile for each ticker (similarity target universe). */
+export function buildTodaySnapshots(stocks: Stock[]): Map<string, StockSnapshot> {
+  return buildAllSnapshots(stocks, 0);
 }
 
 export function computeBacktest(

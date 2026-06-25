@@ -40,7 +40,7 @@
 | `/tools/elevation-profile` | `page.tsx`, `ElevationMap.tsx` |
 | `/tools/geocoder` | `page.tsx`, `GeocoderMap.tsx` |
 | `/tools/census` | `page.tsx`, `CensusMap.tsx` |
-| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 screener; live data + up to 1y historical |
+| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 screener; sortable factor table, 1y timeline, pattern similarity (past winner → today matches) |
 
 ## API routes (`app/api/*/route.ts`)
 
@@ -114,6 +114,19 @@
 | Sub-tab navigation | `Gym Webapp/src/App.tsx` `activitySubTab`/`nutritionSubTab` state + `style.css` `.subtab-bar`, `.subtab-btn`: sticky pill nav under each page title that splits Activity into Overview/Insights/History and Nutrition into Today/Foods/Goals. Replaces all-panels-open scroll with focused sections. |
 
 **Edit flow:** change files in `Gym Webapp/src/` → run build → commit `public/gym-flow/` → deploy to Vercel.
+
+## Stock screener (`app/web-apps/stock-screener/`)
+
+| File | Role |
+|------|------|
+| `StockScreener.tsx` | Main page: filters, timeline, table, similarity state |
+| `StockTable.tsx` | Sortable factor table; ◉ sets past-date reference pattern |
+| `SimilarityPanel.tsx` | Top today matches vs selected past winner |
+| `similarity.ts` | Weighted factor-distance scoring (0–100) |
+| `historical.ts` | Snapshots at `daysAgo`; estimated past fundamentals |
+| `tableColumns.ts` | Column defs from filter metrics |
+| `FilterSidebar.tsx`, `DateTimeline.tsx`, `BacktestPanel.tsx` | Filters, date slider, basket backtest |
+| `../api/stock-screener/` | Finnhub fetch, Redis weekly cache |
 
 ## Out of index / ignore
 
