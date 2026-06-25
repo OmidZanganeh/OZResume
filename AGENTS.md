@@ -4,3 +4,4 @@
 2. **Scoped reads:** Prefer `@CODEBASE_MAP.md` plus **only** the files the map points to for the current task.
 3. **Ignore:** Respect **`.cursorignore`** and do not assume context from **`archive/`** (local bulky files).
 4. **Updates:** If you add a route, API, or major feature, **update `CODEBASE_MAP.md`** in the same change when practical.
+5. **Ship it:** After task-related code changes, **commit and push** without waiting to be asked (see `.cursor/rules/push-on-change.mdc`). Scope commits to the task only.

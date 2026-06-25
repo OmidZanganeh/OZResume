@@ -28,8 +28,14 @@ export function readSessionMarketCache(): SessionMarketPayload | null {
 
 export function writeSessionMarketCache(payload: SessionMarketPayload): void {
   if (typeof window === 'undefined') return;
+  const wrapped = { expiresAt: Date.now() + SESSION_TTL_MS, payload };
   try {
-    // Weekly bar arrays are large — keep them in memory only, not sessionStorage.
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(wrapped));
+    return;
+  } catch {
+    // Quota exceeded — store without weekly bar arrays.
+  }
+  try {
     const slim: SessionMarketPayload = {
       ...payload,
       stocks: Array.isArray(payload.stocks)

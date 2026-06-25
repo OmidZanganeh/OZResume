@@ -123,9 +123,10 @@
 | `StockTable.tsx` | Sortable factor table; ◉ sets past-date reference pattern |
 | `SimilarityPanel.tsx` | Top today matches vs selected past winner |
 | `similarity.ts` | Weighted factor-distance scoring (0–100) |
-| `historical.ts` | Snapshots at `daysAgo`; estimated past fundamentals |
-| `tableColumns.ts` | Column defs from filter metrics |
-| `FilterSidebar.tsx`, `DateTimeline.tsx`, `BacktestPanel.tsx` | Filters, date slider, basket backtest |
+| `historical.ts` | Snapshots at `daysAgo`; weekly price + Finnhub fallback for display |
+| `weeklyMomentum.ts` | 16 weekly-derived factors for pattern match |
+| `snapshotCache.ts` | Async chunked snapshot builds for timeline |
+| `../api/stock-screener/weekly/` | On-demand weekly bar fetch for pattern pick |
 | `../api/stock-screener/` | Finnhub fetch, Redis weekly cache |
 
 ## Out of index / ignore

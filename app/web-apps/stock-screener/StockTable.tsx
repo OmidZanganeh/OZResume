@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import type { Stock, StockSnapshot } from './types';
 import {
   visibleColumns,
@@ -31,6 +32,7 @@ interface Props {
   onSelectReference: (ticker: string) => void;
   isLoading?: boolean;
   isUpdating?: boolean;
+  patternLoading?: ReadonlySet<string>;
 }
 
 const ROW_HEIGHT_PX = 37;
@@ -65,6 +67,7 @@ function TableRowView({
   showSimilarity,
   isRef,
   onSelectReference,
+  patternLoading,
 }: {
   row: TableRow;
   columns: TableColumn[];
@@ -72,9 +75,10 @@ function TableRowView({
   showSimilarity: boolean;
   isRef: boolean;
   onSelectReference: (ticker: string) => void;
+  patternLoading?: ReadonlySet<string>;
 }) {
   const highMatch = (row.similarity ?? 0) >= 75;
-  const hasWeekly = Boolean(row.stock.weeklyHistory?.length);
+  const isPatternLoading = patternLoading?.has(row.stock.ticker) ?? false;
   return (
     <tr
       className={[
@@ -88,17 +92,18 @@ function TableRowView({
         {isHistorical && (
           <button
             type="button"
-            className={`${styles.patternBtn} ${isRef ? styles.patternBtnOn : ''}`}
+            className={`${styles.patternBtn} ${isRef ? styles.patternBtnOn : ''} ${isPatternLoading ? styles.patternBtnLoading : ''}`}
             onClick={() => onSelectReference(row.stock.ticker)}
-            disabled={!hasWeekly}
+            disabled={isPatternLoading}
             title={
-              hasWeekly
-                ? `${isRef ? 'Remove' : 'Add'} ${row.stock.ticker} as pattern on this date`
-                : `${row.stock.ticker}: weekly price history required for pattern match`
+              isPatternLoading
+                ? `Loading weekly prices for ${row.stock.ticker}…`
+                : `${isRef ? 'Remove' : 'Add'} ${row.stock.ticker} as pattern on this date`
             }
             aria-pressed={isRef}
+            aria-busy={isPatternLoading}
           >
-            ◉
+            {isPatternLoading ? <Loader2 size={14} className={styles.spinIcon} /> : '◉'}
           </button>
         )}
       </td>
@@ -155,6 +160,7 @@ export default function StockTable({
   onSelectReference,
   isLoading,
   isUpdating,
+  patternLoading,
 }: Props) {
   const columns = useMemo(
     () => visibleColumns(isHistorical, showSimilarity),
@@ -249,6 +255,7 @@ export default function StockTable({
               showSimilarity={showSimilarity}
               isRef={referenceTickers.has(row.stock.ticker)}
               onSelectReference={onSelectReference}
+              patternLoading={patternLoading}
             />
           ))}
           {bottomPad > 0 && (

@@ -42,6 +42,19 @@ import {
 } from './clientCache';
 import styles from './StockScreener.module.css';
 
+function mergeStockLists(prev: Stock[], incoming: Stock[]): Stock[] {
+  const prevWeekly = new Map(
+    prev
+      .filter(s => s.weeklyHistory?.length)
+      .map(s => [s.ticker, s.weeklyHistory!] as const),
+  );
+  return incoming.map(stock => {
+    if (stock.weeklyHistory?.length) return stock;
+    const kept = prevWeekly.get(stock.ticker);
+    return kept?.length ? { ...stock, weeklyHistory: kept } : stock;
+  });
+}
+
 type DataSource = 'finnhub' | 'fmp' | 'mock' | 'loading';
 
 interface MarketPayload {
@@ -74,6 +87,53 @@ export default function StockScreener() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [cacheLabel, setCacheLabel] = useState<string | null>(null);
   const [totalSymbols, setTotalSymbols] = useState<number | undefined>();
+  const [patternLoading, setPatternLoading] = useState<Set<string>>(() => new Set());
+  const stocksRef = useRef(stocks);
+  stocksRef.current = stocks;
+
+  useEffect(() => {
+    if (referenceTickers.size === 0 || dataSource === 'mock') return;
+
+    let cancelled = false;
+    let batches = 0;
+    const maxBatches = 24;
+
+    async function enrichBatch() {
+      if (cancelled || batches >= maxBatches) return;
+      const missing = stocksRef.current
+        .filter(s => !s.weeklyHistory?.length)
+        .slice(0, 20);
+      if (missing.length === 0) return;
+
+      batches += 1;
+      try {
+        const res = await fetch(
+          `/api/stock-screener/weekly?symbols=${encodeURIComponent(missing.map(s => s.ticker).join(','))}`,
+        );
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as {
+          results?: Record<string, NonNullable<Stock['weeklyHistory']>>;
+        };
+        const results = body.results ?? {};
+        if (Object.keys(results).length === 0) return;
+        setStocks(prev =>
+          prev.map(s => {
+            const w = results[s.ticker];
+            return w?.length ? { ...s, weeklyHistory: w } : s;
+          }),
+        );
+      } catch {
+        // ignore — next batch may succeed
+      }
+    }
+
+    void enrichBatch();
+    const id = window.setInterval(() => void enrichBatch(), 3500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [referenceTickers.size, dataSource]);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +143,7 @@ export default function StockScreener() {
         ? data.stocks
         : MOCK_STOCKS;
 
-      setStocks(list);
+      setStocks(prev => (prev.length === 0 ? list : mergeStockLists(prev, list)));
       setDataSource(data.source ?? 'mock');
       setDataWarning(data.warning ?? null);
       setTotalSymbols(data.totalSymbols);
@@ -287,16 +347,63 @@ export default function StockScreener() {
     });
   }, []);
 
-  const handleSelectReference = useCallback((ticker: string) => {
-    setReferenceTickers(prev => {
-      const next = new Set(prev);
-      if (next.has(ticker)) next.delete(ticker);
-      else next.add(ticker);
-      return next;
-    });
+  const handleSelectReference = useCallback(async (ticker: string) => {
+    let stock = stocks.find(s => s.ticker === ticker);
+    if (!stock) return;
+
+    if (referenceTickers.has(ticker)) {
+      setReferenceTickers(prev => {
+        const next = new Set(prev);
+        next.delete(ticker);
+        return next;
+      });
+      return;
+    }
+
+    if (!stock.weeklyHistory?.length && dataSource !== 'mock') {
+      setPatternLoading(prev => new Set(prev).add(ticker));
+      try {
+        const res = await fetch(
+          `/api/stock-screener/weekly?symbol=${encodeURIComponent(ticker)}`,
+        );
+        if (!res.ok) {
+          setDataWarning(
+            `Could not load weekly prices for ${ticker}. Pattern match needs weekly history.`,
+          );
+          return;
+        }
+        const body = (await res.json()) as { weeklyHistory?: Stock['weeklyHistory'] };
+        if (!body.weeklyHistory?.length) {
+          setDataWarning(`No weekly price history for ${ticker}.`);
+          return;
+        }
+        setStocks(prev =>
+          prev.map(s =>
+            s.ticker === ticker ? { ...s, weeklyHistory: body.weeklyHistory } : s,
+          ),
+        );
+        stock = { ...stock, weeklyHistory: body.weeklyHistory };
+      } catch {
+        setDataWarning(`Failed to load weekly prices for ${ticker}.`);
+        return;
+      } finally {
+        setPatternLoading(prev => {
+          const next = new Set(prev);
+          next.delete(ticker);
+          return next;
+        });
+      }
+    }
+
+    if (!stock.weeklyHistory?.length) {
+      setDataWarning('Weekly price history is required for pattern match.');
+      return;
+    }
+
+    setReferenceTickers(prev => new Set(prev).add(ticker));
     setSortColumn('similarity');
     setSortDir('desc');
-  }, []);
+  }, [stocks, dataSource, referenceTickers]);
 
   const exportColumns = useMemo(
     () => visibleColumns(isHistorical, showSimilarity),
@@ -312,6 +419,10 @@ export default function StockScreener() {
 
   const matchCount = matchingSet.size;
   const total = stocks.length;
+  const weeklyReadyCount = useMemo(
+    () => stocks.filter(s => s.weeklyHistory?.length).length,
+    [stocks],
+  );
   const activeFilters = enabledFilterCount(screenerState);
   const isLoading = dataSource === 'loading';
 
@@ -367,6 +478,9 @@ export default function StockScreener() {
                 {isHistorical
                   ? 'Weekly closing prices and returns since that date. Filters use today’s live fundamentals.'
                   : 'Live Finnhub snapshot — drag the timeline to explore up to 1 year back.'}
+                {isHistorical && dataSource !== 'mock' && (
+                  <> · Click ◉ to pick a pattern{weeklyReadyCount < total ? ' (weekly prices load on first click)' : ''}</>
+                )}
                 {activeFilters > 0 && ` · ${activeFilters} filter${activeFilters !== 1 ? 's' : ''} active`}
                 {isTimelineStale && (
                   <span className={styles.dateBarHint}> · updating…</span>
@@ -415,6 +529,7 @@ export default function StockScreener() {
             onSelectReference={handleSelectReference}
             isLoading={isLoading || (stocks.length > 0 && activeSnapshots.size === 0)}
             isUpdating={isSnapshotsStale && activeSnapshots.size > 0}
+            patternLoading={patternLoading}
           />
 
           {!isLoading && matchCount === 0 && (

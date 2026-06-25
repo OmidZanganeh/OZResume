@@ -1,0 +1,21 @@
+---
+description: After implementing changes in this repo, commit and push without waiting to be asked.
+alwaysApply: true
+---
+
+# Push after changes (resume-site)
+
+When you **finish implementing** a requested change in this repository:
+
+1. **Commit** only the files that belong to that task (do not bundle unrelated local edits — Gym Webapp, resume PDFs, scripts, etc., unless the user asked for them).
+2. **Push** to `origin` on the current branch immediately after a successful commit.
+3. Tell the user the commit hash and that it was pushed.
+
+Skip commit/push when:
+- The user only asked a question (no code changes).
+- The user explicitly says not to push, or to commit only.
+- There is nothing to commit for the task.
+
+This overrides the default “wait to be asked before committing” behavior **for this repo only** when you made task-related code changes.
+
+Use the repo’s commit style: `type(scope): short summary` (e.g. `fix(stock-screener): …`).
