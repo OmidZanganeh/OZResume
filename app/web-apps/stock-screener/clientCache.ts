@@ -1,4 +1,4 @@
-import type { UniverseId } from './universe';
+import type { UniverseCacheKey } from './universe';
 
 const SESSION_KEY_PREFIX = 'stock-screener-market-v2';
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -10,21 +10,21 @@ export interface SessionMarketPayload {
   expiresAt?: string;
   fromCache?: boolean;
   warning?: string;
-  universe?: UniverseId;
+  universe?: UniverseCacheKey;
 }
 
-function sessionKey(universeId: UniverseId): string {
-  return `${SESSION_KEY_PREFIX}:${universeId}`;
+function sessionKey(key: UniverseCacheKey): string {
+  return `${SESSION_KEY_PREFIX}:${key}`;
 }
 
-export function readSessionMarketCache(universeId: UniverseId = 'sp500'): SessionMarketPayload | null {
+export function readSessionMarketCache(key: UniverseCacheKey = 'sp500'): SessionMarketPayload | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = sessionStorage.getItem(sessionKey(universeId));
+    const raw = sessionStorage.getItem(sessionKey(key));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { expiresAt: number; payload: SessionMarketPayload };
     if (Date.now() > parsed.expiresAt) {
-      sessionStorage.removeItem(sessionKey(universeId));
+      sessionStorage.removeItem(sessionKey(key));
       return null;
     }
     return parsed.payload;
@@ -35,12 +35,12 @@ export function readSessionMarketCache(universeId: UniverseId = 'sp500'): Sessio
 
 export function writeSessionMarketCache(
   payload: SessionMarketPayload,
-  universeId: UniverseId = 'sp500',
+  key: UniverseCacheKey = 'sp500',
 ): void {
   if (typeof window === 'undefined') return;
-  const wrapped = { expiresAt: Date.now() + SESSION_TTL_MS, payload: { ...payload, universe: universeId } };
+  const wrapped = { expiresAt: Date.now() + SESSION_TTL_MS, payload: { ...payload, universe: key } };
   try {
-    sessionStorage.setItem(sessionKey(universeId), JSON.stringify(wrapped));
+    sessionStorage.setItem(sessionKey(key), JSON.stringify(wrapped));
     return;
   } catch {
     // Quota exceeded — store without weekly bar arrays.
@@ -48,7 +48,7 @@ export function writeSessionMarketCache(
   try {
     const slim: SessionMarketPayload = {
       ...payload,
-      universe: universeId,
+      universe: key,
       stocks: Array.isArray(payload.stocks)
         ? payload.stocks.map(entry => {
             if (entry && typeof entry === 'object' && 'weeklyHistory' in entry) {
@@ -60,7 +60,7 @@ export function writeSessionMarketCache(
         : payload.stocks,
     };
     sessionStorage.setItem(
-      sessionKey(universeId),
+      sessionKey(key),
       JSON.stringify({ expiresAt: Date.now() + SESSION_TTL_MS, payload: slim }),
     );
   } catch {

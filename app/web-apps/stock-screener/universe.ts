@@ -1,5 +1,8 @@
 export type UniverseId = 'sp500' | 'nasdaq100';
 
+/** Which index(es) to show in the universe table. */
+export type UniverseSelection = UniverseId | 'both';
+
 export interface UniverseMeta {
   id: UniverseId;
   label: string;
@@ -47,10 +50,29 @@ export function parseUniverseId(raw: string | null | undefined): UniverseId {
   return 'sp500';
 }
 
+export function parseUniverseSelection(raw: string | null | undefined): UniverseSelection {
+  if (raw === 'nasdaq100') return 'nasdaq100';
+  if (raw === 'both') return 'both';
+  return 'sp500';
+}
+
+export function universesForSelection(sel: UniverseSelection): UniverseId[] {
+  if (sel === 'both') return [...UNIVERSE_IDS];
+  return [sel];
+}
+
 export function universeMeta(id: UniverseId): UniverseMeta {
   return UNIVERSES[id];
 }
 
-export function universeCsvPrefix(id: UniverseId): string {
-  return id === 'nasdaq100' ? 'nasdaq100-screener' : 'sp500-screener';
+export function selectionLabel(sel: UniverseSelection): string {
+  if (sel === 'both') return 'S&P 500 + NASDAQ 100';
+  return universeMeta(sel).shortLabel;
 }
+
+export function universeCsvPrefix(sel: UniverseSelection): string {
+  if (sel === 'both') return 'combined-screener';
+  return sel === 'nasdaq100' ? 'nasdaq100-screener' : 'sp500-screener';
+}
+
+export type UniverseCacheKey = UniverseSelection;

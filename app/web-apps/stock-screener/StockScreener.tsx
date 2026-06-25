@@ -47,7 +47,7 @@ import {
   formatCacheAge,
 } from './clientCache';
 import { useWatchlists, type ViewMode } from './watchlists';
-import { universeMeta, type UniverseId } from './universe';
+import { selectionLabel, universesForSelection, type UniverseSelection } from './universe';
 import styles from './StockScreener.module.css';
 
 function mergeStockLists(prev: Stock[], incoming: Stock[]): Stock[] {
@@ -61,6 +61,26 @@ function mergeStockLists(prev: Stock[], incoming: Stock[]): Stock[] {
     const kept = prevWeekly.get(stock.ticker);
     return kept?.length ? { ...stock, weeklyHistory: kept } : stock;
   });
+}
+
+/** Merge multiple stock lists by ticker (S&P + NASDAQ union). */
+function unionStockLists(lists: Stock[][]): Stock[] {
+  const map = new Map<string, Stock>();
+  for (const list of lists) {
+    for (const stock of list) {
+      const existing = map.get(stock.ticker);
+      if (!existing) {
+        map.set(stock.ticker, stock);
+        continue;
+      }
+      map.set(stock.ticker, {
+        ...existing,
+        ...stock,
+        weeklyHistory: stock.weeklyHistory?.length ? stock.weeklyHistory : existing.weeklyHistory,
+      });
+    }
+  }
+  return [...map.values()].sort((a, b) => a.ticker.localeCompare(b.ticker));
 }
 
 type DataSource = 'finnhub' | 'fmp' | 'mock' | 'loading';
@@ -99,11 +119,17 @@ export default function StockScreener() {
   const [totalSymbols, setTotalSymbols] = useState<number | undefined>();
   const [patternLoading, setPatternLoading] = useState<Set<string>>(() => new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('universe');
-  const [marketUniverse, setMarketUniverse] = useState<UniverseId>('sp500');
+  const [universeSelection, setUniverseSelection] = useState<UniverseSelection>('sp500');
   const [searchQuery, setSearchQuery] = useState('');
   const watchlist = useWatchlists();
   const stocksRef = useRef(stocks);
   stocksRef.current = stocks;
+
+  const lastReadySnapshots = useRef({
+    daysAgo: 0,
+    map: new Map<string, import('./types').StockSnapshot>(),
+    stocksKey: '',
+  });
 
   useEffect(() => {
     if (dataSource === 'mock') return;
@@ -168,7 +194,35 @@ export default function StockScreener() {
           ? `Snapshot from ${age}${data.fromCache ? ' (cached)' : ''}`
           : null,
       );
-      writeSessionMarketCache(data, marketUniverse);
+      writeSessionMarketCache(data, universeSelection);
+    }
+
+    function sessionPayloadForSelection(): MarketPayload | null {
+      const direct = readSessionMarketCache(universeSelection);
+      if (direct && Array.isArray(direct.stocks) && direct.stocks.length > 0) {
+        return direct as MarketPayload;
+      }
+      if (universeSelection !== 'both') return null;
+
+      const parts = universesForSelection('both')
+        .map(id => readSessionMarketCache(id))
+        .filter((p): p is NonNullable<typeof p> => Boolean(p?.stocks?.length));
+
+      if (parts.length === 0) return null;
+
+      const stocks = unionStockLists(
+        parts.map(p => (Array.isArray(p.stocks) ? p.stocks : []) as Stock[]),
+      );
+      if (stocks.length === 0) return null;
+
+      return {
+        stocks,
+        source: (parts.every(p => p.source === 'mock') ? 'mock' : 'finnhub') as DataSource,
+        cachedAt: parts.map(p => p.cachedAt).filter(Boolean).sort().pop(),
+        fromCache: true,
+        warning: parts.map(p => p.warning).filter(Boolean).join(' '),
+        totalSymbols: stocks.length,
+      };
     }
 
     let hadCachedStocks = false;
@@ -176,10 +230,13 @@ export default function StockScreener() {
     async function loadMarketData() {
       setStocks([]);
       setReferenceTickers(new Set());
-      const sessionHit = readSessionMarketCache(marketUniverse);
-      if (sessionHit && Array.isArray(sessionHit.stocks) && sessionHit.stocks.length > 0) {
+      invalidateSnapshotCache();
+      lastReadySnapshots.current = { daysAgo: 0, map: new Map(), stocksKey: '' };
+
+      const sessionHit = sessionPayloadForSelection();
+      if (sessionHit?.stocks?.length) {
         hadCachedStocks = true;
-        applyPayload(sessionHit as MarketPayload);
+        applyPayload(sessionHit);
         setDataSource((sessionHit.source as DataSource) ?? 'mock');
         setLoadError(null);
       } else {
@@ -188,12 +245,32 @@ export default function StockScreener() {
       setLoadError(null);
 
       try {
-        const res = await fetch(`/api/stock-screener?universe=${marketUniverse}`);
-        if (!res.ok) throw new Error(`API error ${res.status}`);
-
-        const data = (await res.json()) as MarketPayload;
+        const ids = universesForSelection(universeSelection);
+        const responses = await Promise.all(
+          ids.map(id => fetch(`/api/stock-screener?universe=${id}`)),
+        );
         if (cancelled) return;
-        applyPayload(data);
+
+        const payloads = await Promise.all(responses.map(async res => {
+          if (!res.ok) throw new Error(`API error ${res.status}`);
+          return (await res.json()) as MarketPayload;
+        }));
+        if (cancelled) return;
+
+        const mergedStocks = unionStockLists(payloads.map(p => p.stocks ?? []));
+        const warnings = payloads.map(p => p.warning).filter(Boolean);
+        const allMock = payloads.every(p => p.source === 'mock');
+        const expectedTotal = payloads.reduce((sum, p) => sum + (p.totalSymbols ?? p.stocks?.length ?? 0), 0);
+
+        applyPayload({
+          stocks: mergedStocks.length > 0 ? mergedStocks : MOCK_STOCKS,
+          source: allMock ? 'mock' : 'finnhub',
+          cachedAt: payloads.map(p => p.cachedAt).filter(Boolean).sort().pop(),
+          fromCache: payloads.some(p => p.fromCache),
+          refreshComplete: payloads.every(p => p.refreshComplete !== false),
+          totalSymbols: universeSelection === 'both' ? mergedStocks.length : expectedTotal,
+          warning: warnings.length ? warnings.join(' ') : undefined,
+        });
       } catch (err) {
         if (cancelled) return;
         if (hadCachedStocks) return;
@@ -207,7 +284,7 @@ export default function StockScreener() {
 
     loadMarketData();
     return () => { cancelled = true; };
-  }, [marketUniverse]);
+  }, [universeSelection]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -259,15 +336,28 @@ export default function StockScreener() {
   const snapshotsReady = snapshotsForDays === deferredDaysAgo && snapshots.size > 0;
   const isSnapshotsStale = !snapshotsReady || isTimelineStale;
 
-  const lastReadySnapshots = useRef({
-    daysAgo: 0,
-    map: new Map<string, import('./types').StockSnapshot>(),
-  });
+  const stocksTickerKey = useMemo(
+    () => stocks.map(s => s.ticker).sort().join('\0'),
+    [stocks],
+  );
+
   if (snapshotsReady) {
-    lastReadySnapshots.current = { daysAgo: deferredDaysAgo, map: snapshots };
+    lastReadySnapshots.current = {
+      daysAgo: deferredDaysAgo,
+      map: snapshots,
+      stocksKey: stocksTickerKey,
+    };
   }
-  const activeSnapshots =
-    snapshotsReady ? snapshots : lastReadySnapshots.current.map;
+
+  const canUseStaleSnapshots =
+    lastReadySnapshots.current.stocksKey === stocksTickerKey &&
+    lastReadySnapshots.current.map.size > 0;
+
+  const activeSnapshots = snapshotsReady
+    ? snapshots
+    : canUseStaleSnapshots
+      ? lastReadySnapshots.current.map
+      : new Map<string, import('./types').StockSnapshot>();
   const activeDaysAgo = snapshotsReady ? deferredDaysAgo : lastReadySnapshots.current.daysAgo;
 
   useEffect(() => {
@@ -302,10 +392,12 @@ export default function StockScreener() {
         if (!stock) return null;
         const profile = priceMomentumProfile(stock, activeDaysAgo);
         if (!profile) return null;
-        return { stock, profile, snapshot: activeSnapshots.get(ticker)! };
+        const snapshot = activeSnapshots.get(ticker) ?? todaySnapshots.get(ticker);
+        if (!snapshot) return null;
+        return { stock, profile, snapshot };
       })
       .filter((e): e is NonNullable<typeof e> => e != null);
-  }, [referenceTickers, stocks, activeDaysAgo, activeSnapshots]);
+  }, [referenceTickers, stocks, activeDaysAgo, activeSnapshots, todaySnapshots]);
 
   const showSimilarity = Boolean(isHistorical && referenceProfiles.length > 0);
 
@@ -332,7 +424,8 @@ export default function StockScreener() {
 
   const matchingSet = useMemo(() => {
     const matched = stocks.filter(s => {
-      const todaySnap = todaySnapshots.get(s.ticker)!;
+      const todaySnap = todaySnapshots.get(s.ticker);
+      if (!todaySnap) return false;
       return passesScreen(s, todaySnap, screenerState);
     });
     return new Set(matched.map(s => s.ticker));
@@ -349,20 +442,26 @@ export default function StockScreener() {
   );
 
   const tableRows = useMemo(() => {
-    const rows = stocks.map(stock => ({
-      stock,
-      snapshot: activeSnapshots.get(stock.ticker)!,
-      visible: matchingSet.has(stock.ticker),
-      similarity: showSimilarity ? similarityMap.get(stock.ticker) : undefined,
-      returnToTargetPct:
-        isHistorical && returnTargetDaysAgo < activeDaysAgo
-          ? returnBetweenDaysAgo(stock, activeDaysAgo, returnTargetDaysAgo) ?? undefined
-          : undefined,
-    }));
+    const rows = stocks.flatMap(stock => {
+      const snapshot =
+        activeSnapshots.get(stock.ticker) ?? todaySnapshots.get(stock.ticker);
+      if (!snapshot) return [];
+      return [{
+        stock,
+        snapshot,
+        visible: matchingSet.has(stock.ticker),
+        similarity: showSimilarity ? similarityMap.get(stock.ticker) : undefined,
+        returnToTargetPct:
+          isHistorical && returnTargetDaysAgo < activeDaysAgo
+            ? returnBetweenDaysAgo(stock, activeDaysAgo, returnTargetDaysAgo) ?? undefined
+            : undefined,
+      }];
+    });
     return sortRows(rows, sortColumn, sortDir);
   }, [
     stocks,
     activeSnapshots,
+    todaySnapshots,
     matchingSet,
     showSimilarity,
     similarityMap,
@@ -481,12 +580,12 @@ export default function StockScreener() {
       filename: screenerCsvFilename(
         deferredDaysAgo,
         viewMode === 'watchlist' ? watchlist.active.name : undefined,
-        marketUniverse,
+        universeSelection,
       ),
     });
-  }, [displayRows, exportColumns, deferredDaysAgo, viewMode, watchlist.active.name]);
+  }, [displayRows, exportColumns, deferredDaysAgo, viewMode, watchlist.active.name, universeSelection]);
 
-  const universeLabel = universeMeta(marketUniverse).shortLabel;
+  const universeLabel = selectionLabel(universeSelection);
   const matchCount = viewMode === 'watchlist' ? displayRows.length : matchingSet.size;
   const total = stocks.length;
   const weeklyReadyCount = useMemo(
@@ -540,9 +639,9 @@ export default function StockScreener() {
         <aside className={styles.sidebarColumn}>
           <WatchlistPanel
             viewMode={viewMode}
-            marketUniverse={marketUniverse}
+            universeSelection={universeSelection}
             onViewModeChange={setViewMode}
-            onMarketUniverseChange={setMarketUniverse}
+            onUniverseSelectionChange={setUniverseSelection}
             store={watchlist.store}
             active={watchlist.active}
             onSelectList={watchlist.setActiveId}
@@ -657,7 +756,7 @@ export default function StockScreener() {
             sortDir={sortDir}
             onSort={handleSort}
             onSelectReference={handleSelectReference}
-            isLoading={isLoading || (stocks.length > 0 && activeSnapshots.size === 0)}
+            isLoading={isLoading || (stocks.length > 0 && tableRows.length === 0)}
             isUpdating={isSnapshotsStale && activeSnapshots.size > 0}
             patternLoading={patternLoading}
             watchlistTickers={watchlist.activeTickers}

@@ -121,7 +121,7 @@
 |------|------|
 | `StockScreener.tsx` | Main page: filters, timeline, table, similarity state |
 | `universe.ts` | Shared `UniverseId`, Redis key prefixes, labels |
-| `WatchlistPanel.tsx` | Create/switch watchlists; S&P 500 / NASDAQ 100 / watchlist tabs |
+| `WatchlistPanel.tsx` | Create/switch watchlists; S&P 500 / NASDAQ 100 / Both / watchlist tabs |
 | `watchlists.ts` | localStorage persistence + `useWatchlists` hook |
 | `StockTable.tsx` | Sortable factor table; ★ watchlist; ◉ pattern picker |
 | `SimilarityPanel.tsx` | Top today matches vs selected past winner |
