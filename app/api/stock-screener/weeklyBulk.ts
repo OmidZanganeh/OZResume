@@ -2,6 +2,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { resolve } from 'node:path';
 import type { Stock, WeeklyBar } from '@/app/web-apps/stock-screener/types';
+import {
+  parseUniverseId,
+  universeMeta,
+  type UniverseId,
+} from '@/app/web-apps/stock-screener/universe';
 import { getRedis } from './redis';
 import { getSymbolUniverse } from './symbols';
 import { fetchYahooWeeklyBars, sleep } from './weeklyPrices';
@@ -9,10 +14,10 @@ import { HISTORY_YEARS, WEEKLY_DOWNLOAD_YEARS, WEEKS_TO_STORE } from './historyC
 
 export { HISTORY_YEARS, WEEKLY_DOWNLOAD_YEARS, WEEKS_TO_STORE };
 
-export const WEEKLY_BULK_REDIS_KEY = 'stock-screener:weekly-bulk:v1';
-export const WEEKLY_BULK_CURSOR_KEY = 'stock-screener:weekly-bulk:cursor:v1';
-const WEEKLY_BULK_TTL_SEC = 21 * 24 * 60 * 60;
-const LOCAL_BULK_PATH = resolve(process.cwd(), 'data/sp500-weekly-bulk.json');
+/** @deprecated use universeMeta('sp500').weeklyBulkKey */
+export const WEEKLY_BULK_REDIS_KEY = universeMeta('sp500').weeklyBulkKey;
+/** @deprecated use universeMeta('sp500').weeklyBulkCursorKey */
+export const WEEKLY_BULK_CURSOR_KEY = universeMeta('sp500').weeklyBulkCursorKey;
 
 export const WEEKLY_BULK_BATCH_SIZE = 35;
 
@@ -22,6 +27,10 @@ export interface WeeklyBulkStore {
   complete: boolean;
   /** Compact [unixSec, close] pairs, newest first. */
   data: Record<string, [number, number][]>;
+}
+
+function localBulkPath(universeId: UniverseId): string {
+  return resolve(process.cwd(), 'data', universeMeta(universeId).localBulkFile);
 }
 
 function expandBars(compact: [number, number][]): WeeklyBar[] {
@@ -67,26 +76,30 @@ function parseBulk(raw: string | Buffer): WeeklyBulkStore | null {
   }
 }
 
-async function redisGetBulk(client: NonNullable<ReturnType<typeof getRedis>>): Promise<WeeklyBulkStore | null> {
-  const raw = await client.getBuffer(WEEKLY_BULK_REDIS_KEY);
+async function redisGetBulk(
+  client: NonNullable<ReturnType<typeof getRedis>>,
+  universeId: UniverseId,
+): Promise<WeeklyBulkStore | null> {
+  const raw = await client.getBuffer(universeMeta(universeId).weeklyBulkKey);
   if (!raw?.length) return null;
   return parseBulk(raw);
 }
 
-export async function readWeeklyBulk(): Promise<WeeklyBulkStore | null> {
+export async function readWeeklyBulk(universeId: UniverseId = 'sp500'): Promise<WeeklyBulkStore | null> {
   const client = getRedis();
   if (client) {
     try {
-      const parsed = await redisGetBulk(client);
+      const parsed = await redisGetBulk(client, universeId);
       if (parsed) return parsed;
     } catch {
       // fall through
     }
   }
 
-  if (existsSync(LOCAL_BULK_PATH)) {
+  const path = localBulkPath(universeId);
+  if (existsSync(path)) {
     try {
-      return parseBulk(readFileSync(LOCAL_BULK_PATH, 'utf8'));
+      return parseBulk(readFileSync(path, 'utf8'));
     } catch {
       return null;
     }
@@ -95,29 +108,36 @@ export async function readWeeklyBulk(): Promise<WeeklyBulkStore | null> {
   return null;
 }
 
-export async function writeWeeklyBulk(store: WeeklyBulkStore): Promise<void> {
+export async function writeWeeklyBulk(
+  store: WeeklyBulkStore,
+  universeId: UniverseId = 'sp500',
+): Promise<void> {
   const client = getRedis();
   if (!client) return;
   const compressed = gzipSync(JSON.stringify(store));
-  await client.setex(WEEKLY_BULK_REDIS_KEY, WEEKLY_BULK_TTL_SEC, compressed);
+  const WEEKLY_BULK_TTL_SEC = 21 * 24 * 60 * 60;
+  await client.setex(universeMeta(universeId).weeklyBulkKey, WEEKLY_BULK_TTL_SEC, compressed);
 }
 
-export async function readWeeklyBulkCursor(): Promise<number> {
+export async function readWeeklyBulkCursor(universeId: UniverseId = 'sp500'): Promise<number> {
   const client = getRedis();
   if (!client) return 0;
   try {
-    const v = await client.get(WEEKLY_BULK_CURSOR_KEY);
+    const v = await client.get(universeMeta(universeId).weeklyBulkCursorKey);
     return v ? Number(v) : 0;
   } catch {
     return 0;
   }
 }
 
-export async function writeWeeklyBulkCursor(cursor: number): Promise<void> {
+export async function writeWeeklyBulkCursor(
+  cursor: number,
+  universeId: UniverseId = 'sp500',
+): Promise<void> {
   const client = getRedis();
   if (!client) return;
   try {
-    await client.set(WEEKLY_BULK_CURSOR_KEY, String(cursor));
+    await client.set(universeMeta(universeId).weeklyBulkCursorKey, String(cursor));
   } catch {
     // non-fatal
   }
@@ -131,15 +151,18 @@ export interface WeeklyBulkBatchResult {
   cursor: number;
 }
 
-export async function runWeeklyBulkBatch(reset = false): Promise<WeeklyBulkBatchResult> {
-  const universe = await getSymbolUniverse();
+export async function runWeeklyBulkBatch(
+  reset = false,
+  universeId: UniverseId = 'sp500',
+): Promise<WeeklyBulkBatchResult> {
+  const universe = await getSymbolUniverse(universeId);
   const total = universe.length;
 
-  const existing = reset ? null : await readWeeklyBulk();
+  const existing = reset ? null : await readWeeklyBulk(universeId);
   let data: Record<string, [number, number][]> = reset ? {} : { ...(existing?.data ?? {}) };
 
-  let cursor = reset ? 0 : await readWeeklyBulkCursor();
-  if (reset) await writeWeeklyBulkCursor(0);
+  let cursor = reset ? 0 : await readWeeklyBulkCursor(universeId);
+  if (reset) await writeWeeklyBulkCursor(0, universeId);
 
   const batch = universe.slice(cursor, cursor + WEEKLY_BULK_BATCH_SIZE);
   if (batch.length === 0) {
@@ -167,8 +190,8 @@ export async function runWeeklyBulkBatch(reset = false): Promise<WeeklyBulkBatch
     data,
   };
 
-  await writeWeeklyBulk(store);
-  await writeWeeklyBulkCursor(complete ? 0 : nextCursor);
+  await writeWeeklyBulk(store, universeId);
+  await writeWeeklyBulkCursor(complete ? 0 : nextCursor, universeId);
 
   return {
     complete,
@@ -195,10 +218,12 @@ export interface WeeklyBulkGapFillResult {
 }
 
 /** Download weekly history only for universe symbols missing from the bulk store. */
-export async function fillWeeklyBulkGaps(): Promise<WeeklyBulkGapFillResult> {
-  const universe = await getSymbolUniverse();
+export async function fillWeeklyBulkGaps(
+  universeId: UniverseId = 'sp500',
+): Promise<WeeklyBulkGapFillResult> {
+  const universe = await getSymbolUniverse(universeId);
   const total = universe.length;
-  const existing = await readWeeklyBulk();
+  const existing = await readWeeklyBulk(universeId);
   const data: Record<string, [number, number][]> = { ...(existing?.data ?? {}) };
 
   const missing = universe
@@ -231,8 +256,8 @@ export async function fillWeeklyBulkGaps(): Promise<WeeklyBulkGapFillResult> {
     data,
   };
 
-  await writeWeeklyBulk(store);
-  if (complete) await writeWeeklyBulkCursor(0);
+  await writeWeeklyBulk(store, universeId);
+  if (complete) await writeWeeklyBulkCursor(0, universeId);
 
   return {
     missingBefore: missing.length,
@@ -244,3 +269,5 @@ export async function fillWeeklyBulkGaps(): Promise<WeeklyBulkGapFillResult> {
     store,
   };
 }
+
+export { parseUniverseId, type UniverseId };

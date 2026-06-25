@@ -1,8 +1,11 @@
 /**
- * Warm S&P 500 fundamentals into Redis. Run: npm run warm:stocks
+ * Warm index fundamentals into Redis.
+ * Run: npm run warm:stocks
+ * Run: npm run warm:stocks -- nasdaq100
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { universeMeta, type UniverseId } from '../app/web-apps/stock-screener/universe';
 
 function loadEnvLocal() {
   const p = resolve(process.cwd(), '.env.local');
@@ -26,27 +29,36 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
+function parseUniverseArg(): UniverseId {
+  const arg = process.argv[2]?.trim();
+  if (arg === 'nasdaq100') return 'nasdaq100';
+  return 'sp500';
+}
+
 async function main() {
+  const universeId = parseUniverseArg();
+  const meta = universeMeta(universeId);
   const hasKey = Boolean(
     process.env.FINNHUB_API_KEY?.trim() ||
     process.env.X_Finnhub_Secret?.trim(),
   );
   const hasRedis = Boolean(process.env.REDIS_URL?.trim());
 
+  console.log(`Universe: ${meta.label}`);
   console.log(`Finnhub key: ${hasKey ? 'yes' : 'MISSING'}`);
   console.log(`REDIS_URL: ${hasRedis ? 'yes' : 'MISSING'}`);
 
   const { getSymbolUniverse } = await import('../app/api/stock-screener/symbols');
   const { runIncrementalBatch } = await import('../app/api/stock-screener/incrementalRefresh');
 
-  const universe = await getSymbolUniverse();
-  console.log(`S&P 500: ${universe.length} symbols\n`);
+  const universe = await getSymbolUniverse(universeId);
+  console.log(`${meta.label}: ${universe.length} symbols\n`);
 
   let batchNum = 0;
   while (true) {
     batchNum++;
     const reset = batchNum === 1;
-    const batch = await runIncrementalBatch(reset);
+    const batch = await runIncrementalBatch(reset, universeId);
     console.log(
       `  batch ${batchNum}: +${batch.batchAdded} → ${batch.fetched}/${batch.total}` +
       (batch.complete ? ' ✓ complete' : ''),

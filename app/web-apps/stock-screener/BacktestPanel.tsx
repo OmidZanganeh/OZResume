@@ -8,13 +8,14 @@ import styles from './StockScreener.module.css';
 interface Props {
   daysAgo: number;
   backtest: BacktestSummary | null;
+  universeLabel?: string;
 }
 
 function fmtPct(v: number): string {
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 }
 
-export default function BacktestPanel({ daysAgo, backtest }: Props) {
+export default function BacktestPanel({ daysAgo, backtest, universeLabel = 'Index avg' }: Props) {
   if (daysAgo <= 0 || !backtest) return null;
 
   return (
@@ -38,7 +39,7 @@ export default function BacktestPanel({ daysAgo, backtest }: Props) {
           </span>
         </div>
         <div className={styles.backtestStat}>
-          <span className={styles.backtestStatLabel}>S&P avg</span>
+          <span className={styles.backtestStatLabel}>{universeLabel}</span>
           <span>{fmtPct(backtest.universeAvgReturn)}</span>
         </div>
         <div className={styles.backtestStat}>

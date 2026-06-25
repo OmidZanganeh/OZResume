@@ -1,6 +1,10 @@
 import type { Stock } from '@/app/web-apps/stock-screener/types';
+import {
+  parseUniverseId,
+  universeMeta,
+  type UniverseId,
+} from '@/app/web-apps/stock-screener/universe';
 import { getRedis } from './redis';
-import { CURSOR_REDIS_KEY, SNAPSHOT_REDIS_KEY } from './symbols';
 
 /** Pre-v2 snapshot — read if v2 missing so deploys don't cold-start empty. */
 const LEGACY_SNAPSHOT_REDIS_KEY = 'stock-screener:snapshot:sp500';
@@ -19,6 +23,7 @@ export interface MarketDataResult {
   expiresAt?: string;
   totalSymbols?: number;
   refreshComplete?: boolean;
+  universe?: UniverseId;
 }
 
 export interface StoredSnapshot extends MarketDataResult {
@@ -27,11 +32,21 @@ export interface StoredSnapshot extends MarketDataResult {
   totalSymbols: number;
 }
 
-export async function readRedisSnapshot(): Promise<{ data: StoredSnapshot; fresh: boolean } | null> {
+function snapshotFallbackKeys(universeId: UniverseId): string[] {
+  const meta = universeMeta(universeId);
+  if (universeId === 'sp500') {
+    return [meta.snapshotKey, 'stock-screener:snapshot:sp500:v2', LEGACY_SNAPSHOT_REDIS_KEY];
+  }
+  return [meta.snapshotKey];
+}
+
+export async function readRedisSnapshot(
+  universeId: UniverseId = 'sp500',
+): Promise<{ data: StoredSnapshot; fresh: boolean } | null> {
   const client = getRedis();
   if (!client) return null;
 
-  for (const key of [SNAPSHOT_REDIS_KEY, 'stock-screener:snapshot:sp500:v2', LEGACY_SNAPSHOT_REDIS_KEY]) {
+  for (const key of snapshotFallbackKeys(universeId)) {
     try {
       const raw = await client.get(key);
       if (!raw) continue;
@@ -46,36 +61,40 @@ export async function readRedisSnapshot(): Promise<{ data: StoredSnapshot; fresh
   return null;
 }
 
-export async function readRedisCursor(): Promise<number> {
+export async function readRedisCursor(universeId: UniverseId = 'sp500'): Promise<number> {
   const client = getRedis();
   if (!client) return 0;
   try {
-    const v = await client.get(CURSOR_REDIS_KEY);
+    const v = await client.get(universeMeta(universeId).cursorKey);
     return v ? Number(v) : 0;
   } catch {
     return 0;
   }
 }
 
-export async function writeRedisCursor(cursor: number): Promise<void> {
+export async function writeRedisCursor(cursor: number, universeId: UniverseId = 'sp500'): Promise<void> {
   const client = getRedis();
   if (!client) return;
   try {
-    await client.set(CURSOR_REDIS_KEY, String(cursor));
+    await client.set(universeMeta(universeId).cursorKey, String(cursor));
   } catch {
     // non-fatal
   }
 }
 
-export async function writeRedisSnapshot(result: MarketDataResult & {
-  refreshComplete: boolean;
-  totalSymbols: number;
-}): Promise<void> {
+export async function writeRedisSnapshot(
+  result: MarketDataResult & {
+    refreshComplete: boolean;
+    totalSymbols: number;
+  },
+  universeId: UniverseId = 'sp500',
+): Promise<void> {
   const client = getRedis();
   if (!client) return;
 
   const payload: StoredSnapshot = {
     ...result,
+    universe: universeId,
     expiresAt: result.expiresAt ?? new Date(Date.now() + FRESH_TTL_MS).toISOString(),
     fromCache: true,
     refreshComplete: result.refreshComplete,
@@ -83,7 +102,11 @@ export async function writeRedisSnapshot(result: MarketDataResult & {
   };
 
   try {
-    await client.setex(SNAPSHOT_REDIS_KEY, STALE_RETENTION_SEC, JSON.stringify(payload));
+    await client.setex(
+      universeMeta(universeId).snapshotKey,
+      STALE_RETENTION_SEC,
+      JSON.stringify(payload),
+    );
   } catch {
     // non-fatal
   }
@@ -95,3 +118,5 @@ export function mergeStocks(existing: Stock[], incoming: Stock[]): Stock[] {
   for (const s of incoming) map.set(s.ticker, s);
   return [...map.values()].sort((a, b) => a.ticker.localeCompare(b.ticker));
 }
+
+export { parseUniverseId, type UniverseId };

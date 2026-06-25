@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { parseUniverseId } from '@/app/web-apps/stock-screener/universe';
 import { runIncrementalBatch } from '../incrementalRefresh';
 
 export const dynamic = 'force-dynamic';
@@ -21,11 +22,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const universeId = parseUniverseId(req.nextUrl.searchParams.get('universe'));
   const reset = req.nextUrl.searchParams.get('reset') === '1';
   const shouldContinue = req.nextUrl.searchParams.get('continue') === '1';
 
   try {
-    const batch = await runIncrementalBatch(reset);
+    const batch = await runIncrementalBatch(reset, universeId);
 
     if (!batch.complete && shouldContinue) {
       const url = new URL(req.url);
@@ -40,6 +42,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      universe: universeId,
       complete: batch.complete,
       loaded: batch.fetched,
       total: batch.total,
@@ -47,7 +50,7 @@ export async function GET(req: NextRequest) {
       cursor: batch.cursor,
       next: batch.complete
         ? null
-        : `${req.nextUrl.pathname}?continue=1${req.nextUrl.searchParams.get('secret') ? `&secret=${req.nextUrl.searchParams.get('secret')}` : ''}`,
+        : `${req.nextUrl.pathname}?continue=1&universe=${universeId}${req.nextUrl.searchParams.get('secret') ? `&secret=${req.nextUrl.searchParams.get('secret')}` : ''}`,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Refresh failed';

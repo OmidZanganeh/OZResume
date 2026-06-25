@@ -1,4 +1,5 @@
 import type { Stock } from '@/app/web-apps/stock-screener/types';
+import type { UniverseId } from '@/app/web-apps/stock-screener/universe';
 import { getFinnhubApiKey } from './env';
 import { getSymbolUniverse, inferSector, type UsSymbol } from './symbols';
 import { fetchStocksBatch } from './finnhub';
@@ -23,14 +24,17 @@ export interface BatchResult {
   cursor: number;
 }
 
-export async function runIncrementalBatch(reset = false): Promise<BatchResult> {
+export async function runIncrementalBatch(
+  reset = false,
+  universeId: UniverseId = 'sp500',
+): Promise<BatchResult> {
   const apiKey = getFinnhubApiKey();
   if (!apiKey) throw new Error('No Finnhub API key');
 
-  const universe = await getSymbolUniverse();
+  const universe = await getSymbolUniverse(universeId);
   const total = universe.length;
 
-  const existingSnap = await readRedisSnapshot();
+  const existingSnap = await readRedisSnapshot(universeId);
   const snapFresh = existingSnap?.fresh ?? false;
   const snapComplete = existingSnap?.data.refreshComplete ?? false;
 
@@ -48,8 +52,8 @@ export async function runIncrementalBatch(reset = false): Promise<BatchResult> {
     reset = true;
   }
 
-  let cursor = reset ? 0 : await readRedisCursor();
-  if (reset) await writeRedisCursor(0);
+  let cursor = reset ? 0 : await readRedisCursor(universeId);
+  if (reset) await writeRedisCursor(0, universeId);
 
   let existingStocks = reset ? [] : (existingSnap?.data.stocks ?? []);
 
@@ -75,7 +79,7 @@ export async function runIncrementalBatch(reset = false): Promise<BatchResult> {
   const nextCursor = cursor + batch.length;
   const complete = nextCursor >= total;
 
-  await writeRedisCursor(complete ? 0 : nextCursor);
+  await writeRedisCursor(complete ? 0 : nextCursor, universeId);
 
   const now = new Date().toISOString();
   const result: MarketDataResult & { refreshComplete: boolean; totalSymbols: number } = {
@@ -85,13 +89,14 @@ export async function runIncrementalBatch(reset = false): Promise<BatchResult> {
     fromCache: false,
     refreshComplete: complete,
     totalSymbols: total,
+    universe: universeId,
     expiresAt: complete ? new Date(Date.now() + FRESH_TTL_MS).toISOString() : existingSnap?.data.expiresAt ?? now,
     warning: complete
       ? undefined
       : `Building universe: ${merged.length}/${total} loaded (batch ${Math.ceil(nextCursor / BATCH_SIZE)}/${Math.ceil(total / BATCH_SIZE)})`,
   };
 
-  await writeRedisSnapshot(result);
+  await writeRedisSnapshot(result, universeId);
 
   return {
     complete,
@@ -102,8 +107,8 @@ export async function runIncrementalBatch(reset = false): Promise<BatchResult> {
   };
 }
 
-export async function loadMarketFromStore(): Promise<MarketDataResult | null> {
-  const hit = await readRedisSnapshot();
+export async function loadMarketFromStore(universeId: UniverseId = 'sp500'): Promise<MarketDataResult | null> {
+  const hit = await readRedisSnapshot(universeId);
   if (!hit) return null;
 
   const { expiresAt, refreshComplete, totalSymbols, ...rest } = hit.data;
@@ -111,6 +116,7 @@ export async function loadMarketFromStore(): Promise<MarketDataResult | null> {
 
   return {
     ...rest,
+    universe: universeId,
     fromCache: true,
     expiresAt,
     refreshComplete,

@@ -47,6 +47,7 @@ import {
   formatCacheAge,
 } from './clientCache';
 import { useWatchlists, type ViewMode } from './watchlists';
+import { universeMeta, type UniverseId } from './universe';
 import styles from './StockScreener.module.css';
 
 function mergeStockLists(prev: Stock[], incoming: Stock[]): Stock[] {
@@ -98,6 +99,7 @@ export default function StockScreener() {
   const [totalSymbols, setTotalSymbols] = useState<number | undefined>();
   const [patternLoading, setPatternLoading] = useState<Set<string>>(() => new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('universe');
+  const [marketUniverse, setMarketUniverse] = useState<UniverseId>('sp500');
   const [searchQuery, setSearchQuery] = useState('');
   const watchlist = useWatchlists();
   const stocksRef = useRef(stocks);
@@ -166,13 +168,15 @@ export default function StockScreener() {
           ? `Snapshot from ${age}${data.fromCache ? ' (cached)' : ''}`
           : null,
       );
-      writeSessionMarketCache(data);
+      writeSessionMarketCache(data, marketUniverse);
     }
 
     let hadCachedStocks = false;
 
     async function loadMarketData() {
-      const sessionHit = readSessionMarketCache();
+      setStocks([]);
+      setReferenceTickers(new Set());
+      const sessionHit = readSessionMarketCache(marketUniverse);
       if (sessionHit && Array.isArray(sessionHit.stocks) && sessionHit.stocks.length > 0) {
         hadCachedStocks = true;
         applyPayload(sessionHit as MarketPayload);
@@ -184,7 +188,7 @@ export default function StockScreener() {
       setLoadError(null);
 
       try {
-        const res = await fetch('/api/stock-screener');
+        const res = await fetch(`/api/stock-screener?universe=${marketUniverse}`);
         if (!res.ok) throw new Error(`API error ${res.status}`);
 
         const data = (await res.json()) as MarketPayload;
@@ -203,7 +207,7 @@ export default function StockScreener() {
 
     loadMarketData();
     return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [marketUniverse]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -474,10 +478,15 @@ export default function StockScreener() {
   const handleDownloadCsv = useCallback(() => {
     downloadScreenerCsv(displayRows, exportColumns, {
       filteredOnly: viewMode === 'watchlist' ? false : true,
-      filename: screenerCsvFilename(deferredDaysAgo, viewMode === 'watchlist' ? watchlist.active.name : undefined),
+      filename: screenerCsvFilename(
+        deferredDaysAgo,
+        viewMode === 'watchlist' ? watchlist.active.name : undefined,
+        marketUniverse,
+      ),
     });
   }, [displayRows, exportColumns, deferredDaysAgo, viewMode, watchlist.active.name]);
 
+  const universeLabel = universeMeta(marketUniverse).shortLabel;
   const matchCount = viewMode === 'watchlist' ? displayRows.length : matchingSet.size;
   const total = stocks.length;
   const weeklyReadyCount = useMemo(
@@ -509,7 +518,7 @@ export default function StockScreener() {
           {isLoading && (
             <span className={styles.dataBannerLoading}>
               <Loader2 size={14} className={styles.spinIcon} />
-              Loading S&P 500 data (weekly cache)…
+              Loading {universeLabel} data (weekly cache)…
             </span>
           )}
           {!isLoading && dataWarning && (
@@ -520,7 +529,7 @@ export default function StockScreener() {
           )}
           {!isLoading && dataSource !== 'mock' && !dataWarning && (
             <span className={styles.dataBannerOk}>
-              Live Finnhub data · {total}{totalSymbols ? ` / ${totalSymbols}` : ''} S&P 500 · weekly refresh
+              Live Finnhub data · {total}{totalSymbols ? ` / ${totalSymbols}` : ''} {universeLabel} · weekly refresh
               {cacheLabel ? ` · ${cacheLabel}` : ''}
             </span>
           )}
@@ -531,7 +540,9 @@ export default function StockScreener() {
         <aside className={styles.sidebarColumn}>
           <WatchlistPanel
             viewMode={viewMode}
+            marketUniverse={marketUniverse}
             onViewModeChange={setViewMode}
+            onMarketUniverseChange={setMarketUniverse}
             store={watchlist.store}
             active={watchlist.active}
             onSelectList={watchlist.setActiveId}
@@ -555,7 +566,7 @@ export default function StockScreener() {
                   ? `Watchlist: ${watchlist.active.name}`
                   : isHistorical
                     ? `Universe on ${formatAsOfDate(deferredDaysAgo)}`
-                    : 'S&P 500 Universe'}
+                    : `${universeLabel} Universe`}
               </h1>
               <p className={styles.resultsSub}>
                 {viewMode === 'watchlist'
@@ -621,7 +632,11 @@ export default function StockScreener() {
             </div>
           </div>
 
-          <BacktestPanel daysAgo={deferredDaysAgo} backtest={backtest} />
+          <BacktestPanel
+            daysAgo={deferredDaysAgo}
+            backtest={backtest}
+            universeLabel={`${universeLabel} avg`}
+          />
 
           {showSimilarity && (
             <SimilarityPanel
@@ -657,7 +672,7 @@ export default function StockScreener() {
 
           {!isLoading && !searchActive && viewMode === 'watchlist' && watchlist.active.tickers.length === 0 && (
             <p className={styles.emptyState}>
-              This watchlist is empty. Switch to S&P 500 and click ★ on any row to add stocks.
+              This watchlist is empty. Switch to {universeLabel} and click ★ on any row to add stocks.
             </p>
           )}
 

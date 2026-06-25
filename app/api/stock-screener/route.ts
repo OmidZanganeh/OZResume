@@ -1,13 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { parseUniverseId } from '@/app/web-apps/stock-screener/universe';
 import { getMarketStocks } from './fetchMarketData';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
 /** Cached market snapshot for the stock screener (Finnhub preferred, FMP fallback). */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const universeId = parseUniverseId(req.nextUrl.searchParams.get('universe'));
+
   try {
-    const result = await getMarketStocks();
+    const result = await getMarketStocks(universeId);
     const cacheControl =
       result.refreshComplete === false
         ? 'no-store'

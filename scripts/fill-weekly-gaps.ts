@@ -1,9 +1,10 @@
 /**
- * Fetch Yahoo weekly history for S&P 500 symbols missing from the bulk store.
- * Run: npm run warm:weekly:gaps
+ * Download missing weekly bars for a universe into Redis (and local file).
+ * Run: npm run warm:weekly:gaps -- nasdaq100
  */
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { universeMeta, type UniverseId } from '../app/web-apps/stock-screener/universe';
 
 function loadEnvLocal() {
   const p = resolve(process.cwd(), '.env.local');
@@ -27,28 +28,34 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
+function parseUniverseArg(): UniverseId {
+  const arg = process.argv[2]?.trim();
+  if (arg === 'nasdaq100') return 'nasdaq100';
+  return 'sp500';
+}
+
 async function main() {
+  const universeId = parseUniverseArg();
+  const meta = universeMeta(universeId);
   const hasRedis = Boolean(process.env.REDIS_URL?.trim());
-  console.log(`REDIS_URL: ${hasRedis ? 'yes' : 'MISSING (will update local file only)'}`);
+  console.log(`Universe: ${meta.label}`);
+  console.log(`REDIS_URL: ${hasRedis ? 'yes' : 'MISSING (will write local file only)'}`);
 
   const { fillWeeklyBulkGaps } = await import('../app/api/stock-screener/weeklyBulk');
 
-  console.log('Finding missing symbols and downloading via Yahoo…\n');
-  const result = await fillWeeklyBulkGaps();
-
+  const result = await fillWeeklyBulkGaps(universeId);
   console.log(`Missing before: ${result.missingBefore}`);
-  console.log(`Added: ${result.added.length} → ${result.fetched}/${result.total}`);
-  if (result.added.length) console.log(`  ${result.added.join(', ')}`);
+  console.log(`Added: ${result.added.length} — ${result.added.join(', ') || '(none)'}`);
   if (result.failed.length) {
-    console.log(`Failed (${result.failed.length}): ${result.failed.join(', ')}`);
+    console.log(`Failed: ${result.failed.join(', ')}`);
   }
-  console.log(result.complete ? '\n✓ All universe symbols have weekly data' : '\n⚠ Some symbols still missing');
+  console.log(`Coverage: ${result.fetched}/${result.total}${result.complete ? ' ✓' : ''}`);
 
   const outDir = resolve(process.cwd(), 'data');
   mkdirSync(outDir, { recursive: true });
-  const outPath = resolve(outDir, 'sp500-weekly-bulk.json');
+  const outPath = resolve(outDir, meta.localBulkFile);
   writeFileSync(outPath, JSON.stringify(result.store));
-  console.log(`Local copy: ${outPath}`);
+  console.log(`\nLocal copy: ${outPath}`);
 }
 
 main().catch(err => {

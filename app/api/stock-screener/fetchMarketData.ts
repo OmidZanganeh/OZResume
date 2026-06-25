@@ -1,4 +1,5 @@
 import { MOCK_STOCKS } from '@/app/web-apps/stock-screener/mockStocks';
+import type { UniverseId } from '@/app/web-apps/stock-screener/universe';
 import { getFinnhubApiKey } from './env';
 import { readRedisSnapshot, type MarketDataResult } from './cache';
 import { loadMarketFromStore, runIncrementalBatch } from './incrementalRefresh';
@@ -13,9 +14,9 @@ export type { MarketDataResult };
 
 const MEMORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-let memoryCache: { result: MarketDataResult; expiresAt: number } | null = null;
-let refreshKickStarted = false;
-let weeklyBulkKickStarted = false;
+const memoryCache = new Map<UniverseId, { result: MarketDataResult; expiresAt: number }>();
+const refreshKickStarted = new Set<UniverseId>();
+const weeklyBulkKickStarted = new Set<UniverseId>();
 
 function apiBase(): string {
   return process.env.VERCEL_URL
@@ -23,22 +24,22 @@ function apiBase(): string {
     : 'https://omidzanganeh.com';
 }
 
-function kickRefreshChain() {
-  if (refreshKickStarted || !getFinnhubApiKey()) return;
-  refreshKickStarted = true;
+function kickRefreshChain(universeId: UniverseId) {
+  if (refreshKickStarted.has(universeId) || !getFinnhubApiKey()) return;
+  refreshKickStarted.add(universeId);
 
-  const q = new URLSearchParams({ reset: '1', continue: '1' });
+  const q = new URLSearchParams({ reset: '1', continue: '1', universe: universeId });
   const secret = process.env.CRON_SECRET?.trim();
   if (secret) q.set('secret', secret);
 
   fetch(`${apiBase()}/api/stock-screener/refresh?${q}`, { cache: 'no-store' }).catch(() => {});
 }
 
-function kickWeeklyBulkChain() {
-  if (weeklyBulkKickStarted) return;
-  weeklyBulkKickStarted = true;
+function kickWeeklyBulkChain(universeId: UniverseId) {
+  if (weeklyBulkKickStarted.has(universeId)) return;
+  weeklyBulkKickStarted.add(universeId);
 
-  const q = new URLSearchParams({ reset: '1', continue: '1' });
+  const q = new URLSearchParams({ reset: '1', continue: '1', universe: universeId });
   const secret = process.env.CRON_SECRET?.trim();
   if (secret) q.set('secret', secret);
 
@@ -47,27 +48,31 @@ function kickWeeklyBulkChain() {
   }).catch(() => {});
 }
 
-function remember(result: MarketDataResult) {
+function remember(result: MarketDataResult, universeId: UniverseId) {
   if (result.refreshComplete === false) return;
-  memoryCache = {
-    result: { ...result, fromCache: true },
+  memoryCache.set(universeId, {
+    result: { ...result, fromCache: true, universe: universeId },
     expiresAt: Date.now() + MEMORY_TTL_MS,
-  };
+  });
 }
 
-function fromMemory(): MarketDataResult | null {
-  if (!memoryCache || memoryCache.expiresAt <= Date.now()) return null;
-  if (memoryCache.result.refreshComplete === false) return null;
-  return memoryCache.result;
+function fromMemory(universeId: UniverseId): MarketDataResult | null {
+  const entry = memoryCache.get(universeId);
+  if (!entry || entry.expiresAt <= Date.now()) return null;
+  if (entry.result.refreshComplete === false) return null;
+  return entry.result;
 }
 
-async function withWeeklyBulk(result: MarketDataResult): Promise<MarketDataResult> {
-  const bulk = await readWeeklyBulk();
+async function withWeeklyBulk(
+  result: MarketDataResult,
+  universeId: UniverseId,
+): Promise<MarketDataResult> {
+  const bulk = await readWeeklyBulk(universeId);
   const stocks = mergeBulkWeeklyIntoStocks(result.stocks, bulk);
 
   let warning = result.warning;
   if (!bulk?.complete) {
-    kickWeeklyBulkChain();
+    kickWeeklyBulkChain(universeId);
     const cov = weeklyBulkCoverage(bulk);
     const bulkNote =
       cov > 0
@@ -76,19 +81,19 @@ async function withWeeklyBulk(result: MarketDataResult): Promise<MarketDataResul
     warning = warning ? `${warning} ${bulkNote}` : bulkNote;
   }
 
-  return { ...result, stocks, warning };
+  return { ...result, stocks, universe: universeId, warning };
 }
 
 /** Read cached snapshot only — never calls Finnhub (safe for page loads). */
-export async function getMarketStocks(): Promise<MarketDataResult> {
-  const mem = fromMemory();
-  if (mem) return withWeeklyBulk(mem);
+export async function getMarketStocks(universeId: UniverseId = 'sp500'): Promise<MarketDataResult> {
+  const mem = fromMemory(universeId);
+  if (mem) return withWeeklyBulk(mem, universeId);
 
-  const stored = await loadMarketFromStore();
+  const stored = await loadMarketFromStore(universeId);
   if (stored) {
-    if (!stored.refreshComplete) kickRefreshChain();
-    const merged = await withWeeklyBulk(stored);
-    if (stored.refreshComplete) remember(merged);
+    if (!stored.refreshComplete) kickRefreshChain(universeId);
+    const merged = await withWeeklyBulk(stored, universeId);
+    if (stored.refreshComplete) remember(merged, universeId);
     return merged;
   }
 
@@ -97,37 +102,44 @@ export async function getMarketStocks(): Promise<MarketDataResult> {
       stocks: MOCK_STOCKS,
       source: 'mock',
       cachedAt: new Date().toISOString(),
+      universe: universeId,
       warning: 'No API key — set FINNHUB_API_KEY or X_Finnhub_Secret.',
-    });
+    }, universeId);
   }
 
-  kickRefreshChain();
-  kickWeeklyBulkChain();
+  kickRefreshChain(universeId);
+  kickWeeklyBulkChain(universeId);
 
   return withWeeklyBulk({
     stocks: MOCK_STOCKS,
     source: 'mock',
     cachedAt: new Date().toISOString(),
+    universe: universeId,
     warning: 'Building market cache — live data loads in a few minutes. Refresh this page shortly.',
-  });
+  }, universeId);
 }
 
 /** Run one incremental batch (refresh route / warm script). */
-export async function refreshMarketBatch(reset = false): Promise<MarketDataResult> {
+export async function refreshMarketBatch(
+  reset = false,
+  universeId: UniverseId = 'sp500',
+): Promise<MarketDataResult> {
   const key = getFinnhubApiKey();
   if (!key) throw new Error('No Finnhub API key');
 
-  await runIncrementalBatch(reset);
-  const stored = await loadMarketFromStore();
+  await runIncrementalBatch(reset, universeId);
+  const stored = await loadMarketFromStore(universeId);
   if (!stored) throw new Error('Refresh produced no snapshot');
 
-  const merged = await withWeeklyBulk(stored);
-  remember(merged);
+  const merged = await withWeeklyBulk(stored, universeId);
+  remember(merged, universeId);
   return merged;
 }
 
-export async function getStaleForInvalidKey(): Promise<MarketDataResult | null> {
-  const stale = await readRedisSnapshot();
+export async function getStaleForInvalidKey(
+  universeId: UniverseId = 'sp500',
+): Promise<MarketDataResult | null> {
+  const stale = await readRedisSnapshot(universeId);
   if (!stale) return null;
   const { expiresAt, refreshComplete, totalSymbols, ...rest } = stale.data;
   return withWeeklyBulk({
@@ -136,6 +148,7 @@ export async function getStaleForInvalidKey(): Promise<MarketDataResult | null> 
     expiresAt,
     refreshComplete,
     totalSymbols,
+    universe: universeId,
     warning: 'Invalid Finnhub API key — serving cached snapshot.',
-  });
+  }, universeId);
 }

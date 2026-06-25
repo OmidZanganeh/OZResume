@@ -1,9 +1,11 @@
 /**
- * Download ~12y of weekly closes for all S&P 500 symbols into Redis (and local file).
+ * Download ~12y of weekly closes for an index universe into Redis (and local file).
  * Run: npm run warm:weekly
+ * Run: npm run warm:weekly -- nasdaq100
  */
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { universeMeta, type UniverseId } from '../app/web-apps/stock-screener/universe';
 
 function loadEnvLocal() {
   const p = resolve(process.cwd(), '.env.local');
@@ -27,22 +29,31 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
+function parseUniverseArg(): UniverseId {
+  const arg = process.argv[2]?.trim();
+  if (arg === 'nasdaq100') return 'nasdaq100';
+  return 'sp500';
+}
+
 async function main() {
+  const universeId = parseUniverseArg();
+  const meta = universeMeta(universeId);
   const hasRedis = Boolean(process.env.REDIS_URL?.trim());
+  console.log(`Universe: ${meta.label}`);
   console.log(`REDIS_URL: ${hasRedis ? 'yes' : 'MISSING (will write local file only)'}`);
 
   const { runWeeklyBulkBatch } = await import('../app/api/stock-screener/weeklyBulk');
   const { getSymbolUniverse } = await import('../app/api/stock-screener/symbols');
 
-  const universe = await getSymbolUniverse();
-  console.log(`S&P 500: ${universe.length} symbols`);
+  const universe = await getSymbolUniverse(universeId);
+  console.log(`${meta.label}: ${universe.length} symbols`);
   console.log(`Downloading ~12 years of weekly closes via Yahoo…\n`);
 
   let batchNum = 0;
   while (true) {
     batchNum++;
     const reset = batchNum === 1;
-    const batch = await runWeeklyBulkBatch(reset);
+    const batch = await runWeeklyBulkBatch(reset, universeId);
     console.log(
       `  batch ${batchNum}: +${batch.batchAdded} → ${batch.fetched}/${batch.total}` +
         (batch.complete ? ' ✓ complete' : ''),
@@ -51,11 +62,11 @@ async function main() {
   }
 
   const { readWeeklyBulk } = await import('../app/api/stock-screener/weeklyBulk');
-  const store = await readWeeklyBulk();
+  const store = await readWeeklyBulk(universeId);
   if (store) {
     const outDir = resolve(process.cwd(), 'data');
     mkdirSync(outDir, { recursive: true });
-    const outPath = resolve(outDir, 'sp500-weekly-bulk.json');
+    const outPath = resolve(outDir, meta.localBulkFile);
     writeFileSync(outPath, JSON.stringify(store));
     console.log(`\nLocal copy: ${outPath}`);
     console.log(`Tickers with weekly data: ${Object.keys(store.data).length}`);

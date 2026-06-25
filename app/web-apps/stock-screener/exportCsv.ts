@@ -1,6 +1,7 @@
 import type { TableRow } from './StockTable';
 import type { TableColumn } from './tableColumns';
 import type { StockSnapshot } from './types';
+import type { UniverseId } from './universe';
 import { daysAgoToDate } from './timelineDate';
 
 function isoDate(d: Date): string {
@@ -64,7 +65,11 @@ export function downloadScreenerCsv(
   URL.revokeObjectURL(url);
 }
 
-export function screenerCsvFilename(daysAgo: number, watchlistName?: string): string {
+export function screenerCsvFilename(
+  daysAgo: number,
+  watchlistName?: string,
+  universeId: UniverseId = 'sp500',
+): string {
   const today = isoDate(new Date());
   const safeName = watchlistName
     ? watchlistName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').toLowerCase()
@@ -72,8 +77,9 @@ export function screenerCsvFilename(daysAgo: number, watchlistName?: string): st
   if (safeName) {
     return `watchlist-${safeName}-${today}.csv`;
   }
+  const prefix = universeId === 'nasdaq100' ? 'nasdaq100-screener' : 'sp500-screener';
   if (daysAgo > 0) {
-    return `sp500-screener-${isoDate(daysAgoToDate(daysAgo))}-to-${today}.csv`;
+    return `${prefix}-${isoDate(daysAgoToDate(daysAgo))}-to-${today}.csv`;
   }
-  return `sp500-screener-${today}.csv`;
+  return `${prefix}-${today}.csv`;
 }

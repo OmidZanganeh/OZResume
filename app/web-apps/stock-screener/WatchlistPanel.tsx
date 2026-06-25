@@ -4,11 +4,14 @@ import { useState } from 'react';
 import { List, Plus, Star, Trash2 } from 'lucide-react';
 import type { ViewMode } from './watchlists';
 import type { Watchlist, WatchlistStore } from './watchlists';
+import { UNIVERSE_IDS, universeMeta, type UniverseId } from './universe';
 import styles from './StockScreener.module.css';
 
 interface Props {
   viewMode: ViewMode;
+  marketUniverse: UniverseId;
   onViewModeChange: (mode: ViewMode) => void;
+  onMarketUniverseChange: (id: UniverseId) => void;
   store: WatchlistStore;
   active: Watchlist;
   onSelectList: (id: string) => void;
@@ -20,7 +23,9 @@ interface Props {
 
 export default function WatchlistPanel({
   viewMode,
+  marketUniverse,
   onViewModeChange,
+  onMarketUniverseChange,
   store,
   active,
   onSelectList,
@@ -56,15 +61,21 @@ export default function WatchlistPanel({
       </div>
 
       <div className={styles.viewModeTabs} role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={viewMode === 'universe'}
-          className={`${styles.viewModeTab} ${viewMode === 'universe' ? styles.viewModeTabOn : ''}`}
-          onClick={() => onViewModeChange('universe')}
-        >
-          S&P 500
-        </button>
+        {UNIVERSE_IDS.map(id => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'universe' && marketUniverse === id}
+            className={`${styles.viewModeTab} ${viewMode === 'universe' && marketUniverse === id ? styles.viewModeTabOn : ''}`}
+            onClick={() => {
+              onMarketUniverseChange(id);
+              onViewModeChange('universe');
+            }}
+          >
+            {universeMeta(id).shortLabel}
+          </button>
+        ))}
         <button
           type="button"
           role="tab"
@@ -164,7 +175,7 @@ export default function WatchlistPanel({
       {viewMode === 'watchlist' && (
         <p className={styles.watchlistHint}>
           {active.tickers.length === 0
-            ? 'Use ★ on any row in S&P 500 view to add stocks here.'
+            ? `Use ★ on any row in ${universeMeta(marketUniverse).shortLabel} view to add stocks here.`
             : `${active.tickers.length} stock${active.tickers.length !== 1 ? 's' : ''} — full factor table on the right.`}
         </p>
       )}
