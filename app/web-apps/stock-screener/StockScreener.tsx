@@ -10,7 +10,7 @@ import {
   useRef,
 } from 'react';
 import Link from 'next/link';
-import { BarChart3, Loader2, AlertTriangle, Download } from 'lucide-react';
+import { BarChart3, Loader2, AlertTriangle, Download, Search } from 'lucide-react';
 import FilterSidebar from './FilterSidebar';
 import StockTable, { sortRows, type SortDir } from './StockTable';
 import type { TableColumnId } from './tableColumns';
@@ -101,6 +101,7 @@ export default function StockScreener() {
   const [totalSymbols, setTotalSymbols] = useState<number | undefined>();
   const [patternLoading, setPatternLoading] = useState<Set<string>>(() => new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('universe');
+  const [searchQuery, setSearchQuery] = useState('');
   const watchlist = useWatchlists();
   const stocksRef = useRef(stocks);
   stocksRef.current = stocks;
@@ -366,11 +367,25 @@ export default function StockScreener() {
   ]);
 
   const displayRows = useMemo(() => {
-    if (viewMode !== 'watchlist') return tableRows;
-    return tableRows
-      .filter(r => watchlist.activeTickers.has(r.stock.ticker))
-      .map(r => ({ ...r, visible: true }));
-  }, [tableRows, viewMode, watchlist.activeTickers]);
+    let rows =
+      viewMode !== 'watchlist'
+        ? tableRows
+        : tableRows
+            .filter(r => watchlist.activeTickers.has(r.stock.ticker))
+            .map(r => ({ ...r, visible: true }));
+
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return rows;
+
+    return rows.filter(r => {
+      const ticker = r.stock.ticker.toLowerCase();
+      const name = r.stock.companyName.toLowerCase();
+      return ticker.includes(q) || name.includes(q);
+    });
+  }, [tableRows, viewMode, watchlist.activeTickers, searchQuery]);
+
+  const searchActive = searchQuery.trim().length > 0;
+  const shownCount = displayRows.length;
 
   const handleToggleWatchlist = useCallback(
     (ticker: string) => {
@@ -555,21 +570,50 @@ export default function StockScreener() {
               </p>
             </div>
             <div className={styles.headerActions}>
+              <div className={styles.searchBox}>
+                <Search size={15} className={styles.searchIcon} aria-hidden />
+                <input
+                  type="search"
+                  className={styles.searchInput}
+                  placeholder="Search ticker or company…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  aria-label="Search stocks by ticker or company name"
+                />
+                {searchActive && (
+                  <button
+                    type="button"
+                    className={styles.searchClear}
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 className={styles.downloadBtn}
                 onClick={handleDownloadCsv}
-                disabled={isLoading || matchCount === 0}
+                disabled={isLoading || shownCount === 0}
                 title="Download filtered results as CSV (raw numbers for spreadsheets)"
               >
                 <Download size={14} />
                 CSV
               </button>
               <div className={styles.countBadge} aria-live="polite">
-                <span className={styles.countMatch}>{matchCount}</span>
+                <span className={styles.countMatch}>{searchActive ? shownCount : matchCount}</span>
                 <span className={styles.countSep}>/</span>
-                <span className={styles.countTotal}>{total}</span>
-                <span className={styles.countLabel}>{viewMode === 'watchlist' ? 'stocks' : 'shown'}</span>
+                <span className={styles.countTotal}>
+                  {searchActive
+                    ? viewMode === 'watchlist'
+                      ? watchlist.active.tickers.size
+                      : matchCount
+                    : total}
+                </span>
+                <span className={styles.countLabel}>
+                  {searchActive ? 'found' : viewMode === 'watchlist' ? 'stocks' : 'shown'}
+                </span>
               </div>
             </div>
           </div>
@@ -602,19 +646,25 @@ export default function StockScreener() {
             onToggleWatchlist={handleToggleWatchlist}
           />
 
-          {!isLoading && viewMode === 'watchlist' && watchlist.active.tickers.length === 0 && (
+          {!isLoading && searchActive && shownCount === 0 && (
+            <p className={styles.emptyState}>
+              No stocks match “{searchQuery.trim()}”. Try another ticker or company name.
+            </p>
+          )}
+
+          {!isLoading && !searchActive && viewMode === 'watchlist' && watchlist.active.tickers.length === 0 && (
             <p className={styles.emptyState}>
               This watchlist is empty. Switch to S&P 500 and click ★ on any row to add stocks.
             </p>
           )}
 
-          {!isLoading && viewMode === 'watchlist' && watchlist.active.tickers.length > 0 && displayRows.length === 0 && (
+          {!isLoading && !searchActive && viewMode === 'watchlist' && watchlist.active.tickers.length > 0 && displayRows.length === 0 && (
             <p className={styles.emptyState}>
               Watchlist tickers aren’t in the current snapshot yet. They may appear after the weekly cache refresh.
             </p>
           )}
 
-          {!isLoading && viewMode === 'universe' && matchCount === 0 && (
+          {!isLoading && !searchActive && viewMode === 'universe' && matchCount === 0 && (
             <p className={styles.emptyState}>
               No stocks match your filters{isHistorical ? ' at that date' : ''}. Widen ranges or disable filters.
             </p>
