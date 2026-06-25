@@ -1,13 +1,14 @@
 'use client';
 
 import { Crosshair, Sparkles } from 'lucide-react';
-import type { Stock, StockSnapshot } from './types';
+import type { StockSnapshot } from './types';
 import type { SimilarityMatch } from './similarity';
-import { formatAsOfDate } from './historical';
+import { formatAsOfDate } from './timelineDate';
 import styles from './StockScreener.module.css';
 
 export interface ReferenceEntry {
-  stock: Stock;
+  stock: import('./types').Stock;
+  profile: import('./weeklyMomentum').MomentumProfile;
   snapshot: StockSnapshot;
 }
 
@@ -19,6 +20,7 @@ interface Props {
 }
 
 function fmtReturn(v: number): string {
+  if (!Number.isFinite(v)) return '—';
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 }
 
@@ -37,22 +39,27 @@ export default function SimilarityPanel({
       <div className={styles.similarityHead}>
         <Sparkles size={16} />
         <div>
-          <h2 className={styles.similarityTitle}>Pattern match — buy candidates today</h2>
+          <h2 className={styles.similarityTitle}>Price momentum match — candidates today</h2>
           <p className={styles.similaritySub}>
             {multi ? (
               <>
                 <strong>{references.length} references</strong> on {formatAsOfDate(daysAgo)}
-                {' '}— composite profile averaged from:
+                {' '}— blended weekly momentum from:
               </>
             ) : (
               <>
                 Reference: <strong>{references[0]!.stock.ticker}</strong> on {formatAsOfDate(daysAgo)}
-                {' '}(${references[0]!.snapshot.priceThen.toFixed(2)} → ${references[0]!.stock.price.toFixed(2)},
-                {' '}{fmtReturn(references[0]!.snapshot.returnToTodayPct)} since then).
+                {references[0]!.snapshot.priceThen > 0 && (
+                  <>
+                    {' '}(${references[0]!.snapshot.priceThen.toFixed(2)} → ${references[0]!.stock.price.toFixed(2)},
+                    {' '}{fmtReturn(references[0]!.snapshot.returnToTodayPct)} since then)
+                  </>
+                )}
+                .
               </>
             )}
-            {' '}Stocks below have the <strong>closest factor profile today</strong>
-            {multi ? ' to that blended past setup' : ' to that past setup'}.
+            {' '}Stocks below have the <strong>closest weekly price momentum today</strong>
+            {multi ? ' to that blended past pattern' : ' to that past pattern'}.
           </p>
         </div>
         <button type="button" className={styles.similarityClear} onClick={onClear}>
@@ -83,9 +90,7 @@ export default function SimilarityPanel({
 
       <p className={styles.similarityFoot}>
         <Crosshair size={12} />
-        {multi
-          ? 'Multi-pattern match uses the average factor profile of all selected references.'
-          : 'Similarity weights valuation, growth, momentum, volatility, and size.'}
+        Uses real weekly returns (4w / 13w / 26w / 52w) and distance from 52w high/low only.
         {' '}Not investment advice — verify before trading.
       </p>
     </section>

@@ -21,7 +21,6 @@ export interface TableColumn {
   todayOnly?: boolean;
   format: (value: number) => string;
   sortable: boolean;
-  estimatedAtPast?: boolean;
 }
 
 export const IDENTITY_COLUMNS: TableColumn[] = [
@@ -55,9 +54,8 @@ export const CONTEXT_COLUMNS: TableColumn[] = [
     label: 'Price',
     shortLabel: 'Price',
     align: 'right',
-    format: v => `$${v.toFixed(2)}`,
+    format: v => (Number.isFinite(v) && v > 0 ? `$${v.toFixed(2)}` : '—'),
     sortable: true,
-    estimatedAtPast: true,
   },
   {
     id: 'returnToTodayPct',
@@ -65,7 +63,7 @@ export const CONTEXT_COLUMNS: TableColumn[] = [
     shortLabel: 'Ret→Now',
     align: 'right',
     historicalOnly: true,
-    format: v => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,
+    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
     sortable: true,
   },
   {
@@ -91,20 +89,27 @@ export const METRIC_COLUMNS: TableColumn[] = FILTER_DEFS.map(def => ({
         ? (v: number) => `$${v.toFixed(2)}`
         : def.format,
   sortable: true,
-  estimatedAtPast: !['beta', 'avgVolume', 'volatility30d', 'atrPercent'].includes(def.id),
 }));
 
 export function visibleColumns(
   isHistorical: boolean,
   showSimilarity: boolean,
 ): TableColumn[] {
+  if (isHistorical) {
+    const cols: TableColumn[] = [
+      ...IDENTITY_COLUMNS,
+      CONTEXT_COLUMNS.find(c => c.id === 'price')!,
+      CONTEXT_COLUMNS.find(c => c.id === 'returnToTodayPct')!,
+    ];
+    if (showSimilarity) {
+      cols.push(CONTEXT_COLUMNS.find(c => c.id === 'similarity')!);
+    }
+    return cols;
+  }
+
   return [
     ...IDENTITY_COLUMNS,
-    ...CONTEXT_COLUMNS.filter(c => {
-      if (c.historicalOnly && !isHistorical) return false;
-      if (c.todayOnly && !showSimilarity) return false;
-      return true;
-    }),
+    CONTEXT_COLUMNS.find(c => c.id === 'price')!,
     ...METRIC_COLUMNS.filter(c => c.id !== 'price'),
   ];
 }
@@ -122,7 +127,15 @@ export function columnSortValue(
   if (col === 'ticker') return row.ticker;
   if (col === 'companyName') return row.companyName;
   if (col === 'sector') return row.sector;
-  if (col === 'returnToTodayPct') return row.snapshot.returnToTodayPct ?? 0;
+  if (col === 'returnToTodayPct') {
+    return Number.isFinite(row.snapshot.returnToTodayPct)
+      ? row.snapshot.returnToTodayPct!
+      : -Infinity;
+  }
   if (col === 'similarity') return row.similarity ?? -1;
+  if (col === 'price') {
+    const p = row.snapshot.price;
+    return Number.isFinite(p) && p > 0 ? p : -Infinity;
+  }
   return row.snapshot[col as keyof StockMetrics] ?? 0;
 }

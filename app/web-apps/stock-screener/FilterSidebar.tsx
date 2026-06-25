@@ -52,8 +52,8 @@ export default function FilterSidebar({ state, onChange, isHistorical }: Props) 
 
       {isHistorical && (
         <p className={styles.historicalNote}>
-          Table values update for the <strong>selected date</strong>. Filters apply to those estimated factors.
-          Click ◉ on multiple rows to blend past winners into one pattern match.
+          Historical view shows <strong>weekly prices and returns</strong> only.
+          Filters always use <strong>today’s live</strong> Finnhub fundamentals.
         </p>
       )}
 

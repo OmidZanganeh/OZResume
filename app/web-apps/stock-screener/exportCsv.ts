@@ -1,7 +1,7 @@
 import type { TableRow } from './StockTable';
 import type { TableColumn } from './tableColumns';
 import type { StockSnapshot } from './types';
-import { daysAgoToDate } from './historical';
+import { daysAgoToDate } from './timelineDate';
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -17,7 +17,9 @@ function rawCellValue(col: TableColumn, row: TableRow): string | number {
   if (col.id === 'ticker') return row.stock.ticker;
   if (col.id === 'companyName') return row.stock.companyName;
   if (col.id === 'sector') return row.stock.sector;
-  if (col.id === 'returnToTodayPct') return row.snapshot.returnToTodayPct;
+  if (col.id === 'returnToTodayPct') {
+    return Number.isFinite(row.snapshot.returnToTodayPct) ? row.snapshot.returnToTodayPct : '';
+  }
   if (col.id === 'similarity') return row.similarity ?? '';
   const metricVal = row.snapshot[col.id as keyof StockSnapshot];
   if (typeof metricVal === 'number') return metricVal;

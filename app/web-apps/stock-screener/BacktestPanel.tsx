@@ -2,7 +2,7 @@
 
 import { TrendingUp } from 'lucide-react';
 import type { BacktestSummary } from './types';
-import { formatAsOfDate } from './historical';
+import { formatAsOfDate } from './timelineDate';
 import styles from './StockScreener.module.css';
 
 interface Props {

@@ -27,6 +27,7 @@ import {
   formatAsOfDate,
 } from './historical';
 import { rankSimilarityToday, similarityScoresToday } from './similarity';
+import { momentumAtDaysAgo } from './weeklyMomentum';
 import { visibleColumns } from './tableColumns';
 import { downloadScreenerCsv, screenerCsvFilename } from './exportCsv';
 import {
@@ -157,53 +158,56 @@ export default function StockScreener() {
   );
 
   const todayMetrics = useMemo(() => {
-    const m = new Map<string, import('./types').StockMetrics>();
-    for (const [ticker, snap] of todaySnapshots) {
-      m.set(ticker, snap);
+    const m = new Map<string, import('./weeklyMomentum').MomentumProfile>();
+    for (const stock of stocks) {
+      const profile = momentumAtDaysAgo(stock, 0);
+      if (profile) m.set(stock.ticker, profile);
     }
     return m;
-  }, [todaySnapshots]);
+  }, [stocks]);
 
-  const referenceSnapshots = useMemo(() => {
+  const referenceProfiles = useMemo(() => {
     return [...referenceTickers]
       .map(ticker => {
         const stock = stocks.find(s => s.ticker === ticker);
-        const snapshot = snapshots.get(ticker);
-        if (!stock || !snapshot) return null;
-        return { stock, snapshot };
+        if (!stock) return null;
+        const profile = momentumAtDaysAgo(stock, deferredDaysAgo);
+        if (!profile) return null;
+        return { stock, profile, snapshot: snapshots.get(ticker)! };
       })
       .filter((e): e is NonNullable<typeof e> => e != null);
-  }, [referenceTickers, stocks, snapshots]);
+  }, [referenceTickers, stocks, deferredDaysAgo, snapshots]);
 
-  const showSimilarity = Boolean(isHistorical && referenceSnapshots.length > 0);
+  const showSimilarity = Boolean(isHistorical && referenceProfiles.length > 0);
 
   const similarityMap = useMemo(() => {
-    if (!showSimilarity || referenceSnapshots.length === 0) {
+    if (!showSimilarity || referenceProfiles.length === 0) {
       return new Map<string, number>();
     }
     return similarityScoresToday(
-      referenceSnapshots.map(r => r.snapshot),
+      referenceProfiles.map(r => r.profile),
       todayMetrics,
       referenceTickers,
     );
-  }, [showSimilarity, referenceSnapshots, todayMetrics, referenceTickers]);
+  }, [showSimilarity, referenceProfiles, todayMetrics, referenceTickers]);
 
   const topMatches = useMemo(() => {
-    if (!showSimilarity || referenceSnapshots.length === 0) return [];
+    if (!showSimilarity || referenceProfiles.length === 0) return [];
     return rankSimilarityToday(
-      referenceSnapshots.map(r => r.snapshot),
+      referenceProfiles.map(r => r.profile),
       todayMetrics,
       referenceTickers,
       12,
     );
-  }, [showSimilarity, referenceSnapshots, todayMetrics, referenceTickers]);
+  }, [showSimilarity, referenceProfiles, todayMetrics, referenceTickers]);
 
   const matchingSet = useMemo(() => {
-    const matched = stocks.filter(s =>
-      passesScreen(s, snapshots.get(s.ticker)!, screenerState),
-    );
+    const matched = stocks.filter(s => {
+      const todaySnap = todaySnapshots.get(s.ticker)!;
+      return passesScreen(s, todaySnap, screenerState);
+    });
     return new Set(matched.map(s => s.ticker));
-  }, [stocks, screenerState, snapshots]);
+  }, [stocks, screenerState, todaySnapshots]);
 
   const backtest = useMemo(() => {
     if (!isHistorical) return null;
@@ -309,7 +313,7 @@ export default function StockScreener() {
               </h1>
               <p className={styles.resultsSub}>
                 {isHistorical
-                  ? 'All factors reflect the selected date. Click ◉ on one or more past winners to find similar setups today.'
+                  ? 'Weekly closing prices and returns since that date. Filters use today’s live fundamentals.'
                   : 'Live Finnhub snapshot — drag the timeline to explore up to 1 year back.'}
                 {activeFilters > 0 && ` · ${activeFilters} filter${activeFilters !== 1 ? 's' : ''} active`}
                 {isTimelineStale && (
@@ -342,7 +346,7 @@ export default function StockScreener() {
           {showSimilarity && (
             <SimilarityPanel
               daysAgo={deferredDaysAgo}
-              references={referenceSnapshots}
+              references={referenceProfiles}
               topMatches={topMatches}
               onClear={() => setReferenceTickers(new Set())}
             />

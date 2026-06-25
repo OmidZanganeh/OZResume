@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatAsOfDate, daysAgoToDate } from './historical';
+import { formatAsOfDate, daysAgoToDate } from './timelineDate';
 import { HISTORY_DAYS, HISTORY_STEP_DAYS } from './types';
 import styles from './StockScreener.module.css';
 

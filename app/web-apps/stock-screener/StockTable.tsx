@@ -35,7 +35,10 @@ function cellValue(col: TableColumn, row: TableRow): string {
   if (col.id === 'ticker') return row.stock.ticker;
   if (col.id === 'companyName') return row.stock.companyName;
   if (col.id === 'sector') return row.stock.sector;
-  if (col.id === 'returnToTodayPct') return col.format(row.snapshot.returnToTodayPct);
+  if (col.id === 'returnToTodayPct') {
+    const v = row.snapshot.returnToTodayPct;
+    return Number.isFinite(v) ? col.format(v) : '—';
+  }
   if (col.id === 'similarity') return row.similarity != null ? col.format(row.similarity) : '—';
   const metricVal = row.snapshot[col.id as keyof StockSnapshot];
   if (typeof metricVal === 'number') return col.format(metricVal);
@@ -97,7 +100,6 @@ export default function StockTable({
                     title={col.label}
                   >
                     {col.shortLabel ?? col.label}
-                    {isHistorical && col.estimatedAtPast ? '*' : ''}
                     {sortIndicator(sortColumn === col.id, sortDir)}
                   </button>
                 ) : (
@@ -142,11 +144,13 @@ export default function StockTable({
                       col.align === 'right' ? styles.tdRight : styles.tdLeft,
                       col.sticky ? styles.tdSticky : '',
                       col.id === 'returnToTodayPct'
-                        ? row.snapshot.returnToTodayPct > 0
-                          ? styles.tdUp
-                          : row.snapshot.returnToTodayPct < 0
-                            ? styles.tdDown
-                            : ''
+                        ? Number.isFinite(row.snapshot.returnToTodayPct)
+                          ? row.snapshot.returnToTodayPct > 0
+                            ? styles.tdUp
+                            : row.snapshot.returnToTodayPct < 0
+                              ? styles.tdDown
+                              : ''
+                          : ''
                         : '',
                       col.id === 'similarity' && highMatch ? styles.tdMatch : '',
                     ].filter(Boolean).join(' ')}
@@ -167,8 +171,8 @@ export default function StockTable({
       </table>
       {isHistorical && (
         <p className={styles.tableFoot}>
-          * Fundamentals at selected date are estimated; <strong>prices are real weekly closes</strong> when cached.
-          Click ◉ to add past winners (select multiple for a blended pattern match).
+          Prices and returns are real weekly closes. Fundamentals are hidden on past dates — use Today for live Finnhub factors.
+          Click ◉ to match weekly price momentum patterns.
         </p>
       )}
     </div>
