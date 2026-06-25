@@ -65,6 +65,8 @@ export interface StockSnapshot extends StockMetrics {
   priceThen: number;
   priceToday: number;
   returnToTodayPct: number;
+  /** How historical price/return was derived. */
+  priceSource?: 'weekly' | 'finnhub' | 'none';
 }
 
 /** Max lookback — ~1 year; prices from cached weekly closes when available. */

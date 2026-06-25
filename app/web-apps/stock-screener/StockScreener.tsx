@@ -25,9 +25,9 @@ import {
   buildTodaySnapshots,
   computeBacktest,
   formatAsOfDate,
+  priceMomentumProfile,
 } from './historical';
 import { rankSimilarityToday, similarityScoresToday } from './similarity';
-import { momentumAtDaysAgo } from './weeklyMomentum';
 import { visibleColumns } from './tableColumns';
 import { downloadScreenerCsv, screenerCsvFilename } from './exportCsv';
 import {
@@ -160,7 +160,7 @@ export default function StockScreener() {
   const todayMetrics = useMemo(() => {
     const m = new Map<string, import('./weeklyMomentum').MomentumProfile>();
     for (const stock of stocks) {
-      const profile = momentumAtDaysAgo(stock, 0);
+      const profile = priceMomentumProfile(stock, 0);
       if (profile) m.set(stock.ticker, profile);
     }
     return m;
@@ -171,7 +171,7 @@ export default function StockScreener() {
       .map(ticker => {
         const stock = stocks.find(s => s.ticker === ticker);
         if (!stock) return null;
-        const profile = momentumAtDaysAgo(stock, deferredDaysAgo);
+        const profile = priceMomentumProfile(stock, deferredDaysAgo);
         if (!profile) return null;
         return { stock, profile, snapshot: snapshots.get(ticker)! };
       })

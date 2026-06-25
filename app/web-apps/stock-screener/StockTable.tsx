@@ -41,7 +41,10 @@ function cellValue(col: TableColumn, row: TableRow): string {
   }
   if (col.id === 'similarity') return row.similarity != null ? col.format(row.similarity) : '—';
   const metricVal = row.snapshot[col.id as keyof StockSnapshot];
-  if (typeof metricVal === 'number') return col.format(metricVal);
+  if (typeof metricVal === 'number' && Number.isFinite(metricVal)) {
+    if (col.id === 'beta' && metricVal === 0) return '—';
+    return col.format(metricVal);
+  }
   return '—';
 }
 
@@ -171,8 +174,8 @@ export default function StockTable({
       </table>
       {isHistorical && (
         <p className={styles.tableFoot}>
-          Prices and returns are real weekly closes. Fundamentals are hidden on past dates — use Today for live Finnhub factors.
-          Click ◉ to match weekly price momentum patterns.
+          Price and momentum use weekly closes when cached; otherwise Finnhub return windows (price-only, no fundamentals).
+          Fundamentals stay on Today view only.
         </p>
       )}
     </div>

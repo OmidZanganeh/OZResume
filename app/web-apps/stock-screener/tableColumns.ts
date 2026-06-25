@@ -91,6 +91,65 @@ export const METRIC_COLUMNS: TableColumn[] = FILTER_DEFS.map(def => ({
   sortable: true,
 }));
 
+/** Price / momentum columns shown on historical dates (real weekly or Finnhub return windows). */
+export const HISTORICAL_TECH_COLUMNS: TableColumn[] = [
+  {
+    id: 'priceChange1m',
+    label: '4-Week Change',
+    shortLabel: '4W',
+    align: 'right',
+    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+    sortable: true,
+  },
+  {
+    id: 'priceChange3m',
+    label: '13-Week Change',
+    shortLabel: '13W',
+    align: 'right',
+    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+    sortable: true,
+  },
+  {
+    id: 'priceChange6m',
+    label: '26-Week Change',
+    shortLabel: '26W',
+    align: 'right',
+    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+    sortable: true,
+  },
+  {
+    id: 'priceChange52w',
+    label: '52-Week Change',
+    shortLabel: '52W',
+    align: 'right',
+    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+    sortable: true,
+  },
+  {
+    id: 'priceVs52wHigh',
+    label: 'From 52W High',
+    shortLabel: 'vs Hi',
+    align: 'right',
+    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+    sortable: true,
+  },
+  {
+    id: 'priceVs52wLow',
+    label: 'From 52W Low',
+    shortLabel: 'vs Lo',
+    align: 'right',
+    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+    sortable: true,
+  },
+  {
+    id: 'beta',
+    label: 'Beta',
+    align: 'right',
+    format: v => (Number.isFinite(v) && v !== 0 ? v.toFixed(2) : '—'),
+    sortable: true,
+  },
+];
+
 export function visibleColumns(
   isHistorical: boolean,
   showSimilarity: boolean,
@@ -100,6 +159,7 @@ export function visibleColumns(
       ...IDENTITY_COLUMNS,
       CONTEXT_COLUMNS.find(c => c.id === 'price')!,
       CONTEXT_COLUMNS.find(c => c.id === 'returnToTodayPct')!,
+      ...HISTORICAL_TECH_COLUMNS,
     ];
     if (showSimilarity) {
       cols.push(CONTEXT_COLUMNS.find(c => c.id === 'similarity')!);
@@ -137,5 +197,9 @@ export function columnSortValue(
     const p = row.snapshot.price;
     return Number.isFinite(p) && p > 0 ? p : -Infinity;
   }
-  return row.snapshot[col as keyof StockMetrics] ?? 0;
+  const metricVal = row.snapshot[col as keyof StockMetrics];
+  if (typeof metricVal === 'number' && Number.isFinite(metricVal) && metricVal !== 0) {
+    return metricVal;
+  }
+  return -Infinity;
 }

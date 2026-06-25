@@ -56,20 +56,22 @@ export function momentumAtDaysAgo(stock: Stock, daysAgo: number): MomentumProfil
 
   const price = bars[idx]!.c;
   const extremes = rangeExtremes(bars, idx, 52);
-  if (!extremes) return null;
 
   const c4 = returnOverWeeks(bars, idx, 4);
   const c13 = returnOverWeeks(bars, idx, 13);
   const c26 = returnOverWeeks(bars, idx, 26);
   const c52 = returnOverWeeks(bars, idx, 52);
-  if (c13 == null || c26 == null) return null;
+  if (c13 == null && c26 == null) return null;
+
+  const high = extremes?.high ?? price;
+  const low = extremes?.low ?? price;
 
   return {
     priceChange4w: c4 ?? 0,
-    priceChange13w: c13,
-    priceChange26w: c26,
-    priceChange52w: c52 ?? c26,
-    priceVs52wHigh: round(((price - extremes.high) / extremes.high) * 100, 1),
-    priceVs52wLow: round(((price - extremes.low) / extremes.low) * 100, 1),
+    priceChange13w: c13 ?? c26 ?? 0,
+    priceChange26w: c26 ?? c13 ?? 0,
+    priceChange52w: c52 ?? c26 ?? c13 ?? 0,
+    priceVs52wHigh: high > 0 ? round(((price - high) / high) * 100, 1) : 0,
+    priceVs52wLow: low > 0 ? round(((price - low) / low) * 100, 1) : 0,
   };
 }

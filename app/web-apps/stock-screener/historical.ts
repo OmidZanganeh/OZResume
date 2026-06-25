@@ -1,8 +1,11 @@
 import type { Stock, StockMetrics, StockSnapshot, BacktestSummary } from './types';
 import { daysAgoToDate, formatAsOfDate } from './timelineDate';
 import { closestWeeklyBar } from './weeklyLookup';
+import { momentumAtDaysAgo } from './weeklyMomentum';
 
 export { daysAgoToDate, formatAsOfDate };
+
+export type HistoricalPriceSource = 'weekly' | 'finnhub' | 'none';
 
 function round(v: number, d: number): number {
   const f = 10 ** d;
@@ -50,6 +53,44 @@ export function metricsFromStock(stock: Stock, displayPrice: number): StockMetri
   };
 }
 
+const EMPTY_METRICS: StockMetrics = {
+  peRatio: 0,
+  forwardPe: 0,
+  pegRatio: 0,
+  pbRatio: 0,
+  psRatio: 0,
+  pcfRatio: 0,
+  evToEbitda: 0,
+  epsGrowth: 0,
+  revenueGrowth: 0,
+  profitMargin: 0,
+  grossMargin: 0,
+  operatingMargin: 0,
+  roe: 0,
+  roa: 0,
+  roic: 0,
+  debtToEquity: 0,
+  debtToAssets: 0,
+  currentRatio: 0,
+  quickRatio: 0,
+  interestCoverage: 0,
+  dividendYield: 0,
+  payoutRatio: 0,
+  freeCashFlowYield: 0,
+  price: 0,
+  marketCap: 0,
+  priceChange1m: 0,
+  priceChange3m: 0,
+  priceChange6m: 0,
+  priceChange52w: 0,
+  priceVs52wHigh: 0,
+  priceVs52wLow: 0,
+  avgVolume: 0,
+  volatility30d: 0,
+  atrPercent: 0,
+  beta: 0,
+};
+
 function priceFromWeeklyHistory(
   stock: Stock,
   daysAgo: number,
@@ -68,14 +109,133 @@ function priceFromWeeklyHistory(
   };
 }
 
-export function priceReturnAtDaysAgo(stock: Stock, daysAgo: number): {
-  priceThen: number | null;
-  returnToTodayPct: number | null;
-} {
-  if (daysAgo <= 0) {
-    return { priceThen: stock.price, returnToTodayPct: 0 };
+/** Finnhub trailing return windows — approximate price at past dates when weekly bars missing. */
+function returnPctFromFinnhubWindows(stock: Stock, daysAgo: number): number {
+  const r1 = stock.priceChange1m;
+  const r3 = stock.priceChange3m;
+  const r6 = stock.priceChange6m;
+  const r52 = stock.priceChange52w;
+
+  if (daysAgo >= 300) return r52;
+  if (daysAgo >= 150) {
+    const t = (daysAgo - 180) / (365 - 180);
+    return r6 + t * (r52 - r6);
   }
-  return priceFromWeeklyHistory(stock, daysAgo) ?? { priceThen: null, returnToTodayPct: null };
+  if (daysAgo >= 60) {
+    const t = (daysAgo - 90) / (180 - 90);
+    return r3 + t * (r6 - r3);
+  }
+  if (daysAgo >= 20) {
+    const t = (daysAgo - 30) / (90 - 30);
+    return r1 + t * (r3 - r1);
+  }
+  return r1 * (daysAgo / 30);
+}
+
+function priceFromFinnhubWindows(
+  stock: Stock,
+  daysAgo: number,
+): { priceThen: number; returnToTodayPct: number } | null {
+  if (stock.price <= 0) return null;
+  const ret = returnPctFromFinnhubWindows(stock, daysAgo);
+  if (!Number.isFinite(ret)) return null;
+  return {
+    priceThen: round(stock.price / (1 + ret / 100), 2),
+    returnToTodayPct: round(ret, 1),
+  };
+}
+
+/** Trailing momentum at past date derived from Finnhub return windows (price-only). */
+function momentumFromFinnhubWindows(stock: Stock, daysAgo: number, returnToToday: number): StockMetrics {
+  const subtract = (current: number, windowDays: number) =>
+    round(current - returnToToday * Math.min(1, daysAgo / windowDays), 1);
+
+  const priceThen = stock.price / (1 + returnToToday / 100);
+  const priceRatio = priceThen / stock.price;
+  const high52 =
+    stock.priceVs52wHigh <= 0
+      ? stock.price / (1 + stock.priceVs52wHigh / 100)
+      : stock.price * 1.12;
+  const low52 =
+    stock.priceVs52wLow >= 0
+      ? stock.price / (1 + stock.priceVs52wLow / 100)
+      : stock.price * 0.88;
+  const highT = high52 * Math.max(0.55, priceRatio);
+  const lowT = low52 * Math.min(1.35, priceRatio * 1.05);
+
+  return {
+    ...EMPTY_METRICS,
+    price: priceThen,
+    priceChange1m: subtract(stock.priceChange1m, 30),
+    priceChange3m: subtract(stock.priceChange3m, 90),
+    priceChange6m: subtract(stock.priceChange6m, 180),
+    priceChange52w: subtract(stock.priceChange52w, 365),
+    priceVs52wHigh: highT > 0 ? round(((priceThen - highT) / highT) * 100, 1) : stock.priceVs52wHigh,
+    priceVs52wLow: lowT > 0 ? round(((priceThen - lowT) / lowT) * 100, 1) : stock.priceVs52wLow,
+    beta: stock.beta,
+    avgVolume: stock.avgVolume,
+    volatility30d: stock.volatility30d,
+    atrPercent: stock.atrPercent,
+  };
+}
+
+function momentumToMetrics(m: import('./weeklyMomentum').MomentumProfile, price: number): Partial<StockMetrics> {
+  return {
+    price,
+    priceChange1m: m.priceChange4w,
+    priceChange3m: m.priceChange13w,
+    priceChange6m: m.priceChange26w,
+    priceChange52w: m.priceChange52w,
+    priceVs52wHigh: m.priceVs52wHigh,
+    priceVs52wLow: m.priceVs52wLow,
+  };
+}
+
+export function priceReturnAtDaysAgo(
+  stock: Stock,
+  daysAgo: number,
+): { priceThen: number | null; returnToTodayPct: number | null; source: HistoricalPriceSource } {
+  if (daysAgo <= 0) {
+    return { priceThen: stock.price, returnToTodayPct: 0, source: 'weekly' };
+  }
+
+  const weekly = priceFromWeeklyHistory(stock, daysAgo);
+  if (weekly) {
+    return { ...weekly, source: 'weekly' };
+  }
+
+  const finnhub = priceFromFinnhubWindows(stock, daysAgo);
+  if (finnhub) {
+    return { ...finnhub, source: 'finnhub' };
+  }
+
+  return { priceThen: null, returnToTodayPct: null, source: 'none' };
+}
+
+function historicalPriceMetrics(
+  stock: Stock,
+  daysAgo: number,
+  priceThen: number,
+  returnToToday: number,
+  source: HistoricalPriceSource,
+): StockMetrics {
+  const weeklyMom = momentumAtDaysAgo(stock, daysAgo);
+  if (weeklyMom) {
+    return {
+      ...EMPTY_METRICS,
+      ...momentumToMetrics(weeklyMom, priceThen),
+      beta: stock.beta,
+      avgVolume: stock.avgVolume,
+      volatility30d: stock.volatility30d,
+      atrPercent: stock.atrPercent,
+    };
+  }
+
+  if (source === 'finnhub') {
+    return momentumFromFinnhubWindows(stock, daysAgo, returnToToday);
+  }
+
+  return { ...EMPTY_METRICS, price: priceThen };
 }
 
 export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
@@ -87,51 +247,58 @@ export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
       priceThen: stock.price,
       priceToday: stock.price,
       returnToTodayPct: 0,
+      priceSource: 'weekly',
     };
   }
 
-  const { priceThen, returnToTodayPct } = priceReturnAtDaysAgo(stock, daysAgo);
+  const { priceThen, returnToTodayPct, source } = priceReturnAtDaysAgo(stock, daysAgo);
+  const priceMetrics =
+    priceThen != null && returnToTodayPct != null
+      ? historicalPriceMetrics(stock, daysAgo, priceThen, returnToTodayPct, source)
+      : { ...EMPTY_METRICS };
 
   return {
     ticker: stock.ticker,
+    ...priceMetrics,
     price: priceThen ?? 0,
     priceThen: priceThen ?? 0,
     priceToday: stock.price,
     returnToTodayPct: returnToTodayPct ?? NaN,
-    peRatio: 0,
-    forwardPe: 0,
-    pegRatio: 0,
-    pbRatio: 0,
-    psRatio: 0,
-    pcfRatio: 0,
-    evToEbitda: 0,
-    epsGrowth: 0,
-    revenueGrowth: 0,
-    profitMargin: 0,
-    grossMargin: 0,
-    operatingMargin: 0,
-    roe: 0,
-    roa: 0,
-    roic: 0,
-    debtToEquity: 0,
-    debtToAssets: 0,
-    currentRatio: 0,
-    quickRatio: 0,
-    interestCoverage: 0,
-    dividendYield: 0,
-    payoutRatio: 0,
-    freeCashFlowYield: 0,
-    marketCap: 0,
-    priceChange1m: 0,
-    priceChange3m: 0,
-    priceChange6m: 0,
-    priceChange52w: 0,
-    priceVs52wHigh: 0,
-    priceVs52wLow: 0,
-    avgVolume: 0,
-    volatility30d: 0,
-    atrPercent: 0,
-    beta: 0,
+    priceSource: source,
+  };
+}
+
+export function priceMomentumProfile(
+  stock: Stock,
+  daysAgo: number,
+): import('./weeklyMomentum').MomentumProfile | null {
+  if (daysAgo <= 0) {
+    const weekly = momentumAtDaysAgo(stock, 0);
+    if (weekly) return weekly;
+    return {
+      priceChange4w: stock.priceChange1m,
+      priceChange13w: stock.priceChange3m,
+      priceChange26w: stock.priceChange6m,
+      priceChange52w: stock.priceChange52w,
+      priceVs52wHigh: stock.priceVs52wHigh,
+      priceVs52wLow: stock.priceVs52wLow,
+    };
+  }
+
+  const weekly = momentumAtDaysAgo(stock, daysAgo);
+  if (weekly) return weekly;
+
+  const { returnToTodayPct, source } = priceReturnAtDaysAgo(stock, daysAgo);
+  if (source !== 'finnhub' || returnToTodayPct == null) return null;
+
+  const m = momentumFromFinnhubWindows(stock, daysAgo, returnToTodayPct);
+  return {
+    priceChange4w: m.priceChange1m,
+    priceChange13w: m.priceChange3m,
+    priceChange26w: m.priceChange6m,
+    priceChange52w: m.priceChange52w,
+    priceVs52wHigh: m.priceVs52wHigh,
+    priceVs52wLow: m.priceVs52wLow,
   };
 }
 
