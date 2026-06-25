@@ -1,11 +1,11 @@
 import type { Stock, StockMetrics, StockSnapshot, BacktestSummary } from './types';
 import { daysAgoToDate, formatAsOfDate } from './timelineDate';
-import { closestWeeklyBar, barIndexAtDaysAgo } from './weeklyLookup';
+import { barForDaysAgo } from './weeklyLookup';
 import { momentumAtDaysAgo, momentumFromBarIndex } from './weeklyMomentum';
 
 export { daysAgoToDate, formatAsOfDate };
 
-export type HistoricalPriceSource = 'weekly' | 'finnhub' | 'none';
+export type HistoricalPriceSource = 'weekly' | 'weekly-clamped' | 'finnhub' | 'none';
 
 function round(v: number, d: number): number {
   const f = 10 ** d;
@@ -94,18 +94,19 @@ const EMPTY_METRICS: StockMetrics = {
 function priceFromWeeklyHistory(
   stock: Stock,
   daysAgo: number,
-): { priceThen: number; returnToTodayPct: number } | null {
+): { priceThen: number; returnToTodayPct: number; clamped: boolean } | null {
   const series = stock.weeklyHistory;
   if (!series?.length) return null;
 
-  const targetTs = Math.floor(daysAgoToDate(daysAgo).getTime() / 1000);
-  const bar = closestWeeklyBar(series, targetTs);
+  const hit = barForDaysAgo(series, daysAgo);
   const priceToday = stock.price;
-  if (!bar || priceToday <= 0) return null;
+  if (!hit || priceToday <= 0) return null;
 
+  const bar = series[hit.idx]!;
   return {
     priceThen: round(bar.c, 2),
     returnToTodayPct: round(((priceToday - bar.c) / bar.c) * 100, 1),
+    clamped: hit.clampedToOldest,
   };
 }
 
@@ -201,7 +202,11 @@ export function priceReturnAtDaysAgo(
 
   const weekly = priceFromWeeklyHistory(stock, daysAgo);
   if (weekly) {
-    return { ...weekly, source: 'weekly' };
+    return {
+      priceThen: weekly.priceThen,
+      returnToTodayPct: weekly.returnToTodayPct,
+      source: weekly.clamped ? 'weekly-clamped' : 'weekly',
+    };
   }
 
   const finnhub = priceFromFinnhubWindows(stock, daysAgo);
@@ -217,9 +222,9 @@ export function priceAtDaysAgo(stock: Stock, daysAgo: number): number | null {
   if (daysAgo <= 0) return stock.price > 0 ? stock.price : null;
   const series = stock.weeklyHistory;
   if (!series?.length) return null;
-  const idx = barIndexAtDaysAgo(series, daysAgo);
-  if (idx == null) return null;
-  const c = series[idx]!.c;
+  const hit = barForDaysAgo(series, daysAgo);
+  if (hit == null) return null;
+  const c = series[hit.idx]!.c;
   return c > 0 ? round(c, 2) : null;
 }
 
@@ -282,10 +287,13 @@ export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
 
   const series = stock.weeklyHistory;
   let weeklyBarIdx: number | null = null;
+  let clamped = false;
   if (series?.length) {
-    weeklyBarIdx = barIndexAtDaysAgo(series, daysAgo);
-    if (weeklyBarIdx != null) {
-      const bar = series[weeklyBarIdx]!;
+    const hit = barForDaysAgo(series, daysAgo);
+    if (hit) {
+      weeklyBarIdx = hit.idx;
+      clamped = hit.clampedToOldest;
+      const bar = series[hit.idx]!;
       const priceThen = round(bar.c, 2);
       const returnToTodayPct =
         stock.price > 0 ? round(((stock.price - bar.c) / bar.c) * 100, 1) : NaN;
@@ -294,7 +302,7 @@ export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
         daysAgo,
         priceThen,
         returnToTodayPct,
-        'weekly',
+        clamped ? 'weekly-clamped' : 'weekly',
         weeklyBarIdx,
       );
       return {
@@ -304,7 +312,7 @@ export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
         priceThen,
         priceToday: stock.price,
         returnToTodayPct,
-        priceSource: 'weekly',
+        priceSource: clamped ? 'weekly-clamped' : 'weekly',
       };
     }
   }

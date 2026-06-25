@@ -66,7 +66,7 @@ export interface StockSnapshot extends StockMetrics {
   priceToday: number;
   returnToTodayPct: number;
   /** How historical price/return was derived. */
-  priceSource?: 'weekly' | 'finnhub' | 'none';
+  priceSource?: 'weekly' | 'weekly-clamped' | 'finnhub' | 'none';
 }
 
 export { HISTORY_DAYS } from '@/app/api/stock-screener/historyConstants';

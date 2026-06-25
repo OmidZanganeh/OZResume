@@ -180,6 +180,13 @@ function TableRowView({
             >
               {row.stock.ticker}
             </a>
+          ) : col.id === 'price' && row.snapshot.priceSource === 'weekly-clamped' ? (
+            <span
+              className={styles.priceClamped}
+              title="No weekly data before this ticker’s listing/spinoff — showing first available close"
+            >
+              {cellValue(col, row)}*
+            </span>
           ) : (
             cellValue(col, row)
           )}

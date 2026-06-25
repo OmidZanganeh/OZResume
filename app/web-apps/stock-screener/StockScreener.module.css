@@ -1399,6 +1399,7 @@
 .trMatch .tdSticky { background: #0c1211; }
 
 .tdUp { color: #34d399; }
+.priceClamped { cursor: help; border-bottom: 1px dotted rgba(255, 255, 255, 0.28); }
 .tdDown { color: #f87171; }
 .tdMatch { color: #5eead4; font-weight: 600; }
 

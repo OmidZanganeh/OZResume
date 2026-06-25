@@ -104,17 +104,18 @@ export default function StockScreener() {
   stocksRef.current = stocks;
 
   useEffect(() => {
-    if (referenceTickers.size === 0 || dataSource === 'mock') return;
+    if (dataSource === 'mock') return;
+    if (deferredDaysAgo <= 0 && referenceTickers.size === 0) return;
 
     let cancelled = false;
     let batches = 0;
-    const maxBatches = 24;
+    const maxBatches = 40;
 
     async function enrichBatch() {
       if (cancelled || batches >= maxBatches) return;
       const missing = stocksRef.current
         .filter(s => !s.weeklyHistory?.length)
-        .slice(0, 20);
+        .slice(0, 25);
       if (missing.length === 0) return;
 
       batches += 1;
@@ -140,12 +141,12 @@ export default function StockScreener() {
     }
 
     void enrichBatch();
-    const id = window.setInterval(() => void enrichBatch(), 3500);
+    const id = window.setInterval(() => void enrichBatch(), 2500);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [referenceTickers.size, dataSource]);
+  }, [deferredDaysAgo, referenceTickers.size, dataSource]);
 
   useEffect(() => {
     let cancelled = false;
@@ -560,7 +561,7 @@ export default function StockScreener() {
                 {viewMode === 'watchlist'
                   ? 'All factors for your saved tickers — same columns as the full screener.'
                   : isHistorical
-                    ? 'Weekly closing prices and returns since that date. Filters use today’s live fundamentals.'
+                    ? 'Weekly closing prices and returns since that date. New listings show earliest available bar before IPO (*). Filters use today’s live fundamentals.'
                     : 'Live Finnhub snapshot — drag the timeline to explore up to 10 years back.'}
                 {viewMode === 'universe' && isHistorical && dataSource !== 'mock' && (
                   <> · Click ◉ to pick a pattern{weeklyReadyCount < total ? ' (weekly prices load on first click)' : ''}</>
