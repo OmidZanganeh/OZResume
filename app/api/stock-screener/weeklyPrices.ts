@@ -45,16 +45,15 @@ async function fetchFinnhubWeeklyBars(
   }
 }
 
-function yahooSymbol(symbol: string): string {
-  return symbol.replace(/-/g, '.');
+function yahooSymbolCandidates(symbol: string): string[] {
+  const dotted = symbol.replace(/-/g, '.');
+  return symbol === dotted ? [symbol] : [symbol, dotted];
 }
 
-/** Yahoo weekly chart — primary source for bulk 10y+ history. */
-export async function fetchYahooWeeklyBars(
-  symbol: string,
+async function fetchYahooWeeklyChart(
+  yahooSym: string,
   yearsBack: number,
 ): Promise<WeeklyBar[] | null> {
-  const yahooSym = yahooSymbol(symbol);
   const to = Math.floor(Date.now() / 1000);
   const from = to - Math.ceil(yearsBack * 365.25 * 86400);
   const url =
@@ -77,6 +76,18 @@ export async function fetchYahooWeeklyBars(
   } catch {
     return null;
   }
+}
+
+/** Yahoo weekly chart — primary source for bulk 10y+ history. */
+export async function fetchYahooWeeklyBars(
+  symbol: string,
+  yearsBack: number,
+): Promise<WeeklyBar[] | null> {
+  for (const yahooSym of yahooSymbolCandidates(symbol)) {
+    const bars = await fetchYahooWeeklyChart(yahooSym, yearsBack);
+    if (bars?.length) return bars;
+  }
+  return null;
 }
 
 /** Single-symbol weekly bars (on-demand). Yahoo first for depth, Finnhub fallback. */

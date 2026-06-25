@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "warm:stocks": "npx tsx scripts/warm-stock-screener-cache.ts",
-    "warm:weekly": "npx tsx scripts/bulk-weekly-history.ts"
+    "warm:weekly": "npx tsx scripts/bulk-weekly-history.ts",
+    "warm:weekly:gaps": "npx tsx scripts/fill-weekly-gaps.ts"
   },
   "dependencies": {
     "@mapbox/shp-write": "^0.4.3",

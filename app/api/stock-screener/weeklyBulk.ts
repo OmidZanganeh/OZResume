@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { resolve } from 'node:path';
 import type { Stock, WeeklyBar } from '@/app/web-apps/stock-screener/types';
 import { getRedis } from './redis';
@@ -48,9 +49,17 @@ export function mergeBulkWeeklyIntoStocks(
   });
 }
 
-function parseBulk(raw: string): WeeklyBulkStore | null {
+function parseBulk(raw: string | Buffer): WeeklyBulkStore | null {
   try {
-    const parsed = JSON.parse(raw) as WeeklyBulkStore;
+    let text: string;
+    if (Buffer.isBuffer(raw)) {
+      text = raw[0] === 0x7b ? raw.toString('utf8') : gunzipSync(raw).toString('utf8');
+    } else if (raw.startsWith('{')) {
+      text = raw;
+    } else {
+      text = gunzipSync(Buffer.from(raw, 'base64')).toString('utf8');
+    }
+    const parsed = JSON.parse(text) as WeeklyBulkStore;
     if (!parsed?.data || typeof parsed.data !== 'object') return null;
     return parsed;
   } catch {
@@ -58,15 +67,18 @@ function parseBulk(raw: string): WeeklyBulkStore | null {
   }
 }
 
+async function redisGetBulk(client: NonNullable<ReturnType<typeof getRedis>>): Promise<WeeklyBulkStore | null> {
+  const raw = await client.getBuffer(WEEKLY_BULK_REDIS_KEY);
+  if (!raw?.length) return null;
+  return parseBulk(raw);
+}
+
 export async function readWeeklyBulk(): Promise<WeeklyBulkStore | null> {
   const client = getRedis();
   if (client) {
     try {
-      const raw = await client.get(WEEKLY_BULK_REDIS_KEY);
-      if (raw) {
-        const parsed = parseBulk(raw);
-        if (parsed) return parsed;
-      }
+      const parsed = await redisGetBulk(client);
+      if (parsed) return parsed;
     } catch {
       // fall through
     }
@@ -86,11 +98,8 @@ export async function readWeeklyBulk(): Promise<WeeklyBulkStore | null> {
 export async function writeWeeklyBulk(store: WeeklyBulkStore): Promise<void> {
   const client = getRedis();
   if (!client) return;
-  try {
-    await client.setex(WEEKLY_BULK_REDIS_KEY, WEEKLY_BULK_TTL_SEC, JSON.stringify(store));
-  } catch {
-    // non-fatal
-  }
+  const compressed = gzipSync(JSON.stringify(store));
+  await client.setex(WEEKLY_BULK_REDIS_KEY, WEEKLY_BULK_TTL_SEC, compressed);
 }
 
 export async function readWeeklyBulkCursor(): Promise<number> {
@@ -173,4 +182,65 @@ export async function runWeeklyBulkBatch(reset = false): Promise<WeeklyBulkBatch
 export function weeklyBulkCoverage(store: WeeklyBulkStore | null): number {
   if (!store?.data) return 0;
   return Object.keys(store.data).length;
+}
+
+export interface WeeklyBulkGapFillResult {
+  missingBefore: number;
+  added: string[];
+  failed: string[];
+  fetched: number;
+  total: number;
+  complete: boolean;
+  store: WeeklyBulkStore;
+}
+
+/** Download weekly history only for universe symbols missing from the bulk store. */
+export async function fillWeeklyBulkGaps(): Promise<WeeklyBulkGapFillResult> {
+  const universe = await getSymbolUniverse();
+  const total = universe.length;
+  const existing = await readWeeklyBulk();
+  const data: Record<string, [number, number][]> = { ...(existing?.data ?? {}) };
+
+  const missing = universe
+    .map(s => s.symbol)
+    .filter(sym => !data[sym]?.length)
+    .sort();
+
+  const added: string[] = [];
+  const failed: string[] = [];
+
+  for (const symbol of missing) {
+    const bars = await fetchYahooWeeklyBars(symbol, WEEKLY_DOWNLOAD_YEARS);
+    if (bars?.length) {
+      data[symbol] = compactBars(bars);
+      added.push(symbol);
+    } else {
+      failed.push(symbol);
+    }
+    await sleep(180);
+  }
+
+  const universeSyms = new Set(universe.map(s => s.symbol));
+  const fetched = [...universeSyms].filter(sym => data[sym]?.length).length;
+  const complete = fetched >= total;
+
+  const store: WeeklyBulkStore = {
+    cachedAt: new Date().toISOString(),
+    downloadYears: WEEKLY_DOWNLOAD_YEARS,
+    complete,
+    data,
+  };
+
+  await writeWeeklyBulk(store);
+  if (complete) await writeWeeklyBulkCursor(0);
+
+  return {
+    missingBefore: missing.length,
+    added,
+    failed,
+    fetched,
+    total,
+    complete,
+    store,
+  };
 }

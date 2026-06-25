@@ -132,6 +132,7 @@
 | `../api/stock-screener/weekly/` | On-demand weekly bar fetch (bulk cache first) |
 | `../api/stock-screener/weeklyBulk.ts` | Redis bulk store + merge into stocks |
 | `scripts/bulk-weekly-history.ts` | `npm run warm:weekly` — full 12y weekly download |
+| `scripts/fill-weekly-gaps.ts` | `npm run warm:weekly:gaps` — fetch only missing symbols |
 | `../api/stock-screener/` | Finnhub live snapshot + Redis cache |
 
 ## Out of index / ignore
