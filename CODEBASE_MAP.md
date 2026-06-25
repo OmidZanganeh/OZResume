@@ -120,7 +120,9 @@
 | File | Role |
 |------|------|
 | `StockScreener.tsx` | Main page: filters, timeline, table, similarity state |
-| `StockTable.tsx` | Sortable factor table; ◉ sets past-date reference pattern |
+| `WatchlistPanel.tsx` | Create/switch watchlists; S&P 500 vs watchlist view |
+| `watchlists.ts` | localStorage persistence + `useWatchlists` hook |
+| `StockTable.tsx` | Sortable factor table; ★ watchlist; ◉ pattern picker |
 | `SimilarityPanel.tsx` | Top today matches vs selected past winner |
 | `similarity.ts` | Weighted factor-distance scoring (0–100) |
 | `historical.ts` | Snapshots at `daysAgo`; weekly price + Finnhub fallback for display |

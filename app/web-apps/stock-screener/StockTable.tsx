@@ -33,6 +33,8 @@ interface Props {
   isLoading?: boolean;
   isUpdating?: boolean;
   patternLoading?: ReadonlySet<string>;
+  watchlistTickers?: ReadonlySet<string>;
+  onToggleWatchlist?: (ticker: string) => void;
 }
 
 const ROW_HEIGHT_PX = 37;
@@ -68,6 +70,8 @@ function TableRowView({
   isRef,
   onSelectReference,
   patternLoading,
+  watchlistTickers,
+  onToggleWatchlist,
 }: {
   row: TableRow;
   columns: TableColumn[];
@@ -76,9 +80,12 @@ function TableRowView({
   isRef: boolean;
   onSelectReference: (ticker: string) => void;
   patternLoading?: ReadonlySet<string>;
+  watchlistTickers?: ReadonlySet<string>;
+  onToggleWatchlist?: (ticker: string) => void;
 }) {
   const highMatch = (row.similarity ?? 0) >= 75;
   const isPatternLoading = patternLoading?.has(row.stock.ticker) ?? false;
+  const inWatchlist = watchlistTickers?.has(row.stock.ticker) ?? false;
   return (
     <tr
       className={[
@@ -89,23 +96,40 @@ function TableRowView({
       ].filter(Boolean).join(' ')}
     >
       <td className={styles.tdAction}>
-        {isHistorical && (
-          <button
-            type="button"
-            className={`${styles.patternBtn} ${isRef ? styles.patternBtnOn : ''} ${isPatternLoading ? styles.patternBtnLoading : ''}`}
-            onClick={() => onSelectReference(row.stock.ticker)}
-            disabled={isPatternLoading}
-            title={
-              isPatternLoading
-                ? `Loading weekly prices for ${row.stock.ticker}…`
-                : `${isRef ? 'Remove' : 'Add'} ${row.stock.ticker} as pattern on this date`
-            }
-            aria-pressed={isRef}
-            aria-busy={isPatternLoading}
-          >
-            {isPatternLoading ? <Loader2 size={14} className={styles.spinIcon} /> : '◉'}
-          </button>
-        )}
+        <div className={styles.actionBtns}>
+          {onToggleWatchlist && (
+            <button
+              type="button"
+              className={`${styles.watchBtn} ${inWatchlist ? styles.watchBtnOn : ''}`}
+              onClick={() => onToggleWatchlist(row.stock.ticker)}
+              title={
+                inWatchlist
+                  ? `Remove ${row.stock.ticker} from watchlist`
+                  : `Add ${row.stock.ticker} to watchlist`
+              }
+              aria-pressed={inWatchlist}
+            >
+              ★
+            </button>
+          )}
+          {isHistorical && (
+            <button
+              type="button"
+              className={`${styles.patternBtn} ${isRef ? styles.patternBtnOn : ''} ${isPatternLoading ? styles.patternBtnLoading : ''}`}
+              onClick={() => onSelectReference(row.stock.ticker)}
+              disabled={isPatternLoading}
+              title={
+                isPatternLoading
+                  ? `Loading weekly prices for ${row.stock.ticker}…`
+                  : `${isRef ? 'Remove' : 'Add'} ${row.stock.ticker} as pattern on this date`
+              }
+              aria-pressed={isRef}
+              aria-busy={isPatternLoading}
+            >
+              {isPatternLoading ? <Loader2 size={14} className={styles.spinIcon} /> : '◉'}
+            </button>
+          )}
+        </div>
       </td>
       {columns.map(col => (
         <td
@@ -161,6 +185,8 @@ export default function StockTable({
   isLoading,
   isUpdating,
   patternLoading,
+  watchlistTickers,
+  onToggleWatchlist,
 }: Props) {
   const columns = useMemo(
     () => visibleColumns(isHistorical, showSimilarity),
@@ -207,7 +233,7 @@ export default function StockTable({
   }
 
   return (
-    <div className={styles.tableWrap} ref={wrapRef} onScroll={onScroll}>
+    <div className={styles.tableWrap} ref={wrapRef} onScroll={onScroll} style={{ '--action-col': '72px' } as React.CSSProperties}>
       {isUpdating && <div className={styles.tableUpdating} aria-hidden />}
       <table className={styles.dataTable}>
         <thead>
@@ -256,6 +282,8 @@ export default function StockTable({
               isRef={referenceTickers.has(row.stock.ticker)}
               onSelectReference={onSelectReference}
               patternLoading={patternLoading}
+              watchlistTickers={watchlistTickers}
+              onToggleWatchlist={onToggleWatchlist}
             />
           ))}
           {bottomPad > 0 && (

@@ -17,6 +17,7 @@ import type { TableColumnId } from './tableColumns';
 import DateTimeline from './DateTimeline';
 import BacktestPanel from './BacktestPanel';
 import SimilarityPanel from './SimilarityPanel';
+import WatchlistPanel from './WatchlistPanel';
 import { MOCK_STOCKS } from './mockStocks';
 import type { Stock } from './types';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
@@ -40,6 +41,7 @@ import {
   writeSessionMarketCache,
   formatCacheAge,
 } from './clientCache';
+import { useWatchlists, type ViewMode } from './watchlists';
 import styles from './StockScreener.module.css';
 
 function mergeStockLists(prev: Stock[], incoming: Stock[]): Stock[] {
@@ -88,6 +90,8 @@ export default function StockScreener() {
   const [cacheLabel, setCacheLabel] = useState<string | null>(null);
   const [totalSymbols, setTotalSymbols] = useState<number | undefined>();
   const [patternLoading, setPatternLoading] = useState<Set<string>>(() => new Set());
+  const [viewMode, setViewMode] = useState<ViewMode>('universe');
+  const watchlist = useWatchlists();
   const stocksRef = useRef(stocks);
   stocksRef.current = stocks;
 
@@ -336,6 +340,20 @@ export default function StockScreener() {
     return sortRows(rows, sortColumn, sortDir);
   }, [stocks, activeSnapshots, matchingSet, showSimilarity, similarityMap, sortColumn, sortDir]);
 
+  const displayRows = useMemo(() => {
+    if (viewMode !== 'watchlist') return tableRows;
+    return tableRows
+      .filter(r => watchlist.activeTickers.has(r.stock.ticker))
+      .map(r => ({ ...r, visible: true }));
+  }, [tableRows, viewMode, watchlist.activeTickers]);
+
+  const handleToggleWatchlist = useCallback(
+    (ticker: string) => {
+      watchlist.toggleTicker(ticker);
+    },
+    [watchlist],
+  );
+
   const handleSort = useCallback((col: TableColumnId) => {
     setSortColumn(prev => {
       if (prev === col) {
@@ -411,13 +429,13 @@ export default function StockScreener() {
   );
 
   const handleDownloadCsv = useCallback(() => {
-    downloadScreenerCsv(tableRows, exportColumns, {
-      filteredOnly: true,
-      filename: screenerCsvFilename(deferredDaysAgo),
+    downloadScreenerCsv(displayRows, exportColumns, {
+      filteredOnly: viewMode === 'watchlist' ? false : true,
+      filename: screenerCsvFilename(deferredDaysAgo, viewMode === 'watchlist' ? watchlist.active.name : undefined),
     });
-  }, [tableRows, exportColumns, deferredDaysAgo]);
+  }, [displayRows, exportColumns, deferredDaysAgo, viewMode, watchlist.active.name]);
 
-  const matchCount = matchingSet.size;
+  const matchCount = viewMode === 'watchlist' ? displayRows.length : matchingSet.size;
   const total = stocks.length;
   const weeklyReadyCount = useMemo(
     () => stocks.filter(s => s.weeklyHistory?.length).length,
@@ -462,26 +480,45 @@ export default function StockScreener() {
       )}
 
       <div className={styles.layout}>
-        <FilterSidebar
-          state={screenerState}
-          onChange={setScreenerState}
-          isHistorical={isHistorical}
-        />
+        <aside className={styles.sidebarColumn}>
+          <WatchlistPanel
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            store={watchlist.store}
+            active={watchlist.active}
+            onSelectList={watchlist.setActiveId}
+            onCreateList={watchlist.createList}
+            onRenameList={watchlist.renameList}
+            onDeleteList={watchlist.deleteList}
+            onRemoveTicker={watchlist.removeTicker}
+          />
+          <FilterSidebar
+            state={screenerState}
+            onChange={setScreenerState}
+            isHistorical={isHistorical}
+          />
+        </aside>
 
         <main className={styles.main}>
           <div className={styles.resultsHeader}>
             <div>
               <h1 className={styles.resultsTitle}>
-                {isHistorical ? `Universe on ${formatAsOfDate(deferredDaysAgo)}` : 'S&P 500 Universe'}
+                {viewMode === 'watchlist'
+                  ? `Watchlist: ${watchlist.active.name}`
+                  : isHistorical
+                    ? `Universe on ${formatAsOfDate(deferredDaysAgo)}`
+                    : 'S&P 500 Universe'}
               </h1>
               <p className={styles.resultsSub}>
-                {isHistorical
-                  ? 'Weekly closing prices and returns since that date. Filters use today’s live fundamentals.'
-                  : 'Live Finnhub snapshot — drag the timeline to explore up to 1 year back.'}
-                {isHistorical && dataSource !== 'mock' && (
+                {viewMode === 'watchlist'
+                  ? 'All factors for your saved tickers — same columns as the full screener.'
+                  : isHistorical
+                    ? 'Weekly closing prices and returns since that date. Filters use today’s live fundamentals.'
+                    : 'Live Finnhub snapshot — drag the timeline to explore up to 1 year back.'}
+                {viewMode === 'universe' && isHistorical && dataSource !== 'mock' && (
                   <> · Click ◉ to pick a pattern{weeklyReadyCount < total ? ' (weekly prices load on first click)' : ''}</>
                 )}
-                {activeFilters > 0 && ` · ${activeFilters} filter${activeFilters !== 1 ? 's' : ''} active`}
+                {viewMode === 'universe' && activeFilters > 0 && ` · ${activeFilters} filter${activeFilters !== 1 ? 's' : ''} active`}
                 {isTimelineStale && (
                   <span className={styles.dateBarHint}> · updating…</span>
                 )}
@@ -502,7 +539,7 @@ export default function StockScreener() {
                 <span className={styles.countMatch}>{matchCount}</span>
                 <span className={styles.countSep}>/</span>
                 <span className={styles.countTotal}>{total}</span>
-                <span className={styles.countLabel}>shown</span>
+                <span className={styles.countLabel}>{viewMode === 'watchlist' ? 'stocks' : 'shown'}</span>
               </div>
             </div>
           </div>
@@ -519,7 +556,7 @@ export default function StockScreener() {
           )}
 
           <StockTable
-            rows={tableRows}
+            rows={displayRows}
             isHistorical={isHistorical}
             showSimilarity={showSimilarity}
             referenceTickers={referenceTickers}
@@ -530,9 +567,23 @@ export default function StockScreener() {
             isLoading={isLoading || (stocks.length > 0 && activeSnapshots.size === 0)}
             isUpdating={isSnapshotsStale && activeSnapshots.size > 0}
             patternLoading={patternLoading}
+            watchlistTickers={watchlist.activeTickers}
+            onToggleWatchlist={handleToggleWatchlist}
           />
 
-          {!isLoading && matchCount === 0 && (
+          {!isLoading && viewMode === 'watchlist' && watchlist.active.tickers.length === 0 && (
+            <p className={styles.emptyState}>
+              This watchlist is empty. Switch to S&P 500 and click ★ on any row to add stocks.
+            </p>
+          )}
+
+          {!isLoading && viewMode === 'watchlist' && watchlist.active.tickers.length > 0 && displayRows.length === 0 && (
+            <p className={styles.emptyState}>
+              Watchlist tickers aren’t in the current snapshot yet. They may appear after the weekly cache refresh.
+            </p>
+          )}
+
+          {!isLoading && viewMode === 'universe' && matchCount === 0 && (
             <p className={styles.emptyState}>
               No stocks match your filters{isHistorical ? ' at that date' : ''}. Widen ranges or disable filters.
             </p>

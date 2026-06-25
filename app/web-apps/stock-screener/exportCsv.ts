@@ -61,8 +61,14 @@ export function downloadScreenerCsv(
   URL.revokeObjectURL(url);
 }
 
-export function screenerCsvFilename(daysAgo: number): string {
+export function screenerCsvFilename(daysAgo: number, watchlistName?: string): string {
   const today = isoDate(new Date());
+  const safeName = watchlistName
+    ? watchlistName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').toLowerCase()
+    : '';
+  if (safeName) {
+    return `watchlist-${safeName}-${today}.csv`;
+  }
   if (daysAgo > 0) {
     return `sp500-screener-${isoDate(daysAgoToDate(daysAgo))}-to-${today}.csv`;
   }

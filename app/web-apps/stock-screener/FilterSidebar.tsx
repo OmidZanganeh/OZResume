@@ -32,7 +32,7 @@ export default function FilterSidebar({ state, onChange, isHistorical }: Props) 
   const activeCount = enabledFilterCount(state);
 
   return (
-    <aside className={styles.sidebar}>
+    <div className={styles.filterSidebarScroll}>
       <div className={styles.sidebarHead}>
         <div>
           <h2 className={styles.sidebarTitle}>Screening Filters</h2>
@@ -119,6 +119,6 @@ export default function FilterSidebar({ state, onChange, isHistorical }: Props) 
           Check a filter to enable it, then set min/max. Unchecked filters are completely ignored — mix fundamental quality screens with technical momentum rules as you like.
         </p>
       </div>
-    </aside>
+    </div>
   );
 }
