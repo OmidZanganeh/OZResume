@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runWeeklyBulkBatch } from '../weeklyBulk';
+import { runWeeklyBulkBatch } from '../../weeklyBulk';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;

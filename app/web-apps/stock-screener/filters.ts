@@ -32,7 +32,7 @@ export interface FilterDef {
 
 export const ALL_SECTORS: Sector[] = ['Tech', 'Healthcare', 'Finance', 'Energy', 'Consumer'];
 
-export const DEFAULT_ENABLED: FilterId[] = ['peRatio', 'epsGrowth', 'debtToEquity'];
+export const DEFAULT_ENABLED: FilterId[] = [];
 
 export const FILTER_CATEGORIES: {
   id: FilterCategory;
