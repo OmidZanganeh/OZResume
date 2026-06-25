@@ -114,7 +114,9 @@ export default function SimilarityPanel({
 
       <p className={styles.similarityFoot}>
         <Crosshair size={12} />
-        Uses real weekly returns (4w / 13w / 26w / 52w) and distance from 52w high/low only.
+        Uses cached weekly closes only: returns (4–52w), 52w high/low distance, volatility,
+        drawdown, range position, trend slope, and momentum acceleration.
+        Stocks without weekly history are excluded from matching.
         {' '}Not investment advice — verify before trading.
       </p>
     </section>

@@ -74,6 +74,7 @@ function TableRowView({
   onSelectReference: (ticker: string) => void;
 }) {
   const highMatch = (row.similarity ?? 0) >= 75;
+  const hasWeekly = Boolean(row.stock.weeklyHistory?.length);
   return (
     <tr
       className={[
@@ -89,7 +90,12 @@ function TableRowView({
             type="button"
             className={`${styles.patternBtn} ${isRef ? styles.patternBtnOn : ''}`}
             onClick={() => onSelectReference(row.stock.ticker)}
-            title={`${isRef ? 'Remove' : 'Add'} ${row.stock.ticker} as pattern on this date`}
+            disabled={!hasWeekly}
+            title={
+              hasWeekly
+                ? `${isRef ? 'Remove' : 'Add'} ${row.stock.ticker} as pattern on this date`
+                : `${row.stock.ticker}: weekly price history required for pattern match`
+            }
             aria-pressed={isRef}
           >
             ◉

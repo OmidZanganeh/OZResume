@@ -1079,6 +1079,15 @@
   border-color: rgba(251, 191, 36, 0.55);
   color: #fbbf24;
 }
+.patternBtn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+.patternBtn:disabled:hover {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.35);
+}
 
 .tableFoot {
   margin: 0;

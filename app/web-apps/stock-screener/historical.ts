@@ -306,34 +306,7 @@ export function priceMomentumProfile(
   stock: Stock,
   daysAgo: number,
 ): import('./weeklyMomentum').MomentumProfile | null {
-  if (daysAgo <= 0) {
-    const weekly = momentumAtDaysAgo(stock, 0);
-    if (weekly) return weekly;
-    return {
-      priceChange4w: stock.priceChange1m,
-      priceChange13w: stock.priceChange3m,
-      priceChange26w: stock.priceChange6m,
-      priceChange52w: stock.priceChange52w,
-      priceVs52wHigh: stock.priceVs52wHigh,
-      priceVs52wLow: stock.priceVs52wLow,
-    };
-  }
-
-  const weekly = momentumAtDaysAgo(stock, daysAgo);
-  if (weekly) return weekly;
-
-  const { returnToTodayPct, source } = priceReturnAtDaysAgo(stock, daysAgo);
-  if (source !== 'finnhub' || returnToTodayPct == null) return null;
-
-  const m = momentumFromFinnhubWindows(stock, daysAgo, returnToTodayPct);
-  return {
-    priceChange4w: m.priceChange1m,
-    priceChange13w: m.priceChange3m,
-    priceChange26w: m.priceChange6m,
-    priceChange52w: m.priceChange52w,
-    priceVs52wHigh: m.priceVs52wHigh,
-    priceVs52wLow: m.priceVs52wLow,
-  };
+  return momentumAtDaysAgo(stock, daysAgo);
 }
 
 export function buildAllSnapshots(
