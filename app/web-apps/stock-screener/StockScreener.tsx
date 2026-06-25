@@ -607,7 +607,7 @@ export default function StockScreener() {
                 <span className={styles.countTotal}>
                   {searchActive
                     ? viewMode === 'watchlist'
-                      ? watchlist.active.tickers.size
+                      ? watchlist.active.tickers.length
                       : matchCount
                     : total}
                 </span>

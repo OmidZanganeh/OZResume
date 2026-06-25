@@ -53,7 +53,7 @@ function cellValue(col: TableColumn, row: TableRow): string {
   }
   if (col.id === 'returnToTargetPct') {
     const v = row.returnToTargetPct;
-    return Number.isFinite(v) ? col.format(v) : '—';
+    return Number.isFinite(v) ? col.format(v!) : '—';
   }
   if (col.id === 'similarity') return row.similarity != null ? col.format(row.similarity) : '—';
   const metricVal = row.snapshot[col.id as keyof StockSnapshot];
@@ -93,6 +93,7 @@ function TableRowView({
   const highMatch = (row.similarity ?? 0) >= 75;
   const isPatternLoading = patternLoading?.has(row.stock.ticker) ?? false;
   const inWatchlist = watchlistTickers?.has(row.stock.ticker) ?? false;
+  const retTarget = row.returnToTargetPct;
   return (
     <tr
       className={[
@@ -154,10 +155,10 @@ function TableRowView({
                     : ''
                 : ''
               : col.id === 'returnToTargetPct'
-                ? Number.isFinite(row.returnToTargetPct)
-                  ? row.returnToTargetPct > 0
+                ? Number.isFinite(retTarget)
+                  ? retTarget! > 0
                     ? styles.tdUp
-                    : row.returnToTargetPct < 0
+                    : retTarget! < 0
                       ? styles.tdDown
                       : ''
                   : ''
