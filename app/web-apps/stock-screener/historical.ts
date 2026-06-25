@@ -1,7 +1,7 @@
 import type { Stock, StockMetrics, StockSnapshot, BacktestSummary } from './types';
 import { daysAgoToDate, formatAsOfDate } from './timelineDate';
-import { closestWeeklyBar } from './weeklyLookup';
-import { momentumAtDaysAgo } from './weeklyMomentum';
+import { closestWeeklyBar, barIndexAtDaysAgo } from './weeklyLookup';
+import { momentumAtDaysAgo, momentumFromBarIndex } from './weeklyMomentum';
 
 export { daysAgoToDate, formatAsOfDate };
 
@@ -218,8 +218,13 @@ function historicalPriceMetrics(
   priceThen: number,
   returnToToday: number,
   source: HistoricalPriceSource,
+  weeklyBarIdx?: number | null,
 ): StockMetrics {
-  const weeklyMom = momentumAtDaysAgo(stock, daysAgo);
+  const bars = stock.weeklyHistory;
+  const weeklyMom =
+    bars?.length && weeklyBarIdx != null
+      ? momentumFromBarIndex(bars, weeklyBarIdx)
+      : momentumAtDaysAgo(stock, daysAgo);
   if (weeklyMom) {
     return {
       ...EMPTY_METRICS,
@@ -251,10 +256,39 @@ export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
     };
   }
 
+  const series = stock.weeklyHistory;
+  let weeklyBarIdx: number | null = null;
+  if (series?.length) {
+    weeklyBarIdx = barIndexAtDaysAgo(series, daysAgo);
+    if (weeklyBarIdx != null) {
+      const bar = series[weeklyBarIdx]!;
+      const priceThen = round(bar.c, 2);
+      const returnToTodayPct =
+        stock.price > 0 ? round(((stock.price - bar.c) / bar.c) * 100, 1) : NaN;
+      const priceMetrics = historicalPriceMetrics(
+        stock,
+        daysAgo,
+        priceThen,
+        returnToTodayPct,
+        'weekly',
+        weeklyBarIdx,
+      );
+      return {
+        ticker: stock.ticker,
+        ...priceMetrics,
+        price: priceThen,
+        priceThen,
+        priceToday: stock.price,
+        returnToTodayPct,
+        priceSource: 'weekly',
+      };
+    }
+  }
+
   const { priceThen, returnToTodayPct, source } = priceReturnAtDaysAgo(stock, daysAgo);
   const priceMetrics =
     priceThen != null && returnToTodayPct != null
-      ? historicalPriceMetrics(stock, daysAgo, priceThen, returnToTodayPct, source)
+      ? historicalPriceMetrics(stock, daysAgo, priceThen, returnToTodayPct, source, weeklyBarIdx)
       : { ...EMPTY_METRICS };
 
   return {

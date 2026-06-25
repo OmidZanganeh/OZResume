@@ -29,9 +29,22 @@ export function readSessionMarketCache(): SessionMarketPayload | null {
 export function writeSessionMarketCache(payload: SessionMarketPayload): void {
   if (typeof window === 'undefined') return;
   try {
+    // Weekly bar arrays are large — keep them in memory only, not sessionStorage.
+    const slim: SessionMarketPayload = {
+      ...payload,
+      stocks: Array.isArray(payload.stocks)
+        ? payload.stocks.map(entry => {
+            if (entry && typeof entry === 'object' && 'weeklyHistory' in entry) {
+              const { weeklyHistory: _drop, ...rest } = entry as Record<string, unknown>;
+              return rest;
+            }
+            return entry;
+          })
+        : payload.stocks,
+    };
     sessionStorage.setItem(
       SESSION_KEY,
-      JSON.stringify({ expiresAt: Date.now() + SESSION_TTL_MS, payload }),
+      JSON.stringify({ expiresAt: Date.now() + SESSION_TTL_MS, payload: slim }),
     );
   } catch {
     // sessionStorage full or disabled

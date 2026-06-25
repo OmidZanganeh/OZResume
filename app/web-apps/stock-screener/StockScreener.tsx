@@ -7,6 +7,7 @@ import {
   useDeferredValue,
   useTransition,
   useCallback,
+  useRef,
 } from 'react';
 import Link from 'next/link';
 import { BarChart3, Loader2, AlertTriangle, Download } from 'lucide-react';
@@ -21,12 +22,16 @@ import type { Stock } from './types';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
 import type { ScreenerState } from './filters';
 import {
-  buildAllSnapshots,
   buildTodaySnapshots,
   computeBacktest,
   formatAsOfDate,
   priceMomentumProfile,
 } from './historical';
+import {
+  buildSnapshotsAsync,
+  invalidateSnapshotCache,
+  peekSnapshotCache,
+} from './snapshotCache';
 import { rankSimilarityToday, similarityScoresToday } from './similarity';
 import { visibleColumns } from './tableColumns';
 import { downloadScreenerCsv, screenerCsvFilename } from './exportCsv';
@@ -136,6 +141,58 @@ export default function StockScreener() {
   const isHistorical = deferredDaysAgo > 0;
   const isTimelineStale = daysAgo !== deferredDaysAgo || isDatePending;
 
+  const [snapshots, setSnapshots] = useState<Map<string, import('./types').StockSnapshot>>(
+    () => new Map(),
+  );
+  const [snapshotsForDays, setSnapshotsForDays] = useState(0);
+
+  useEffect(() => {
+    invalidateSnapshotCache();
+  }, [stocks]);
+
+  useEffect(() => {
+    if (stocks.length === 0) {
+      setSnapshots(new Map());
+      setSnapshotsForDays(0);
+      return;
+    }
+
+    const days = deferredDaysAgo;
+    const cached = peekSnapshotCache(stocks, days);
+    if (cached) {
+      setSnapshots(cached);
+      setSnapshotsForDays(days);
+      return;
+    }
+
+    const signal = { cancelled: false };
+
+    void buildSnapshotsAsync(stocks, days, signal).then(built => {
+      if (!signal.cancelled) {
+        setSnapshots(built);
+        setSnapshotsForDays(days);
+      }
+    });
+
+    return () => {
+      signal.cancelled = true;
+    };
+  }, [stocks, deferredDaysAgo]);
+
+  const snapshotsReady = snapshotsForDays === deferredDaysAgo && snapshots.size > 0;
+  const isSnapshotsStale = !snapshotsReady || isTimelineStale;
+
+  const lastReadySnapshots = useRef({
+    daysAgo: 0,
+    map: new Map<string, import('./types').StockSnapshot>(),
+  });
+  if (snapshotsReady) {
+    lastReadySnapshots.current = { daysAgo: deferredDaysAgo, map: snapshots };
+  }
+  const activeSnapshots =
+    snapshotsReady ? snapshots : lastReadySnapshots.current.map;
+  const activeDaysAgo = snapshotsReady ? deferredDaysAgo : lastReadySnapshots.current.daysAgo;
+
   useEffect(() => {
     if (!isHistorical) {
       setReferenceTickers(new Set());
@@ -146,11 +203,6 @@ export default function StockScreener() {
       setSortDir('desc');
     }
   }, [isHistorical]);
-
-  const snapshots = useMemo(
-    () => buildAllSnapshots(stocks, deferredDaysAgo),
-    [stocks, deferredDaysAgo],
-  );
 
   const todaySnapshots = useMemo(
     () => buildTodaySnapshots(stocks),
@@ -171,12 +223,12 @@ export default function StockScreener() {
       .map(ticker => {
         const stock = stocks.find(s => s.ticker === ticker);
         if (!stock) return null;
-        const profile = priceMomentumProfile(stock, deferredDaysAgo);
+        const profile = priceMomentumProfile(stock, activeDaysAgo);
         if (!profile) return null;
-        return { stock, profile, snapshot: snapshots.get(ticker)! };
+        return { stock, profile, snapshot: activeSnapshots.get(ticker)! };
       })
       .filter((e): e is NonNullable<typeof e> => e != null);
-  }, [referenceTickers, stocks, deferredDaysAgo, snapshots]);
+  }, [referenceTickers, stocks, activeDaysAgo, activeSnapshots]);
 
   const showSimilarity = Boolean(isHistorical && referenceProfiles.length > 0);
 
@@ -211,18 +263,18 @@ export default function StockScreener() {
 
   const backtest = useMemo(() => {
     if (!isHistorical) return null;
-    return computeBacktest(stocks, snapshots, matchingSet);
-  }, [isHistorical, stocks, snapshots, matchingSet]);
+    return computeBacktest(stocks, activeSnapshots, matchingSet);
+  }, [isHistorical, stocks, activeSnapshots, matchingSet]);
 
   const tableRows = useMemo(() => {
     const rows = stocks.map(stock => ({
       stock,
-      snapshot: snapshots.get(stock.ticker)!,
+      snapshot: activeSnapshots.get(stock.ticker)!,
       visible: matchingSet.has(stock.ticker),
       similarity: showSimilarity ? similarityMap.get(stock.ticker) : undefined,
     }));
     return sortRows(rows, sortColumn, sortDir);
-  }, [stocks, snapshots, matchingSet, showSimilarity, similarityMap, sortColumn, sortDir]);
+  }, [stocks, activeSnapshots, matchingSet, showSimilarity, similarityMap, sortColumn, sortDir]);
 
   const handleSort = useCallback((col: TableColumnId) => {
     setSortColumn(prev => {
@@ -361,7 +413,8 @@ export default function StockScreener() {
             sortDir={sortDir}
             onSort={handleSort}
             onSelectReference={handleSelectReference}
-            isLoading={isLoading}
+            isLoading={isLoading || (stocks.length > 0 && activeSnapshots.size === 0)}
+            isUpdating={isSnapshotsStale && activeSnapshots.size > 0}
           />
 
           {!isLoading && matchCount === 0 && (

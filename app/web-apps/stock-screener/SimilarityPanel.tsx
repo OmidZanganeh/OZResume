@@ -4,6 +4,7 @@ import { Crosshair, Sparkles } from 'lucide-react';
 import type { StockSnapshot } from './types';
 import type { SimilarityMatch } from './similarity';
 import { formatAsOfDate } from './timelineDate';
+import { yahooQuoteUrl } from './yahooFinanceUrl';
 import styles from './StockScreener.module.css';
 
 export interface ReferenceEntry {
@@ -48,7 +49,16 @@ export default function SimilarityPanel({
               </>
             ) : (
               <>
-                Reference: <strong>{references[0]!.stock.ticker}</strong> on {formatAsOfDate(daysAgo)}
+                Reference:{' '}
+                <a
+                  href={yahooQuoteUrl(references[0]!.stock.ticker)}
+                  className={styles.tickerLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <strong>{references[0]!.stock.ticker}</strong>
+                </a>{' '}
+                on {formatAsOfDate(daysAgo)}
                 {references[0]!.snapshot.priceThen > 0 && (
                   <>
                     {' '}(${references[0]!.snapshot.priceThen.toFixed(2)} → ${references[0]!.stock.price.toFixed(2)},
@@ -71,7 +81,14 @@ export default function SimilarityPanel({
         <div className={styles.referenceChips}>
           {references.map(({ stock, snapshot }) => (
             <span key={stock.ticker} className={styles.referenceChip}>
-              <strong>{stock.ticker}</strong>
+              <a
+                href={yahooQuoteUrl(stock.ticker)}
+                className={styles.tickerLink}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <strong>{stock.ticker}</strong>
+              </a>
               <span>{fmtReturn(snapshot.returnToTodayPct)}</span>
             </span>
           ))}
@@ -82,7 +99,14 @@ export default function SimilarityPanel({
         {topMatches.slice(0, 8).map((m, i) => (
           <div key={m.ticker} className={styles.similarityCard}>
             <span className={styles.similarityRank}>#{i + 1}</span>
-            <span className={styles.similarityTicker}>{m.ticker}</span>
+            <a
+              href={yahooQuoteUrl(m.ticker)}
+              className={`${styles.similarityTicker} ${styles.tickerLink}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {m.ticker}
+            </a>
             <span className={styles.similarityScore}>{m.score.toFixed(0)}% match</span>
           </div>
         ))}

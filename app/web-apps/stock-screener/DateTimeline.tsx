@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatAsOfDate, daysAgoToDate } from './timelineDate';
 import { HISTORY_DAYS, HISTORY_STEP_DAYS } from './types';
@@ -19,12 +19,14 @@ function snapDaysAgo(days: number): number {
 
 export default function DateTimeline({ daysAgo, onChange }: Props) {
   const [dragPos, setDragPos] = useState<number | null>(null);
+  const draggingRef = useRef(false);
   const isToday = daysAgo <= 0 && dragPos === null;
   const sliderPos = dragPos ?? (HISTORY_DAYS - daysAgo);
   const displayDaysAgo = HISTORY_DAYS - sliderPos;
   const pct = (sliderPos / HISTORY_DAYS) * 100;
 
   const commitSlider = useCallback((pos: number) => {
+    draggingRef.current = false;
     setDragPos(null);
     const next = HISTORY_DAYS - pos;
     onChange(next <= 0 ? 0 : snapDaysAgo(next));
@@ -75,8 +77,13 @@ export default function DateTimeline({ daysAgo, onChange }: Props) {
           max={HISTORY_DAYS}
           step={HISTORY_STEP_DAYS}
           value={sliderPos}
-          onChange={e => setDragPos(parseInt(e.target.value, 10))}
+          onPointerDown={() => { draggingRef.current = true; }}
+          onInput={e => {
+            if (!draggingRef.current) return;
+            setDragPos(parseInt((e.target as HTMLInputElement).value, 10));
+          }}
           onPointerUp={e => commitSlider(parseInt((e.target as HTMLInputElement).value, 10))}
+          onPointerCancel={e => commitSlider(parseInt((e.target as HTMLInputElement).value, 10))}
           onKeyUp={e => {
             if (e.key === 'Enter') commitSlider(parseInt((e.target as HTMLInputElement).value, 10));
           }}

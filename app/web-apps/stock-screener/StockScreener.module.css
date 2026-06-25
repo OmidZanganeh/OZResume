@@ -916,12 +916,28 @@
 
 /* ── Data table ──────────────────────────────────────────────────────────── */
 .tableWrap {
+  position: relative;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(255, 255, 255, 0.02);
   overflow: auto;
   max-height: calc(100vh - 280px);
   margin-bottom: 16px;
+}
+
+.tableUpdating {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: rgba(12, 16, 21, 0.45);
+  backdrop-filter: blur(1px);
+}
+
+.trSpacer td {
+  padding: 0 !important;
+  border: none !important;
+  line-height: 0;
 }
 
 .dataTable {
@@ -1007,6 +1023,25 @@
   color: #5eead4;
   box-shadow: 4px 0 8px rgba(0, 0, 0, 0.2);
 }
+
+.tickerLink {
+  color: inherit;
+  text-decoration: none;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+
+.tickerLink:hover {
+  text-decoration: underline;
+  color: #99f6e4;
+}
+
+.tickerLink:focus-visible {
+  outline: 2px solid rgba(94, 234, 212, 0.55);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .trReference .tdSticky { background: #14120c; }
 .trMatch .tdSticky { background: #0c1211; }
 

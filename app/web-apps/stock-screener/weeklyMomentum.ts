@@ -46,14 +46,11 @@ function rangeExtremes(
   return { high, low };
 }
 
-/** Real price momentum from weekly bars at a given date (0 = today). */
-export function momentumAtDaysAgo(stock: Stock, daysAgo: number): MomentumProfile | null {
-  const bars = stock.weeklyHistory;
-  if (!bars?.length) return null;
-
-  const idx = barIndexAtDaysAgo(bars, daysAgo);
-  if (idx == null) return null;
-
+/** Momentum from a pre-resolved weekly bar index (avoids duplicate bar scans). */
+export function momentumFromBarIndex(
+  bars: { c: number }[],
+  idx: number,
+): MomentumProfile | null {
   const price = bars[idx]!.c;
   const extremes = rangeExtremes(bars, idx, 52);
 
@@ -74,4 +71,15 @@ export function momentumAtDaysAgo(stock: Stock, daysAgo: number): MomentumProfil
     priceVs52wHigh: high > 0 ? round(((price - high) / high) * 100, 1) : 0,
     priceVs52wLow: low > 0 ? round(((price - low) / low) * 100, 1) : 0,
   };
+}
+
+/** Real price momentum from weekly bars at a given date (0 = today). */
+export function momentumAtDaysAgo(stock: Stock, daysAgo: number): MomentumProfile | null {
+  const bars = stock.weeklyHistory;
+  if (!bars?.length) return null;
+
+  const idx = barIndexAtDaysAgo(bars, daysAgo);
+  if (idx == null) return null;
+
+  return momentumFromBarIndex(bars, idx);
 }
