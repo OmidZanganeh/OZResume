@@ -1,7 +1,7 @@
 import type { StockMetrics } from './types';
 import { FILTER_DEFS } from './filters';
 import { formatMarketCap } from './metricFormat';
-import { formatAsOfDate } from './timelineDate';
+import { returnPeriodLabel } from './returnPeriods';
 
 export type TableColumnId =
   | 'ticker'
@@ -81,13 +81,11 @@ export const CONTEXT_COLUMNS: TableColumn[] = [
 
 const pctFormat = (v: number) => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—');
 
-export function buildReturnTargetColumn(returnTargetDaysAgo: number): TableColumn {
+export function buildReturnTargetColumn(periodDays: number): TableColumn {
+  const label = returnPeriodLabel(periodDays);
   return {
     id: 'returnToTargetPct',
-    label:
-      returnTargetDaysAgo <= 0
-        ? 'Return → Today (target)'
-        : `Return → ${formatAsOfDate(returnTargetDaysAgo)}`,
+    label: periodDays <= 0 ? 'Return → Today' : `Return over ${label}`,
     shortLabel: 'Ret→Date',
     align: 'right',
     historicalOnly: true,
@@ -172,14 +170,14 @@ export const HISTORICAL_TECH_COLUMNS: TableColumn[] = [
 export function visibleColumns(
   isHistorical: boolean,
   showSimilarity: boolean,
-  returnTargetDaysAgo = 0,
+  returnPeriodDays = 365,
 ): TableColumn[] {
   if (isHistorical) {
     const cols: TableColumn[] = [
       ...IDENTITY_COLUMNS,
       CONTEXT_COLUMNS.find(c => c.id === 'price')!,
       CONTEXT_COLUMNS.find(c => c.id === 'returnToTodayPct')!,
-      buildReturnTargetColumn(returnTargetDaysAgo),
+      buildReturnTargetColumn(returnPeriodDays),
       ...HISTORICAL_TECH_COLUMNS,
     ];
     if (showSimilarity) {

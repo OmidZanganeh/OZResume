@@ -20,7 +20,10 @@ import SimilarityPanel from './SimilarityPanel';
 import WatchlistPanel from './WatchlistPanel';
 import { MOCK_STOCKS } from './mockStocks';
 import type { Stock } from './types';
-import { HISTORY_STEP_DAYS } from './types';
+import {
+  DEFAULT_RETURN_PERIOD_DAYS,
+  targetDaysAgoFromPeriod,
+} from './returnPeriods';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
 import type { ScreenerState } from './filters';
 import {
@@ -76,18 +79,12 @@ export default function StockScreener() {
   const [screenerState, setScreenerState] = useState<ScreenerState>(DEFAULT_SCREENER_STATE);
   const [daysAgo, setDaysAgo] = useState(0);
   const deferredDaysAgo = useDeferredValue(daysAgo);
-  const [returnTargetDaysAgo, setReturnTargetDaysAgo] = useState(0);
-  const deferredReturnTargetDaysAgo = useDeferredValue(returnTargetDaysAgo);
+  const [returnPeriodDays, setReturnPeriodDays] = useState(DEFAULT_RETURN_PERIOD_DAYS);
+  const deferredReturnPeriodDays = useDeferredValue(returnPeriodDays);
   const [isDatePending, startDateTransition] = useTransition();
   const setDaysAgoDeferred = useCallback((next: number) => {
     startDateTransition(() => setDaysAgo(next));
   }, []);
-
-  useEffect(() => {
-    if (daysAgo > 0 && returnTargetDaysAgo >= daysAgo) {
-      setReturnTargetDaysAgo(Math.max(0, daysAgo - HISTORY_STEP_DAYS));
-    }
-  }, [daysAgo, returnTargetDaysAgo]);
 
   const [referenceTickers, setReferenceTickers] = useState<Set<string>>(() => new Set());
   const [sortColumn, setSortColumn] = useState<TableColumnId>('ticker');
@@ -341,6 +338,11 @@ export default function StockScreener() {
     return computeBacktest(stocks, activeSnapshots, matchingSet);
   }, [isHistorical, stocks, activeSnapshots, matchingSet]);
 
+  const returnTargetDaysAgo = useMemo(
+    () => targetDaysAgoFromPeriod(activeDaysAgo, deferredReturnPeriodDays),
+    [activeDaysAgo, deferredReturnPeriodDays],
+  );
+
   const tableRows = useMemo(() => {
     const rows = stocks.map(stock => ({
       stock,
@@ -348,8 +350,8 @@ export default function StockScreener() {
       visible: matchingSet.has(stock.ticker),
       similarity: showSimilarity ? similarityMap.get(stock.ticker) : undefined,
       returnToTargetPct:
-        isHistorical && deferredReturnTargetDaysAgo < activeDaysAgo
-          ? returnBetweenDaysAgo(stock, activeDaysAgo, deferredReturnTargetDaysAgo) ?? undefined
+        isHistorical && returnTargetDaysAgo < activeDaysAgo
+          ? returnBetweenDaysAgo(stock, activeDaysAgo, returnTargetDaysAgo) ?? undefined
           : undefined,
     }));
     return sortRows(rows, sortColumn, sortDir);
@@ -362,7 +364,7 @@ export default function StockScreener() {
     sortColumn,
     sortDir,
     isHistorical,
-    deferredReturnTargetDaysAgo,
+    returnTargetDaysAgo,
     activeDaysAgo,
   ]);
 
@@ -464,8 +466,8 @@ export default function StockScreener() {
   }, [stocks, dataSource, referenceTickers]);
 
   const exportColumns = useMemo(
-    () => visibleColumns(isHistorical, showSimilarity, deferredReturnTargetDaysAgo),
-    [isHistorical, showSimilarity, deferredReturnTargetDaysAgo],
+    () => visibleColumns(isHistorical, showSimilarity, deferredReturnPeriodDays),
+    [isHistorical, showSimilarity, deferredReturnPeriodDays],
   );
 
   const handleDownloadCsv = useCallback(() => {
@@ -497,8 +499,8 @@ export default function StockScreener() {
       <DateTimeline
         daysAgo={daysAgo}
         onChange={setDaysAgoDeferred}
-        returnTargetDaysAgo={returnTargetDaysAgo}
-        onReturnTargetChange={daysAgo > 0 ? setReturnTargetDaysAgo : undefined}
+        returnPeriodDays={returnPeriodDays}
+        onReturnPeriodChange={daysAgo > 0 ? setReturnPeriodDays : undefined}
       />
 
       {(isLoading || dataWarning || loadError) && (
@@ -633,7 +635,7 @@ export default function StockScreener() {
             rows={displayRows}
             isHistorical={isHistorical}
             showSimilarity={showSimilarity}
-            returnTargetDaysAgo={deferredReturnTargetDaysAgo}
+            returnPeriodDays={deferredReturnPeriodDays}
             referenceTickers={referenceTickers}
             sortColumn={sortColumn}
             sortDir={sortDir}

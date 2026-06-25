@@ -27,7 +27,7 @@ interface Props {
   rows: TableRow[];
   isHistorical: boolean;
   showSimilarity: boolean;
-  returnTargetDaysAgo?: number;
+  returnPeriodDays?: number;
   referenceTickers: ReadonlySet<string>;
   sortColumn: TableColumnId;
   sortDir: SortDir;
@@ -193,7 +193,7 @@ export default function StockTable({
   rows,
   isHistorical,
   showSimilarity,
-  returnTargetDaysAgo = 0,
+  returnPeriodDays = 365,
   referenceTickers,
   sortColumn,
   sortDir,
@@ -206,8 +206,8 @@ export default function StockTable({
   onToggleWatchlist,
 }: Props) {
   const columns = useMemo(
-    () => visibleColumns(isHistorical, showSimilarity, returnTargetDaysAgo),
-    [isHistorical, showSimilarity, returnTargetDaysAgo],
+    () => visibleColumns(isHistorical, showSimilarity, returnPeriodDays),
+    [isHistorical, showSimilarity, returnPeriodDays],
   );
 
   const wrapRef = useRef<HTMLDivElement>(null);
