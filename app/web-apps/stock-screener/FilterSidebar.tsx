@@ -52,7 +52,7 @@ export default function FilterSidebar({ state, onChange, isHistorical }: Props) 
 
       {isHistorical && (
         <p className={styles.historicalNote}>
-          Filters apply to <strong>past</strong> values at the selected date (up to 1 year). Past prices use Finnhub return windows.
+          Timeline adjusts <strong>price and return</strong> using Finnhub return windows (up to 1 year). Filters use current fundamentals.
         </p>
       )}
 

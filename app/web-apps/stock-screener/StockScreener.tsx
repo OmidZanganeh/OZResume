@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useDeferredValue, useTransition, useCallback } from 'react';
 import Link from 'next/link';
 import { BarChart3, Loader2, AlertTriangle } from 'lucide-react';
 import FilterSidebar from './FilterSidebar';
@@ -77,6 +77,11 @@ function sortStocks(
 export default function StockScreener() {
   const [screenerState, setScreenerState] = useState<ScreenerState>(DEFAULT_SCREENER_STATE);
   const [daysAgo, setDaysAgo] = useState(0);
+  const deferredDaysAgo = useDeferredValue(daysAgo);
+  const [isDatePending, startDateTransition] = useTransition();
+  const setDaysAgoDeferred = useCallback((next: number) => {
+    startDateTransition(() => setDaysAgo(next));
+  }, []);
   const [sortMode, setSortMode] = useState<SortMode>('ticker');
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [dataSource, setDataSource] = useState<DataSource>('loading');
@@ -148,7 +153,8 @@ export default function StockScreener() {
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  const isHistorical = daysAgo > 0;
+  const isHistorical = deferredDaysAgo > 0;
+  const isTimelineStale = daysAgo !== deferredDaysAgo || isDatePending;
 
   useEffect(() => {
     if (isHistorical && sortMode === 'ticker') setSortMode('return-desc');
@@ -156,8 +162,8 @@ export default function StockScreener() {
   }, [isHistorical]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const snapshots = useMemo(
-    () => buildAllSnapshots(stocks, daysAgo),
-    [stocks, daysAgo],
+    () => buildAllSnapshots(stocks, deferredDaysAgo),
+    [stocks, deferredDaysAgo],
   );
 
   const matchingSet = useMemo(() => {
@@ -192,7 +198,7 @@ export default function StockScreener() {
         </div>
       </header>
 
-      <DateTimeline daysAgo={daysAgo} onChange={setDaysAgo} />
+      <DateTimeline daysAgo={daysAgo} onChange={setDaysAgoDeferred} />
 
       {(isLoading || dataWarning || loadError) && (
         <div className={styles.dataBanner} role="status">
@@ -228,14 +234,17 @@ export default function StockScreener() {
           <div className={styles.resultsHeader}>
             <div>
               <h1 className={styles.resultsTitle}>
-                {isHistorical ? `Matches on ${formatAsOfDate(daysAgo)}` : 'Matching Assets'}
+                {isHistorical ? `Matches on ${formatAsOfDate(deferredDaysAgo)}` : 'Matching Assets'}
               </h1>
               <p className={styles.resultsSub}>
                 {activeFilters === 0
                   ? 'No filters active — showing all stocks. Enable filters in the sidebar.'
                   : isHistorical
-                    ? `${activeFilters} filter${activeFilters !== 1 ? 's' : ''} on past data (up to 1 year)`
+                    ? `${activeFilters} filter${activeFilters !== 1 ? 's' : ''} · timeline uses historical prices`
                     : `${activeFilters} active filter${activeFilters !== 1 ? 's' : ''}`}
+                {isTimelineStale && (
+                  <span className={styles.dateBarHint}> · updating…</span>
+                )}
               </p>
             </div>
             <div className={styles.countBadge} aria-live="polite">
@@ -246,7 +255,7 @@ export default function StockScreener() {
             </div>
           </div>
 
-          <BacktestPanel daysAgo={daysAgo} backtest={backtest} />
+          <BacktestPanel daysAgo={deferredDaysAgo} backtest={backtest} />
 
           <div className={styles.sortBar}>
             <span className={styles.sortLabel}>Sort by</span>

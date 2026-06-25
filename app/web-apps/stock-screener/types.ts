@@ -61,6 +61,8 @@ export interface StockSnapshot extends StockMetrics {
 
 /** Max lookback — ~1 year; prices derived from Finnhub return windows. */
 export const HISTORY_DAYS = 365;
+/** Slider snaps to weekly steps — fewer updates, smoother interaction. */
+export const HISTORY_STEP_DAYS = 7;
 
 export interface BacktestSummary {
   matchedCount: number;

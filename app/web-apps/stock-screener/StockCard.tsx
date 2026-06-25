@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { Stock, StockMetrics } from './types';
 import { CARD_METRICS, type MetricTone } from './metricStyles';
 import styles from './StockScreener.module.css';
@@ -26,7 +27,7 @@ function fmtReturn(v: number): string {
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 }
 
-export default function StockCard({
+function StockCard({
   stock, metrics, visible, isHistorical, returnToTodayPct, priceThen,
 }: Props) {
   return (
@@ -71,3 +72,5 @@ export default function StockCard({
     </article>
   );
 }
+
+export default memo(StockCard);

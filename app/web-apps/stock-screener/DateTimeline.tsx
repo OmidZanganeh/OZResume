@@ -1,8 +1,9 @@
 'use client';
 
+import { useCallback, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatAsOfDate, daysAgoToDate } from './historical';
-import { HISTORY_DAYS } from './types';
+import { HISTORY_DAYS, HISTORY_STEP_DAYS } from './types';
 import styles from './StockScreener.module.css';
 
 interface Props {
@@ -10,13 +11,28 @@ interface Props {
   onChange: (daysAgo: number) => void;
 }
 
+function snapDaysAgo(days: number): number {
+  if (days <= 0) return 0;
+  const snapped = Math.round(days / HISTORY_STEP_DAYS) * HISTORY_STEP_DAYS;
+  return Math.min(HISTORY_DAYS, Math.max(HISTORY_STEP_DAYS, snapped));
+}
+
 export default function DateTimeline({ daysAgo, onChange }: Props) {
-  const isToday = daysAgo <= 0;
-  const sliderPos = HISTORY_DAYS - daysAgo;
+  const [dragPos, setDragPos] = useState<number | null>(null);
+  const isToday = daysAgo <= 0 && dragPos === null;
+  const sliderPos = dragPos ?? (HISTORY_DAYS - daysAgo);
+  const displayDaysAgo = HISTORY_DAYS - sliderPos;
   const pct = (sliderPos / HISTORY_DAYS) * 100;
 
+  const commitSlider = useCallback((pos: number) => {
+    setDragPos(null);
+    const next = HISTORY_DAYS - pos;
+    onChange(next <= 0 ? 0 : snapDaysAgo(next));
+  }, [onChange]);
+
   const shift = (delta: number) => {
-    onChange(Math.min(HISTORY_DAYS, Math.max(0, daysAgo + delta)));
+    const next = Math.min(HISTORY_DAYS, Math.max(0, daysAgo + delta));
+    onChange(next <= 0 ? 0 : snapDaysAgo(next));
   };
 
   return (
@@ -25,8 +41,8 @@ export default function DateTimeline({ daysAgo, onChange }: Props) {
         <div className={styles.dateBarLabel}>
           <Calendar size={15} className={styles.dateBarIcon} />
           <span>Screen as of</span>
-          <strong className={styles.dateBarValue}>{formatAsOfDate(daysAgo)}</strong>
-          {!isToday && (
+          <strong className={styles.dateBarValue}>{formatAsOfDate(displayDaysAgo)}</strong>
+          {displayDaysAgo > 0 && (
             <span className={styles.dateBarHint}>
               — past prices from Finnhub return windows; growth shows change to today
             </span>
@@ -57,9 +73,13 @@ export default function DateTimeline({ daysAgo, onChange }: Props) {
           className={styles.dateSlider}
           min={0}
           max={HISTORY_DAYS}
-          step={1}
+          step={HISTORY_STEP_DAYS}
           value={sliderPos}
-          onChange={e => onChange(HISTORY_DAYS - parseInt(e.target.value, 10))}
+          onChange={e => setDragPos(parseInt(e.target.value, 10))}
+          onPointerUp={e => commitSlider(parseInt((e.target as HTMLInputElement).value, 10))}
+          onKeyUp={e => {
+            if (e.key === 'Enter') commitSlider(parseInt((e.target as HTMLInputElement).value, 10));
+          }}
           style={{ '--pct': `${pct}%` } as React.CSSProperties}
           aria-label="Screening date — drag left for up to 1 year ago, right for today"
         />
