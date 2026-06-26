@@ -132,9 +132,10 @@
 | `../api/stock-screener/weekly-bulk/` | Incremental Yahoo weekly bulk refresh (10y+ history) |
 | `../api/stock-screener/weekly/` | On-demand weekly bar fetch (bulk cache first) |
 | `../api/stock-screener/weeklyBulk.ts` | Redis bulk store + merge into stocks |
-| `scripts/bulk-weekly-history.ts` | `npm run warm:weekly [-- nasdaq100]` — full 12y weekly download |
+| `scripts/bulk-weekly-history.ts` | `npm run warm:weekly` or `warm:weekly:nasdaq100` — full 12y weekly download |
 | `scripts/fill-weekly-gaps.ts` | `npm run warm:weekly:gaps [-- nasdaq100]` — fetch only missing symbols |
-| `scripts/warm-stock-screener-cache.ts` | `npm run warm:stocks [-- nasdaq100]` — Finnhub fundamentals warm |
+| `scripts/warm-stock-screener-cache.ts` | `npm run warm:stocks` or `warm:stocks:nasdaq100` — Finnhub fundamentals warm |
+| One-shot NASDAQ warm | `npm run warm:nasdaq100` — fundamentals + weekly bulk into Redis |
 | `../api/stock-screener/symbols.ts` | Index constituent lists (S&P dataset + NASDAQ 100 CSV) |
 | `../api/stock-screener/` | Finnhub live snapshot + Redis cache (`?universe=sp500|nasdaq100`) |
 
