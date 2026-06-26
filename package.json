@@ -9,7 +9,10 @@
     "start": "next start",
     "lint": "eslint",
     "warm:stocks": "npx tsx scripts/warm-stock-screener-cache.ts",
+    "warm:stocks:nasdaq100": "npx tsx scripts/warm-stock-screener-cache.ts nasdaq100",
     "warm:weekly": "npx tsx scripts/bulk-weekly-history.ts",
+    "warm:weekly:nasdaq100": "npx tsx scripts/bulk-weekly-history.ts nasdaq100",
+    "warm:nasdaq100": "npm run warm:stocks:nasdaq100 && npm run warm:weekly:nasdaq100",
     "warm:weekly:gaps": "npx tsx scripts/fill-weekly-gaps.ts"
   },
   "dependencies": {
