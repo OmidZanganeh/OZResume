@@ -328,7 +328,7 @@
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 .sidebarColumn {
-  width: 400px;
+  width: 280px;
   flex-shrink: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   background: linear-gradient(180deg, #0c1119 0%, #090d14 100%);
@@ -659,6 +659,246 @@
 }
 
 .filterList { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Filter bar (add-filter UX) ─────────────────────────────────────────── */
+.filterBar {
+  flex-shrink: 0;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(12, 17, 25, 0.6);
+}
+
+.filterBarHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterBarTitleGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.filterBarTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.filterBarCount {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5eead4;
+}
+
+.filterBarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addFilterWrap {
+  position: relative;
+}
+
+.addFilterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(20, 184, 166, 0.35);
+  background: rgba(20, 184, 166, 0.1);
+  color: #5eead4;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.addFilterBtn:hover:not(:disabled) {
+  background: rgba(20, 184, 166, 0.18);
+  border-color: rgba(20, 184, 166, 0.5);
+}
+.addFilterBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.filterResetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.filterResetBtn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); color: #e8edf5; }
+.filterResetBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.filterPicker {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  width: min(320px, calc(100vw - 32px));
+  max-height: 360px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #121820;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.filterPickerSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
+  position: sticky;
+  top: 0;
+  background: #121820;
+  z-index: 1;
+}
+
+.filterPickerInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #f0f4fa;
+  font-size: 13px;
+  outline: none;
+}
+.filterPickerInput::placeholder { color: rgba(255, 255, 255, 0.35); }
+
+.filterPickerGroup {
+  padding: 8px 6px 4px;
+}
+
+.filterPickerGroupLabel {
+  margin: 0 0 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.filterPickerItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.filterPickerItem:hover { background: rgba(255, 255, 255, 0.06); }
+
+.filterPickerItemLabel { font-weight: 600; }
+
+.filterPickerItemHint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.filterPickerEmpty {
+  margin: 0;
+  padding: 16px 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+}
+
+.filterBarNote {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.filterBarEmpty {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+.filterBarEmpty strong { color: rgba(255, 255, 255, 0.6); font-weight: 600; }
+
+.activeFilterGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.activeFilterCard {
+  flex: 1 1 260px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(20, 184, 166, 0.22);
+  background: rgba(20, 184, 166, 0.04);
+}
+
+.activeFilterCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.activeFilterCardTitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.activeFilterRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.activeFilterRemove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.filterSlidersCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .filterRow {
   padding: 10px 11px;
@@ -1602,10 +1842,13 @@
   .sidebarColumn,
   .sidebar {
     width: 100%;
-    max-height: 42vh;
+    max-height: none;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
+  .filterBar { padding: 12px 14px 10px; }
+  .activeFilterCard { max-width: none; flex: 1 1 100%; }
+  .filterPicker { left: auto; right: 0; }
   .main { padding: 16px 14px 24px; }
   .resultsTitle { font-size: 18px; }
   .tableWrap { max-height: calc(100vh - 320px); }

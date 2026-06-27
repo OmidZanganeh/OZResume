@@ -11,7 +11,7 @@ import {
 } from 'react';
 import Link from 'next/link';
 import { BarChart3, Loader2, AlertTriangle, Download, Search } from 'lucide-react';
-import FilterSidebar from './FilterSidebar';
+import FilterBar from './FilterBar';
 import StockTable, { sortRows, type SortDir } from './StockTable';
 import type { TableColumnId } from './tableColumns';
 import DateTimeline from './DateTimeline';
@@ -650,14 +650,14 @@ export default function StockScreener() {
             onDeleteList={watchlist.deleteList}
             onRemoveTicker={watchlist.removeTicker}
           />
-          <FilterSidebar
+        </aside>
+
+        <main className={styles.main}>
+          <FilterBar
             state={screenerState}
             onChange={setScreenerState}
             isHistorical={isHistorical}
           />
-        </aside>
-
-        <main className={styles.main}>
           <div className={styles.resultsHeader}>
             <div>
               <h1 className={styles.resultsTitle}>

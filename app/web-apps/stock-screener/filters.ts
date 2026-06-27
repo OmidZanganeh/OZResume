@@ -304,3 +304,39 @@ export function enabledFilterCount(state: ScreenerState): number {
   if (state.sectorFilterEnabled) n += 1;
   return n;
 }
+
+export function getFilterDef(id: FilterId): FilterDef {
+  const def = FILTER_DEFS.find(d => d.id === id);
+  if (!def) throw new Error(`Unknown filter: ${id}`);
+  return def;
+}
+
+export function activeMetricFilterIds(state: ScreenerState): FilterId[] {
+  return FILTER_DEFS.filter(d => state.filters[d.id]?.enabled).map(d => d.id);
+}
+
+export function inactiveMetricFilterIds(state: ScreenerState): FilterId[] {
+  return FILTER_DEFS.filter(d => !state.filters[d.id]?.enabled).map(d => d.id);
+}
+
+export function enableFilter(state: ScreenerState, id: FilterId): ScreenerState {
+  const def = getFilterDef(id);
+  return {
+    ...state,
+    filters: {
+      ...state.filters,
+      [id]: { enabled: true, min: def.defaultMin, max: def.defaultMax },
+    },
+  };
+}
+
+export function disableFilter(state: ScreenerState, id: FilterId): ScreenerState {
+  const def = getFilterDef(id);
+  return {
+    ...state,
+    filters: {
+      ...state.filters,
+      [id]: { enabled: false, min: def.defaultMin, max: def.defaultMax },
+    },
+  };
+}
