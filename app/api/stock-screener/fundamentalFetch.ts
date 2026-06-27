@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
-import { existsSync, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { FundamentalPeriod } from '@/app/web-apps/stock-screener/fundamentalTypes';
 
 const PY_SCRIPT = resolve(process.cwd(), 'scripts/fetch_fundamental_one.py');
