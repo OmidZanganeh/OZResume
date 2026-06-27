@@ -1,8 +1,6 @@
 /* ─── Page shell ───────────────────────────────────────────────────────────── */
 .page {
-  /* position: fixed + inset: 0 locks to the visual viewport, which correctly
-     accounts for the html { zoom: 1.2 } in globals.css. Using height: 100vh
-     would overflow because vh units ignore CSS zoom. */
+  /* Full-viewport shell — fixed inset avoids mobile vh quirks and body scroll bleed. */
   position: fixed;
   inset: 0;
   overflow: hidden;

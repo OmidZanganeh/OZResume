@@ -15,7 +15,7 @@
 |------|------|
 | `app/layout.tsx` | Root layout, fonts, theme provider |
 | `app/page.tsx` | Resume landing (client); header, stats, jobs, sidebar, `ToolsHoverCard` |
-| `app/globals.css` | Global styles, `html { zoom }` etc. |
+| `app/globals.css` | Global styles, theme tokens |
 | `app/sitemap.ts`, `app/robots.ts` | SEO |
 | `app/opengraph-image.tsx` | Dynamic OG |
 | `public/` | Static assets (images, PDF resume) |
@@ -85,7 +85,7 @@
 ## Conventions for edits
 
 - **New tool page:** Add under `app/tools/<name>/`, register in `app/tools/page.tsx`, `ToolsHoverCard.tsx`, `sitemap.ts`, and JSON-LD in `app/tools/page.tsx` if needed.
-- **GIS downloader UI/layout bugs:** Often `page.module.css` + flex/`min-height: 0`; remember global `zoom` affects viewport behavior.
+- **GIS downloader UI/layout bugs:** Often `page.module.css` + flex/`min-height: 0`.
 - **SEO for a tool:** Prefer `app/tools/<tool>/layout.tsx` metadata + sitemap entry.
 
 ## Gym Flow PWA

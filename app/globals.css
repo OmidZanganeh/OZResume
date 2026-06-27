@@ -1,8 +1,3 @@
-/* Scale up slightly on desktop only — mobile uses native 1:1 rendering */
-@media (min-width: 768px) {
-  html { zoom: 1.2; }
-}
-
 /* ── Light mode (default) ── */
 :root {
   --paper-bg: #F3EFE6;
