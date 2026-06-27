@@ -189,7 +189,7 @@ export default function FilterBar({ state, onChange, isHistorical }: Props) {
 
       {isHistorical && (
         <p className={styles.filterBarNote}>
-          Filters use today&apos;s live fundamentals; the timeline only changes prices and returns.
+          Filters use the latest reported fundamentals for the selected timeline date (plus weekly prices).
         </p>
       )}
 

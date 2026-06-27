@@ -5,6 +5,11 @@ import { readRedisSnapshot, type MarketDataResult } from './cache';
 import { loadMarketFromStore, runIncrementalBatch } from './incrementalRefresh';
 import { HISTORY_YEARS } from './historyConstants';
 import {
+  mergeBulkFundamentalsIntoStocks,
+  readFundamentalBulk,
+  fundamentalBulkCoverage,
+} from './fundamentalBulk';
+import {
   mergeBulkWeeklyIntoStocks,
   readWeeklyBulk,
   weeklyBulkCoverage,
@@ -63,22 +68,33 @@ function fromMemory(universeId: UniverseId): MarketDataResult | null {
   return entry.result;
 }
 
-async function withWeeklyBulk(
+async function withBulkData(
   result: MarketDataResult,
   universeId: UniverseId,
 ): Promise<MarketDataResult> {
-  const bulk = await readWeeklyBulk(universeId);
-  const stocks = mergeBulkWeeklyIntoStocks(result.stocks, bulk);
+  const weekly = await readWeeklyBulk(universeId);
+  let stocks = mergeBulkWeeklyIntoStocks(result.stocks, weekly);
 
   let warning = result.warning;
-  if (!bulk?.complete) {
+  if (!weekly?.complete) {
     kickWeeklyBulkChain(universeId);
-    const cov = weeklyBulkCoverage(bulk);
+    const cov = weeklyBulkCoverage(weekly);
     const bulkNote =
       cov > 0
         ? `Weekly history loading: ${cov} symbols (${HISTORY_YEARS}y)…`
         : `Building ${HISTORY_YEARS}-year weekly price history…`;
     warning = warning ? `${warning} ${bulkNote}` : bulkNote;
+  }
+
+  const fundamental = await readFundamentalBulk(universeId);
+  stocks = mergeBulkFundamentalsIntoStocks(stocks, fundamental);
+  if (!fundamental?.complete) {
+    const cov = fundamentalBulkCoverage(fundamental);
+    const fundNote =
+      cov > 0
+        ? `Historical fundamentals loading: ${cov} symbols…`
+        : 'Building historical fundamentals — run npm run warm:fundamentals if this persists.';
+    warning = warning ? `${warning} ${fundNote}` : fundNote;
   }
 
   return { ...result, stocks, universe: universeId, warning };
@@ -87,18 +103,18 @@ async function withWeeklyBulk(
 /** Read cached snapshot only — never calls Finnhub (safe for page loads). */
 export async function getMarketStocks(universeId: UniverseId = 'sp500'): Promise<MarketDataResult> {
   const mem = fromMemory(universeId);
-  if (mem) return withWeeklyBulk(mem, universeId);
+  if (mem) return withBulkData(mem, universeId);
 
   const stored = await loadMarketFromStore(universeId);
   if (stored) {
     if (!stored.refreshComplete) kickRefreshChain(universeId);
-    const merged = await withWeeklyBulk(stored, universeId);
+    const merged = await withBulkData(stored, universeId);
     if (stored.refreshComplete) remember(merged, universeId);
     return merged;
   }
 
   if (!getFinnhubApiKey()) {
-    return withWeeklyBulk({
+    return withBulkData({
       stocks: MOCK_STOCKS,
       source: 'mock',
       cachedAt: new Date().toISOString(),
@@ -110,7 +126,7 @@ export async function getMarketStocks(universeId: UniverseId = 'sp500'): Promise
   kickRefreshChain(universeId);
   kickWeeklyBulkChain(universeId);
 
-  return withWeeklyBulk({
+  return withBulkData({
     stocks: MOCK_STOCKS,
     source: 'mock',
     cachedAt: new Date().toISOString(),
@@ -131,7 +147,7 @@ export async function refreshMarketBatch(
   const stored = await loadMarketFromStore(universeId);
   if (!stored) throw new Error('Refresh produced no snapshot');
 
-  const merged = await withWeeklyBulk(stored, universeId);
+  const merged = await withBulkData(stored, universeId);
   remember(merged, universeId);
   return merged;
 }
@@ -142,7 +158,7 @@ export async function getStaleForInvalidKey(
   const stale = await readRedisSnapshot(universeId);
   if (!stale) return null;
   const { expiresAt, refreshComplete, totalSymbols, ...rest } = stale.data;
-  return withWeeklyBulk({
+  return withBulkData({
     ...rest,
     fromCache: true,
     expiresAt,

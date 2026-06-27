@@ -2,6 +2,7 @@ import type { Stock, StockMetrics, StockSnapshot, BacktestSummary } from './type
 import { daysAgoToDate, formatAsOfDate } from './timelineDate';
 import { barForDaysAgo } from './weeklyLookup';
 import { momentumAtDaysAgo, momentumFromBarIndex } from './weeklyMomentum';
+import { metricsFromFundamentalHistory } from './fundamentalMetrics';
 
 export { daysAgoToDate, formatAsOfDate };
 
@@ -272,6 +273,17 @@ function historicalPriceMetrics(
   return { ...EMPTY_METRICS, price: priceThen };
 }
 
+function mergeFundamentalMetrics(
+  stock: Stock,
+  daysAgo: number,
+  priceThen: number,
+  base: StockMetrics,
+): StockMetrics {
+  const fund = metricsFromFundamentalHistory(stock, daysAgo, priceThen);
+  if (!fund) return base;
+  return { ...base, ...fund, price: priceThen };
+}
+
 export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
   if (daysAgo <= 0) {
     const metrics = metricsFromStock(stock, stock.price);
@@ -305,9 +317,10 @@ export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
         clamped ? 'weekly-clamped' : 'weekly',
         weeklyBarIdx,
       );
+      const merged = mergeFundamentalMetrics(stock, daysAgo, priceThen, priceMetrics);
       return {
         ticker: stock.ticker,
-        ...priceMetrics,
+        ...merged,
         price: priceThen,
         priceThen,
         priceToday: stock.price,
@@ -323,9 +336,14 @@ export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
       ? historicalPriceMetrics(stock, daysAgo, priceThen, returnToTodayPct, source, weeklyBarIdx)
       : { ...EMPTY_METRICS };
 
+  const merged =
+    priceThen != null
+      ? mergeFundamentalMetrics(stock, daysAgo, priceThen, priceMetrics)
+      : priceMetrics;
+
   return {
     ticker: stock.ticker,
-    ...priceMetrics,
+    ...merged,
     price: priceThen ?? 0,
     priceThen: priceThen ?? 0,
     priceToday: stock.price,

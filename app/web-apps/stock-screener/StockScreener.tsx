@@ -56,10 +56,20 @@ function mergeStockLists(prev: Stock[], incoming: Stock[]): Stock[] {
       .filter(s => s.weeklyHistory?.length)
       .map(s => [s.ticker, s.weeklyHistory!] as const),
   );
+  const prevFund = new Map(
+    prev
+      .filter(s => s.fundamentalHistory?.length)
+      .map(s => [s.ticker, s.fundamentalHistory!] as const),
+  );
   return incoming.map(stock => {
-    if (stock.weeklyHistory?.length) return stock;
-    const kept = prevWeekly.get(stock.ticker);
-    return kept?.length ? { ...stock, weeklyHistory: kept } : stock;
+    const keptWeekly = stock.weeklyHistory?.length ? undefined : prevWeekly.get(stock.ticker);
+    const keptFund = stock.fundamentalHistory?.length ? undefined : prevFund.get(stock.ticker);
+    if (!keptWeekly && !keptFund) return stock;
+    return {
+      ...stock,
+      ...(keptWeekly?.length ? { weeklyHistory: keptWeekly } : {}),
+      ...(keptFund?.length ? { fundamentalHistory: keptFund } : {}),
+    };
   });
 }
 
@@ -423,13 +433,14 @@ export default function StockScreener() {
   }, [showSimilarity, referenceProfiles, todayMetrics, referenceTickers]);
 
   const matchingSet = useMemo(() => {
+    const snapMap = isHistorical ? activeSnapshots : todaySnapshots;
     const matched = stocks.filter(s => {
-      const todaySnap = todaySnapshots.get(s.ticker);
-      if (!todaySnap) return false;
-      return passesScreen(s, todaySnap, screenerState);
+      const snap = snapMap.get(s.ticker);
+      if (!snap) return false;
+      return passesScreen(s, snap, screenerState);
     });
     return new Set(matched.map(s => s.ticker));
-  }, [stocks, screenerState, todaySnapshots]);
+  }, [stocks, screenerState, isHistorical, activeSnapshots, todaySnapshots]);
 
   const backtest = useMemo(() => {
     if (!isHistorical) return null;
@@ -671,7 +682,7 @@ export default function StockScreener() {
                 {viewMode === 'watchlist'
                   ? 'All factors for your saved tickers — same columns as the full screener.'
                   : isHistorical
-                    ? 'Weekly closing prices and returns since that date. New listings show earliest available bar before IPO (*). Filters use today’s live fundamentals.'
+                    ? 'Weekly closing prices and returns since that date. Fundamentals use the latest fiscal report before that date. New listings show earliest available bar before IPO (*).'
                     : 'Live Finnhub snapshot — drag the timeline to explore up to 10 years back.'}
                 {viewMode === 'universe' && isHistorical && dataSource !== 'mock' && (
                   <> · Click ◉ to pick a pattern{weeklyReadyCount < total ? ' (weekly prices load on first click)' : ''}</>

@@ -14,6 +14,8 @@ export interface UniverseMeta {
   weeklyBulkKey: string;
   weeklyBulkCursorKey: string;
   localBulkFile: string;
+  fundamentalBulkKey: string;
+  localFundamentalFile: string;
 }
 
 export const UNIVERSES: Record<UniverseId, UniverseMeta> = {
@@ -28,6 +30,8 @@ export const UNIVERSES: Record<UniverseId, UniverseMeta> = {
     weeklyBulkKey: 'stock-screener:weekly-bulk:v1',
     weeklyBulkCursorKey: 'stock-screener:weekly-bulk:cursor:v1',
     localBulkFile: 'sp500-weekly-bulk.json',
+    fundamentalBulkKey: 'stock-screener:fundamental-bulk:v1',
+    localFundamentalFile: 'sp500-fundamental-bulk.json',
   },
   nasdaq100: {
     id: 'nasdaq100',
@@ -40,6 +44,8 @@ export const UNIVERSES: Record<UniverseId, UniverseMeta> = {
     weeklyBulkKey: 'stock-screener:weekly-bulk:nasdaq100:v1',
     weeklyBulkCursorKey: 'stock-screener:weekly-bulk:nasdaq100:cursor:v1',
     localBulkFile: 'nasdaq100-weekly-bulk.json',
+    fundamentalBulkKey: 'stock-screener:fundamental-bulk:nasdaq100:v1',
+    localFundamentalFile: 'nasdaq100-fundamental-bulk.json',
   },
 };
 

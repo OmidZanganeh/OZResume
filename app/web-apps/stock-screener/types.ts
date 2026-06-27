@@ -1,3 +1,7 @@
+import type { FundamentalPeriod } from './fundamentalTypes';
+
+export type { FundamentalPeriod };
+
 export type Sector = 'Tech' | 'Healthcare' | 'Finance' | 'Energy' | 'Consumer';
 
 export interface StockMetrics {
@@ -58,6 +62,8 @@ export interface Stock extends StockMetrics {
   sector: Sector;
   /** Weekly closing prices, newest first (~12y download, 10y+ timeline). */
   weeklyHistory?: WeeklyBar[];
+  /** Fiscal-period fundamentals (annual + quarterly), newest first. */
+  fundamentalHistory?: FundamentalPeriod[];
 }
 
 export interface StockSnapshot extends StockMetrics {

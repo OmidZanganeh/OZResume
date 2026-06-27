@@ -13,6 +13,9 @@
     "warm:weekly": "npx tsx scripts/bulk-weekly-history.ts",
     "warm:weekly:nasdaq100": "npx tsx scripts/bulk-weekly-history.ts nasdaq100",
     "warm:nasdaq100": "npm run warm:stocks:nasdaq100 && npm run warm:weekly:nasdaq100",
+    "warm:fundamentals": "python scripts/bulk-fundamental-history.py sp500",
+    "warm:fundamentals:nasdaq100": "python scripts/bulk-fundamental-history.py nasdaq100",
+    "warm:fundamentals:all": "python scripts/bulk-fundamental-history.py sp500 && python scripts/bulk-fundamental-history.py nasdaq100",
     "warm:weekly:gaps": "npx tsx scripts/fill-weekly-gaps.ts"
   },
   "dependencies": {

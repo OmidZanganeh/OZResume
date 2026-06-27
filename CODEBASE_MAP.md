@@ -131,8 +131,12 @@
 | `snapshotCache.ts` | Async chunked snapshot builds for timeline |
 | `../api/stock-screener/weekly-bulk/` | Incremental Yahoo weekly bulk refresh (10y+ history) |
 | `../api/stock-screener/weekly/` | On-demand weekly bar fetch (bulk cache first) |
-| `../api/stock-screener/weeklyBulk.ts` | Redis bulk store + merge into stocks |
-| `scripts/bulk-weekly-history.ts` | `npm run warm:weekly` or `warm:weekly:nasdaq100` — full 12y weekly download |
+| `fundamentalMetrics.ts` | Point-in-time ratios from fiscal periods + weekly price |
+| `fundamentalTypes.ts` | Shared fundamental bulk types |
+| `../api/stock-screener/fundamentalBulk.ts` | Redis fiscal-statement bulk + merge into stocks |
+| `../api/stock-screener/weeklyBulk.ts` | Redis weekly price bulk + merge into stocks |
+| `scripts/bulk-fundamental-history.py` | `npm run warm:fundamentals` — yfinance fiscal history → Redis |
+| `scripts/fetch_fundamental_one.py` | Single-ticker yfinance fetch (used by bulk + gap fill) |
 | `scripts/fill-weekly-gaps.ts` | `npm run warm:weekly:gaps [-- nasdaq100]` — fetch only missing symbols |
 | `scripts/warm-stock-screener-cache.ts` | `npm run warm:stocks` or `warm:stocks:nasdaq100` — Finnhub fundamentals warm |
 | One-shot NASDAQ warm | `npm run warm:nasdaq100` — fundamentals + weekly bulk into Redis |

@@ -53,5 +53,7 @@ next-env.d.ts
 # Bulk weekly price cache (generate with npm run warm:weekly)
 /data/sp500-weekly-bulk.json
 /data/nasdaq100-weekly-bulk.json
+/data/sp500-fundamental-bulk.json
+/data/nasdaq100-fundamental-bulk.json
 
 .vercel
