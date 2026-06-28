@@ -47,7 +47,13 @@ import {
   formatCacheAge,
 } from './clientCache';
 import { useWatchlists, type ViewMode } from './watchlists';
-import { selectionLabel, universesForSelection, type UniverseSelection } from './universe';
+import {
+  selectionLabel,
+  universesForSelection,
+  universeCacheKey,
+  DEFAULT_UNIVERSE_SELECTION,
+  type UniverseSelection,
+} from './universe';
 import styles from './StockScreener.module.css';
 
 function mergeStockLists(prev: Stock[], incoming: Stock[]): Stock[] {
@@ -129,7 +135,9 @@ export default function StockScreener() {
   const [totalSymbols, setTotalSymbols] = useState<number | undefined>();
   const [patternLoading, setPatternLoading] = useState<Set<string>>(() => new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('universe');
-  const [universeSelection, setUniverseSelection] = useState<UniverseSelection>('sp500');
+  const [universeSelection, setUniverseSelection] = useState<UniverseSelection>(
+    DEFAULT_UNIVERSE_SELECTION,
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const watchlist = useWatchlists();
   const stocksRef = useRef(stocks);
@@ -204,17 +212,20 @@ export default function StockScreener() {
           ? `Snapshot from ${age}${data.fromCache ? ' (cached)' : ''}`
           : null,
       );
-      writeSessionMarketCache(data, universeSelection);
+      writeSessionMarketCache(data, universeCacheKey(universeSelection));
     }
 
     function sessionPayloadForSelection(): MarketPayload | null {
-      const direct = readSessionMarketCache(universeSelection);
+      const cacheKey = universeCacheKey(universeSelection);
+      const direct = readSessionMarketCache(cacheKey);
       if (direct && Array.isArray(direct.stocks) && direct.stocks.length > 0) {
         return direct as MarketPayload;
       }
-      if (universeSelection !== 'both') return null;
 
-      const parts = universesForSelection('both')
+      const ids = universesForSelection(universeSelection);
+      if (ids.length === 1) return null;
+
+      const parts = ids
         .map(id => readSessionMarketCache(id))
         .filter((p): p is NonNullable<typeof p> => Boolean(p?.stocks?.length));
 
@@ -256,6 +267,7 @@ export default function StockScreener() {
 
       try {
         const ids = universesForSelection(universeSelection);
+        const multi = ids.length > 1;
         const responses = await Promise.all(
           ids.map(id => fetch(`/api/stock-screener?universe=${id}`)),
         );
@@ -278,7 +290,7 @@ export default function StockScreener() {
           cachedAt: payloads.map(p => p.cachedAt).filter(Boolean).sort().pop(),
           fromCache: payloads.some(p => p.fromCache),
           refreshComplete: payloads.every(p => p.refreshComplete !== false),
-          totalSymbols: universeSelection === 'both' ? mergedStocks.length : expectedTotal,
+          totalSymbols: multi ? mergedStocks.length : expectedTotal,
           warning: warnings.length ? warnings.join(' ') : undefined,
         });
       } catch (err) {

@@ -390,6 +390,67 @@
   gap: 6px;
 }
 
+.viewModeTabFull {
+  flex: 1;
+}
+
+.universeFieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.universeLegend {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.universeChecks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.universeCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.universeCheck:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.universeCheck input {
+  accent-color: #2dd4bf;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.universeHint {
+  font-size: 10px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.32);
+  margin: 0;
+}
+
 .viewModeTab {
   flex: 1;
   display: inline-flex;

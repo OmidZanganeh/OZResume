@@ -1,7 +1,9 @@
 export type UniverseId = 'sp500' | 'nasdaq100' | 'sp400';
 
-/** Which index(es) to show in the universe table. */
-export type UniverseSelection = UniverseId | 'both';
+/** One or more index universes to load and merge (deduped by ticker). */
+export type UniverseSelection = UniverseId[];
+
+export const DEFAULT_UNIVERSE_SELECTION: UniverseSelection = ['sp500'];
 
 export interface UniverseMeta {
   id: UniverseId;
@@ -76,32 +78,65 @@ export function parseUniverseArg(raw?: string | null): UniverseId {
   return parseUniverseId(raw ?? undefined);
 }
 
-export function parseUniverseSelection(raw: string | null | undefined): UniverseSelection {
-  if (raw === 'nasdaq100') return 'nasdaq100';
-  if (raw === 'sp400') return 'sp400';
-  if (raw === 'both') return 'both';
-  return 'sp500';
+function isUniverseId(v: unknown): v is UniverseId {
+  return typeof v === 'string' && UNIVERSE_IDS.includes(v as UniverseId);
+}
+
+/** Normalize selection — at least one index; stable sort order. */
+export function normalizeUniverseSelection(raw: unknown): UniverseSelection {
+  if (Array.isArray(raw)) {
+    const ids = [...new Set(raw.filter(isUniverseId))].sort();
+    if (ids.length > 0) return ids;
+  }
+  if (raw === 'both') return ['nasdaq100', 'sp500'];
+  if (isUniverseId(raw)) return [raw];
+  return DEFAULT_UNIVERSE_SELECTION;
 }
 
 export function universesForSelection(sel: UniverseSelection): UniverseId[] {
-  if (sel === 'both') return ['sp500', 'nasdaq100'];
-  return [sel];
+  return normalizeUniverseSelection(sel);
 }
+
+export function isUniverseSelected(sel: UniverseSelection, id: UniverseId): boolean {
+  return normalizeUniverseSelection(sel).includes(id);
+}
+
+export function toggleUniverseInSelection(
+  sel: UniverseSelection,
+  id: UniverseId,
+  checked: boolean,
+): UniverseSelection {
+  const current = normalizeUniverseSelection(sel);
+  if (checked) {
+    if (current.includes(id)) return current;
+    return [...current, id].sort();
+  }
+  if (current.length === 1 && current[0] === id) return current;
+  return current.filter(x => x !== id);
+}
+
+/** Session cache key — e.g. `nasdaq100+sp400` or `sp500`. */
+export function universeCacheKey(sel: UniverseSelection): string {
+  return normalizeUniverseSelection(sel).join('+');
+}
+
+export type UniverseCacheKey = string;
 
 export function universeMeta(id: UniverseId): UniverseMeta {
   return UNIVERSES[id];
 }
 
 export function selectionLabel(sel: UniverseSelection): string {
-  if (sel === 'both') return 'S&P 500 + NASDAQ 100';
-  return universeMeta(sel).shortLabel;
+  const ids = normalizeUniverseSelection(sel);
+  if (ids.length === UNIVERSE_IDS.length) return 'All indices';
+  if (ids.length === 1) return universeMeta(ids[0]!).shortLabel;
+  return ids.map(id => universeMeta(id).shortLabel).join(' + ');
 }
 
 export function universeCsvPrefix(sel: UniverseSelection): string {
-  if (sel === 'both') return 'combined-screener';
-  if (sel === 'nasdaq100') return 'nasdaq100-screener';
-  if (sel === 'sp400') return 'sp400-screener';
+  const ids = normalizeUniverseSelection(sel);
+  if (ids.length !== 1) return 'combined-screener';
+  if (ids[0] === 'nasdaq100') return 'nasdaq100-screener';
+  if (ids[0] === 'sp400') return 'sp400-screener';
   return 'sp500-screener';
 }
-
-export type UniverseCacheKey = UniverseSelection;
