@@ -1,4 +1,6 @@
 import type { Sector, Stock, StockMetrics } from './types';
+import { evaluateFilterAst } from './filterExpression';
+import { getParsedExpression } from './filterExpressionCache';
 
 export type FilterCategory = 'fundamental' | 'technical';
 
@@ -10,10 +12,15 @@ export interface FilterRange {
   max: number;
 }
 
+export type FilterMode = 'visual' | 'code';
+
 export interface ScreenerState {
   filters: Record<FilterId, FilterRange>;
   sectorFilterEnabled: boolean;
   sectors: Sector[];
+  filterMode: FilterMode;
+  /** Code filter, e.g. `PE > 10 & 52W > 55` — used when filterMode is `code`. */
+  codeExpression: string;
 }
 
 export interface FilterDef {
@@ -261,6 +268,8 @@ export const DEFAULT_SCREENER_STATE: ScreenerState = {
   filters: buildDefaultFilters(),
   sectorFilterEnabled: false,
   sectors: [],
+  filterMode: 'visual',
+  codeExpression: '',
 };
 
 export function filtersByCategory(category: FilterCategory): FilterDef[] {
@@ -268,6 +277,7 @@ export function filtersByCategory(category: FilterCategory): FilterDef[] {
 }
 
 export function isDefaultState(state: ScreenerState): boolean {
+  if (state.filterMode === 'code' && state.codeExpression.trim()) return false;
   if (state.sectorFilterEnabled) return false;
   if (state.sectors.length > 0) return false;
   return FILTER_DEFS.every(def => {
@@ -280,7 +290,7 @@ export function isDefaultState(state: ScreenerState): boolean {
   });
 }
 
-export function passesScreen(
+function passesVisualFilters(
   stock: Stock,
   metrics: StockMetrics,
   state: ScreenerState,
@@ -299,7 +309,41 @@ export function passesScreen(
   return true;
 }
 
+export function passesScreen(
+  stock: Stock,
+  metrics: StockMetrics,
+  state: ScreenerState,
+): boolean {
+  if (state.filterMode === 'code') {
+    const expr = state.codeExpression.trim();
+    if (!expr) return true;
+    const { ast, error } = getParsedExpression(expr);
+    if (error || !ast) return true;
+    return evaluateFilterAst(ast, stock, metrics);
+  }
+
+  return passesVisualFilters(stock, metrics, state);
+}
+
+export function codeFilterError(state: ScreenerState): string | null {
+  if (state.filterMode !== 'code') return null;
+  const expr = state.codeExpression.trim();
+  if (!expr) return null;
+  return getParsedExpression(expr).error;
+}
+
+export function isCodeFilterActive(state: ScreenerState): boolean {
+  if (state.filterMode !== 'code') return false;
+  const expr = state.codeExpression.trim();
+  if (!expr) return false;
+  const { ast, error } = getParsedExpression(expr);
+  return !error && ast != null;
+}
+
 export function enabledFilterCount(state: ScreenerState): number {
+  if (state.filterMode === 'code') {
+    return isCodeFilterActive(state) ? 1 : 0;
+  }
   let n = Object.values(state.filters).filter(f => f.enabled).length;
   if (state.sectorFilterEnabled) n += 1;
   return n;
