@@ -4,17 +4,24 @@ import { useMemo, useState } from 'react';
 import {
   AlertCircle,
   BookOpen,
+  Bookmark,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Save,
   Terminal,
+  Trash2,
 } from 'lucide-react';
+import { parseFilterExpression } from './filterExpression';
 import {
-  ALIAS_CHEATSHEET,
+  ALL_SECTORS,
+  CODE_FIELD_CATEGORIES,
   CODE_FILTER_EXAMPLES,
-  parseFilterExpression,
-} from './filterExpression';
-import { CODE_FILTER_GUIDE, FULL_METRIC_ALIASES } from './codeFilterGuide';
+  CODE_FILTER_FIELD_DOCS,
+  fieldsByCategory,
+} from './codeFilterCatalog';
+import { CODE_FILTER_GUIDE } from './codeFilterGuide';
+import { useSavedCodeFilters } from './savedCodeFilters';
 import styles from './StockScreener.module.css';
 
 interface Props {
@@ -25,17 +32,28 @@ interface Props {
 
 export default function CodeFilterPanel({ expression, onChange, isHistorical }: Props) {
   const [guideOpen, setGuideOpen] = useState(true);
-  const [cheatOpen, setCheatOpen] = useState(false);
+  const [refOpen, setRefOpen] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [savedOpen, setSavedOpen] = useState(true);
+  const { store, saveFilter, deleteFilter } = useSavedCodeFilters();
 
   const parsed = useMemo(() => parseFilterExpression(expression), [expression]);
   const hasExpr = expression.trim().length > 0;
   const isValid = hasExpr && !parsed.error && parsed.ast != null;
 
+  const handleSave = () => {
+    if (!isValid) return;
+    saveFilter(saveName, expression);
+    setSaveName('');
+  };
+
   return (
     <div className={styles.codeFilterPanel}>
       <div className={styles.codeFilterHead}>
         <Terminal size={15} aria-hidden />
-        <span>Write conditions with metric names, numbers, and <code>&amp;</code> / <code>|</code></span>
+        <span>
+          Filter any table column — metrics, sector, ticker, name, historical returns, pattern similarity
+        </span>
       </div>
 
       <button
@@ -77,12 +95,17 @@ export default function CodeFilterPanel({ expression, onChange, isHistorical }: 
               <li key={tip}>{tip}</li>
             ))}
           </ul>
+
+          <p className={styles.codeFilterGuideFoot}>
+            Sectors: {ALL_SECTORS.join(', ')} · Saved filters are stored in this browser only.
+          </p>
         </div>
       )}
 
       {isHistorical && (
         <p className={styles.filterBarNote}>
-          Metrics reflect the selected timeline date (fundamentals + weekly prices).
+          Metrics reflect the selected timeline date. Use <code>retNow</code>, <code>retTarget</code>, and{' '}
+          <code>priceThen</code> for historical-only columns.
         </p>
       )}
 
@@ -118,6 +141,70 @@ export default function CodeFilterPanel({ expression, onChange, isHistorical }: 
         )}
       </div>
 
+      <div className={styles.codeFilterSaveRow}>
+        <input
+          type="text"
+          className={styles.codeFilterSaveInput}
+          value={saveName}
+          onChange={e => setSaveName(e.target.value)}
+          placeholder="Filter name (e.g. Value + momentum)"
+          aria-label="Saved filter name"
+          onKeyDown={e => {
+            if (e.key === 'Enter') handleSave();
+          }}
+        />
+        <button
+          type="button"
+          className={styles.codeFilterSaveBtn}
+          onClick={handleSave}
+          disabled={!isValid}
+          title={isValid ? 'Save this expression' : 'Fix expression before saving'}
+        >
+          <Save size={14} aria-hidden />
+          Save
+        </button>
+      </div>
+
+      {store.saved.length > 0 && (
+        <>
+          <button
+            type="button"
+            className={styles.codeFilterCheatToggle}
+            onClick={() => setSavedOpen(v => !v)}
+            aria-expanded={savedOpen}
+          >
+            <Bookmark size={14} aria-hidden />
+            Saved filters ({store.saved.length})
+            {savedOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          {savedOpen && (
+            <ul className={styles.codeFilterSavedList}>
+              {store.saved.map(item => (
+                <li key={item.id} className={styles.codeFilterSavedItem}>
+                  <button
+                    type="button"
+                    className={styles.codeFilterSavedLoad}
+                    onClick={() => onChange(item.expression)}
+                    title={item.expression}
+                  >
+                    <span className={styles.codeFilterSavedName}>{item.name}</span>
+                    <code className={styles.codeFilterSavedExpr}>{item.expression}</code>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.codeFilterSavedDelete}
+                    onClick={() => deleteFilter(item.id)}
+                    aria-label={`Delete saved filter ${item.name}`}
+                  >
+                    <Trash2 size={14} aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
       <div className={styles.codeFilterExamples}>
         <span className={styles.codeFilterExamplesLabel}>Examples (click to use):</span>
         {CODE_FILTER_EXAMPLES.map(ex => (
@@ -136,54 +223,56 @@ export default function CodeFilterPanel({ expression, onChange, isHistorical }: 
       <button
         type="button"
         className={styles.codeFilterCheatToggle}
-        onClick={() => setCheatOpen(v => !v)}
-        aria-expanded={cheatOpen}
+        onClick={() => setRefOpen(v => !v)}
+        aria-expanded={refOpen}
       >
-        {cheatOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        Full metric alias list
+        {refOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        Full field reference ({CODE_FILTER_FIELD_DOCS.length} columns)
       </button>
 
-      {cheatOpen && (
+      {refOpen && (
         <div className={styles.codeFilterCheat}>
-          <table className={styles.codeFilterCheatTable}>
-            <thead>
-              <tr>
-                <th>Alias</th>
-                <th>Metric</th>
-                <th>Unit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {FULL_METRIC_ALIASES.map(row => (
-                <tr key={row.alias}>
-                  <td><code>{row.alias}</code></td>
-                  <td>{row.metric}</td>
-                  <td>{row.unit}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <table className={styles.codeFilterCheatTable}>
-            <thead>
-              <tr>
-                <th>More aliases</th>
-                <th>Meaning</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ALIAS_CHEATSHEET.map(row => (
-                <tr key={row.alias}>
-                  <td><code>{row.alias}</code></td>
-                  <td>{row.field}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {CODE_FIELD_CATEGORIES.map(cat => {
+            const fields = fieldsByCategory(cat.id);
+            if (fields.length === 0) return null;
+            return (
+              <section key={cat.id} className={styles.codeFilterRefSection}>
+                <h4 className={styles.codeFilterRefHeading}>{cat.label}</h4>
+                <table className={styles.codeFilterCheatTable}>
+                  <thead>
+                    <tr>
+                      <th>Field id</th>
+                      <th>Label</th>
+                      <th>Aliases</th>
+                      <th>Unit</th>
+                      <th>Example</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fields.map(field => (
+                      <tr key={field.id}>
+                        <td><code>{field.id}</code></td>
+                        <td>{field.label}</td>
+                        <td>
+                          {field.aliases.map(a => (
+                            <code key={a} className={styles.codeFilterAliasChip}>{a}</code>
+                          ))}
+                        </td>
+                        <td>{field.unit}</td>
+                        <td><code>{field.example}</code></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            );
+          })}
           <p className={styles.codeFilterCheatFoot}>
             Operators: <code>&gt;</code> <code>&gt;=</code> <code>&lt;</code> <code>&lt;=</code>{' '}
             <code>=</code> <code>!=</code> · Logic: <code>&amp;</code> / <code>&amp;&amp;</code> (AND),{' '}
-            <code>|</code> / <code>||</code> (OR) · Any slider metric id also works (e.g.{' '}
-            <code>peRatio &gt; 15</code>, <code>priceChange52w &gt; 30</code>).
+            <code>|</code> / <code>||</code> (OR) · Text: <code>sector = Tech</code>,{' '}
+            <code>ticker in (AAPL, MSFT)</code>, <code>name contains Apple</code> or{' '}
+            <code>name contains &quot;Apple Inc&quot;</code>.
           </p>
         </div>
       )}

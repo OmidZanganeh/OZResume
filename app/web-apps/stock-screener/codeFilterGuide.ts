@@ -4,13 +4,16 @@ export const CODE_FILTER_GUIDE = {
   title: 'Code filter guide',
   intro:
     'Switch to Code mode to write screening rules as text — like a spreadsheet formula. ' +
-    'Each line in the box is one expression. When it validates (green check), the table and charts ' +
-    'show only stocks that match all conditions.',
+    'Every table column is filterable: fundamentals, technicals, sector, ticker, company name, ' +
+    'historical returns, and pattern similarity. When the expression validates (green check), ' +
+    'the table and charts show only matching stocks.',
   steps: [
     'Open Filters → click Code (next to Sliders).',
     'Type a condition, e.g. PE > 10 & 52W > 55.',
     'Watch for the green “Expression valid” message — red text means a typo to fix.',
-    'Click an example chip below the box to paste a ready-made formula.',
+    'Open Full field reference below for every column id, alias, and example.',
+    'Save named filters with Save — load them anytime from Saved filters.',
+    'Click an example chip to paste a ready-made formula.',
     'Drag the timeline to screen past dates — metrics update for that date.',
     'Switch back to Sliders anytime; your code is kept until you Reset.',
   ],
@@ -21,31 +24,18 @@ export const CODE_FILTER_GUIDE = {
     { label: 'Group with parentheses', example: '(PE > 5 & PE < 30) & ROE > 12', note: '' },
     { label: 'Filter by sector', example: 'sector = Tech', note: 'Tech, Healthcare, Finance, Energy, Consumer' },
     { label: 'Multiple sectors', example: 'sector in (Tech, Finance) & 52W > 20', note: '' },
+    { label: 'Filter by ticker', example: 'ticker = AAPL', note: 'Also: ticker in (AAPL, MSFT, NVDA)' },
+    { label: 'Company name', example: 'name contains Apple', note: 'Quotes for spaces: name contains "Johnson & Johnson"' },
+    { label: 'Historical return', example: 'retNow > 30 & peRatio < 40', note: 'Timeline mode — return from screen date to today' },
+    { label: 'Pattern similarity', example: 'sim > 75', note: 'When pattern-match references are active' },
   ],
   tips: [
-    'Percent metrics (52W, ROE, div) use plain numbers — write 55 not 0.55 for 55%.',
+    'Percent metrics (52W, ROE, div, retNow) use plain numbers — write 55 not 0.55 for 55%.',
     'Market cap is in millions: marketCap > 10000 ≈ $10B+.',
     'Full slider names work: peRatio > 15, priceChange52w > 30, dividendYield > 2.',
+    'Historical-only fields: retNow, retTarget, priceThen — meaningful when timeline is in the past.',
     'If syntax errors appear, the universe is not filtered until you fix the expression.',
     'Code mode replaces slider filters — use one style at a time.',
+    'Saved filters live in this browser (localStorage) — they do not sync across devices.',
   ],
 } as const;
-
-export const FULL_METRIC_ALIASES: { alias: string; metric: string; unit: string }[] = [
-  { alias: 'PE', metric: 'Trailing P/E', unit: 'ratio' },
-  { alias: 'FPE', metric: 'Forward P/E', unit: 'ratio' },
-  { alias: 'PEG', metric: 'PEG ratio', unit: 'ratio' },
-  { alias: 'PB', metric: 'Price / book', unit: 'ratio' },
-  { alias: 'PS', metric: 'Price / sales', unit: 'ratio' },
-  { alias: 'ROE / ROA / ROIC', metric: 'Return metrics', unit: '%' },
-  { alias: 'div / yield', metric: 'Dividend yield', unit: '%' },
-  { alias: '52W', metric: '52-week price change', unit: '%' },
-  { alias: '6M / 3M / 4W', metric: 'Shorter price changes', unit: '%' },
-  { alias: 'vs_high / vs_low', metric: 'Distance from 52W high/low', unit: '%' },
-  { alias: 'marketCap', metric: 'Market capitalization', unit: '$M' },
-  { alias: 'beta', metric: 'Beta vs market', unit: 'ratio' },
-  { alias: 'vol / volume', metric: 'Avg daily volume', unit: 'M shares' },
-  { alias: 'de / dte', metric: 'Debt to equity', unit: 'ratio' },
-  { alias: 'margin', metric: 'Net profit margin', unit: '%' },
-  { alias: 'price', metric: 'Share price', unit: '$' },
-];

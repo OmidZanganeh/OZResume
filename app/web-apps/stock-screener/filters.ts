@@ -1,6 +1,8 @@
 import type { Sector, Stock, StockMetrics } from './types';
-import { evaluateFilterAst } from './filterExpression';
+import { evaluateFilterAst, type CodeFilterContext } from './filterExpression';
 import { getParsedExpression } from './filterExpressionCache';
+
+export type { CodeFilterContext };
 
 export type FilterCategory = 'fundamental' | 'technical';
 
@@ -313,13 +315,14 @@ export function passesScreen(
   stock: Stock,
   metrics: StockMetrics,
   state: ScreenerState,
+  ctx?: CodeFilterContext,
 ): boolean {
   if (state.filterMode === 'code') {
     const expr = state.codeExpression.trim();
     if (!expr) return true;
     const { ast, error } = getParsedExpression(expr);
     if (error || !ast) return true;
-    return evaluateFilterAst(ast, stock, metrics);
+    return evaluateFilterAst(ast, stock, metrics, ctx);
   }
 
   return passesVisualFilters(stock, metrics, state);

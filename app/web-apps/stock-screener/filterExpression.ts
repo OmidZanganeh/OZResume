@@ -4,14 +4,31 @@ export type CompareOp = '>' | '>=' | '<' | '<=' | '==' | '!=';
 
 type MetricId = keyof StockMetrics;
 
-export type ExprField = MetricId | 'sector';
+export type ContextField =
+  | 'returnToTodayPct'
+  | 'returnToTargetPct'
+  | 'priceThen'
+  | 'similarity';
+
+export type ExprField = MetricId | 'sector' | 'ticker' | 'name' | ContextField;
 
 export type FilterAst =
   | { type: 'and'; left: FilterAst; right: FilterAst }
   | { type: 'or'; left: FilterAst; right: FilterAst }
-  | { type: 'compare'; field: ExprField; op: CompareOp; value: number }
+  | { type: 'compare'; field: MetricId | ContextField; op: CompareOp; value: number }
   | { type: 'sectorEq'; sector: Sector }
-  | { type: 'sectorIn'; sectors: Sector[] };
+  | { type: 'sectorIn'; sectors: Sector[] }
+  | { type: 'tickerEq'; ticker: string }
+  | { type: 'tickerNeq'; ticker: string }
+  | { type: 'tickerIn'; tickers: string[] }
+  | { type: 'nameContains'; text: string };
+
+export interface CodeFilterContext {
+  returnToTodayPct?: number;
+  returnToTargetPct?: number;
+  priceThen?: number;
+  similarity?: number;
+}
 
 export interface ParseResult {
   ast: FilterAst | null;
@@ -82,37 +99,32 @@ export const METRIC_ALIASES: Record<string, ExprField> = {
   vol: 'avgVolume',
   volume: 'avgVolume',
   avgvolume: 'avgVolume',
-  volatility: 'volatility30d',
-  vol30: 'volatility30d',
-  atr: 'atrPercent',
   sector: 'sector',
+  ticker: 'ticker',
+  symbol: 'ticker',
+  name: 'name',
+  company: 'name',
+  companyname: 'name',
+  company_name: 'name',
+  retnow: 'returnToTodayPct',
+  return_to_today: 'returnToTodayPct',
+  returntotoday: 'returnToTodayPct',
+  returntotodaypct: 'returnToTodayPct',
+  rettarget: 'returnToTargetPct',
+  return_to_target: 'returnToTargetPct',
+  returntotarget: 'returnToTargetPct',
+  returntotargetpct: 'returnToTargetPct',
+  price_then: 'priceThen',
+  pricethen: 'priceThen',
+  similarity: 'similarity',
+  sim: 'similarity',
+  match: 'similarity',
 };
-
-export const CODE_FILTER_EXAMPLES = [
-  'PE > 10 & 52W > 55',
-  'PE < 25 & ROE > 15 & sector = Tech',
-  'marketCap > 10000 & div > 2',
-  '(PE > 5 & PE < 30) | beta < 1',
-  'sector in (Tech, Healthcare) & 52W > 20',
-] as const;
-
-export const ALIAS_CHEATSHEET: { alias: string; field: string }[] = [
-  { alias: 'PE', field: 'P/E (trailing)' },
-  { alias: 'FPE', field: 'Forward P/E' },
-  { alias: 'PEG', field: 'PEG ratio' },
-  { alias: 'ROE / ROA / ROIC', field: 'Returns' },
-  { alias: '52W', field: '52-week price change %' },
-  { alias: '6M / 3M / 4W', field: 'Price change windows' },
-  { alias: 'div / yield', field: 'Dividend yield %' },
-  { alias: 'marketCap', field: 'Market cap ($M)' },
-  { alias: 'beta', field: 'Beta vs market' },
-  { alias: 'sector = Tech', field: 'Sector equality' },
-  { alias: 'sector in (Tech, Finance)', field: 'Sector list' },
-];
 
 type Token =
   | { kind: 'ident'; value: string; pos: number }
   | { kind: 'number'; value: number; pos: number }
+  | { kind: 'string'; value: string; pos: number }
   | { kind: 'op'; value: string; pos: number }
   | { kind: 'lparen'; pos: number }
   | { kind: 'rparen'; pos: number }
@@ -124,7 +136,6 @@ function normalizeIdent(raw: string): string {
 
 const ALL_SECTORS: Sector[] = ['Tech', 'Healthcare', 'Finance', 'Energy', 'Consumer'];
 
-/** Allow typing full camelCase metric ids (peRatio, priceChange52w, …). */
 const METRIC_IDS = new Set<string>([
   'peRatio', 'forwardPe', 'pegRatio', 'pbRatio', 'psRatio', 'pcfRatio', 'evToEbitda',
   'epsGrowth', 'revenueGrowth', 'profitMargin', 'grossMargin', 'operatingMargin',
@@ -134,12 +145,17 @@ const METRIC_IDS = new Set<string>([
   'priceVs52wHigh', 'priceVs52wLow', 'avgVolume', 'volatility30d', 'atrPercent', 'beta',
 ]);
 
+const CONTEXT_FIELDS = new Set<string>([
+  'returnToTodayPct', 'returnToTargetPct', 'priceThen', 'similarity',
+]);
+
 function resolveField(raw: string): ExprField | null {
   const key = normalizeIdent(raw);
   if (METRIC_ALIASES[key]) return METRIC_ALIASES[key]!;
   if (METRIC_ALIASES[raw.toLowerCase()]) return METRIC_ALIASES[raw.toLowerCase()]!;
   const camel = raw.trim();
   if (METRIC_IDS.has(camel)) return camel as MetricId;
+  if (CONTEXT_FIELDS.has(camel)) return camel as ContextField;
   return null;
 }
 
@@ -157,6 +173,22 @@ function tokenize(input: string): { tokens: Token[]; error: string | null } {
 
     if (/\s/.test(ch)) {
       i += 1;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      const quote = ch;
+      let j = i + 1;
+      let value = '';
+      while (j < input.length && input[j] !== quote) {
+        value += input[j]!;
+        j += 1;
+      }
+      if (j >= input.length) {
+        return { tokens: [], error: `Unclosed string at column ${i + 1}` };
+      }
+      tokens.push({ kind: 'string', value, pos: i });
+      i = j + 1;
       continue;
     }
 
@@ -191,7 +223,6 @@ function tokenize(input: string): { tokens: Token[]; error: string | null } {
     if (/[0-9.]/.test(ch) || (ch === '-' && /[0-9]/.test(input[i + 1] ?? ''))) {
       let j = i;
       while (j < input.length && /[0-9.]/.test(input[j]!)) j += 1;
-      // Aliases like 52W, 6M, 3M — digit prefix + letters
       if (j < input.length && /[a-zA-Z_]/.test(input[j]!)) {
         while (j < input.length && /[a-zA-Z_0-9/]/.test(input[j]!)) j += 1;
         tokens.push({ kind: 'ident', value: input.slice(i, j), pos: i });
@@ -284,46 +315,59 @@ class Parser {
     return this.parseComparison();
   }
 
+  private parseInList<T>(
+    parseItem: (raw: string, pos: number) => T,
+    itemLabel: string,
+  ): T[] {
+    if (this.peek()?.kind !== 'lparen') {
+      throw new Error(`Expected "(" after "in" at column ${(this.peek()?.pos ?? 0) + 1}`);
+    }
+    this.consume();
+    const items: T[] = [];
+    while (true) {
+      const tok = this.consume();
+      if (tok.kind !== 'ident' && tok.kind !== 'string') {
+        throw new Error(`Expected ${itemLabel} at column ${tok.pos + 1}`);
+      }
+      items.push(parseItem(tok.value, tok.pos));
+      if (this.peek()?.kind === 'comma') {
+        this.consume();
+        continue;
+      }
+      break;
+    }
+    if (this.peek()?.kind !== 'rparen') {
+      throw new Error(`Expected ")" at column ${(this.peek()?.pos ?? 0) + 1}`);
+    }
+    this.consume();
+    return items;
+  }
+
   private parseComparison(): FilterAst {
     const identTok = this.consume();
     if (identTok.kind !== 'ident') {
-      throw new Error(`Expected metric name at column ${identTok.pos + 1}`);
+      throw new Error(`Expected field name at column ${identTok.pos + 1}`);
     }
 
     const field = resolveField(identTok.value);
     if (!field) {
-      throw new Error(`Unknown metric "${identTok.value}" at column ${identTok.pos + 1}`);
+      throw new Error(`Unknown field "${identTok.value}" at column ${identTok.pos + 1}`);
     }
 
     if (field === 'sector') {
       const opTok = this.peek();
       if (opTok?.kind === 'ident' && opTok.value.toLowerCase() === 'in') {
         this.consume();
-        if (this.peek()?.kind !== 'lparen') {
-          throw new Error(`Expected "(" after "sector in" at column ${opTok.pos + 2}`);
-        }
-        this.consume();
-        const sectors: Sector[] = [];
-        while (true) {
-          const secTok = this.consume();
-          if (secTok.kind !== 'ident') {
-            throw new Error(`Expected sector name at column ${secTok.pos + 1}`);
-          }
-          const sec = resolveSector(secTok.value);
-          if (!sec) {
-            throw new Error(`Unknown sector "${secTok.value}" at column ${secTok.pos + 1}`);
-          }
-          sectors.push(sec);
-          if (this.peek()?.kind === 'comma') {
-            this.consume();
-            continue;
-          }
-          break;
-        }
-        if (this.peek()?.kind !== 'rparen') {
-          throw new Error(`Expected ")" at column ${(this.peek()?.pos ?? 0) + 1}`);
-        }
-        this.consume();
+        const sectors = this.parseInList(
+          (raw, pos) => {
+            const sec = resolveSector(raw);
+            if (!sec) {
+              throw new Error(`Unknown sector "${raw}" at column ${pos + 1}`);
+            }
+            return sec;
+          },
+          'sector name',
+        );
         return { type: 'sectorIn', sectors };
       }
 
@@ -333,22 +377,63 @@ class Parser {
           `Expected = or != after sector at column ${identTok.pos + identTok.value.length + 1}`,
         );
       }
-      const normalizedOp: CompareOp = opRaw === '=' ? '==' : (opRaw as CompareOp);
       const valTok = this.consume();
-      if (valTok.kind !== 'ident') {
+      if (valTok.kind !== 'ident' && valTok.kind !== 'string') {
         throw new Error(`Expected sector name at column ${valTok.pos + 1}`);
       }
-      const sec = resolveSector(valTok.value);
+      const secRaw = valTok.kind === 'string' ? valTok.value : valTok.value;
+      const sec = resolveSector(secRaw);
       if (!sec) {
-        throw new Error(`Unknown sector "${valTok.value}" at column ${valTok.pos + 1}`);
+        throw new Error(`Unknown sector "${secRaw}" at column ${valTok.pos + 1}`);
       }
-      if (normalizedOp === '!=') {
-        return {
-          type: 'sectorIn',
-          sectors: ALL_SECTORS.filter(s => s !== sec),
-        };
+      if (opRaw === '!=') {
+        return { type: 'sectorIn', sectors: ALL_SECTORS.filter(s => s !== sec) };
       }
       return { type: 'sectorEq', sector: sec };
+    }
+
+    if (field === 'ticker') {
+      const opTok = this.peek();
+      if (opTok?.kind === 'ident' && opTok.value.toLowerCase() === 'in') {
+        this.consume();
+        const tickers = this.parseInList(
+          raw => raw.toUpperCase(),
+          'ticker',
+        );
+        return { type: 'tickerIn', tickers };
+      }
+
+      const opRaw = this.matchOp('==', '=', '!=');
+      if (!opRaw) {
+        throw new Error(
+          `Expected = or != after ticker at column ${identTok.pos + identTok.value.length + 1}`,
+        );
+      }
+      const valTok = this.consume();
+      if (valTok.kind !== 'ident' && valTok.kind !== 'string') {
+        throw new Error(`Expected ticker at column ${valTok.pos + 1}`);
+      }
+      const ticker = (valTok.kind === 'string' ? valTok.value : valTok.value).toUpperCase();
+      if (opRaw === '!=') {
+        return { type: 'tickerNeq', ticker };
+      }
+      return { type: 'tickerEq', ticker };
+    }
+
+    if (field === 'name') {
+      const containsTok = this.peek();
+      if (containsTok?.kind !== 'ident' || containsTok.value.toLowerCase() !== 'contains') {
+        throw new Error(
+          `Expected "contains" after name at column ${identTok.pos + identTok.value.length + 1}`,
+        );
+      }
+      this.consume();
+      const valTok = this.consume();
+      if (valTok.kind !== 'ident' && valTok.kind !== 'string') {
+        throw new Error(`Expected company name text at column ${valTok.pos + 1}`);
+      }
+      const text = valTok.kind === 'string' ? valTok.value : valTok.value;
+      return { type: 'nameContains', text };
     }
 
     const opTok = this.peek();
@@ -403,23 +488,46 @@ function compareNumber(val: number, op: CompareOp, target: number): boolean {
   }
 }
 
+function contextValue(field: ContextField, ctx?: CodeFilterContext): number {
+  if (!ctx) return NaN;
+  switch (field) {
+    case 'returnToTodayPct': return ctx.returnToTodayPct ?? NaN;
+    case 'returnToTargetPct': return ctx.returnToTargetPct ?? NaN;
+    case 'priceThen': return ctx.priceThen ?? NaN;
+    case 'similarity': return ctx.similarity ?? NaN;
+    default: return NaN;
+  }
+}
+
 export function evaluateFilterAst(
   ast: FilterAst,
   stock: Stock,
   metrics: StockMetrics,
+  ctx?: CodeFilterContext,
 ): boolean {
   switch (ast.type) {
     case 'and':
-      return evaluateFilterAst(ast.left, stock, metrics)
-        && evaluateFilterAst(ast.right, stock, metrics);
+      return evaluateFilterAst(ast.left, stock, metrics, ctx)
+        && evaluateFilterAst(ast.right, stock, metrics, ctx);
     case 'or':
-      return evaluateFilterAst(ast.left, stock, metrics)
-        || evaluateFilterAst(ast.right, stock, metrics);
+      return evaluateFilterAst(ast.left, stock, metrics, ctx)
+        || evaluateFilterAst(ast.right, stock, metrics, ctx);
     case 'sectorEq':
       return stock.sector === ast.sector;
     case 'sectorIn':
       return ast.sectors.includes(stock.sector);
+    case 'tickerEq':
+      return stock.ticker === ast.ticker;
+    case 'tickerNeq':
+      return stock.ticker !== ast.ticker;
+    case 'tickerIn':
+      return ast.tickers.includes(stock.ticker);
+    case 'nameContains':
+      return stock.companyName.toLowerCase().includes(ast.text.toLowerCase());
     case 'compare': {
+      if (CONTEXT_FIELDS.has(ast.field)) {
+        return compareNumber(contextValue(ast.field as ContextField, ctx), ast.op, ast.value);
+      }
       const val = metrics[ast.field as MetricId];
       return compareNumber(val, ast.op, ast.value);
     }

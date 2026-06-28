@@ -465,25 +465,44 @@ export default function StockScreener() {
     );
   }, [showSimilarity, referenceProfiles, todayPatterns, referenceTickers]);
 
+  const returnTargetDaysAgo = useMemo(
+    () => targetDaysAgoFromPeriod(activeDaysAgo, deferredReturnPeriodDays),
+    [activeDaysAgo, deferredReturnPeriodDays],
+  );
+
   const matchingSet = useMemo(() => {
     const snapMap = isHistorical ? activeSnapshots : todaySnapshots;
     const matched = stocks.filter(s => {
       const snap = snapMap.get(s.ticker);
       if (!snap) return false;
-      return passesScreen(s, snap, screenerState);
+      const ctx = {
+        returnToTodayPct: snap.returnToTodayPct,
+        priceThen: snap.priceThen,
+        returnToTargetPct:
+          isHistorical && returnTargetDaysAgo < activeDaysAgo
+            ? returnBetweenDaysAgo(s, activeDaysAgo, returnTargetDaysAgo) ?? undefined
+            : undefined,
+        similarity: showSimilarity ? similarityMap.get(s.ticker) : undefined,
+      };
+      return passesScreen(s, snap, screenerState, ctx);
     });
     return new Set(matched.map(s => s.ticker));
-  }, [stocks, screenerState, isHistorical, activeSnapshots, todaySnapshots]);
+  }, [
+    stocks,
+    screenerState,
+    isHistorical,
+    activeSnapshots,
+    todaySnapshots,
+    returnTargetDaysAgo,
+    activeDaysAgo,
+    showSimilarity,
+    similarityMap,
+  ]);
 
   const backtest = useMemo(() => {
     if (!isHistorical) return null;
     return computeBacktest(stocks, activeSnapshots, matchingSet);
   }, [isHistorical, stocks, activeSnapshots, matchingSet]);
-
-  const returnTargetDaysAgo = useMemo(
-    () => targetDaysAgoFromPeriod(activeDaysAgo, deferredReturnPeriodDays),
-    [activeDaysAgo, deferredReturnPeriodDays],
-  );
 
   const tableRows = useMemo(() => {
     const rows = stocks.flatMap(stock => {

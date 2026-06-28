@@ -40,7 +40,7 @@
 | `/tools/elevation-profile` | `page.tsx`, `ElevationMap.tsx` |
 | `/tools/geocoder` | `page.tsx`, `GeocoderMap.tsx` |
 | `/tools/census` | `page.tsx`, `CensusMap.tsx` |
-| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 + NASDAQ 100 + S&P 400 screener; sortable factor table, 10y timeline, pattern similarity, watchlists; visual tabs (Table / Charts / Sector / Compare); **code filters** (`PE > 10 & 52W > 55`) in FilterBar |
+| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 + NASDAQ 100 + S&P 400 screener; sortable factor table, 10y timeline, pattern similarity, watchlists; visual tabs (Table / Charts / Sector / Compare); **code filters** (all columns + saved presets) in FilterBar |
 
 ## API routes (`app/api/*/route.ts`)
 
@@ -120,6 +120,12 @@
 | File | Role |
 |------|------|
 | `StockScreener.tsx` | Main page: filters, timeline, table, similarity state |
+| `FilterBar.tsx` | Sliders / Code filter mode toggle |
+| `CodeFilterPanel.tsx` | Code expression editor, full field reference, saved filters |
+| `filterExpression.ts` | Parser + evaluator (metrics, sector, ticker, name, historical, similarity) |
+| `codeFilterCatalog.ts` | Field docs + aliases for every filterable column |
+| `savedCodeFilters.ts` | localStorage saved filter presets (`useSavedCodeFilters`) |
+| `codeFilterGuide.ts` | In-app guide copy for code filter syntax |
 | `universe.ts` | Shared `UniverseId`, Redis key prefixes, labels |
 | `WatchlistPanel.tsx` | Create/switch watchlists; S&P 500 / NASDAQ 100 / S&P 400 / Both / watchlist tabs |
 | `watchlists.ts` | localStorage persistence + `useWatchlists` hook |
