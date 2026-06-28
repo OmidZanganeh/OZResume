@@ -3,7 +3,7 @@ import type { FundamentalPeriod } from './fundamentalTypes';
 import { barForDaysAgo } from './weeklyLookup';
 
 /** Metrics rebuilt from fiscal statements + price at the timeline date (not live Finnhub). */
-export const HISTORICAL_FUNDAMENTAL_IDS: (keyof StockMetrics)[] = [
+export const HISTORICAL_FUNDAMENTAL_IDS = [
   'peRatio',
   'pegRatio',
   'pbRatio',
@@ -20,7 +20,9 @@ export const HISTORICAL_FUNDAMENTAL_IDS: (keyof StockMetrics)[] = [
   'debtToAssets',
   'currentRatio',
   'freeCashFlowYield',
-];
+] as const satisfies readonly (keyof StockMetrics)[];
+
+export type HistoricalFundamentalId = (typeof HISTORICAL_FUNDAMENTAL_IDS)[number];
 
 function round(v: number, d: number): number {
   const f = 10 ** d;
