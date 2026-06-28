@@ -2,6 +2,26 @@ import type { Stock, StockMetrics } from './types';
 import type { FundamentalPeriod } from './fundamentalTypes';
 import { barForDaysAgo } from './weeklyLookup';
 
+/** Metrics rebuilt from fiscal statements + price at the timeline date (not live Finnhub). */
+export const HISTORICAL_FUNDAMENTAL_IDS: (keyof StockMetrics)[] = [
+  'peRatio',
+  'pegRatio',
+  'pbRatio',
+  'psRatio',
+  'marketCap',
+  'epsGrowth',
+  'revenueGrowth',
+  'profitMargin',
+  'grossMargin',
+  'operatingMargin',
+  'roe',
+  'roa',
+  'debtToEquity',
+  'debtToAssets',
+  'currentRatio',
+  'freeCashFlowYield',
+];
+
 function round(v: number, d: number): number {
   const f = 10 ** d;
   return Math.round(v * f) / f;

@@ -1,5 +1,6 @@
 import type { StockMetrics } from './types';
 import { FILTER_DEFS } from './filters';
+import { HISTORICAL_FUNDAMENTAL_IDS } from './fundamentalMetrics';
 import { formatMarketCap } from './metricFormat';
 import { returnPeriodLabel } from './returnPeriods';
 
@@ -108,6 +109,13 @@ export const METRIC_COLUMNS: TableColumn[] = FILTER_DEFS.map(def => ({
   sortable: true,
 }));
 
+const historicalFundamentalIdSet = new Set<string>(HISTORICAL_FUNDAMENTAL_IDS);
+
+/** Fundamentals rebuilt from fiscal statements + weekly price at the timeline date. */
+export const HISTORICAL_FUNDAMENTAL_COLUMNS: TableColumn[] = METRIC_COLUMNS.filter(c =>
+  historicalFundamentalIdSet.has(c.id),
+);
+
 /** Price / momentum columns shown on historical dates (real weekly or Finnhub return windows). */
 export const HISTORICAL_TECH_COLUMNS: TableColumn[] = [
   {
@@ -178,6 +186,7 @@ export function visibleColumns(
       CONTEXT_COLUMNS.find(c => c.id === 'price')!,
       CONTEXT_COLUMNS.find(c => c.id === 'returnToTodayPct')!,
       buildReturnTargetColumn(returnPeriodDays),
+      ...HISTORICAL_FUNDAMENTAL_COLUMNS,
       ...HISTORICAL_TECH_COLUMNS,
     ];
     if (showSimilarity) {
