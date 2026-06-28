@@ -8,7 +8,42 @@ import {
   type FundamentalSimilarityKey,
   type PatternProfile,
   type SimilarityKey,
+  type SimilarityMatch,
 } from './similarity';
+
+export interface PatternSimilarityFilterResult {
+  expression: string;
+  threshold: number;
+  summary: string;
+}
+
+/**
+ * Code filter that mirrors the similarity panel ? stocks must meet the same % match score.
+ * Unlike factor bands, this uses the same ranking logic as the panel (relative distance, not raw ranges).
+ */
+export function buildPatternSimilarityFilter(
+  topMatches: SimilarityMatch[],
+  options?: { maxShown?: number; buffer?: number; floor?: number },
+): PatternSimilarityFilterResult | null {
+  const maxShown = options?.maxShown ?? 8;
+  const buffer = options?.buffer ?? 3;
+  const floor = options?.floor ?? 45;
+
+  const scores = topMatches
+    .slice(0, maxShown)
+    .map(m => m.score)
+    .filter((s): s is number => Number.isFinite(s));
+  if (scores.length === 0) return null;
+
+  const minShown = Math.min(...scores);
+  const threshold = Math.max(floor, Math.floor(minShown - buffer));
+
+  return {
+    expression: `sim >= ${threshold}`,
+    threshold,
+    summary: `sim ? ${threshold}%`,
+  };
+}
 
 export interface PatternFactorFilterResult {
   expression: string;

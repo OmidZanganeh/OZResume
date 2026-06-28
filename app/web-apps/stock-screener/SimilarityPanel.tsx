@@ -4,7 +4,10 @@ import { useCallback, useMemo, useState } from 'react';
 import { Check, Copy, Crosshair, Sparkles } from 'lucide-react';
 import type { StockSnapshot } from './types';
 import type { PatternProfile, SimilarityMatch } from './similarity';
-import { buildPatternFactorFilter } from './patternMatchFilter';
+import {
+  buildPatternFactorFilter,
+  buildPatternSimilarityFilter,
+} from './patternMatchFilter';
 import { formatAsOfDate } from './timelineDate';
 import { yahooQuoteUrl } from './yahooFinanceUrl';
 import styles from './StockScreener.module.css';
@@ -27,39 +30,53 @@ function fmtReturn(v: number): string {
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 }
 
+async function copyText(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+}
+
 export default function SimilarityPanel({
   daysAgo,
   references,
   topMatches,
   onClear,
 }: Props) {
-  const [copied, setCopied] = useState(false);
+  const [copiedSim, setCopiedSim] = useState(false);
+  const [copiedBands, setCopiedBands] = useState(false);
 
-  const patternFilter = useMemo(
+  const similarityFilter = useMemo(
+    () => buildPatternSimilarityFilter(topMatches),
+    [topMatches],
+  );
+
+  const factorBandFilter = useMemo(
     () => buildPatternFactorFilter(references.map(r => r.pattern)),
     [references],
   );
 
-  const handleCopyFilter = useCallback(async () => {
-    if (!patternFilter) return;
-    try {
-      await navigator.clipboard.writeText(patternFilter.expression);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback for older browsers or denied permission
-      const ta = document.createElement('textarea');
-      ta.value = patternFilter.expression;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    }
-  }, [patternFilter]);
+  const handleCopySimilarity = useCallback(async () => {
+    if (!similarityFilter) return;
+    await copyText(similarityFilter.expression);
+    setCopiedSim(true);
+    window.setTimeout(() => setCopiedSim(false), 2000);
+  }, [similarityFilter]);
+
+  const handleCopyFactorBands = useCallback(async () => {
+    if (!factorBandFilter) return;
+    await copyText(factorBandFilter.expression);
+    setCopiedBands(true);
+    window.setTimeout(() => setCopiedBands(false), 2000);
+  }, [factorBandFilter]);
 
   if (daysAgo <= 0 || references.length === 0 || topMatches.length === 0) return null;
 
@@ -103,16 +120,30 @@ export default function SimilarityPanel({
           </p>
         </div>
         <div className={styles.similarityActions}>
-          {patternFilter && (
+          {similarityFilter && (
             <button
               type="button"
-              className={`${styles.similarityCopyFilter} ${copied ? styles.similarityCopyFilterDone : ''}`}
-              onClick={() => void handleCopyFilter()}
-              title={patternFilter.expression}
+              className={`${styles.similarityCopyFilter} ${copiedSim ? styles.similarityCopyFilterDone : ''}`}
+              onClick={() => void handleCopySimilarity()}
+              title={`${similarityFilter.expression} — same logic as this panel`}
             >
-              {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
-              {copied ? 'Copied!' : 'Copy pattern filter'}
-              <code className={styles.similarityCopyFilterCode}>{patternFilter.summary}</code>
+              {copiedSim ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+              {copiedSim ? 'Copied!' : 'Copy similarity filter'}
+              <code className={styles.similarityCopyFilterCode}>{similarityFilter.summary}</code>
+            </button>
+          )}
+          {factorBandFilter && (
+            <button
+              type="button"
+              className={`${styles.similarityCopyFilterSecondary} ${copiedBands ? styles.similarityCopyFilterDone : ''}`}
+              onClick={() => void handleCopyFactorBands()}
+              title={
+                `${factorBandFilter.summary} — strict numeric bands; often matches zero stocks `
+                + '(see footnote)'
+              }
+            >
+              {copiedBands ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+              {copiedBands ? 'Copied!' : 'Factor bands'}
             </button>
           )}
           <button type="button" className={styles.similarityClear} onClick={onClear}>
@@ -160,9 +191,12 @@ export default function SimilarityPanel({
 
       <p className={styles.similarityFoot}>
         <Crosshair size={12} />
-        Compares weekly price action (returns, volatility, drawdown, trend) plus fundamentals
-        (P/E, margins, ROE, growth, leverage, FCF yield) from the past pattern to today’s values.
-        Copy pattern filter to paste into Code mode, then click Apply filter — it won’t run until you do.
+        Match % ranks stocks by relative similarity (not fixed numeric ranges).
+        Use <strong>Copy similarity filter</strong> for a code expression that matches this panel
+        (e.g. <code>sim &gt;= 55</code>).
+        Factor bands are strict AND rules on raw metrics and often exclude every candidate — especially
+        when the reference has unusual values (e.g. very high ROE).
+        Keep the pattern active while using <code>sim</code> in Code mode.
         {' '}Not investment advice — verify before trading.
       </p>
     </section>
