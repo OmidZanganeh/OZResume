@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   AlertCircle,
   BookOpen,
@@ -31,7 +31,7 @@ interface Props {
 }
 
 export default function CodeFilterPanel({ expression, onChange, isHistorical }: Props) {
-  const [guideOpen, setGuideOpen] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(() => expression.trim().length < 120);
   const [refOpen, setRefOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [savedOpen, setSavedOpen] = useState(true);
@@ -40,6 +40,13 @@ export default function CodeFilterPanel({ expression, onChange, isHistorical }: 
   const parsed = useMemo(() => parseFilterExpression(expression), [expression]);
   const hasExpr = expression.trim().length > 0;
   const isValid = hasExpr && !parsed.error && parsed.ast != null;
+
+  useEffect(() => {
+    if (expression.length > 280) {
+      setGuideOpen(false);
+      setRefOpen(false);
+    }
+  }, [expression]);
 
   const handleSave = () => {
     if (!isValid) return;

@@ -19,8 +19,8 @@ export interface PatternFactorFilterResult {
   summary: string;
 }
 
-const TOP_MOMENTUM = 6;
-const TOP_FUNDAMENTAL = 5;
+const TOP_MOMENTUM = 4;
+const TOP_FUNDAMENTAL = 4;
 
 function round(v: number, d = 1): number {
   const f = 10 ** d;

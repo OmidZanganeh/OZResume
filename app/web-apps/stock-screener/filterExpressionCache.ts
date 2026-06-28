@@ -1,4 +1,4 @@
-import { parseFilterExpression, type ParseResult } from './filterExpression';
+import { parseFilterExpression, astUsesMomentumField, type ParseResult } from './filterExpression';
 
 let cachedInput = '';
 let cachedResult: ParseResult = { ast: null, error: null };
@@ -9,6 +9,13 @@ export function getParsedExpression(input: string): ParseResult {
   cachedInput = input;
   cachedResult = parseFilterExpression(input);
   return cachedResult;
+}
+
+/** Uses the same parse cache as screening — avoids double-parsing long pattern filters. */
+export function parsedExpressionUsesMomentum(input: string): boolean {
+  const { ast } = getParsedExpression(input);
+  if (!ast) return false;
+  return astUsesMomentumField(ast);
 }
 
 export function invalidateExpressionCache(): void {

@@ -506,7 +506,8 @@ export function parseFilterExpression(input: string): ParseResult {
   }
 }
 
-function astUsesMomentumField(ast: FilterAst): boolean {
+/** Pattern factor filters include weekly momentum fields — fundamentals then use today's values. */
+export function astUsesMomentumField(ast: FilterAst): boolean {
   switch (ast.type) {
     case 'compare':
       return MOMENTUM_IDS.has(ast.field);
@@ -519,7 +520,6 @@ function astUsesMomentumField(ast: FilterAst): boolean {
   }
 }
 
-/** Pattern factor filters include weekly momentum fields — fundamentals then use today's values. */
 export function filterExpressionUsesMomentum(input: string): boolean {
   const { ast } = parseFilterExpression(input);
   if (!ast) return false;
