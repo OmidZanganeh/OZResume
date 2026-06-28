@@ -45,6 +45,7 @@ import {
   peekSnapshotCache,
 } from './snapshotCache';
 import { rankSimilarityToday, similarityScoresToday, fundamentalProfileFromMetrics } from './similarity';
+import { buildPatternMatchFilter } from './patternMatchFilter';
 import { visibleColumns } from './tableColumns';
 import { downloadScreenerCsv, screenerCsvFilename } from './exportCsv';
 import {
@@ -657,6 +658,33 @@ export default function StockScreener() {
     setSortDir('desc');
   }, [stocks, dataSource, referenceTickers]);
 
+  const patternMatchFilterPreview = useMemo(
+    () => (topMatches.length > 0 ? buildPatternMatchFilter(topMatches) : null),
+    [topMatches],
+  );
+
+  const patternFilterActive = Boolean(
+    showSimilarity
+    && patternMatchFilterPreview
+    && screenerState.filterMode === 'code'
+    && screenerState.codeExpression.trim() === patternMatchFilterPreview.expression,
+  );
+
+  const handleApplyPatternFilter = useCallback((expression: string) => {
+    setScreenerState(prev => ({
+      ...prev,
+      filterMode: 'code',
+      codeExpression: expression,
+    }));
+    setVisualViewMode('table');
+    requestAnimationFrame(() => {
+      document.getElementById('stock-screener-filters')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }, []);
+
   const exportColumns = useMemo(
     () => visibleColumns(isHistorical, showSimilarity, deferredReturnPeriodDays),
     [isHistorical, showSimilarity, deferredReturnPeriodDays],
@@ -836,6 +864,8 @@ export default function StockScreener() {
               references={referenceProfiles}
               topMatches={topMatches}
               onClear={() => setReferenceTickers(new Set())}
+              onApplyFilter={handleApplyPatternFilter}
+              filterActive={patternFilterActive}
             />
           )}
 

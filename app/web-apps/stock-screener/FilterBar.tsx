@@ -110,7 +110,7 @@ export default function FilterBar({ state, onChange, isHistorical }: Props) {
   const isVisual = state.filterMode === 'visual';
 
   return (
-    <section className={styles.filterBar} aria-label="Screening filters">
+    <section className={styles.filterBar} aria-label="Screening filters" id="stock-screener-filters">
       <div className={styles.filterBarHead}>
         <div className={styles.filterBarTitleGroup}>
           <h2 className={styles.filterBarTitle}>Filters</h2>

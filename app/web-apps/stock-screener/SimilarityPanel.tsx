@@ -1,8 +1,10 @@
 'use client';
 
-import { Crosshair, Sparkles } from 'lucide-react';
+import { useMemo } from 'react';
+import { Code2, Crosshair, Sparkles } from 'lucide-react';
 import type { StockSnapshot } from './types';
 import type { SimilarityMatch } from './similarity';
+import { buildPatternMatchFilter } from './patternMatchFilter';
 import { formatAsOfDate } from './timelineDate';
 import { yahooQuoteUrl } from './yahooFinanceUrl';
 import styles from './StockScreener.module.css';
@@ -18,6 +20,8 @@ interface Props {
   references: ReferenceEntry[];
   topMatches: SimilarityMatch[];
   onClear: () => void;
+  onApplyFilter?: (expression: string) => void;
+  filterActive?: boolean;
 }
 
 function fmtReturn(v: number): string {
@@ -30,7 +34,14 @@ export default function SimilarityPanel({
   references,
   topMatches,
   onClear,
+  onApplyFilter,
+  filterActive,
 }: Props) {
+  const patternFilter = useMemo(
+    () => (topMatches.length > 0 ? buildPatternMatchFilter(topMatches) : null),
+    [topMatches],
+  );
+
   if (daysAgo <= 0 || references.length === 0 || topMatches.length === 0) return null;
 
   const multi = references.length > 1;
@@ -72,9 +83,23 @@ export default function SimilarityPanel({
             {multi ? ' to that blended past pattern' : ' to that past pattern'}.
           </p>
         </div>
-        <button type="button" className={styles.similarityClear} onClick={onClear}>
-          Clear {multi ? 'patterns' : 'pattern'}
-        </button>
+        <div className={styles.similarityActions}>
+          {patternFilter && onApplyFilter && (
+            <button
+              type="button"
+              className={`${styles.similarityApplyFilter} ${filterActive ? styles.similarityApplyFilterActive : ''}`}
+              onClick={() => onApplyFilter(patternFilter.expression)}
+              title={`Apply code filter ${patternFilter.expression} (~${patternFilter.matchCount} stocks)`}
+            >
+              <Code2 size={14} aria-hidden />
+              {filterActive ? 'Match filter active' : 'Apply match filter'}
+              <code className={styles.similarityApplyFilterCode}>{patternFilter.expression}</code>
+            </button>
+          )}
+          <button type="button" className={styles.similarityClear} onClick={onClear}>
+            Clear {multi ? 'patterns' : 'pattern'}
+          </button>
+        </div>
       </div>
 
       {multi && (
