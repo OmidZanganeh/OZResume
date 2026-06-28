@@ -9,7 +9,7 @@ import styles from './StockScreener.module.css';
 
 export interface ReferenceEntry {
   stock: import('./types').Stock;
-  profile: import('./weeklyMomentum').MomentumProfile;
+  pattern: import('./similarity').PatternProfile;
   snapshot: StockSnapshot;
 }
 
@@ -40,12 +40,12 @@ export default function SimilarityPanel({
       <div className={styles.similarityHead}>
         <Sparkles size={16} />
         <div>
-          <h2 className={styles.similarityTitle}>Price momentum match — candidates today</h2>
+          <h2 className={styles.similarityTitle}>Pattern match — candidates today</h2>
           <p className={styles.similaritySub}>
             {multi ? (
               <>
                 <strong>{references.length} references</strong> on {formatAsOfDate(daysAgo)}
-                {' '}— blended weekly momentum from:
+                {' '}— blended weekly momentum and fundamentals from:
               </>
             ) : (
               <>
@@ -68,7 +68,7 @@ export default function SimilarityPanel({
                 .
               </>
             )}
-            {' '}Stocks below have the <strong>closest weekly price momentum today</strong>
+            {' '}Stocks below have the <strong>closest weekly price momentum and fundamentals today</strong>
             {multi ? ' to that blended past pattern' : ' to that past pattern'}.
           </p>
         </div>
@@ -114,9 +114,9 @@ export default function SimilarityPanel({
 
       <p className={styles.similarityFoot}>
         <Crosshair size={12} />
-        Uses cached weekly closes only: returns (4–52w), 52w high/low distance, volatility,
-        drawdown, range position, trend slope, and momentum acceleration.
-        Stocks without weekly history are excluded from matching.
+        Compares weekly price action (returns, volatility, drawdown, trend) plus fundamentals
+        (P/E, margins, ROE, growth, leverage, FCF yield) from the past pattern to today’s values.
+        Stocks without enough weekly or fundamental data weigh momentum only.
         {' '}Not investment advice — verify before trading.
       </p>
     </section>

@@ -38,7 +38,7 @@ import {
   invalidateSnapshotCache,
   peekSnapshotCache,
 } from './snapshotCache';
-import { rankSimilarityToday, similarityScoresToday } from './similarity';
+import { rankSimilarityToday, similarityScoresToday, fundamentalProfileFromMetrics } from './similarity';
 import { visibleColumns } from './tableColumns';
 import { downloadScreenerCsv, screenerCsvFilename } from './exportCsv';
 import {
@@ -386,25 +386,37 @@ export default function StockScreener() {
     [stocks],
   );
 
-  const todayMetrics = useMemo(() => {
-    const m = new Map<string, import('./weeklyMomentum').MomentumProfile>();
+  const todayPatterns = useMemo(() => {
+    const m = new Map<string, import('./similarity').PatternProfile>();
     for (const stock of stocks) {
-      const profile = priceMomentumProfile(stock, 0);
-      if (profile) m.set(stock.ticker, profile);
+      const momentum = priceMomentumProfile(stock, 0);
+      if (!momentum) continue;
+      const snap = todaySnapshots.get(stock.ticker);
+      m.set(stock.ticker, {
+        momentum,
+        fundamentals: snap ? fundamentalProfileFromMetrics(snap) : null,
+      });
     }
     return m;
-  }, [stocks]);
+  }, [stocks, todaySnapshots]);
 
   const referenceProfiles = useMemo(() => {
     return [...referenceTickers]
       .map(ticker => {
         const stock = stocks.find(s => s.ticker === ticker);
         if (!stock) return null;
-        const profile = priceMomentumProfile(stock, activeDaysAgo);
-        if (!profile) return null;
+        const momentum = priceMomentumProfile(stock, activeDaysAgo);
+        if (!momentum) return null;
         const snapshot = activeSnapshots.get(ticker) ?? todaySnapshots.get(ticker);
         if (!snapshot) return null;
-        return { stock, profile, snapshot };
+        return {
+          stock,
+          pattern: {
+            momentum,
+            fundamentals: fundamentalProfileFromMetrics(snapshot),
+          },
+          snapshot,
+        };
       })
       .filter((e): e is NonNullable<typeof e> => e != null);
   }, [referenceTickers, stocks, activeDaysAgo, activeSnapshots, todaySnapshots]);
@@ -416,21 +428,21 @@ export default function StockScreener() {
       return new Map<string, number>();
     }
     return similarityScoresToday(
-      referenceProfiles.map(r => r.profile),
-      todayMetrics,
+      referenceProfiles.map(r => r.pattern),
+      todayPatterns,
       referenceTickers,
     );
-  }, [showSimilarity, referenceProfiles, todayMetrics, referenceTickers]);
+  }, [showSimilarity, referenceProfiles, todayPatterns, referenceTickers]);
 
   const topMatches = useMemo(() => {
     if (!showSimilarity || referenceProfiles.length === 0) return [];
     return rankSimilarityToday(
-      referenceProfiles.map(r => r.profile),
-      todayMetrics,
+      referenceProfiles.map(r => r.pattern),
+      todayPatterns,
       referenceTickers,
       12,
     );
-  }, [showSimilarity, referenceProfiles, todayMetrics, referenceTickers]);
+  }, [showSimilarity, referenceProfiles, todayPatterns, referenceTickers]);
 
   const matchingSet = useMemo(() => {
     const snapMap = isHistorical ? activeSnapshots : todaySnapshots;

@@ -9,6 +9,7 @@ import {
   type TableColumn,
   type TableColumnId,
 } from './tableColumns';
+import ColumnHeaderInfo from './ColumnHeaderInfo';
 import styles from './StockScreener.module.css';
 import { yahooQuoteUrl } from './yahooFinanceUrl';
 
@@ -67,6 +68,36 @@ function cellValue(col: TableColumn, row: TableRow): string {
 function sortIndicator(active: boolean, dir: SortDir): string {
   if (!active) return '';
   return dir === 'asc' ? ' ↑' : ' ↓';
+}
+
+function TableHeaderLabel({ col, sortColumn, sortDir, onSort }: {
+  col: TableColumn;
+  sortColumn: TableColumnId;
+  sortDir: SortDir;
+  onSort: (col: TableColumnId) => void;
+}) {
+  const label = col.shortLabel ?? col.label;
+  if (!col.sortable) {
+    return (
+      <span className={styles.thLabel}>
+        {label}
+        {col.explanation && <ColumnHeaderInfo label={col.label} explanation={col.explanation} />}
+      </span>
+    );
+  }
+  return (
+    <span className={styles.thLabel}>
+      <button
+        type="button"
+        className={styles.thBtn}
+        onClick={() => onSort(col.id)}
+      >
+        {label}
+        {sortIndicator(sortColumn === col.id, sortDir)}
+      </button>
+      {col.explanation && <ColumnHeaderInfo label={col.label} explanation={col.explanation} />}
+    </span>
+  );
 }
 
 function TableRowView({
@@ -273,19 +304,12 @@ export default function StockTable({
                   col.sticky ? styles.thSticky : '',
                 ].join(' ')}
               >
-                {col.sortable ? (
-                  <button
-                    type="button"
-                    className={styles.thBtn}
-                    onClick={() => onSort(col.id)}
-                    title={col.label}
-                  >
-                    {col.shortLabel ?? col.label}
-                    {sortIndicator(sortColumn === col.id, sortDir)}
-                  </button>
-                ) : (
-                  col.shortLabel ?? col.label
-                )}
+                <TableHeaderLabel
+                  col={col}
+                  sortColumn={sortColumn}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
               </th>
             ))}
           </tr>

@@ -1576,6 +1576,76 @@
 }
 .thBtn:hover { color: #5eead4; }
 
+.thLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.thLeft .thLabel {
+  justify-content: flex-start;
+}
+
+.colInfoWrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.colInfoBtn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  cursor: help;
+  color: rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+}
+
+.colInfoBtn:hover,
+.colInfoBtn:focus-visible {
+  color: #5eead4;
+  outline: none;
+}
+
+.colInfoTip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: min(240px, 70vw);
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
+
+.thLeft .colInfoTip {
+  right: auto;
+  left: 0;
+}
+
+.colInfoWrap:hover .colInfoTip,
+.colInfoTipOpen {
+  display: block;
+  pointer-events: auto;
+}
+
 .tr {
   transition: background 0.12s;
 }

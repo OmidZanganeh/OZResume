@@ -4,6 +4,13 @@ import { HISTORICAL_FUNDAMENTAL_IDS } from './fundamentalMetrics';
 import { formatMarketCap } from './metricFormat';
 import { returnPeriodLabel } from './returnPeriods';
 
+function filterExplanation(id: string): string | undefined {
+  return FILTER_DEFS.find(d => d.id === id)?.explanation;
+}
+
+const HISTORICAL_FUNDAMENTAL_NOTE =
+  ' Rebuilt from the latest fiscal report on or before the selected date and the weekly price at that date.';
+
 export type TableColumnId =
   | 'ticker'
   | 'companyName'
@@ -18,6 +25,7 @@ export interface TableColumn {
   id: TableColumnId;
   label: string;
   shortLabel?: string;
+  explanation?: string;
   align?: 'left' | 'right';
   sticky?: boolean;
   historicalOnly?: boolean;
@@ -56,6 +64,7 @@ export const CONTEXT_COLUMNS: TableColumn[] = [
     id: 'price',
     label: 'Price',
     shortLabel: 'Price',
+    explanation: filterExplanation('price'),
     align: 'right',
     format: v => (Number.isFinite(v) && v > 0 ? `$${v.toFixed(2)}` : '—'),
     sortable: true,
@@ -64,6 +73,8 @@ export const CONTEXT_COLUMNS: TableColumn[] = [
     id: 'returnToTodayPct',
     label: 'Return → Today',
     shortLabel: 'Ret→Now',
+    explanation:
+      'Total return from the selected past date to today’s price, using weekly closes when available.',
     align: 'right',
     historicalOnly: true,
     format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
@@ -73,6 +84,8 @@ export const CONTEXT_COLUMNS: TableColumn[] = [
     id: 'similarity',
     label: 'Match Today',
     shortLabel: 'Match',
+    explanation:
+      'How closely this stock’s weekly price momentum and fundamentals today match the selected past pattern. Higher % = closer match.',
     align: 'right',
     todayOnly: true,
     format: v => `${v.toFixed(0)}%`,
@@ -88,6 +101,10 @@ export function buildReturnTargetColumn(periodDays: number): TableColumn {
     id: 'returnToTargetPct',
     label: periodDays <= 0 ? 'Return → Today' : `Return over ${label}`,
     shortLabel: 'Ret→Date',
+    explanation:
+      periodDays <= 0
+        ? 'Return from the selected date to today.'
+        : `Return from the selected past date over the next ${label.toLowerCase()}, using weekly closes.`,
     align: 'right',
     historicalOnly: true,
     format: pctFormat,
@@ -99,6 +116,7 @@ export const METRIC_COLUMNS: TableColumn[] = FILTER_DEFS.map(def => ({
   id: def.id,
   label: def.label,
   shortLabel: def.label.split(' ')[0] ?? def.label,
+  explanation: def.explanation,
   align: 'right' as const,
   format:
     def.id === 'marketCap'
@@ -114,65 +132,77 @@ const historicalFundamentalIdSet = new Set<string>(HISTORICAL_FUNDAMENTAL_IDS);
 /** Fundamentals rebuilt from fiscal statements + weekly price at the timeline date. */
 export const HISTORICAL_FUNDAMENTAL_COLUMNS: TableColumn[] = METRIC_COLUMNS.filter(c =>
   historicalFundamentalIdSet.has(c.id),
-);
+).map(col => ({
+  ...col,
+  explanation: col.explanation ? `${col.explanation}${HISTORICAL_FUNDAMENTAL_NOTE}` : undefined,
+}));
+
+function techColumn(
+  id: keyof StockMetrics,
+  label: string,
+  shortLabel: string,
+  format: (v: number) => string,
+  extraNote?: string,
+): TableColumn {
+  const base = filterExplanation(id);
+  return {
+    id,
+    label,
+    shortLabel,
+    explanation: base
+      ? `${base}${extraNote ?? ' Values are computed from weekly closes at the selected date.'}`
+      : undefined,
+    align: 'right',
+    format,
+    sortable: true,
+  };
+}
 
 /** Price / momentum columns shown on historical dates (real weekly or Finnhub return windows). */
 export const HISTORICAL_TECH_COLUMNS: TableColumn[] = [
-  {
-    id: 'priceChange1m',
-    label: '4-Week Change',
-    shortLabel: '4W',
-    align: 'right',
-    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
-    sortable: true,
-  },
-  {
-    id: 'priceChange3m',
-    label: '13-Week Change',
-    shortLabel: '13W',
-    align: 'right',
-    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
-    sortable: true,
-  },
-  {
-    id: 'priceChange6m',
-    label: '26-Week Change',
-    shortLabel: '26W',
-    align: 'right',
-    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
-    sortable: true,
-  },
-  {
-    id: 'priceChange52w',
-    label: '52-Week Change',
-    shortLabel: '52W',
-    align: 'right',
-    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
-    sortable: true,
-  },
-  {
-    id: 'priceVs52wHigh',
-    label: 'From 52W High',
-    shortLabel: 'vs Hi',
-    align: 'right',
-    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
-    sortable: true,
-  },
-  {
-    id: 'priceVs52wLow',
-    label: 'From 52W Low',
-    shortLabel: 'vs Lo',
-    align: 'right',
-    format: v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
-    sortable: true,
-  },
-  {
-    id: 'beta',
-    label: 'Beta',
-    align: 'right',
-    format: v => (Number.isFinite(v) && v !== 0 ? v.toFixed(2) : '—'),
-    sortable: true,
-  },
+  techColumn(
+    'priceChange1m',
+    '4-Week Change',
+    '4W',
+    v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+  ),
+  techColumn(
+    'priceChange3m',
+    '13-Week Change',
+    '13W',
+    v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+  ),
+  techColumn(
+    'priceChange6m',
+    '26-Week Change',
+    '26W',
+    v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+  ),
+  techColumn(
+    'priceChange52w',
+    '52-Week Change',
+    '52W',
+    v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+  ),
+  techColumn(
+    'priceVs52wHigh',
+    'From 52W High',
+    'vs Hi',
+    v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+  ),
+  techColumn(
+    'priceVs52wLow',
+    'From 52W Low',
+    'vs Lo',
+    v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
+  ),
+  techColumn(
+    'beta',
+    'Beta',
+    'Beta',
+    v => (Number.isFinite(v) && v !== 0 ? v.toFixed(2) : '—'),
+    ' Shown as today’s live value, not historical.',
+  ),
 ];
 
 export function visibleColumns(
