@@ -54,6 +54,7 @@ next-env.d.ts
 /data/sp500-weekly-bulk.json
 /data/nasdaq100-weekly-bulk.json
 /data/sp500-fundamental-bulk.json
-/data/nasdaq100-fundamental-bulk.json
+/data/sp400-weekly-bulk.json
+/data/sp400-fundamental-bulk.json
 
 .vercel

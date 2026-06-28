@@ -9,12 +9,20 @@
       "schedule": "30 5 * * 0"
     },
     {
+      "path": "/api/stock-screener/weekly-bulk/refresh?continue=1&universe=sp400",
+      "schedule": "45 5 * * 0"
+    },
+    {
       "path": "/api/stock-screener/refresh?continue=1",
       "schedule": "0 6 * * 0"
     },
     {
       "path": "/api/stock-screener/refresh?continue=1&universe=nasdaq100",
       "schedule": "0 7 * * 0"
+    },
+    {
+      "path": "/api/stock-screener/refresh?continue=1&universe=sp400",
+      "schedule": "30 7 * * 0"
     }
   ]
 }

@@ -5,7 +5,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { universeMeta, type UniverseId } from '../app/web-apps/stock-screener/universe';
+import { universeMeta, parseUniverseArg } from '../app/web-apps/stock-screener/universe';
 
 function loadEnvLocal() {
   const p = resolve(process.cwd(), '.env.local');
@@ -29,14 +29,8 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
-function parseUniverseArg(): UniverseId {
-  const arg = process.argv[2]?.trim();
-  if (arg === 'nasdaq100') return 'nasdaq100';
-  return 'sp500';
-}
-
 async function main() {
-  const universeId = parseUniverseArg();
+  const universeId = parseUniverseArg(process.argv[2]);
   const meta = universeMeta(universeId);
   const hasKey = Boolean(
     process.env.FINNHUB_API_KEY?.trim() ||

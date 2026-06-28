@@ -10,12 +10,17 @@
     "lint": "eslint",
     "warm:stocks": "npx tsx scripts/warm-stock-screener-cache.ts",
     "warm:stocks:nasdaq100": "npx tsx scripts/warm-stock-screener-cache.ts nasdaq100",
+    "warm:stocks:sp400": "npx tsx scripts/warm-stock-screener-cache.ts sp400",
     "warm:weekly": "npx tsx scripts/bulk-weekly-history.ts",
     "warm:weekly:nasdaq100": "npx tsx scripts/bulk-weekly-history.ts nasdaq100",
+    "warm:weekly:sp400": "npx tsx scripts/bulk-weekly-history.ts sp400",
     "warm:nasdaq100": "npm run warm:stocks:nasdaq100 && npm run warm:weekly:nasdaq100",
+    "warm:sp400": "npm run warm:stocks:sp400 && npm run warm:weekly:sp400 && npm run warm:fundamentals:sp400",
+    "sync:sp400": "node scripts/fetch-sp400-wikipedia.mjs",
     "warm:fundamentals": "python scripts/bulk-fundamental-history.py sp500",
     "warm:fundamentals:nasdaq100": "python scripts/bulk-fundamental-history.py nasdaq100",
-    "warm:fundamentals:all": "python scripts/bulk-fundamental-history.py sp500 && python scripts/bulk-fundamental-history.py nasdaq100",
+    "warm:fundamentals:sp400": "python scripts/bulk-fundamental-history.py sp400",
+    "warm:fundamentals:all": "python scripts/bulk-fundamental-history.py sp500 && python scripts/bulk-fundamental-history.py nasdaq100 && python scripts/bulk-fundamental-history.py sp400",
     "warm:weekly:gaps": "npx tsx scripts/fill-weekly-gaps.ts"
   },
   "dependencies": {

@@ -362,7 +362,7 @@ export default function WatchlistPanel({
 
           {active.tickers.length === 0
 
-            ? 'Use ★ on any row in S&P 500, NASDAQ 100, or Both view to add stocks here.'
+            ? 'Use ★ on any row in S&P 500, NASDAQ 100, S&P 400, or Both view to add stocks here.'
 
             : `${active.tickers.length} stock${active.tickers.length !== 1 ? 's' : ''} — full factor table on the right.`}
 

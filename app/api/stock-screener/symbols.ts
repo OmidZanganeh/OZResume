@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { Sector } from '@/app/web-apps/stock-screener/types';
 import {
   parseUniverseId,
@@ -18,6 +20,10 @@ const SP500_DATASET_URL =
   'https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv';
 const NASDAQ100_DATASET_URL =
   'https://yfiua.github.io/index-constituents/constituents-nasdaq100.csv';
+
+function sp400ConstituentsPath(): string {
+  return resolve(process.cwd(), 'data/sp400-constituents.csv');
+}
 
 export interface UsSymbol {
   symbol: string;
@@ -126,12 +132,43 @@ async function fetchNasdaq100FromDataset(): Promise<UsSymbol[]> {
   return out;
 }
 
+async function fetchSp400FromDataset(): Promise<UsSymbol[]> {
+  const path = sp400ConstituentsPath();
+  if (!existsSync(path)) {
+    throw new Error(
+      'S&P 400 constituent file missing — run: node scripts/fetch-sp400-wikipedia.mjs',
+    );
+  }
+  const lines = readFileSync(path, 'utf8').trim().split(/\r?\n/).slice(1);
+  const out: UsSymbol[] = [];
+
+  for (const line of lines) {
+    const cols = parseCsvLine(line);
+    const symbol = cols[0]?.trim();
+    const name = cols[1]?.trim();
+    const gics = cols[2]?.trim();
+    if (!symbol || !name) continue;
+    out.push({
+      symbol: symbol.replace(/\./g, '-'),
+      name,
+      sector: gicsToSector(gics ?? ''),
+    });
+  }
+
+  if (out.length < universeMeta('sp400').minSymbols) {
+    throw new Error('S&P 400 list returned too few symbols');
+  }
+  out.sort((a, b) => a.symbol.localeCompare(b.symbol));
+  return out;
+}
+
 async function fetchUniverseFromDataset(universeId: UniverseId): Promise<UsSymbol[]> {
   if (universeId === 'nasdaq100') return fetchNasdaq100FromDataset();
+  if (universeId === 'sp400') return fetchSp400FromDataset();
   return fetchSp500FromDataset();
 }
 
-/** Index symbol list for the screener (S&P 500 or NASDAQ 100). */
+/** Index symbol list for the screener (S&P 500, NASDAQ 100, or S&P 400). */
 export async function getSymbolUniverse(universeId: UniverseId = 'sp500'): Promise<UsSymbol[]> {
   const meta = universeMeta(universeId);
   const client = getRedis();

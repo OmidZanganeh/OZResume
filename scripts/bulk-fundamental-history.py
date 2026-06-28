@@ -3,8 +3,10 @@
 Download fiscal-period fundamentals for an index universe into Redis + local JSON.
 Run: python scripts/bulk-fundamental-history.py sp500
      python scripts/bulk-fundamental-history.py nasdaq100
+     python scripts/bulk-fundamental-history.py sp400
 Requires: pip install yfinance redis
 """
+import csv
 import gzip
 import json
 import os
@@ -36,8 +38,28 @@ def load_env_local():
 def fetch_symbols(universe: str):
     if universe == "nasdaq100":
         url = "https://yfiua.github.io/index-constituents/constituents-nasdaq100.csv"
-    else:
-        url = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
+        raw = urllib.request.urlopen(url, timeout=30).read().decode("utf-8")
+        lines = raw.strip().splitlines()[1:]
+        syms = []
+        for line in lines:
+            sym = line.split(",")[0].strip().replace(".", "-")
+            if sym:
+                syms.append(sym)
+        return sorted(set(syms))
+
+    if universe == "sp400":
+        path = ROOT / "data" / "sp400-constituents.csv"
+        if not path.exists():
+            raise SystemExit(f"Missing {path} — run: node scripts/fetch-sp400-wikipedia.mjs")
+        syms = []
+        with path.open(encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                sym = (row.get("Symbol") or "").strip().replace(".", "-")
+                if sym:
+                    syms.append(sym)
+        return sorted(set(syms))
+
+    url = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
     raw = urllib.request.urlopen(url, timeout=30).read().decode("utf-8")
     lines = raw.strip().splitlines()[1:]
     syms = []
@@ -49,15 +71,19 @@ def fetch_symbols(universe: str):
 
 
 def redis_key(universe: str) -> str:
-    return (
-        "stock-screener:fundamental-bulk:nasdaq100:v1"
-        if universe == "nasdaq100"
-        else "stock-screener:fundamental-bulk:v1"
-    )
+    if universe == "nasdaq100":
+        return "stock-screener:fundamental-bulk:nasdaq100:v1"
+    if universe == "sp400":
+        return "stock-screener:fundamental-bulk:sp400:v1"
+    return "stock-screener:fundamental-bulk:v1"
 
 
 def local_file(universe: str) -> Path:
-    name = "nasdaq100-fundamental-bulk.json" if universe == "nasdaq100" else "sp500-fundamental-bulk.json"
+    names = {
+        "nasdaq100": "nasdaq100-fundamental-bulk.json",
+        "sp400": "sp400-fundamental-bulk.json",
+    }
+    name = names.get(universe, "sp500-fundamental-bulk.json")
     out = ROOT / "data"
     out.mkdir(exist_ok=True)
     return out / name

@@ -40,7 +40,7 @@
 | `/tools/elevation-profile` | `page.tsx`, `ElevationMap.tsx` |
 | `/tools/geocoder` | `page.tsx`, `GeocoderMap.tsx` |
 | `/tools/census` | `page.tsx`, `CensusMap.tsx` |
-| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 + NASDAQ 100 screener; sortable factor table, 10y timeline, pattern similarity, watchlists |
+| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 + NASDAQ 100 + S&P 400 screener; sortable factor table, 10y timeline, pattern similarity, watchlists |
 
 ## API routes (`app/api/*/route.ts`)
 
@@ -62,7 +62,7 @@
 | `gym-flow/exercises/search` | API Ninjas proxy — returns up to 10 exercises matching `name`/`muscle`/`type`/`difficulty`. Requires `EXERCISE_NINJAS_API_KEY` env var. Auth-gated. |
 | `gym-flow/nutrition/search` | USDA + OFF text search; **8–14 digit query** also hits OFF `/product/{code}` (barcode) and merges first. Client splits compound queries (`and`/`&`/`,`/`+`) and calls this route once per part — see `utils/nutritionQueryParser.ts`. |
 | `gym-flow/nutrition/item` | USDA FDC or Open Food Facts product detail; codes `usda:{fdcId}` vs barcode (US + world OFF hosts) |
-| `stock-screener` | Finnhub — S&P 500 + NASDAQ 100 (`?universe=`); incremental Redis cache per index; cron Sundays 06:00 / 07:00 UTC |
+| `stock-screener` | Finnhub — S&P 500 + NASDAQ 100 + S&P 400 (`?universe=`); incremental Redis cache per index; cron Sundays 05:00–07:30 UTC |
 
 ## Shared UI components (`app/components/`)
 
@@ -121,7 +121,7 @@
 |------|------|
 | `StockScreener.tsx` | Main page: filters, timeline, table, similarity state |
 | `universe.ts` | Shared `UniverseId`, Redis key prefixes, labels |
-| `WatchlistPanel.tsx` | Create/switch watchlists; S&P 500 / NASDAQ 100 / Both / watchlist tabs |
+| `WatchlistPanel.tsx` | Create/switch watchlists; S&P 500 / NASDAQ 100 / S&P 400 / Both / watchlist tabs |
 | `watchlists.ts` | localStorage persistence + `useWatchlists` hook |
 | `StockTable.tsx` | Sortable factor table; ★ watchlist; ◉ pattern picker |
 | `SimilarityPanel.tsx` | Top today matches vs selected past winner |
@@ -137,11 +137,12 @@
 | `../api/stock-screener/weeklyBulk.ts` | Redis weekly price bulk + merge into stocks |
 | `scripts/bulk-fundamental-history.py` | `npm run warm:fundamentals` — yfinance fiscal history → Redis |
 | `scripts/fetch_fundamental_one.py` | Single-ticker yfinance fetch (used by bulk + gap fill) |
-| `scripts/fill-weekly-gaps.ts` | `npm run warm:weekly:gaps [-- nasdaq100]` — fetch only missing symbols |
-| `scripts/warm-stock-screener-cache.ts` | `npm run warm:stocks` or `warm:stocks:nasdaq100` — Finnhub fundamentals warm |
-| One-shot NASDAQ warm | `npm run warm:nasdaq100` — fundamentals + weekly bulk into Redis |
-| `../api/stock-screener/symbols.ts` | Index constituent lists (S&P dataset + NASDAQ 100 CSV) |
-| `../api/stock-screener/` | Finnhub live snapshot + Redis cache (`?universe=sp500|nasdaq100`) |
+| `scripts/fill-weekly-gaps.ts` | `npm run warm:weekly:gaps [-- nasdaq100|sp400]` — fetch only missing symbols |
+| `scripts/warm-stock-screener-cache.ts` | `npm run warm:stocks` or `warm:stocks:nasdaq100` or `warm:stocks:sp400` |
+| One-shot warm | `npm run warm:nasdaq100` · `npm run warm:sp400` (Finnhub + weekly + fundamentals) |
+| `scripts/fetch-sp400-wikipedia.mjs` | `npm run sync:sp400` — refresh S&P 400 members from Wikipedia |
+| `../api/stock-screener/symbols.ts` | Index lists: S&P dataset, NASDAQ CSV, S&P 400 (`data/sp400-constituents.csv`) |
+| `../api/stock-screener/` | Finnhub live snapshot + Redis cache (`?universe=sp500|nasdaq100|sp400`) |
 
 ## Out of index / ignore
 

@@ -82,7 +82,9 @@ export function screenerCsvFilename(
       ? 'combined-screener'
       : selection === 'nasdaq100'
         ? 'nasdaq100-screener'
-        : 'sp500-screener';
+        : selection === 'sp400'
+          ? 'sp400-screener'
+          : 'sp500-screener';
   if (daysAgo > 0) {
     return `${prefix}-${isoDate(daysAgoToDate(daysAgo))}-to-${today}.csv`;
   }
