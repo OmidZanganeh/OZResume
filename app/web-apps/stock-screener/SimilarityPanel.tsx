@@ -59,9 +59,9 @@ export default function SimilarityPanel({
   const codeFilter = useMemo(
     () => buildPatternFactorFilter(
       references.map(r => r.pattern),
-      candidatePatterns,
+      { candidates: candidatePatterns, topMatches },
     ),
-    [references, candidatePatterns],
+    [references, candidatePatterns, topMatches],
   );
 
   const similarityFilter = useMemo(
@@ -130,7 +130,7 @@ export default function SimilarityPanel({
               type="button"
               className={`${styles.similarityCopyFilter} ${copiedCode ? styles.similarityCopyFilterDone : ''}`}
               onClick={() => void handleCopyCode()}
-              title="Editable factor ranges — one metric per line; widen or delete clauses before Apply"
+              title="sim threshold + tight reference factor bands — edit or delete lines before Apply"
             >
               {copiedCode ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
               {copiedCode ? 'Copied!' : 'Copy code filter'}
@@ -193,9 +193,10 @@ export default function SimilarityPanel({
 
       <p className={styles.similarityFoot}>
         <Crosshair size={12} />
-        <strong>Copy code filter</strong> pastes editable ranges (one factor per line) sized to include
-        the candidates above — tweak numbers or remove lines, then Apply in Code mode.
-        Use <code>sim ≥ N</code> (secondary button) only if you want a single non-editable match threshold.
+        <strong>Copy code filter</strong> starts with <code>sim ≥ N</code> (same ranking as this panel),
+        then adds tight bands around the reference pattern — not min/max across all candidates.
+        Widen or delete lines before Apply in Code mode.
+        The secondary button copies <code>sim</code> only.
         {' '}Not investment advice — verify before trading.
       </p>
     </section>

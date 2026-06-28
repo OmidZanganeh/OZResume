@@ -18,7 +18,7 @@ export interface PatternSimilarityFilterResult {
 }
 
 /**
- * Quick code filter ? same % ranking as the similarity panel (not editable factor bands).
+ * Single-line code filter using the same % ranking as the similarity panel.
  */
 export function buildPatternSimilarityFilter(
   topMatches: SimilarityMatch[],
@@ -49,14 +49,33 @@ export interface PatternFactorFilterResult {
   factorCount: number;
   momentumCount: number;
   fundamentalCount: number;
+  simThreshold: number | null;
   factors: string[];
   summary: string;
 }
 
-const TOP_MOMENTUM = 4;
-const TOP_FUNDAMENTAL = 4;
+const TOP_MOMENTUM = 3;
+const TOP_FUNDAMENTAL = 2;
+const CANDIDATE_CHECK = 5;
 
 type FactorKey = SimilarityKey | FundamentalSimilarityKey;
+
+const NON_NEGATIVE_KEYS = new Set([
+  'peRatio', 'pegRatio', 'pbRatio', 'psRatio', 'marketCap', 'currentRatio',
+]);
+
+const SEMANTIC_CEIL: Partial<Record<string, number>> = {
+  roe: 80,
+  roa: 40,
+  profitMargin: 60,
+  grossMargin: 80,
+  operatingMargin: 50,
+  peRatio: 120,
+  pbRatio: 25,
+  psRatio: 40,
+  pegRatio: 4,
+  debtToEquity: 5,
+};
 
 function round(v: number, d = 1): number {
   const f = 10 ** d;
@@ -106,8 +125,8 @@ function refBandForFactor(key: string, ref: number): { min: number; max: number 
 
   if (key === 'marketCap') {
     return {
-      min: Math.max(0, round(ref * 0.35, 0)),
-      max: round(ref * 2.5, 0),
+      min: Math.max(0, round(ref * 0.5, 0)),
+      max: round(ref * 1.8, 0),
     };
   }
 
@@ -115,48 +134,39 @@ function refBandForFactor(key: string, ref: number): { min: number; max: number 
     'peRatio', 'pegRatio', 'pbRatio', 'psRatio', 'debtToEquity', 'currentRatio',
   ]);
   if (ratioKeys.has(key)) {
-    const margin = Math.max(0.8, Math.abs(ref) * 0.35);
+    if (NON_NEGATIVE_KEYS.has(key) && ref < 0) return null;
+    const margin = Math.max(0.5, Math.abs(ref) * 0.2);
     return {
-      min: round(Math.max(0, ref - margin)),
+      min: round(NON_NEGATIVE_KEYS.has(key) ? Math.max(0, ref - margin) : ref - margin),
       max: round(ref + margin),
     };
   }
 
-  const margin = Math.max(4, Math.abs(ref) * 0.25);
+  if (key.startsWith('trendSlope')) {
+    const margin = Math.min(15, Math.max(4, Math.abs(ref) * 0.2));
+    return { min: round(ref - margin), max: round(ref + margin) };
+  }
+
+  if (key.startsWith('priceChange') || key.startsWith('returnAccel') || key.startsWith('realizedVol')) {
+    const margin = Math.min(12, Math.max(4, Math.abs(ref) * 0.15));
+    return { min: round(ref - margin), max: round(ref + margin) };
+  }
+
+  const margin = Math.min(10, Math.max(3, Math.abs(ref) * 0.18));
   return { min: round(ref - margin), max: round(ref + margin) };
 }
 
-/** Bands that include panel candidates so the copied code filter matches visible matches. */
-function inclusiveBandForFactor(
-  key: FactorKey,
-  ref: number,
-  candidates: PatternProfile[],
-): { min: number; max: number } | null {
-  const refBand = refBandForFactor(key, ref);
-  if (!refBand) return null;
+function clampBandSemantics(key: string, band: { min: number; max: number }): { min: number; max: number } {
+  let { min, max } = band;
+  if (NON_NEGATIVE_KEYS.has(key)) min = Math.max(0, min);
+  const ceil = SEMANTIC_CEIL[key];
+  if (ceil != null) max = Math.min(ceil, max);
+  if (min > max) return { min: max, max: min };
+  return { min: round(min), max: round(max) };
+}
 
-  const vals = factorValuesFromProfiles(candidates, key);
-  if (vals.length === 0) return refBand;
-
-  const candMin = Math.min(...vals);
-  const candMax = Math.max(...vals);
-  const span = Math.max(candMax - candMin, 1);
-  const pad = Math.max(3, span * 0.2, Math.abs(candMax) * 0.06);
-
-  const refFarFromCandidates =
-    ref < candMin - span * 1.5 || ref > candMax + span * 1.5;
-
-  if (refFarFromCandidates) {
-    return {
-      min: round(candMin - pad),
-      max: round(candMax + pad),
-    };
-  }
-
-  return {
-    min: round(Math.min(refBand.min, candMin - pad)),
-    max: round(Math.max(refBand.max, candMax + pad)),
-  };
+function bandIncludesAnyValue(band: { min: number; max: number }, values: number[]): boolean {
+  return values.some(v => v >= band.min && v <= band.max);
 }
 
 function rangeClause(field: string, min: number, max: number): string {
@@ -167,16 +177,28 @@ function formatEditableExpression(clauses: string[]): string {
   return clauses.join(' &\n');
 }
 
+export interface BuildPatternFactorFilterOptions {
+  /** Top panel matches ? used to skip factors that don't explain visible candidates. */
+  candidates?: PatternProfile[];
+  /** When set, prepends `sim >= N` (same ranking as the panel). */
+  topMatches?: SimilarityMatch[];
+}
+
 /**
- * Build an editable code filter from weighted momentum + fundamental factors.
- * When `candidates` (today's panel matches) are passed, bands expand to include them
- * so Apply in Code mode shows roughly the same stocks ? each line is one factor you can edit.
+ * Editable code filter: `sim >= N` plus tight bands around the reference pattern.
+ * Factor lines are omitted when a tight reference band wouldn't include any top candidate
+ * (similarity blends many metrics ? raw min/max across matches produces nonsense ranges).
  */
 export function buildPatternFactorFilter(
   references: PatternProfile[],
-  candidates: PatternProfile[] = [],
+  options: BuildPatternFactorFilterOptions = {},
 ): PatternFactorFilterResult | null {
   if (references.length === 0) return null;
+
+  const candidates = options.candidates ?? [];
+  const simResult = options.topMatches?.length
+    ? buildPatternSimilarityFilter(options.topMatches)
+    : null;
 
   const avgMomentum = averageMomentum(references);
   const avgFundamentals = averageFundamentals(references);
@@ -210,21 +232,34 @@ export function buildPatternFactorFilter(
   let momentumCount = 0;
   let fundamentalCount = 0;
 
+  if (simResult) {
+    clauses.push(`sim >= ${simResult.threshold}`);
+    factors.push('sim');
+  }
+
+  const checkCandidates = candidates.slice(0, CANDIDATE_CHECK);
+
   for (const f of momentumFactors) {
-    const band = candidates.length > 0
-      ? inclusiveBandForFactor(f.key, f.value, candidates)
-      : refBandForFactor(f.key, f.value);
-    if (!band) continue;
+    const raw = refBandForFactor(f.key, f.value);
+    if (!raw) continue;
+    const band = clampBandSemantics(f.key, raw);
+    if (checkCandidates.length > 0) {
+      const vals = factorValuesFromProfiles(checkCandidates, f.key);
+      if (vals.length > 0 && !bandIncludesAnyValue(band, vals)) continue;
+    }
     clauses.push(rangeClause(f.key, band.min, band.max));
     factors.push(f.key);
     momentumCount += 1;
   }
 
   for (const f of fundamentalFactors) {
-    const band = candidates.length > 0
-      ? inclusiveBandForFactor(f.key, f.value, candidates)
-      : refBandForFactor(f.key, f.value);
-    if (!band) continue;
+    const raw = refBandForFactor(f.key, f.value);
+    if (!raw) continue;
+    const band = clampBandSemantics(f.key, raw);
+    if (checkCandidates.length > 0) {
+      const vals = factorValuesFromProfiles(checkCandidates, f.key);
+      if (vals.length > 0 && !bandIncludesAnyValue(band, vals)) continue;
+    }
     clauses.push(rangeClause(f.key, band.min, band.max));
     factors.push(f.key);
     fundamentalCount += 1;
@@ -232,17 +267,26 @@ export function buildPatternFactorFilter(
 
   if (clauses.length === 0) return null;
 
+  const simThreshold = simResult?.threshold ?? null;
+  const summaryParts: string[] = [];
+  if (simThreshold != null) summaryParts.push(`sim >= ${simThreshold}%`);
+  if (momentumCount + fundamentalCount > 0) {
+    summaryParts.push(`${momentumCount}m + ${fundamentalCount}f`);
+  }
+
   return {
     expression: formatEditableExpression(clauses),
     factorCount: clauses.length,
     momentumCount,
     fundamentalCount,
+    simThreshold,
     factors,
-    summary: `${momentumCount} momentum + ${fundamentalCount} fundamentals`,
+    summary: summaryParts.join(' ? '),
   };
 }
 
-/** Legacy / broken pattern filters from the old sim >= threshold approach. */
-export function isLegacyPatternMatchExpression(expression: string): boolean {
-  return /^sim\s*>=/i.test(expression.trim());
+/** Detect sim-only pattern filters (no factor bands). */
+export function isSimOnlyPatternExpression(expression: string): boolean {
+  const trimmed = expression.trim();
+  return /^sim\s*>=/i.test(trimmed) && !/\b(priceChange|trendSlope|peRatio|roe|profitMargin)\b/i.test(trimmed);
 }
