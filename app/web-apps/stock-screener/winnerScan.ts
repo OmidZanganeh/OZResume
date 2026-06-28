@@ -53,17 +53,23 @@ export function findHistoricalWinners(
   minReturnPct: number,
   maxWinners: number,
 ): HistoricalWinner[] {
-  const candidates: HistoricalWinner[] = [];
+  const eligible: { stock: Stock; snap: StockSnapshot }[] = [];
 
   for (const stock of stocks) {
     const snap = snapshots.get(stock.ticker);
     if (!snap || !Number.isFinite(snap.returnToTodayPct)) continue;
     if (snap.returnToTodayPct < minReturnPct) continue;
+    eligible.push({ stock, snap });
+  }
 
+  eligible.sort((a, b) => b.snap.returnToTodayPct - a.snap.returnToTodayPct);
+  const top = eligible.slice(0, maxWinners);
+
+  const winners: HistoricalWinner[] = [];
+  for (const { stock, snap } of top) {
     const momentum = priceMomentumProfile(stock, lookbackDaysAgo);
     if (!momentum) continue;
-
-    candidates.push({
+    winners.push({
       ticker: stock.ticker,
       sector: stock.sector,
       companyName: stock.companyName,
@@ -76,8 +82,7 @@ export function findHistoricalWinners(
     });
   }
 
-  candidates.sort((a, b) => b.returnToTodayPct - a.returnToTodayPct);
-  return candidates.slice(0, maxWinners);
+  return winners;
 }
 
 export function computeWinnerScan(

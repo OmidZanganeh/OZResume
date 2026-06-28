@@ -278,7 +278,7 @@ export function rankSimilarityToday(
 
 /**
  * Best match vs any single reference (not blended average).
- * Selective when references are diverse — e.g. many historical winners.
+ * Single-pass scoring — one normalization pass, not N full universe scans.
  */
 export function similarityScoresTodayBestReference(
   references: PatternProfile | PatternProfile[],
@@ -288,13 +288,49 @@ export function similarityScoresTodayBestReference(
   const refs = Array.isArray(references) ? references : [references];
   if (refs.length === 0) return new Map();
 
+  const exclude = new Set(
+    typeof excludeTickers === 'string' ? [excludeTickers] : excludeTickers,
+  );
+
+  const todayEntries = [...todayByTicker.entries()].filter(([t]) => !exclude.has(t));
+  if (todayEntries.length === 0) return new Map();
+
+  const refMomentum = refs.map(r => r.momentum);
+  const momentumPool = todayEntries.map(([, p]) => p.momentum);
+  const momentumStats = buildNormStats(SIMILARITY_KEYS, [...refMomentum, ...momentumPool]);
+  const refMomentumVecs = refMomentum.map(r => vectorFromProfile(r, momentumStats));
+  const momWeights = SIMILARITY_KEYS.map(k => MOMENTUM_WEIGHTS[k]);
+
+  const refFundamentals = refs
+    .map(r => r.fundamentals)
+    .filter((f): f is FundamentalProfile => f != null);
+  const fundamentalPool = todayEntries
+    .map(([, p]) => p.fundamentals)
+    .filter((f): f is FundamentalProfile => f != null);
+
   const merged = new Map<string, number>();
-  for (const ref of refs) {
-    const scores = similarityScoresToday(ref, todayByTicker, excludeTickers);
-    for (const [ticker, score] of scores) {
-      merged.set(ticker, Math.max(merged.get(ticker) ?? 0, score));
+
+  for (const [ticker, profile] of todayEntries) {
+    const candMomVec = vectorFromProfile(profile.momentum, momentumStats);
+    let best = 0;
+
+    for (let i = 0; i < refs.length; i++) {
+      const ref = refs[i]!;
+      const momScore = scoreFromWeightedDistance(
+        refMomentumVecs[i]!,
+        candMomVec,
+        momWeights,
+      );
+      const fundScore =
+        ref.fundamentals && profile.fundamentals
+          ? scoreFundamentals([ref.fundamentals], profile.fundamentals, fundamentalPool)
+          : null;
+      best = Math.max(best, blendScores(momScore, fundScore));
     }
+
+    merged.set(ticker, best);
   }
+
   return merged;
 }
 

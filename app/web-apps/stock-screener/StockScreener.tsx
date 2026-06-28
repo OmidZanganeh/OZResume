@@ -159,7 +159,17 @@ export default function StockScreener() {
   const [winnerSnapshots, setWinnerSnapshots] = useState(EMPTY_SNAPSHOTS);
   const [winnerSnapshotsFor, setWinnerSnapshotsFor] = useState(-1);
   const [winnerScanLoading, setWinnerScanLoading] = useState(false);
+  const [winnerScan, setWinnerScan] = useState<import('./winnerScan').WinnerScanResult | null>(null);
+  const [winnerScanBusy, setWinnerScanBusy] = useState(false);
   const [winnersTableFocus, setWinnersTableFocus] = useState<Set<string> | null>(null);
+  const deferredWinnerLookback = useDeferredValue(winnerLookbackDays);
+  const deferredWinnerMinReturn = useDeferredValue(winnerMinReturn);
+  const deferredWinnerMaxCount = useDeferredValue(winnerMaxCount);
+  const [, startWinnerTransition] = useTransition();
+  const winnerConfigPending =
+    deferredWinnerLookback !== winnerLookbackDays
+    || deferredWinnerMinReturn !== winnerMinReturn
+    || deferredWinnerMaxCount !== winnerMaxCount;
   const watchlist = useWatchlists();
   const stocksRef = useRef(stocks);
   stocksRef.current = stocks;
@@ -511,22 +521,67 @@ export default function StockScreener() {
     };
   }, [visualViewMode, stocks, winnerLookbackDays, stocksTickerKey, dataSource]);
 
-  const winnerScan = useMemo(() => {
-    if (winnerSnapshotsFor !== winnerLookbackDays || winnerSnapshots.size === 0) return null;
-    return computeWinnerScan(stocks, winnerSnapshots, todayPatterns, {
-      lookbackDaysAgo: winnerLookbackDays,
-      minReturnPct: winnerMinReturn,
-      maxWinners: winnerMaxCount,
-    });
+  useEffect(() => {
+    if (visualViewMode !== 'winners') return;
+    if (winnerSnapshotsFor !== deferredWinnerLookback || winnerSnapshots.size === 0) {
+      setWinnerScan(null);
+      return;
+    }
+
+    let cancelled = false;
+    setWinnerScanBusy(true);
+
+    const run = () => {
+      if (cancelled) return;
+      const result = computeWinnerScan(stocks, winnerSnapshots, todayPatterns, {
+        lookbackDaysAgo: deferredWinnerLookback,
+        minReturnPct: deferredWinnerMinReturn,
+        maxWinners: deferredWinnerMaxCount,
+      });
+      if (!cancelled) {
+        setWinnerScan(result);
+        setWinnerScanBusy(false);
+      }
+    };
+
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (typeof requestIdleCallback !== 'undefined') {
+      idleId = requestIdleCallback(run, { timeout: 120 });
+    } else {
+      timeoutId = setTimeout(run, 0);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId != null && typeof cancelIdleCallback !== 'undefined') {
+        cancelIdleCallback(idleId);
+      }
+      if (timeoutId != null) clearTimeout(timeoutId);
+      setWinnerScanBusy(false);
+    };
   }, [
+    visualViewMode,
     stocks,
     winnerSnapshots,
     winnerSnapshotsFor,
-    winnerLookbackDays,
-    winnerMinReturn,
-    winnerMaxCount,
+    deferredWinnerLookback,
+    deferredWinnerMinReturn,
+    deferredWinnerMaxCount,
     todayPatterns,
   ]);
+
+  const handleWinnerLookbackChange = useCallback((days: number) => {
+    startWinnerTransition(() => setWinnerLookbackDays(days));
+  }, [startWinnerTransition]);
+
+  const handleWinnerMinReturnChange = useCallback((pct: number) => {
+    startWinnerTransition(() => setWinnerMinReturn(pct));
+  }, [startWinnerTransition]);
+
+  const handleWinnerMaxCountChange = useCallback((n: number) => {
+    startWinnerTransition(() => setWinnerMaxCount(n));
+  }, [startWinnerTransition]);
 
   const returnTargetDaysAgo = useMemo(
     () => targetDaysAgoFromPeriod(activeDaysAgo, deferredReturnPeriodDays),
@@ -996,14 +1051,14 @@ export default function StockScreener() {
             {visualViewMode === 'winners' && !isLoading && (
               <WinnersView
                 scan={winnerScan}
-                loading={winnerScanLoading}
+                loading={winnerScanLoading || winnerScanBusy || winnerConfigPending}
                 lookbackDays={winnerLookbackDays}
                 minReturnPct={winnerMinReturn}
                 maxWinners={winnerMaxCount}
                 stocks={stocks}
-                onLookbackChange={setWinnerLookbackDays}
-                onMinReturnChange={setWinnerMinReturn}
-                onMaxWinnersChange={setWinnerMaxCount}
+                onLookbackChange={handleWinnerLookbackChange}
+                onMinReturnChange={handleWinnerMinReturnChange}
+                onMaxWinnersChange={handleWinnerMaxCountChange}
                 onSelectTicker={handleSelectChart}
                 onAnalyzeInTable={handleAnalyzeWinnersInTable}
                 onAnalyzeMatchesInTable={handleAnalyzeMatchesInTable}

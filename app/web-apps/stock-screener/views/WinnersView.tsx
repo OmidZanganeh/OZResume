@@ -124,22 +124,28 @@ export default function WinnersView({
         </div>
       </div>
 
-      {loading && (
+      {loading && !scan && (
         <p className={chartStyles.viewEmpty}>
           <Loader2 size={16} className={chartStyles.winnersSpinner} aria-hidden />
           Building historical snapshots…
         </p>
       )}
 
-      {!loading && scan && scan.winners.length === 0 && (
+      {scan && scan.winners.length === 0 && !loading && (
         <p className={chartStyles.viewEmpty}>
           No stocks met +{minReturnPct}% from {scan.asOfLabel} to today.
           Try a lower return threshold or a different lookback.
         </p>
       )}
 
-      {!loading && scan && scan.winners.length > 0 && (
-        <>
+      {scan && scan.winners.length > 0 && (
+        <div className={loading ? chartStyles.winnersUpdating : undefined}>
+          {loading && (
+            <p className={chartStyles.winnersUpdatingBanner}>
+              <Loader2 size={14} className={chartStyles.winnersSpinner} aria-hidden />
+              Updating scan…
+            </p>
+          )}
           <div className={chartStyles.winnersSectionHead}>
             <div>
               <h3 className={chartStyles.winnersSectionTitle}>
@@ -284,7 +290,7 @@ export default function WinnersView({
             Not investment advice. Past winners do not predict future returns — use this tab to
             explore patterns, then verify in Table or Code filters before acting.
           </p>
-        </>
+        </div>
       )}
     </div>
   );
