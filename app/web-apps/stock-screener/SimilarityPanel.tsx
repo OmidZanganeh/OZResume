@@ -132,7 +132,9 @@ export default function SimilarityPanel({
             >
               {m.ticker}
             </a>
-            <span className={styles.similarityScore}>{m.score.toFixed(0)}% match</span>
+            <span className={styles.similarityScore}>
+              {Number.isFinite(m.score) ? `${m.score.toFixed(0)}% match` : '—'}
+            </span>
           </div>
         ))}
       </div>

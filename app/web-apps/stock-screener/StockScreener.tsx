@@ -45,7 +45,7 @@ import {
   peekSnapshotCache,
 } from './snapshotCache';
 import { rankSimilarityToday, similarityScoresToday, fundamentalProfileFromMetrics } from './similarity';
-import { buildPatternMatchFilter } from './patternMatchFilter';
+import { buildPatternMatchFilter, isBrokenPatternMatchExpression } from './patternMatchFilter';
 import { visibleColumns } from './tableColumns';
 import { downloadScreenerCsv, screenerCsvFilename } from './exportCsv';
 import {
@@ -666,15 +666,19 @@ export default function StockScreener() {
   const patternFilterActive = Boolean(
     showSimilarity
     && patternMatchFilterPreview
+    && Number.isFinite(patternMatchFilterPreview.threshold)
     && screenerState.filterMode === 'code'
     && screenerState.codeExpression.trim() === patternMatchFilterPreview.expression,
   );
 
   const handleApplyPatternFilter = useCallback((expression: string) => {
+    if (isBrokenPatternMatchExpression(expression)) return;
+    const built = buildPatternMatchFilter(topMatches);
+    if (!built || !Number.isFinite(built.threshold)) return;
     setScreenerState(prev => ({
       ...prev,
       filterMode: 'code',
-      codeExpression: expression,
+      codeExpression: built.expression,
     }));
     setVisualViewMode('table');
     requestAnimationFrame(() => {
@@ -683,7 +687,18 @@ export default function StockScreener() {
         block: 'start',
       });
     });
-  }, []);
+  }, [topMatches]);
+
+  // Clear a previously applied broken filter (sim >= NaN) once we have valid scores.
+  useEffect(() => {
+    if (!isBrokenPatternMatchExpression(screenerState.codeExpression)) return;
+    const built = buildPatternMatchFilter(topMatches);
+    if (!built) return;
+    setScreenerState(prev => ({
+      ...prev,
+      codeExpression: built.expression,
+    }));
+  }, [screenerState.codeExpression, topMatches]);
 
   const exportColumns = useMemo(
     () => visibleColumns(isHistorical, showSimilarity, deferredReturnPeriodDays),
