@@ -36,7 +36,7 @@ export interface PatternProfile {
   fundamentals: FundamentalProfile | null;
 }
 
-const MOMENTUM_WEIGHTS: Record<SimilarityKey, number> = {
+export const MOMENTUM_WEIGHTS: Record<SimilarityKey, number> = {
   priceChange4w: 0.85,
   priceChange8w: 0.9,
   priceChange13w: 1.1,
@@ -55,7 +55,7 @@ const MOMENTUM_WEIGHTS: Record<SimilarityKey, number> = {
   trendSlope26w: 1.05,
 };
 
-const FUNDAMENTAL_WEIGHTS: Record<FundamentalSimilarityKey, number> = {
+export const FUNDAMENTAL_WEIGHTS: Record<FundamentalSimilarityKey, number> = {
   peRatio: 1.0,
   pegRatio: 0.85,
   pbRatio: 0.9,

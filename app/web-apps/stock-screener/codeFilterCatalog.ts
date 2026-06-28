@@ -1,4 +1,5 @@
 import { FILTER_DEFS, ALL_SECTORS, type FilterDef } from './filters';
+import { SIMILARITY_KEYS } from './similarity';
 
 export type CodeFieldCategory =
   | 'identity'
@@ -88,6 +89,15 @@ const PATTERN_FIELDS: CodeFieldDoc[] = [
     example: 'sim > 75',
     note: 'Only when pattern-match references are active',
   },
+  ...SIMILARITY_KEYS.map(key => ({
+    id: key,
+    label: key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()),
+    category: 'pattern' as CodeFieldCategory,
+    unit: '%',
+    aliases: [key],
+    example: `${key} >= -10 & ${key} <= 20`,
+    note: 'Weekly momentum factor used in pattern match',
+  })),
 ];
 
 function unitForDef(def: FilterDef): string {

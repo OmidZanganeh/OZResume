@@ -1,8 +1,12 @@
 import type { Sector, Stock, StockMetrics } from './types';
+import { SIMILARITY_KEYS, FUNDAMENTAL_SIMILARITY_KEYS, type SimilarityKey } from './similarity';
+import type { MomentumProfile } from './weeklyMomentum';
 
 export type CompareOp = '>' | '>=' | '<' | '<=' | '==' | '!=';
 
 type MetricId = keyof StockMetrics;
+
+export type MomentumField = SimilarityKey;
 
 export type ContextField =
   | 'returnToTodayPct'
@@ -10,12 +14,14 @@ export type ContextField =
   | 'priceThen'
   | 'similarity';
 
-export type ExprField = MetricId | 'sector' | 'ticker' | 'name' | ContextField;
+export type NumericFilterField = MetricId | ContextField | MomentumField;
+
+export type ExprField = NumericFilterField | 'sector' | 'ticker' | 'name';
 
 export type FilterAst =
   | { type: 'and'; left: FilterAst; right: FilterAst }
   | { type: 'or'; left: FilterAst; right: FilterAst }
-  | { type: 'compare'; field: MetricId | ContextField; op: CompareOp; value: number }
+  | { type: 'compare'; field: NumericFilterField; op: CompareOp; value: number }
   | { type: 'sectorEq'; sector: Sector }
   | { type: 'sectorIn'; sectors: Sector[] }
   | { type: 'tickerEq'; ticker: string }
@@ -28,6 +34,12 @@ export interface CodeFilterContext {
   returnToTargetPct?: number;
   priceThen?: number;
   similarity?: number;
+  /** Today's weekly-derived momentum profile (pattern-match factors). */
+  momentum?: Partial<MomentumProfile>;
+  /** Today's fundamentals for pattern factor matching (vs past reference). */
+  todayMetrics?: StockMetrics;
+  /** When true, pattern fundamental fields use todayMetrics instead of timeline snap. */
+  patternFactorScreen?: boolean;
 }
 
 export interface ParseResult {
@@ -119,6 +131,20 @@ export const METRIC_ALIASES: Record<string, ExprField> = {
   similarity: 'similarity',
   sim: 'similarity',
   match: 'similarity',
+  ch4w: 'priceChange4w',
+  ch8w: 'priceChange8w',
+  ch13w: 'priceChange13w',
+  ch20w: 'priceChange20w',
+  ch26w: 'priceChange26w',
+  ch52w: 'priceChange52w',
+  vol13: 'realizedVol13w',
+  vol26: 'realizedVol26w',
+  accel4w: 'returnAccel4w',
+  drawdown26w: 'maxDrawdown26w',
+  range26w: 'rangePosition26w',
+  posweeks13w: 'positiveWeeksPct13w',
+  slope13w: 'trendSlope13w',
+  slope26w: 'trendSlope26w',
 };
 
 type Token =
@@ -149,12 +175,17 @@ const CONTEXT_FIELDS = new Set<string>([
   'returnToTodayPct', 'returnToTargetPct', 'priceThen', 'similarity',
 ]);
 
+const MOMENTUM_IDS = new Set<string>(SIMILARITY_KEYS);
+
+const PATTERN_FUNDAMENTAL_IDS = new Set<string>(FUNDAMENTAL_SIMILARITY_KEYS);
+
 function resolveField(raw: string): ExprField | null {
   const key = normalizeIdent(raw);
   if (METRIC_ALIASES[key]) return METRIC_ALIASES[key]!;
   if (METRIC_ALIASES[raw.toLowerCase()]) return METRIC_ALIASES[raw.toLowerCase()]!;
   const camel = raw.trim();
   if (METRIC_IDS.has(camel)) return camel as MetricId;
+  if (MOMENTUM_IDS.has(camel)) return camel as MomentumField;
   if (CONTEXT_FIELDS.has(camel)) return camel as ContextField;
   return null;
 }
@@ -475,6 +506,26 @@ export function parseFilterExpression(input: string): ParseResult {
   }
 }
 
+function astUsesMomentumField(ast: FilterAst): boolean {
+  switch (ast.type) {
+    case 'compare':
+      return MOMENTUM_IDS.has(ast.field);
+    case 'and':
+      return astUsesMomentumField(ast.left) || astUsesMomentumField(ast.right);
+    case 'or':
+      return astUsesMomentumField(ast.left) || astUsesMomentumField(ast.right);
+    default:
+      return false;
+  }
+}
+
+/** Pattern factor filters include weekly momentum fields — fundamentals then use today's values. */
+export function filterExpressionUsesMomentum(input: string): boolean {
+  const { ast } = parseFilterExpression(input);
+  if (!ast) return false;
+  return astUsesMomentumField(ast);
+}
+
 function compareNumber(val: number, op: CompareOp, target: number): boolean {
   if (!Number.isFinite(val)) return false;
   switch (op) {
@@ -527,6 +578,14 @@ export function evaluateFilterAst(
     case 'compare': {
       if (CONTEXT_FIELDS.has(ast.field)) {
         return compareNumber(contextValue(ast.field as ContextField, ctx), ast.op, ast.value);
+      }
+      if (MOMENTUM_IDS.has(ast.field)) {
+        const val = ctx?.momentum?.[ast.field as MomentumField] ?? NaN;
+        return compareNumber(val, ast.op, ast.value);
+      }
+      if (ctx?.todayMetrics && ctx.patternFactorScreen && PATTERN_FUNDAMENTAL_IDS.has(ast.field)) {
+        const val = ctx.todayMetrics[ast.field as MetricId];
+        return compareNumber(val, ast.op, ast.value);
       }
       const val = metrics[ast.field as MetricId];
       return compareNumber(val, ast.op, ast.value);

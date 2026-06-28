@@ -3,24 +3,25 @@
 import { useMemo } from 'react';
 import { Code2, Crosshair, Sparkles } from 'lucide-react';
 import type { StockSnapshot } from './types';
-import type { SimilarityMatch } from './similarity';
-import { buildPatternMatchFilter } from './patternMatchFilter';
+import type { PatternProfile, SimilarityMatch } from './similarity';
+import { buildPatternFactorFilter } from './patternMatchFilter';
 import { formatAsOfDate } from './timelineDate';
 import { yahooQuoteUrl } from './yahooFinanceUrl';
 import styles from './StockScreener.module.css';
 
 export interface ReferenceEntry {
   stock: import('./types').Stock;
-  pattern: import('./similarity').PatternProfile;
+  pattern: PatternProfile;
   snapshot: StockSnapshot;
 }
 
 interface Props {
   daysAgo: number;
   references: ReferenceEntry[];
+  referencePatterns: PatternProfile[];
   topMatches: SimilarityMatch[];
   onClear: () => void;
-  onApplyFilter?: (expression: string) => void;
+  onApplyFilter?: () => void;
   filterActive?: boolean;
 }
 
@@ -32,14 +33,15 @@ function fmtReturn(v: number): string {
 export default function SimilarityPanel({
   daysAgo,
   references,
+  referencePatterns,
   topMatches,
   onClear,
   onApplyFilter,
   filterActive,
 }: Props) {
   const patternFilter = useMemo(
-    () => (topMatches.length > 0 ? buildPatternMatchFilter(topMatches) : null),
-    [topMatches],
+    () => buildPatternFactorFilter(referencePatterns),
+    [referencePatterns],
   );
 
   if (daysAgo <= 0 || references.length === 0 || topMatches.length === 0) return null;
@@ -88,12 +90,12 @@ export default function SimilarityPanel({
             <button
               type="button"
               className={`${styles.similarityApplyFilter} ${filterActive ? styles.similarityApplyFilterActive : ''}`}
-              onClick={() => onApplyFilter(patternFilter.expression)}
-              title={`Apply code filter ${patternFilter.expression} (~${patternFilter.matchCount} stocks)`}
+              onClick={onApplyFilter}
+              title={patternFilter.expression}
             >
               <Code2 size={14} aria-hidden />
-              {filterActive ? 'Match filter active' : 'Apply match filter'}
-              <code className={styles.similarityApplyFilterCode}>{patternFilter.expression}</code>
+              {filterActive ? 'Pattern factor filter active' : 'Apply pattern factor filter'}
+              <code className={styles.similarityApplyFilterCode}>{patternFilter.summary}</code>
             </button>
           )}
           <button type="button" className={styles.similarityClear} onClick={onClear}>
@@ -143,7 +145,7 @@ export default function SimilarityPanel({
         <Crosshair size={12} />
         Compares weekly price action (returns, volatility, drawdown, trend) plus fundamentals
         (P/E, margins, ROE, growth, leverage, FCF yield) from the past pattern to today’s values.
-        Stocks without enough weekly or fundamental data weigh momentum only.
+        Apply pattern factor filter to copy those momentum + fundamental bands into Code mode.
         {' '}Not investment advice — verify before trading.
       </p>
     </section>

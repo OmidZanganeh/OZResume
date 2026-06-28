@@ -31,6 +31,7 @@ import {
   targetDaysAgoFromPeriod,
 } from './returnPeriods';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
+import { filterExpressionUsesMomentum } from './filterExpression';
 import type { ScreenerState } from './filters';
 import {
   buildTodaySnapshots,
@@ -45,7 +46,7 @@ import {
   peekSnapshotCache,
 } from './snapshotCache';
 import { rankSimilarityToday, similarityScoresToday, fundamentalProfileFromMetrics } from './similarity';
-import { buildPatternMatchFilter, isBrokenPatternMatchExpression } from './patternMatchFilter';
+import { buildPatternFactorFilter, isLegacyPatternMatchExpression } from './patternMatchFilter';
 import { visibleColumns } from './tableColumns';
 import { downloadScreenerCsv, screenerCsvFilename } from './exportCsv';
 import {
@@ -473,6 +474,9 @@ export default function StockScreener() {
 
   const matchingSet = useMemo(() => {
     const snapMap = isHistorical ? activeSnapshots : todaySnapshots;
+    const patternFactorScreen =
+      screenerState.filterMode === 'code'
+      && filterExpressionUsesMomentum(screenerState.codeExpression);
     const matched = stocks.filter(s => {
       const snap = snapMap.get(s.ticker);
       if (!snap) return false;
@@ -484,6 +488,9 @@ export default function StockScreener() {
             ? returnBetweenDaysAgo(s, activeDaysAgo, returnTargetDaysAgo) ?? undefined
             : undefined,
         similarity: showSimilarity ? similarityMap.get(s.ticker) : undefined,
+        momentum: todayPatterns.get(s.ticker)?.momentum,
+        todayMetrics: patternFactorScreen ? todaySnapshots.get(s.ticker) : undefined,
+        patternFactorScreen,
       };
       return passesScreen(s, snap, screenerState, ctx);
     });
@@ -498,6 +505,7 @@ export default function StockScreener() {
     activeDaysAgo,
     showSimilarity,
     similarityMap,
+    todayPatterns,
   ]);
 
   const backtest = useMemo(() => {
@@ -658,23 +666,23 @@ export default function StockScreener() {
     setSortDir('desc');
   }, [stocks, dataSource, referenceTickers]);
 
-  const patternMatchFilterPreview = useMemo(
-    () => (topMatches.length > 0 ? buildPatternMatchFilter(topMatches) : null),
-    [topMatches],
+  const patternFactorPreview = useMemo(
+    () => (referenceProfiles.length > 0
+      ? buildPatternFactorFilter(referenceProfiles.map(r => r.pattern))
+      : null),
+    [referenceProfiles],
   );
 
   const patternFilterActive = Boolean(
     showSimilarity
-    && patternMatchFilterPreview
-    && Number.isFinite(patternMatchFilterPreview.threshold)
+    && patternFactorPreview
     && screenerState.filterMode === 'code'
-    && screenerState.codeExpression.trim() === patternMatchFilterPreview.expression,
+    && screenerState.codeExpression.trim() === patternFactorPreview.expression,
   );
 
-  const handleApplyPatternFilter = useCallback((expression: string) => {
-    if (isBrokenPatternMatchExpression(expression)) return;
-    const built = buildPatternMatchFilter(topMatches);
-    if (!built || !Number.isFinite(built.threshold)) return;
+  const handleApplyPatternFilter = useCallback(() => {
+    const built = buildPatternFactorFilter(referenceProfiles.map(r => r.pattern));
+    if (!built) return;
     setScreenerState(prev => ({
       ...prev,
       filterMode: 'code',
@@ -687,18 +695,19 @@ export default function StockScreener() {
         block: 'start',
       });
     });
-  }, [topMatches]);
+  }, [referenceProfiles]);
 
-  // Clear a previously applied broken filter (sim >= NaN) once we have valid scores.
+  // Replace legacy sim >= … filters with factor bands when pattern is active.
   useEffect(() => {
-    if (!isBrokenPatternMatchExpression(screenerState.codeExpression)) return;
-    const built = buildPatternMatchFilter(topMatches);
+    if (!showSimilarity || !isLegacyPatternMatchExpression(screenerState.codeExpression)) return;
+    const built = buildPatternFactorFilter(referenceProfiles.map(r => r.pattern));
     if (!built) return;
     setScreenerState(prev => ({
       ...prev,
+      filterMode: 'code',
       codeExpression: built.expression,
     }));
-  }, [screenerState.codeExpression, topMatches]);
+  }, [showSimilarity, screenerState.codeExpression, referenceProfiles]);
 
   const exportColumns = useMemo(
     () => visibleColumns(isHistorical, showSimilarity, deferredReturnPeriodDays),
@@ -877,6 +886,7 @@ export default function StockScreener() {
             <SimilarityPanel
               daysAgo={deferredDaysAgo}
               references={referenceProfiles}
+              referencePatterns={referenceProfiles.map(r => r.pattern)}
               topMatches={topMatches}
               onClear={() => setReferenceTickers(new Set())}
               onApplyFilter={handleApplyPatternFilter}
