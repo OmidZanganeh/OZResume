@@ -2361,7 +2361,7 @@
   gap: 8px;
 }
 
-.similarityApplyFilter {
+.similarityCopyFilter {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
@@ -2377,18 +2377,18 @@
   transition: background 0.15s, border-color 0.15s;
 }
 
-.similarityApplyFilter:hover {
+.similarityCopyFilter:hover {
   background: rgba(20, 184, 166, 0.2);
   border-color: rgba(20, 184, 166, 0.55);
 }
 
-.similarityApplyFilterActive {
+.similarityCopyFilterDone {
   background: rgba(20, 184, 166, 0.22);
   border-color: rgba(20, 184, 166, 0.65);
   color: #99f6e4;
 }
 
-.similarityApplyFilterCode {
+.similarityCopyFilterCode {
   font-size: 10px;
   font-weight: 500;
   padding: 1px 5px;
