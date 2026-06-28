@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import {
   AlertCircle,
   BookOpen,
@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Play,
   Save,
   Terminal,
   Trash2,
@@ -26,12 +27,22 @@ import styles from './StockScreener.module.css';
 
 interface Props {
   expression: string;
+  appliedExpression: string;
   onChange: (expression: string) => void;
+  onApply: () => void;
+  applyPending?: boolean;
   isHistorical?: boolean;
 }
 
-export default function CodeFilterPanel({ expression, onChange, isHistorical }: Props) {
-  const [guideOpen, setGuideOpen] = useState(() => expression.trim().length < 120);
+export default function CodeFilterPanel({
+  expression,
+  appliedExpression,
+  onChange,
+  onApply,
+  applyPending = false,
+  isHistorical,
+}: Props) {
+  const [guideOpen, setGuideOpen] = useState(true);
   const [refOpen, setRefOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [savedOpen, setSavedOpen] = useState(true);
@@ -40,13 +51,9 @@ export default function CodeFilterPanel({ expression, onChange, isHistorical }: 
   const parsed = useMemo(() => parseFilterExpression(expression), [expression]);
   const hasExpr = expression.trim().length > 0;
   const isValid = hasExpr && !parsed.error && parsed.ast != null;
-
-  useEffect(() => {
-    if (expression.length > 280) {
-      setGuideOpen(false);
-      setRefOpen(false);
-    }
-  }, [expression]);
+  const isDirty = expression.trim() !== appliedExpression.trim();
+  const isApplied = isValid && !isDirty;
+  const canApply = isDirty && !parsed.error && (hasExpr || appliedExpression.trim().length > 0);
 
   const handleSave = () => {
     if (!isValid) return;
@@ -120,6 +127,12 @@ export default function CodeFilterPanel({ expression, onChange, isHistorical }: 
         className={`${styles.codeFilterInput} ${parsed.error ? styles.codeFilterInputError : ''}`}
         value={expression}
         onChange={e => onChange(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && canApply) {
+            e.preventDefault();
+            onApply();
+          }
+        }}
         placeholder="PE > 10 & 52W > 55"
         spellCheck={false}
         rows={3}
@@ -128,24 +141,47 @@ export default function CodeFilterPanel({ expression, onChange, isHistorical }: 
         aria-describedby="code-filter-status"
       />
 
-      <div className={styles.codeFilterMeta} id="code-filter-status">
-        {parsed.error && (
-          <span className={styles.codeFilterError}>
-            <AlertCircle size={14} aria-hidden />
-            {parsed.error}
-          </span>
-        )}
-        {!parsed.error && isValid && (
-          <span className={styles.codeFilterOk}>
-            <CheckCircle2 size={14} aria-hidden />
-            Expression valid — filtering universe
-          </span>
-        )}
-        {!hasExpr && (
-          <span className={styles.codeFilterHint}>
-            Use <strong>&amp;</strong> for AND, <strong>|</strong> for OR, parentheses for grouping
-          </span>
-        )}
+      <div className={styles.codeFilterApplyRow}>
+        <div className={styles.codeFilterMeta} id="code-filter-status">
+          {parsed.error && (
+            <span className={styles.codeFilterError}>
+              <AlertCircle size={14} aria-hidden />
+              {parsed.error}
+            </span>
+          )}
+          {!parsed.error && isValid && isDirty && (
+            <span className={styles.codeFilterPending}>
+              <CheckCircle2 size={14} aria-hidden />
+              Valid — click Apply to filter the table
+            </span>
+          )}
+          {!parsed.error && isApplied && (
+            <span className={styles.codeFilterOk}>
+              <CheckCircle2 size={14} aria-hidden />
+              Filter applied
+            </span>
+          )}
+          {!parsed.error && !hasExpr && appliedExpression.trim() && (
+            <span className={styles.codeFilterPending}>
+              Cleared — Apply to show the full universe
+            </span>
+          )}
+          {!hasExpr && !appliedExpression.trim() && (
+            <span className={styles.codeFilterHint}>
+              Use <strong>&amp;</strong> for AND, <strong>|</strong> for OR, parentheses for grouping
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          className={styles.codeFilterApplyBtn}
+          onClick={onApply}
+          disabled={!canApply || applyPending}
+          title={canApply ? 'Apply filter (Ctrl+Enter)' : 'Fix syntax or change expression to apply'}
+        >
+          <Play size={14} aria-hidden />
+          {applyPending ? 'Applying…' : 'Apply filter'}
+        </button>
       </div>
 
       <div className={styles.codeFilterSaveRow}>

@@ -764,6 +764,16 @@
   color: #f87171;
 }
 
+.filterBarCountPending {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.14);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
 .filterModeTabs {
   display: flex;
   gap: 4px;
@@ -945,10 +955,46 @@
   border-color: rgba(248, 113, 113, 0.55);
 }
 
+.codeFilterApplyRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.codeFilterApplyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(20, 184, 166, 0.55);
+  background: rgba(20, 184, 166, 0.18);
+  color: #5eead4;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.codeFilterApplyBtn:hover:not(:disabled) {
+  background: rgba(20, 184, 166, 0.28);
+  border-color: rgba(20, 184, 166, 0.7);
+}
+
+.codeFilterApplyBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .codeFilterMeta {
   min-height: 22px;
-  margin-top: 8px;
   font-size: 12px;
+  flex: 1;
+  min-width: 180px;
 }
 
 .codeFilterError {
@@ -963,6 +1009,13 @@
   align-items: center;
   gap: 6px;
   color: #3ecf8e;
+}
+
+.codeFilterPending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fbbf24;
 }
 
 .codeFilterHint {

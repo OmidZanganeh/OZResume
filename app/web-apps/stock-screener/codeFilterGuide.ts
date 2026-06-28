@@ -5,15 +5,15 @@ export const CODE_FILTER_GUIDE = {
   intro:
     'Switch to Code mode to write screening rules as text — like a spreadsheet formula. ' +
     'Every table column is filterable: fundamentals, technicals, sector, ticker, company name, ' +
-    'historical returns, and pattern similarity. When the expression validates (green check), ' +
-    'the table and charts show only matching stocks.',
+    'historical returns, and pattern similarity. Click Apply filter to run the expression — ' +
+    'the table stays unchanged while you edit.',
   steps: [
     'Open Filters → click Code (next to Sliders).',
     'Type a condition, e.g. PE > 10 & 52W > 55.',
-    'Watch for the green “Expression valid” message — red text means a typo to fix.',
+    'Fix any red syntax errors, then click Apply filter (or Ctrl+Enter).',
     'Open Full field reference below for every column id, alias, and example.',
-    'Save named filters with Save — load them anytime from Saved filters.',
-    'Click an example chip to paste a ready-made formula.',
+    'Save named filters with Save — load them into the editor, then Apply.',
+    'Click an example chip to paste a ready-made formula (Apply to run it).',
     'Drag the timeline to screen past dates — metrics update for that date.',
     'Switch back to Sliders anytime; your code is kept until you Reset.',
   ],
@@ -34,7 +34,7 @@ export const CODE_FILTER_GUIDE = {
     'Market cap is in millions: marketCap > 10000 ≈ $10B+.',
     'Full slider names work: peRatio > 15, priceChange52w > 30, dividendYield > 2.',
     'Historical-only fields: retNow, retTarget, priceThen — meaningful when timeline is in the past.',
-    'If syntax errors appear, the universe is not filtered until you fix the expression.',
+    'If syntax errors appear, Apply stays disabled until you fix the expression.',
     'Code mode replaces slider filters — use one style at a time.',
     'Saved filters live in this browser (localStorage) — they do not sync across devices.',
   ],

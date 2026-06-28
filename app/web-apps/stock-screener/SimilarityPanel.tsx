@@ -162,7 +162,7 @@ export default function SimilarityPanel({
         <Crosshair size={12} />
         Compares weekly price action (returns, volatility, drawdown, trend) plus fundamentals
         (P/E, margins, ROE, growth, leverage, FCF yield) from the past pattern to today’s values.
-        Copy pattern filter to paste into Code mode — it won’t auto-apply.
+        Copy pattern filter to paste into Code mode, then click Apply filter — it won’t run until you do.
         {' '}Not investment advice — verify before trading.
       </p>
     </section>

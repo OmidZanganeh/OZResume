@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Code2, Plus, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
 import FilterRow from './FilterRow';
 import CodeFilterPanel from './CodeFilterPanel';
@@ -33,12 +33,30 @@ export default function FilterBar({ state, onChange, isHistorical }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQuery, setPickerQuery] = useState('');
   const pickerRef = useRef<HTMLDivElement>(null);
+  const [draftExpression, setDraftExpression] = useState(state.codeExpression);
+  const [isApplyPending, startApplyTransition] = useTransition();
+
+  useEffect(() => {
+    setDraftExpression(state.codeExpression);
+  }, [state.codeExpression]);
 
   const activeIds = activeMetricFilterIds(state);
   const inactiveIds = inactiveMetricFilterIds(state);
   const activeCount = enabledFilterCount(state);
-  const codeErr = codeFilterError(state);
+  const draftState = useMemo(
+    () => ({ ...state, codeExpression: draftExpression }),
+    [state, draftExpression],
+  );
+  const codeDraftErr = codeFilterError(draftState);
   const codeActive = isCodeFilterActive(state);
+  const codeDraftDirty = draftExpression.trim() !== state.codeExpression.trim();
+
+  const handleApplyCode = () => {
+    if (codeDraftErr) return;
+    startApplyTransition(() => {
+      onChange({ ...state, codeExpression: draftExpression.trim() });
+    });
+  };
 
   const setFilter = (id: FilterId, range: ScreenerState['filters'][FilterId]) => {
     onChange({ ...state, filters: { ...state.filters, [id]: range } });
@@ -110,15 +128,18 @@ export default function FilterBar({ state, onChange, isHistorical }: Props) {
   const isVisual = state.filterMode === 'visual';
 
   return (
-    <section className={styles.filterBar} aria-label="Screening filters" id="stock-screener-filters">
+    <section className={styles.filterBar} aria-label="Screening filters">
       <div className={styles.filterBarHead}>
         <div className={styles.filterBarTitleGroup}>
           <h2 className={styles.filterBarTitle}>Filters</h2>
           {activeCount > 0 && (
             <span className={styles.filterBarCount}>{activeCount} active</span>
           )}
-          {state.filterMode === 'code' && codeErr && (
+          {state.filterMode === 'code' && codeDraftErr && (
             <span className={styles.filterBarCountWarn}>Syntax error</span>
+          )}
+          {state.filterMode === 'code' && !codeDraftErr && codeDraftDirty && (
+            <span className={styles.filterBarCountPending}>Unapplied</span>
           )}
         </div>
 
@@ -289,15 +310,18 @@ export default function FilterBar({ state, onChange, isHistorical }: Props) {
         </>
       ) : (
         <CodeFilterPanel
-          expression={state.codeExpression}
-          onChange={expr => onChange({ ...state, codeExpression: expr })}
+          expression={draftExpression}
+          appliedExpression={state.codeExpression}
+          onChange={setDraftExpression}
+          onApply={handleApplyCode}
+          applyPending={isApplyPending}
           isHistorical={isHistorical}
         />
       )}
 
       {state.filterMode === 'code' && codeActive && (
         <p className={styles.filterBarNote}>
-          Code mode replaces slider filters. Switch to Sliders to use range controls again.
+          Code mode replaces slider filters. Edit the expression, then click <strong>Apply filter</strong> to update results.
         </p>
       )}
     </section>
