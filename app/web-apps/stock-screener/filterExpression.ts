@@ -245,13 +245,13 @@ class Parser {
     return t;
   }
 
-  private matchOp(...ops: string[]): boolean {
+  private matchOp(...ops: string[]): string | null {
     const t = this.peek();
     if (t?.kind === 'op' && ops.includes(t.value)) {
       this.pos += 1;
-      return true;
+      return t.value;
     }
-    return false;
+    return null;
   }
 
   private parseOr(): FilterAst {
@@ -327,12 +327,12 @@ class Parser {
         return { type: 'sectorIn', sectors };
       }
 
-      if (!this.matchOp('==', '=', '!=')) {
+      const opRaw = this.matchOp('==', '=', '!=');
+      if (!opRaw) {
         throw new Error(
           `Expected = or != after sector at column ${identTok.pos + identTok.value.length + 1}`,
         );
       }
-      const opRaw = this.tokens[this.pos - 1]!.value;
       const normalizedOp: CompareOp = opRaw === '=' ? '==' : (opRaw as CompareOp);
       const valTok = this.consume();
       if (valTok.kind !== 'ident') {
