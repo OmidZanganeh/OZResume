@@ -18,6 +18,12 @@ import DateTimeline from './DateTimeline';
 import BacktestPanel from './BacktestPanel';
 import SimilarityPanel from './SimilarityPanel';
 import WatchlistPanel from './WatchlistPanel';
+import VisualViewTabs from './views/VisualViewTabs';
+import ChartsView from './views/ChartsView';
+import SectorView from './views/SectorView';
+import CompareView from './views/CompareView';
+import type { VisualViewMode } from './views/visualViewMode';
+import chartStyles from './charts/Charts.module.css';
 import { MOCK_STOCKS } from './mockStocks';
 import type { Stock } from './types';
 import {
@@ -139,6 +145,9 @@ export default function StockScreener() {
     DEFAULT_UNIVERSE_SELECTION,
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [visualViewMode, setVisualViewMode] = useState<VisualViewMode>('table');
+  const [selectedChartTicker, setSelectedChartTicker] = useState<string | null>(null);
+  const [compareTickers, setCompareTickers] = useState<string[]>([]);
   const watchlist = useWatchlists();
   const stocksRef = useRef(stocks);
   stocksRef.current = stocks;
@@ -535,6 +544,31 @@ export default function StockScreener() {
     [watchlist],
   );
 
+  const ensureWeeklyHistory = useCallback(async (ticker: string) => {
+    const stock = stocksRef.current.find(s => s.ticker === ticker);
+    if (!stock || stock.weeklyHistory?.length || dataSource === 'mock') return;
+    try {
+      const res = await fetch(
+        `/api/stock-screener/weekly?symbols=${encodeURIComponent(ticker)}`,
+      );
+      if (!res.ok) return;
+      const body = (await res.json()) as { results?: Record<string, Stock['weeklyHistory']> };
+      const w = body.results?.[ticker];
+      if (!w?.length) return;
+      setStocks(prev =>
+        prev.map(s => (s.ticker === ticker ? { ...s, weeklyHistory: w } : s)),
+      );
+    } catch {
+      // ignore
+    }
+  }, [dataSource]);
+
+  const handleSelectChart = useCallback((ticker: string) => {
+    setSelectedChartTicker(ticker);
+    setVisualViewMode('charts');
+    void ensureWeeklyHistory(ticker);
+  }, [ensureWeeklyHistory]);
+
   const handleSort = useCallback((col: TableColumnId) => {
     setSortColumn(prev => {
       if (prev === col) {
@@ -693,6 +727,9 @@ export default function StockScreener() {
             onChange={setScreenerState}
             isHistorical={isHistorical}
           />
+
+          <VisualViewTabs mode={visualViewMode} onChange={setVisualViewMode} />
+
           <div className={styles.resultsHeader}>
             <div>
               <h1 className={styles.resultsTitle}>
@@ -707,7 +744,7 @@ export default function StockScreener() {
                   ? 'All factors for your saved tickers — same columns as the full screener.'
                   : isHistorical
                     ? 'Weekly closing prices and returns since that date. Fundamentals use the latest fiscal report before that date. New listings show earliest available bar before IPO (*).'
-                    : 'Live Finnhub snapshot — drag the timeline to explore up to 10 years back.'}
+                    : 'Live Finnhub snapshot — drag the timeline to explore up to 10 years back. Use Table / Charts / Sector / Compare tabs below filters.'}
                 {viewMode === 'universe' && isHistorical && dataSource !== 'mock' && (
                   <> · Click ◉ to pick a pattern{weeklyReadyCount < total ? ' (weekly prices load on first click)' : ''}</>
                 )}
@@ -770,6 +807,8 @@ export default function StockScreener() {
             daysAgo={deferredDaysAgo}
             backtest={backtest}
             universeLabel={`${universeLabel} avg`}
+            stocks={stocks}
+            matchedTickers={matchingSet}
           />
 
           {showSimilarity && (
@@ -781,45 +820,85 @@ export default function StockScreener() {
             />
           )}
 
-          <StockTable
-            rows={displayRows}
-            isHistorical={isHistorical}
-            showSimilarity={showSimilarity}
-            returnPeriodDays={deferredReturnPeriodDays}
-            referenceTickers={referenceTickers}
-            sortColumn={sortColumn}
-            sortDir={sortDir}
-            onSort={handleSort}
-            onSelectReference={handleSelectReference}
-            isLoading={isLoading || (stocks.length > 0 && tableRows.length === 0)}
-            isUpdating={isSnapshotsStale && activeSnapshots.size > 0}
-            patternLoading={patternLoading}
-            watchlistTickers={watchlist.activeTickers}
-            onToggleWatchlist={handleToggleWatchlist}
-          />
+          <div className={chartStyles.visualContent}>
+            {visualViewMode === 'table' && (
+              <StockTable
+                rows={displayRows}
+                isHistorical={isHistorical}
+                showSimilarity={showSimilarity}
+                returnPeriodDays={deferredReturnPeriodDays}
+                referenceTickers={referenceTickers}
+                sortColumn={sortColumn}
+                sortDir={sortDir}
+                onSort={handleSort}
+                onSelectReference={handleSelectReference}
+                isLoading={isLoading || (stocks.length > 0 && tableRows.length === 0)}
+                isUpdating={isSnapshotsStale && activeSnapshots.size > 0}
+                patternLoading={patternLoading}
+                watchlistTickers={watchlist.activeTickers}
+                onToggleWatchlist={handleToggleWatchlist}
+                selectedChartTicker={selectedChartTicker}
+                onSelectChart={handleSelectChart}
+              />
+            )}
 
-          {!isLoading && searchActive && shownCount === 0 && (
-            <p className={styles.emptyState}>
-              No stocks match “{searchQuery.trim()}”. Try another ticker or company name.
-            </p>
-          )}
+            {visualViewMode === 'charts' && !isLoading && (
+              <ChartsView
+                rows={displayRows}
+                selectedTicker={selectedChartTicker}
+                onSelectTicker={setSelectedChartTicker}
+                daysAgo={deferredDaysAgo}
+                onEnsureWeekly={ticker => void ensureWeeklyHistory(ticker)}
+              />
+            )}
 
-          {!isLoading && !searchActive && viewMode === 'watchlist' && watchlist.active.tickers.length === 0 && (
-            <p className={styles.emptyState}>
-              This watchlist is empty. Switch to {universeLabel} and click ★ on any row to add stocks.
-            </p>
-          )}
+            {visualViewMode === 'sector' && !isLoading && (
+              <SectorView rows={displayRows} filteredOnly={viewMode !== 'watchlist'} />
+            )}
 
-          {!isLoading && !searchActive && viewMode === 'watchlist' && watchlist.active.tickers.length > 0 && displayRows.length === 0 && (
-            <p className={styles.emptyState}>
-              Watchlist tickers aren’t in the current snapshot yet. They may appear after the weekly cache refresh.
-            </p>
-          )}
+            {visualViewMode === 'compare' && !isLoading && (
+              <CompareView
+                rows={displayRows}
+                compareTickers={compareTickers}
+                onCompareChange={setCompareTickers}
+                daysAgo={deferredDaysAgo}
+                stocks={stocks}
+                matchedTickers={matchingSet}
+                universeLabel={`${universeLabel} avg`}
+              />
+            )}
 
-          {!isLoading && !searchActive && viewMode === 'universe' && matchCount === 0 && (
-            <p className={styles.emptyState}>
-              No stocks match your filters{isHistorical ? ' at that date' : ''}. Widen ranges or disable filters.
-            </p>
+            {visualViewMode !== 'table' && isLoading && (
+              <p className={chartStyles.viewEmpty}>Loading market data…</p>
+            )}
+          </div>
+
+          {visualViewMode === 'table' && (
+            <>
+              {!isLoading && searchActive && shownCount === 0 && (
+                <p className={styles.emptyState}>
+                  No stocks match “{searchQuery.trim()}”. Try another ticker or company name.
+                </p>
+              )}
+
+              {!isLoading && !searchActive && viewMode === 'watchlist' && watchlist.active.tickers.length === 0 && (
+                <p className={styles.emptyState}>
+                  This watchlist is empty. Switch to {universeLabel} and click ★ on any row to add stocks.
+                </p>
+              )}
+
+              {!isLoading && !searchActive && viewMode === 'watchlist' && watchlist.active.tickers.length > 0 && displayRows.length === 0 && (
+                <p className={styles.emptyState}>
+                  Watchlist tickers aren’t in the current snapshot yet. They may appear after the weekly cache refresh.
+                </p>
+              )}
+
+              {!isLoading && !searchActive && viewMode === 'universe' && matchCount === 0 && (
+                <p className={styles.emptyState}>
+                  No stocks match your filters{isHistorical ? ' at that date' : ''}. Widen ranges or disable filters.
+                </p>
+              )}
+            </>
           )}
         </main>
       </div>

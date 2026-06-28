@@ -10,6 +10,8 @@ import {
   type TableColumnId,
 } from './tableColumns';
 import ColumnHeaderInfo from './ColumnHeaderInfo';
+import Sparkline from './charts/Sparkline';
+import chartStyles from './charts/Charts.module.css';
 import styles from './StockScreener.module.css';
 import { yahooQuoteUrl } from './yahooFinanceUrl';
 
@@ -39,6 +41,8 @@ interface Props {
   patternLoading?: ReadonlySet<string>;
   watchlistTickers?: ReadonlySet<string>;
   onToggleWatchlist?: (ticker: string) => void;
+  selectedChartTicker?: string | null;
+  onSelectChart?: (ticker: string) => void;
 }
 
 const ROW_HEIGHT_PX = 37;
@@ -110,6 +114,8 @@ function TableRowView({
   patternLoading,
   watchlistTickers,
   onToggleWatchlist,
+  selectedChartTicker,
+  onSelectChart,
 }: {
   row: TableRow;
   columns: TableColumn[];
@@ -120,10 +126,13 @@ function TableRowView({
   patternLoading?: ReadonlySet<string>;
   watchlistTickers?: ReadonlySet<string>;
   onToggleWatchlist?: (ticker: string) => void;
+  selectedChartTicker?: string | null;
+  onSelectChart?: (ticker: string) => void;
 }) {
   const highMatch = (row.similarity ?? 0) >= 75;
   const isPatternLoading = patternLoading?.has(row.stock.ticker) ?? false;
   const inWatchlist = watchlistTickers?.has(row.stock.ticker) ?? false;
+  const isChartSelected = selectedChartTicker === row.stock.ticker;
   const retTarget = row.returnToTargetPct;
   return (
     <tr
@@ -132,6 +141,7 @@ function TableRowView({
         !row.visible ? styles.trDim : '',
         isRef ? styles.trReference : '',
         highMatch && showSimilarity ? styles.trMatch : '',
+        isChartSelected ? chartStyles.trSelected : '',
       ].filter(Boolean).join(' ')}
     >
       <td className={styles.tdAction}>
@@ -169,6 +179,12 @@ function TableRowView({
             </button>
           )}
         </div>
+      </td>
+      <td className={`${styles.td} ${styles.tdSpark}`}>
+        <Sparkline
+          stock={row.stock}
+          onClick={onSelectChart ? () => onSelectChart(row.stock.ticker) : undefined}
+        />
       </td>
       {columns.map(col => (
         <td
@@ -242,6 +258,8 @@ export default function StockTable({
   patternLoading,
   watchlistTickers,
   onToggleWatchlist,
+  selectedChartTicker,
+  onSelectChart,
 }: Props) {
   const columns = useMemo(
     () => visibleColumns(isHistorical, showSimilarity, returnPeriodDays),
@@ -267,7 +285,7 @@ export default function StockTable({
     return () => ro.disconnect();
   }, [isLoading]);
 
-  const colSpan = columns.length + 1;
+  const colSpan = columns.length + 2;
   const totalHeight = rows.length * ROW_HEIGHT_PX;
   const startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT_PX) - VIRTUAL_OVERSCAN);
   const visibleCount =
@@ -288,12 +306,15 @@ export default function StockTable({
   }
 
   return (
-    <div className={styles.tableWrap} ref={wrapRef} onScroll={onScroll} style={{ '--action-col': '72px' } as React.CSSProperties}>
+    <div className={styles.tableWrap} ref={wrapRef} onScroll={onScroll} style={{ '--sticky-offset': '160px' } as React.CSSProperties}>
       {isUpdating && <div className={styles.tableUpdating} aria-hidden />}
       <table className={styles.dataTable}>
         <thead>
           <tr>
-            <th className={`${styles.th} ${styles.thAction}`} scope="col" aria-label="Set pattern" />
+            <th className={`${styles.th} ${styles.thAction}`} scope="col" aria-label="Actions" />
+            <th className={`${styles.th} ${styles.thSpark}`} scope="col">
+              <span className={styles.thLabel}>Trend</span>
+            </th>
             {columns.map(col => (
               <th
                 key={col.id}
@@ -332,6 +353,8 @@ export default function StockTable({
               patternLoading={patternLoading}
               watchlistTickers={watchlistTickers}
               onToggleWatchlist={onToggleWatchlist}
+              selectedChartTicker={selectedChartTicker}
+              onSelectChart={onSelectChart}
             />
           ))}
           {bottomPad > 0 && (

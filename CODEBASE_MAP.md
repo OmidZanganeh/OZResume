@@ -40,7 +40,7 @@
 | `/tools/elevation-profile` | `page.tsx`, `ElevationMap.tsx` |
 | `/tools/geocoder` | `page.tsx`, `GeocoderMap.tsx` |
 | `/tools/census` | `page.tsx`, `CensusMap.tsx` |
-| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 + NASDAQ 100 + S&P 400 screener; sortable factor table, 10y timeline, pattern similarity, watchlists |
+| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 + NASDAQ 100 + S&P 400 screener; sortable factor table, 10y timeline, pattern similarity, watchlists; **visual tabs** (Table / Charts / Sector / Compare) with sparklines, lightweight-charts price view, recharts sector & backtest charts |
 
 ## API routes (`app/api/*/route.ts`)
 

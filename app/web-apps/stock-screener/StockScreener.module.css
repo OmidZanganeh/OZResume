@@ -1619,10 +1619,16 @@
 
 .thLeft { text-align: left; }
 .thRight { text-align: right; }
-.thAction { width: 40px; min-width: 40px; padding: 0; }
+.thAction { width: 72px; min-width: 72px; padding: 0; }
+.thSpark {
+  width: 88px;
+  min-width: 88px;
+  padding: 4px 6px;
+  text-align: center;
+}
 
 .thSticky {
-  left: var(--action-col, 72px);
+  left: var(--sticky-offset, 160px);
   z-index: 3;
   box-shadow: 4px 0 8px rgba(0, 0, 0, 0.25);
 }
@@ -1738,9 +1744,17 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
+.tdSpark {
+  width: 88px;
+  min-width: 88px;
+  padding: 4px 6px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
 .tdSticky {
   position: sticky;
-  left: var(--action-col, 72px);
+  left: var(--sticky-offset, 160px);
   background: #0c1015;
   z-index: 1;
   font-weight: 600;

@@ -1,21 +1,37 @@
 'use client';
 
+import { useMemo } from 'react';
 import { TrendingUp } from 'lucide-react';
-import type { BacktestSummary } from './types';
+import type { BacktestSummary, Stock } from './types';
 import { formatAsOfDate } from './timelineDate';
+import { buildCumulativeBacktestSeries } from './charts/chartSeries';
+import BacktestLineChart from './charts/BacktestLineChart';
 import styles from './StockScreener.module.css';
 
 interface Props {
   daysAgo: number;
   backtest: BacktestSummary | null;
   universeLabel?: string;
+  stocks?: Stock[];
+  matchedTickers?: Set<string>;
 }
 
 function fmtPct(v: number): string {
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 }
 
-export default function BacktestPanel({ daysAgo, backtest, universeLabel = 'Index avg' }: Props) {
+export default function BacktestPanel({
+  daysAgo,
+  backtest,
+  universeLabel = 'Index avg',
+  stocks = [],
+  matchedTickers = new Set(),
+}: Props) {
+  const cumulative = useMemo(
+    () => buildCumulativeBacktestSeries(stocks, daysAgo, matchedTickers),
+    [stocks, daysAgo, matchedTickers],
+  );
+
   if (daysAgo <= 0 || !backtest) return null;
 
   return (
@@ -53,6 +69,13 @@ export default function BacktestPanel({ daysAgo, backtest, universeLabel = 'Inde
           </span>
         </div>
       </div>
+      {cumulative.length > 1 && (
+        <BacktestLineChart
+          points={cumulative}
+          universeLabel={universeLabel}
+          height={220}
+        />
+      )}
     </section>
   );
 }
