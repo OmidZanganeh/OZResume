@@ -21,6 +21,7 @@ export interface ReferenceEntry {
 interface Props {
   daysAgo: number;
   references: ReferenceEntry[];
+  candidatePatterns: PatternProfile[];
   topMatches: SimilarityMatch[];
   onClear: () => void;
 }
@@ -48,21 +49,32 @@ async function copyText(text: string): Promise<void> {
 export default function SimilarityPanel({
   daysAgo,
   references,
+  candidatePatterns,
   topMatches,
   onClear,
 }: Props) {
+  const [copiedCode, setCopiedCode] = useState(false);
   const [copiedSim, setCopiedSim] = useState(false);
-  const [copiedBands, setCopiedBands] = useState(false);
+
+  const codeFilter = useMemo(
+    () => buildPatternFactorFilter(
+      references.map(r => r.pattern),
+      candidatePatterns,
+    ),
+    [references, candidatePatterns],
+  );
 
   const similarityFilter = useMemo(
     () => buildPatternSimilarityFilter(topMatches),
     [topMatches],
   );
 
-  const factorBandFilter = useMemo(
-    () => buildPatternFactorFilter(references.map(r => r.pattern)),
-    [references],
-  );
+  const handleCopyCode = useCallback(async () => {
+    if (!codeFilter) return;
+    await copyText(codeFilter.expression);
+    setCopiedCode(true);
+    window.setTimeout(() => setCopiedCode(false), 2000);
+  }, [codeFilter]);
 
   const handleCopySimilarity = useCallback(async () => {
     if (!similarityFilter) return;
@@ -70,13 +82,6 @@ export default function SimilarityPanel({
     setCopiedSim(true);
     window.setTimeout(() => setCopiedSim(false), 2000);
   }, [similarityFilter]);
-
-  const handleCopyFactorBands = useCallback(async () => {
-    if (!factorBandFilter) return;
-    await copyText(factorBandFilter.expression);
-    setCopiedBands(true);
-    window.setTimeout(() => setCopiedBands(false), 2000);
-  }, [factorBandFilter]);
 
   if (daysAgo <= 0 || references.length === 0 || topMatches.length === 0) return null;
 
@@ -120,30 +125,27 @@ export default function SimilarityPanel({
           </p>
         </div>
         <div className={styles.similarityActions}>
+          {codeFilter && (
+            <button
+              type="button"
+              className={`${styles.similarityCopyFilter} ${copiedCode ? styles.similarityCopyFilterDone : ''}`}
+              onClick={() => void handleCopyCode()}
+              title="Editable factor ranges — one metric per line; widen or delete clauses before Apply"
+            >
+              {copiedCode ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+              {copiedCode ? 'Copied!' : 'Copy code filter'}
+              <code className={styles.similarityCopyFilterCode}>{codeFilter.summary}</code>
+            </button>
+          )}
           {similarityFilter && (
             <button
               type="button"
-              className={`${styles.similarityCopyFilter} ${copiedSim ? styles.similarityCopyFilterDone : ''}`}
+              className={`${styles.similarityCopyFilterSecondary} ${copiedSim ? styles.similarityCopyFilterDone : ''}`}
               onClick={() => void handleCopySimilarity()}
-              title={`${similarityFilter.expression} — same logic as this panel`}
+              title={`${similarityFilter.expression} — quick match, not editable per factor`}
             >
               {copiedSim ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
-              {copiedSim ? 'Copied!' : 'Copy similarity filter'}
-              <code className={styles.similarityCopyFilterCode}>{similarityFilter.summary}</code>
-            </button>
-          )}
-          {factorBandFilter && (
-            <button
-              type="button"
-              className={`${styles.similarityCopyFilterSecondary} ${copiedBands ? styles.similarityCopyFilterDone : ''}`}
-              onClick={() => void handleCopyFactorBands()}
-              title={
-                `${factorBandFilter.summary} — strict numeric bands; often matches zero stocks `
-                + '(see footnote)'
-              }
-            >
-              {copiedBands ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
-              {copiedBands ? 'Copied!' : 'Factor bands'}
+              {copiedSim ? 'Copied!' : similarityFilter.summary}
             </button>
           )}
           <button type="button" className={styles.similarityClear} onClick={onClear}>
@@ -191,12 +193,9 @@ export default function SimilarityPanel({
 
       <p className={styles.similarityFoot}>
         <Crosshair size={12} />
-        Match % ranks stocks by relative similarity (not fixed numeric ranges).
-        Use <strong>Copy similarity filter</strong> for a code expression that matches this panel
-        (e.g. <code>sim &gt;= 55</code>).
-        Factor bands are strict AND rules on raw metrics and often exclude every candidate — especially
-        when the reference has unusual values (e.g. very high ROE).
-        Keep the pattern active while using <code>sim</code> in Code mode.
+        <strong>Copy code filter</strong> pastes editable ranges (one factor per line) sized to include
+        the candidates above — tweak numbers or remove lines, then Apply in Code mode.
+        Use <code>sim ≥ N</code> (secondary button) only if you want a single non-editable match threshold.
         {' '}Not investment advice — verify before trading.
       </p>
     </section>

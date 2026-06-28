@@ -18,8 +18,7 @@ export interface PatternSimilarityFilterResult {
 }
 
 /**
- * Code filter that mirrors the similarity panel ? stocks must meet the same % match score.
- * Unlike factor bands, this uses the same ranking logic as the panel (relative distance, not raw ranges).
+ * Quick code filter ? same % ranking as the similarity panel (not editable factor bands).
  */
 export function buildPatternSimilarityFilter(
   topMatches: SimilarityMatch[],
@@ -41,7 +40,7 @@ export function buildPatternSimilarityFilter(
   return {
     expression: `sim >= ${threshold}`,
     threshold,
-    summary: `sim ? ${threshold}%`,
+    summary: `sim >= ${threshold}%`,
   };
 }
 
@@ -56,6 +55,8 @@ export interface PatternFactorFilterResult {
 
 const TOP_MOMENTUM = 4;
 const TOP_FUNDAMENTAL = 4;
+
+type FactorKey = SimilarityKey | FundamentalSimilarityKey;
 
 function round(v: number, d = 1): number {
   const f = 10 ** d;
@@ -93,7 +94,14 @@ function averageFundamentals(references: PatternProfile[]): FundamentalProfile {
   return out;
 }
 
-function bandForFactor(key: string, ref: number): { min: number; max: number } | null {
+function factorValuesFromProfiles(profiles: PatternProfile[], key: FactorKey): number[] {
+  const isMomentum = (SIMILARITY_KEYS as readonly string[]).includes(key);
+  return profiles
+    .map(p => (isMomentum ? p.momentum[key as SimilarityKey] : p.fundamentals?.[key as FundamentalSimilarityKey]))
+    .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+}
+
+function refBandForFactor(key: string, ref: number): { min: number; max: number } | null {
   if (!Number.isFinite(ref)) return null;
 
   if (key === 'marketCap') {
@@ -118,16 +126,55 @@ function bandForFactor(key: string, ref: number): { min: number; max: number } |
   return { min: round(ref - margin), max: round(ref + margin) };
 }
 
+/** Bands that include panel candidates so the copied code filter matches visible matches. */
+function inclusiveBandForFactor(
+  key: FactorKey,
+  ref: number,
+  candidates: PatternProfile[],
+): { min: number; max: number } | null {
+  const refBand = refBandForFactor(key, ref);
+  if (!refBand) return null;
+
+  const vals = factorValuesFromProfiles(candidates, key);
+  if (vals.length === 0) return refBand;
+
+  const candMin = Math.min(...vals);
+  const candMax = Math.max(...vals);
+  const span = Math.max(candMax - candMin, 1);
+  const pad = Math.max(3, span * 0.2, Math.abs(candMax) * 0.06);
+
+  const refFarFromCandidates =
+    ref < candMin - span * 1.5 || ref > candMax + span * 1.5;
+
+  if (refFarFromCandidates) {
+    return {
+      min: round(candMin - pad),
+      max: round(candMax + pad),
+    };
+  }
+
+  return {
+    min: round(Math.min(refBand.min, candMin - pad)),
+    max: round(Math.max(refBand.max, candMax + pad)),
+  };
+}
+
 function rangeClause(field: string, min: number, max: number): string {
   return `${field} >= ${formatNum(min)} & ${field} <= ${formatNum(max)}`;
 }
 
+function formatEditableExpression(clauses: string[]): string {
+  return clauses.join(' &\n');
+}
+
 /**
- * Build a code filter from the reference pattern's weighted momentum + fundamental factors.
- * Bands are centered on the averaged reference values (same inputs as pattern similarity).
+ * Build an editable code filter from weighted momentum + fundamental factors.
+ * When `candidates` (today's panel matches) are passed, bands expand to include them
+ * so Apply in Code mode shows roughly the same stocks ? each line is one factor you can edit.
  */
 export function buildPatternFactorFilter(
   references: PatternProfile[],
+  candidates: PatternProfile[] = [],
 ): PatternFactorFilterResult | null {
   if (references.length === 0) return null;
 
@@ -164,7 +211,9 @@ export function buildPatternFactorFilter(
   let fundamentalCount = 0;
 
   for (const f of momentumFactors) {
-    const band = bandForFactor(f.key, f.value);
+    const band = candidates.length > 0
+      ? inclusiveBandForFactor(f.key, f.value, candidates)
+      : refBandForFactor(f.key, f.value);
     if (!band) continue;
     clauses.push(rangeClause(f.key, band.min, band.max));
     factors.push(f.key);
@@ -172,7 +221,9 @@ export function buildPatternFactorFilter(
   }
 
   for (const f of fundamentalFactors) {
-    const band = bandForFactor(f.key, f.value);
+    const band = candidates.length > 0
+      ? inclusiveBandForFactor(f.key, f.value, candidates)
+      : refBandForFactor(f.key, f.value);
     if (!band) continue;
     clauses.push(rangeClause(f.key, band.min, band.max));
     factors.push(f.key);
@@ -182,12 +233,12 @@ export function buildPatternFactorFilter(
   if (clauses.length === 0) return null;
 
   return {
-    expression: clauses.join(' & '),
+    expression: formatEditableExpression(clauses),
     factorCount: clauses.length,
     momentumCount,
     fundamentalCount,
     factors,
-    summary: `${momentumCount} momentum + ${fundamentalCount} fundamental factor bands`,
+    summary: `${momentumCount} momentum + ${fundamentalCount} fundamentals`,
   };
 }
 

@@ -468,6 +468,14 @@ export default function StockScreener() {
     );
   }, [showSimilarity, referenceProfiles, todayPatterns, referenceTickers]);
 
+  const similarityCandidatePatterns = useMemo(
+    () => topMatches
+      .slice(0, 8)
+      .map(m => todayPatterns.get(m.ticker))
+      .filter((p): p is import('./similarity').PatternProfile => p != null),
+    [topMatches, todayPatterns],
+  );
+
   const returnTargetDaysAgo = useMemo(
     () => targetDaysAgoFromPeriod(activeDaysAgo, deferredReturnPeriodDays),
     [activeDaysAgo, deferredReturnPeriodDays],
@@ -862,6 +870,7 @@ export default function StockScreener() {
             <SimilarityPanel
               daysAgo={deferredDaysAgo}
               references={referenceProfiles}
+              candidatePatterns={similarityCandidatePatterns}
               topMatches={topMatches}
               onClear={() => setReferenceTickers(new Set())}
             />
