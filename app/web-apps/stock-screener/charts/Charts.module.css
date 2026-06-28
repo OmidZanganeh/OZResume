@@ -527,6 +527,215 @@
   overflow: auto;
 }
 
+/* Winners view */
+.winnersLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 20px;
+}
+
+.winnersIntro {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  color: #fbbf24;
+}
+
+.winnersTitle {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.winnersSub {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.48);
+  max-width: 720px;
+}
+
+.winnersControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.winnersControlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.winnersControlLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.winnersChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.winnersChip {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.winnersChip:hover {
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fde68a;
+}
+
+.winnersChipActive {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+}
+
+.winnersSpinner {
+  animation: winnersSpin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes winnersSpin {
+  to { transform: rotate(360deg); }
+}
+
+.winnersSectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.winnersSectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.winnersSectionSub {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.winnersActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.12);
+  color: #c7d2fe;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.winnersActionBtn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.winnersTableWrap {
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.winnersTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.winnersTable th,
+.winnersTable td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.winnersTable th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.winnersTable tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.winnersTickerBtn {
+  border: none;
+  background: transparent;
+  color: #93c5fd;
+  font-weight: 650;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.winnersTickerBtn:hover {
+  text-decoration: underline;
+}
+
+.winnersExternal {
+  display: inline-flex;
+  margin-left: 6px;
+  color: rgba(255, 255, 255, 0.35);
+  vertical-align: middle;
+}
+
+.winnersExternal:hover {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.winnersRetUp {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.winnersMatchScore {
+  color: #a78bfa;
+  font-weight: 650;
+}
+
+.winnersFoot {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.35);
+  line-height: 1.45;
+}
+
 @media (max-width: 900px) {
   .chartsLayout {
     grid-template-columns: 1fr;

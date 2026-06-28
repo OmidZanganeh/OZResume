@@ -1,11 +1,12 @@
 'use client';
 
-import { LayoutGrid, LineChart, PieChart, GitCompare } from 'lucide-react';
+import { LayoutGrid, LineChart, PieChart, GitCompare, Trophy } from 'lucide-react';
 import { VISUAL_VIEW_MODES, type VisualViewMode } from './visualViewMode';
 import chartStyles from '../charts/Charts.module.css';
 
 const ICONS = {
   table: LayoutGrid,
+  winners: Trophy,
   charts: LineChart,
   sector: PieChart,
   compare: GitCompare,

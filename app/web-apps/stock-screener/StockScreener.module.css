@@ -70,6 +70,22 @@
 .dateBarValue { color: #e8edf5; font-weight: 700; }
 .dateBarHint { font-size: 11.5px; color: rgba(255, 255, 255, 0.32); }
 
+.winnersFocusClear {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: inherit;
+  color: #a78bfa;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.winnersFocusClear:hover {
+  color: #c4b5fd;
+}
+
 .dateBarActions {
   display: flex;
   align-items: center;

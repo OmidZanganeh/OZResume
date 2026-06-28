@@ -22,6 +22,8 @@ import VisualViewTabs from './views/VisualViewTabs';
 import ChartsView from './views/ChartsView';
 import SectorView from './views/SectorView';
 import CompareView from './views/CompareView';
+import WinnersView from './views/WinnersView';
+import { computeWinnerScan } from './winnerScan';
 import type { VisualViewMode } from './views/visualViewMode';
 import chartStyles from './charts/Charts.module.css';
 import { MOCK_STOCKS } from './mockStocks';
@@ -151,6 +153,13 @@ export default function StockScreener() {
   const [visualViewMode, setVisualViewMode] = useState<VisualViewMode>('table');
   const [selectedChartTicker, setSelectedChartTicker] = useState<string | null>(null);
   const [compareTickers, setCompareTickers] = useState<string[]>([]);
+  const [winnerLookbackDays, setWinnerLookbackDays] = useState(365);
+  const [winnerMinReturn, setWinnerMinReturn] = useState(100);
+  const [winnerMaxCount, setWinnerMaxCount] = useState(12);
+  const [winnerSnapshots, setWinnerSnapshots] = useState(EMPTY_SNAPSHOTS);
+  const [winnerSnapshotsFor, setWinnerSnapshotsFor] = useState(-1);
+  const [winnerScanLoading, setWinnerScanLoading] = useState(false);
+  const [winnersTableFocus, setWinnersTableFocus] = useState<Set<string> | null>(null);
   const watchlist = useWatchlists();
   const stocksRef = useRef(stocks);
   stocksRef.current = stocks;
@@ -476,6 +485,49 @@ export default function StockScreener() {
     [topMatches, todayPatterns],
   );
 
+  useEffect(() => {
+    if (visualViewMode !== 'winners' || stocks.length === 0 || dataSource === 'mock') return;
+
+    const cached = peekSnapshotCache(stocks, winnerLookbackDays);
+    if (cached) {
+      setWinnerSnapshots(cached);
+      setWinnerSnapshotsFor(winnerLookbackDays);
+      setWinnerScanLoading(false);
+      return;
+    }
+
+    setWinnerScanLoading(true);
+    const signal = { cancelled: false };
+    void buildSnapshotsAsync(stocks, winnerLookbackDays, signal).then(built => {
+      if (!signal.cancelled) {
+        setWinnerSnapshots(built);
+        setWinnerSnapshotsFor(winnerLookbackDays);
+        setWinnerScanLoading(false);
+      }
+    });
+
+    return () => {
+      signal.cancelled = true;
+    };
+  }, [visualViewMode, stocks, winnerLookbackDays, stocksTickerKey, dataSource]);
+
+  const winnerScan = useMemo(() => {
+    if (winnerSnapshotsFor !== winnerLookbackDays || winnerSnapshots.size === 0) return null;
+    return computeWinnerScan(stocks, winnerSnapshots, todayPatterns, {
+      lookbackDaysAgo: winnerLookbackDays,
+      minReturnPct: winnerMinReturn,
+      maxWinners: winnerMaxCount,
+    });
+  }, [
+    stocks,
+    winnerSnapshots,
+    winnerSnapshotsFor,
+    winnerLookbackDays,
+    winnerMinReturn,
+    winnerMaxCount,
+    todayPatterns,
+  ]);
+
   const returnTargetDaysAgo = useMemo(
     () => targetDaysAgoFromPeriod(activeDaysAgo, deferredReturnPeriodDays),
     [activeDaysAgo, deferredReturnPeriodDays],
@@ -565,6 +617,10 @@ export default function StockScreener() {
             .filter(r => watchlist.activeTickers.has(r.stock.ticker))
             .map(r => ({ ...r, visible: true }));
 
+    if (winnersTableFocus && winnersTableFocus.size > 0) {
+      rows = rows.filter(r => winnersTableFocus.has(r.stock.ticker));
+    }
+
     const q = searchQuery.trim().toLowerCase();
     if (!q) return rows;
 
@@ -573,7 +629,7 @@ export default function StockScreener() {
       const name = r.stock.companyName.toLowerCase();
       return ticker.includes(q) || name.includes(q);
     });
-  }, [tableRows, viewMode, watchlist.activeTickers, searchQuery]);
+  }, [tableRows, viewMode, watchlist.activeTickers, searchQuery, winnersTableFocus]);
 
   const searchActive = searchQuery.trim().length > 0;
   const shownCount = displayRows.length;
@@ -609,6 +665,33 @@ export default function StockScreener() {
     setVisualViewMode('charts');
     void ensureWeeklyHistory(ticker);
   }, [ensureWeeklyHistory]);
+
+  const applyWinnerReferences = useCallback((tickers: string[], lookbackDays: number) => {
+    startPatternTransition(() => {
+      setReferenceTickers(new Set(tickers));
+      setDaysAgoDeferred(lookbackDays);
+    });
+  }, [startPatternTransition, setDaysAgoDeferred]);
+
+  const handleAnalyzeWinnersInTable = useCallback((tickers: string[], lookbackDays: number) => {
+    applyWinnerReferences(tickers, lookbackDays);
+    setWinnersTableFocus(null);
+    setVisualViewMode('table');
+    setSortColumn('returnToTodayPct');
+    setSortDir('desc');
+  }, [applyWinnerReferences]);
+
+  const handleAnalyzeMatchesInTable = useCallback((
+    matchTickers: string[],
+    winnerTickers: string[],
+    lookbackDays: number,
+  ) => {
+    applyWinnerReferences(winnerTickers, lookbackDays);
+    setWinnersTableFocus(new Set(matchTickers));
+    setVisualViewMode('table');
+    setSortColumn('similarity');
+    setSortDir('desc');
+  }, [applyWinnerReferences]);
 
   const handleSort = useCallback((col: TableColumnId) => {
     setSortColumn(prev => {
@@ -799,11 +882,23 @@ export default function StockScreener() {
                   ? 'All factors for your saved tickers — same columns as the full screener.'
                   : isHistorical
                     ? 'Weekly closing prices and returns since that date. Fundamentals use the latest fiscal report before that date. New listings show earliest available bar before IPO (*).'
-                    : 'Live Finnhub snapshot — drag the timeline to explore up to 10 years back. Use Table / Charts / Sector / Compare tabs below filters.'}
+                    : 'Live Finnhub snapshot — drag the timeline to explore up to 10 years back. Use Table / Winners / Charts / Sector / Compare tabs below filters.'}
                 {viewMode === 'universe' && isHistorical && dataSource !== 'mock' && (
                   <> · Click ◉ to pick a pattern{weeklyReadyCount < total ? ' (weekly prices load on first click)' : ''}</>
                 )}
                 {viewMode === 'universe' && activeFilters > 0 && ` · ${activeFilters} filter${activeFilters !== 1 ? 's' : ''} active`}
+                {winnersTableFocus && winnersTableFocus.size > 0 && (
+                  <>
+                    {' '}·{' '}
+                    <button
+                      type="button"
+                      className={styles.winnersFocusClear}
+                      onClick={() => setWinnersTableFocus(null)}
+                    >
+                      Showing {winnersTableFocus.size} winner-pattern matches (clear)
+                    </button>
+                  </>
+                )}
                 {isTimelineStale && (
                   <span className={styles.dateBarHint}> · updating…</span>
                 )}
@@ -898,6 +993,23 @@ export default function StockScreener() {
               />
             )}
 
+            {visualViewMode === 'winners' && !isLoading && (
+              <WinnersView
+                scan={winnerScan}
+                loading={winnerScanLoading}
+                lookbackDays={winnerLookbackDays}
+                minReturnPct={winnerMinReturn}
+                maxWinners={winnerMaxCount}
+                stocks={stocks}
+                onLookbackChange={setWinnerLookbackDays}
+                onMinReturnChange={setWinnerMinReturn}
+                onMaxWinnersChange={setWinnerMaxCount}
+                onSelectTicker={handleSelectChart}
+                onAnalyzeInTable={handleAnalyzeWinnersInTable}
+                onAnalyzeMatchesInTable={handleAnalyzeMatchesInTable}
+              />
+            )}
+
             {visualViewMode === 'charts' && !isLoading && (
               <ChartsView
                 rows={displayRows}
@@ -924,7 +1036,7 @@ export default function StockScreener() {
               />
             )}
 
-            {visualViewMode !== 'table' && isLoading && (
+            {visualViewMode !== 'table' && visualViewMode !== 'winners' && isLoading && (
               <p className={chartStyles.viewEmpty}>Loading market data…</p>
             )}
           </div>

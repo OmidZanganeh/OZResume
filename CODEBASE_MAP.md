@@ -40,7 +40,7 @@
 | `/tools/elevation-profile` | `page.tsx`, `ElevationMap.tsx` |
 | `/tools/geocoder` | `page.tsx`, `GeocoderMap.tsx` |
 | `/tools/census` | `page.tsx`, `CensusMap.tsx` |
-| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 + NASDAQ 100 + S&P 400 screener; sortable factor table, 10y timeline, pattern similarity, watchlists; visual tabs (Table / Charts / Sector / Compare); **code filters** (all columns + saved presets) in FilterBar |
+| `/web-apps/stock-screener` | `app/web-apps/stock-screener/` — S&P 500 + NASDAQ 100 + S&P 400 screener; sortable factor table, 10y timeline, pattern similarity, watchlists; visual tabs (Table / **Winners** / Charts / Sector / Compare); **code filters** (all columns + saved presets) in FilterBar |
 
 ## API routes (`app/api/*/route.ts`)
 
@@ -131,6 +131,8 @@
 | `watchlists.ts` | localStorage persistence + `useWatchlists` hook |
 | `StockTable.tsx` | Sortable factor table; ★ watchlist; ◉ pattern picker |
 | `SimilarityPanel.tsx` | Top today matches vs selected past winner |
+| `views/WinnersView.tsx` | Auto-scan historical winners + today pattern matches tab |
+| `winnerScan.ts` | Find past top returners; rank today by blended winner similarity |
 | `similarity.ts` | Weighted factor-distance scoring (0–100) |
 | `historical.ts` | Snapshots at `daysAgo`; weekly price + Finnhub fallback for display |
 | `weeklyMomentum.ts` | 16 weekly-derived factors for pattern match |
