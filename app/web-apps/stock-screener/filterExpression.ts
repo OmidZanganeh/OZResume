@@ -252,19 +252,24 @@ function tokenize(input: string): { tokens: Token[]; error: string | null } {
     }
 
     if (/[0-9.]/.test(ch) || (ch === '-' && /[0-9]/.test(input[i + 1] ?? ''))) {
+      const start = i;
       let j = i;
+      if (input[j] === '-') j += 1;
       while (j < input.length && /[0-9.]/.test(input[j]!)) j += 1;
+      if (j <= start || (input[start] === '-' && j === start + 1)) {
+        return { tokens: [], error: `Invalid number at column ${start + 1}` };
+      }
       if (j < input.length && /[a-zA-Z_]/.test(input[j]!)) {
         while (j < input.length && /[a-zA-Z_0-9/]/.test(input[j]!)) j += 1;
-        tokens.push({ kind: 'ident', value: input.slice(i, j), pos: i });
+        tokens.push({ kind: 'ident', value: input.slice(start, j), pos: start });
         i = j;
         continue;
       }
-      const num = Number(input.slice(i, j));
+      const num = Number(input.slice(start, j));
       if (!Number.isFinite(num)) {
-        return { tokens: [], error: `Invalid number at column ${i + 1}` };
+        return { tokens: [], error: `Invalid number at column ${start + 1}` };
       }
-      tokens.push({ kind: 'number', value: num, pos: i });
+      tokens.push({ kind: 'number', value: num, pos: start });
       i = j;
       continue;
     }
