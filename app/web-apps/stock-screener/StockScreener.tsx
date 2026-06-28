@@ -47,7 +47,6 @@ import {
   peekSnapshotCache,
 } from './snapshotCache';
 import { rankSimilarityToday, similarityScoresToday, fundamentalProfileFromMetrics } from './similarity';
-import { buildPatternFactorFilter } from './patternMatchFilter';
 import { visibleColumns } from './tableColumns';
 import { downloadScreenerCsv, screenerCsvFilename } from './exportCsv';
 import {
@@ -128,7 +127,6 @@ export default function StockScreener() {
   const [returnPeriodDays, setReturnPeriodDays] = useState(DEFAULT_RETURN_PERIOD_DAYS);
   const deferredReturnPeriodDays = useDeferredValue(returnPeriodDays);
   const [isDatePending, startDateTransition] = useTransition();
-  const [, startFilterTransition] = useTransition();
   const [, startPatternTransition] = useTransition();
   const setDaysAgoDeferred = useCallback((next: number) => {
     startDateTransition(() => setDaysAgo(next));
@@ -687,39 +685,6 @@ export default function StockScreener() {
     })();
   }, [dataSource, referenceTickers, startPatternTransition]);
 
-  const patternFactorPreview = useMemo(
-    () => (referenceProfiles.length > 0
-      ? buildPatternFactorFilter(referenceProfiles.map(r => r.pattern))
-      : null),
-    [referenceProfiles],
-  );
-
-  const patternFilterActive = Boolean(
-    showSimilarity
-    && patternFactorPreview
-    && screenerState.filterMode === 'code'
-    && screenerState.codeExpression.trim() === patternFactorPreview.expression,
-  );
-
-  const handleApplyPatternFilter = useCallback(() => {
-    const built = buildPatternFactorFilter(referenceProfiles.map(r => r.pattern));
-    if (!built) return;
-    startFilterTransition(() => {
-      setScreenerState(prev => ({
-        ...prev,
-        filterMode: 'code',
-        codeExpression: built.expression,
-      }));
-      setVisualViewMode('table');
-    });
-    requestAnimationFrame(() => {
-      document.getElementById('stock-screener-filters')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    });
-  }, [referenceProfiles, startFilterTransition]);
-
   const exportColumns = useMemo(
     () => visibleColumns(isHistorical, showSimilarity, deferredReturnPeriodDays),
     [isHistorical, showSimilarity, deferredReturnPeriodDays],
@@ -897,11 +862,8 @@ export default function StockScreener() {
             <SimilarityPanel
               daysAgo={deferredDaysAgo}
               references={referenceProfiles}
-              referencePatterns={referenceProfiles.map(r => r.pattern)}
               topMatches={topMatches}
               onClear={() => setReferenceTickers(new Set())}
-              onApplyFilter={handleApplyPatternFilter}
-              filterActive={patternFilterActive}
             />
           )}
 
