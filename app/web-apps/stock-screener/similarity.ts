@@ -275,3 +275,58 @@ export function rankSimilarityToday(
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
+
+/**
+ * Best match vs any single reference (not blended average).
+ * Selective when references are diverse — e.g. many historical winners.
+ */
+export function similarityScoresTodayBestReference(
+  references: PatternProfile | PatternProfile[],
+  todayByTicker: Map<string, PatternProfile>,
+  excludeTickers: string | Iterable<string>,
+): Map<string, number> {
+  const refs = Array.isArray(references) ? references : [references];
+  if (refs.length === 0) return new Map();
+
+  const merged = new Map<string, number>();
+  for (const ref of refs) {
+    const scores = similarityScoresToday(ref, todayByTicker, excludeTickers);
+    for (const [ticker, score] of scores) {
+      merged.set(ticker, Math.max(merged.get(ticker) ?? 0, score));
+    }
+  }
+  return merged;
+}
+
+export function rankSimilarityTodayBestReference(
+  references: PatternProfile | PatternProfile[],
+  todayByTicker: Map<string, PatternProfile>,
+  excludeTickers: string | Iterable<string>,
+  limit = 25,
+): SimilarityMatch[] {
+  const scores = similarityScoresTodayBestReference(references, todayByTicker, excludeTickers);
+  return [...scores.entries()]
+    .map(([ticker, score]) => ({ ticker, score }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
+/** Drop weak tail — keep matches near the top score and above a floor. */
+export function filterSimilarityMatches(
+  matches: SimilarityMatch[],
+  options?: { minAbsolute?: number; maxBelowTop?: number; maxResults?: number },
+): { matches: SimilarityMatch[]; cutoff: number } {
+  const minAbsolute = options?.minAbsolute ?? 58;
+  const maxBelowTop = options?.maxBelowTop ?? 10;
+  const maxResults = options?.maxResults ?? 20;
+
+  if (matches.length === 0) return { matches: [], cutoff: minAbsolute };
+
+  const sorted = [...matches].sort((a, b) => b.score - a.score);
+  const top = sorted[0]!.score;
+  const cutoff = Math.max(minAbsolute, top - maxBelowTop);
+  return {
+    cutoff,
+    matches: sorted.filter(m => m.score >= cutoff).slice(0, maxResults),
+  };
+}

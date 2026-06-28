@@ -1,8 +1,9 @@
 import { priceMomentumProfile } from './historical';
 import { formatAsOfDate } from './timelineDate';
 import {
+  filterSimilarityMatches,
   fundamentalProfileFromMetrics,
-  rankSimilarityToday,
+  rankSimilarityTodayBestReference,
   type PatternProfile,
   type SimilarityMatch,
 } from './similarity';
@@ -29,6 +30,9 @@ export interface WinnerScanResult {
   minReturnPct: number;
   winners: HistoricalWinner[];
   todayMatches: SimilarityMatch[];
+  /** Minimum match % shown in the similar-patterns table. */
+  matchCutoff: number;
+  universeScored: number;
 }
 
 export const WINNER_LOOKBACK_OPTIONS = [
@@ -38,6 +42,9 @@ export const WINNER_LOOKBACK_OPTIONS = [
 ] as const;
 
 export const WINNER_RETURN_THRESHOLDS = [50, 100, 150, 200] as const;
+
+/** Pattern references — top performers only (blending too many diverse winners dilutes the signal). */
+const PATTERN_REFERENCE_CAP = 6;
 
 export function findHistoricalWinners(
   stocks: Stock[],
@@ -87,11 +94,18 @@ export function computeWinnerScan(
     config.maxWinners,
   );
 
-  const referencePatterns = winners.map(w => w.pattern);
+  const patternRefs = winners.slice(0, PATTERN_REFERENCE_CAP).map(w => w.pattern);
   const exclude = winners.map(w => w.ticker);
-  const todayMatches = referencePatterns.length > 0
-    ? rankSimilarityToday(referencePatterns, todayPatterns, exclude, 48)
+
+  const ranked = patternRefs.length > 0
+    ? rankSimilarityTodayBestReference(patternRefs, todayPatterns, exclude, 200)
     : [];
+
+  const { matches: todayMatches, cutoff: matchCutoff } = filterSimilarityMatches(ranked, {
+    minAbsolute: 60,
+    maxBelowTop: 8,
+    maxResults: 20,
+  });
 
   return {
     lookbackDaysAgo: config.lookbackDaysAgo,
@@ -99,5 +113,7 @@ export function computeWinnerScan(
     minReturnPct: config.minReturnPct,
     winners,
     todayMatches,
+    matchCutoff,
+    universeScored: ranked.length,
   };
 }

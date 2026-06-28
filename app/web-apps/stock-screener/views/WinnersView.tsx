@@ -67,9 +67,9 @@ export default function WinnersView({
         <div>
           <h2 className={chartStyles.winnersTitle}>Historical winners → today&apos;s matches</h2>
           <p className={chartStyles.winnersSub}>
-            Scans past returns from a lookback date, builds a blended pattern from the biggest
-            winners, then ranks today&apos;s universe by weekly momentum + fundamentals similarity.
-            Use the actions below to continue in Table, Charts, or Compare.
+            Finds past top returners, then scores today&apos;s stocks against each winner&apos;s
+            pre-run pattern (best single match — not a blended average). Only strong matches
+            (typically ≥ 60% and within ~8 pts of the leader) are listed.
           </p>
         </div>
       </div>
@@ -209,7 +209,16 @@ export default function WinnersView({
                 Similar patterns today
               </h3>
               <p className={chartStyles.winnersSectionSub}>
-                Closest weekly momentum + fundamentals to the blended winner profile
+                {scan.todayMatches.length > 0 ? (
+                  <>
+                    {scan.todayMatches.length} of {scan.universeScored} stocks ≥ {scan.matchCutoff.toFixed(0)}% match
+                    (top {Math.min(6, scan.winners.length)} winners used as references)
+                  </>
+                ) : (
+                  <>
+                    No matches ≥ {scan.matchCutoff.toFixed(0)}% — try lower return threshold or fewer winners
+                  </>
+                )}
               </p>
             </div>
             {scan.todayMatches.length > 0 && (
@@ -225,7 +234,10 @@ export default function WinnersView({
           </div>
 
           {scan.todayMatches.length === 0 ? (
-            <p className={chartStyles.viewEmpty}>No similarity matches found.</p>
+            <p className={chartStyles.viewEmpty}>
+              No strong pattern matches at this lookback (cutoff {scan.matchCutoff.toFixed(0)}%).
+              Winners may have had very different pre-run profiles — try 2y ago or lower +100% threshold.
+            </p>
           ) : (
             <div className={chartStyles.winnersTableWrap}>
               <table className={chartStyles.winnersTable}>
@@ -240,7 +252,7 @@ export default function WinnersView({
                   </tr>
                 </thead>
                 <tbody>
-                  {scan.todayMatches.slice(0, 24).map((m, i) => {
+                  {scan.todayMatches.map((m, i) => {
                     const stock = stockByTicker.get(m.ticker);
                     return (
                       <tr key={m.ticker}>
