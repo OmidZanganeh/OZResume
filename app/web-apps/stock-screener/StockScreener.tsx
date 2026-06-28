@@ -129,6 +129,7 @@ export default function StockScreener() {
   const deferredReturnPeriodDays = useDeferredValue(returnPeriodDays);
   const [isDatePending, startDateTransition] = useTransition();
   const [, startFilterTransition] = useTransition();
+  const [, startPatternTransition] = useTransition();
   const setDaysAgoDeferred = useCallback((next: number) => {
     startDateTransition(() => setDaysAgo(next));
   }, []);
@@ -614,21 +615,44 @@ export default function StockScreener() {
     });
   }, []);
 
-  const handleSelectReference = useCallback(async (ticker: string) => {
-    let stock = stocks.find(s => s.ticker === ticker);
+  const handleSelectReference = useCallback((ticker: string) => {
+    const removeReference = () => {
+      startPatternTransition(() => {
+        setReferenceTickers(prev => {
+          const next = new Set(prev);
+          next.delete(ticker);
+          return next;
+        });
+      });
+    };
+
+    const addReference = (stock: Stock) => {
+      if (!stock.weeklyHistory?.length) {
+        setDataWarning('Weekly price history is required for pattern match.');
+        return;
+      }
+      startPatternTransition(() => {
+        setReferenceTickers(prev => new Set(prev).add(ticker));
+        setSortColumn('similarity');
+        setSortDir('desc');
+      });
+    };
+
+    let stock = stocksRef.current.find(s => s.ticker === ticker);
     if (!stock) return;
 
     if (referenceTickers.has(ticker)) {
-      setReferenceTickers(prev => {
-        const next = new Set(prev);
-        next.delete(ticker);
-        return next;
-      });
+      removeReference();
       return;
     }
 
-    if (!stock.weeklyHistory?.length && dataSource !== 'mock') {
-      setPatternLoading(prev => new Set(prev).add(ticker));
+    if (stock.weeklyHistory?.length || dataSource === 'mock') {
+      addReference(stock);
+      return;
+    }
+
+    setPatternLoading(prev => new Set(prev).add(ticker));
+    void (async () => {
       try {
         const res = await fetch(
           `/api/stock-screener/weekly?symbol=${encodeURIComponent(ticker)}`,
@@ -650,9 +674,9 @@ export default function StockScreener() {
           ),
         );
         stock = { ...stock, weeklyHistory: body.weeklyHistory };
+        addReference(stock);
       } catch {
         setDataWarning(`Failed to load weekly prices for ${ticker}.`);
-        return;
       } finally {
         setPatternLoading(prev => {
           const next = new Set(prev);
@@ -660,17 +684,8 @@ export default function StockScreener() {
           return next;
         });
       }
-    }
-
-    if (!stock.weeklyHistory?.length) {
-      setDataWarning('Weekly price history is required for pattern match.');
-      return;
-    }
-
-    setReferenceTickers(prev => new Set(prev).add(ticker));
-    setSortColumn('similarity');
-    setSortDir('desc');
-  }, [stocks, dataSource, referenceTickers]);
+    })();
+  }, [dataSource, referenceTickers, startPatternTransition]);
 
   const patternFactorPreview = useMemo(
     () => (referenceProfiles.length > 0

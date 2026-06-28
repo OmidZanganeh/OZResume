@@ -162,59 +162,34 @@ function scoreFromWeightedDistance(
   return Math.round(Math.max(0, Math.min(100, (1 - rms * 1.35) * 100)) * 10) / 10;
 }
 
-function scoreMomentum(
-  refProfiles: MomentumProfile[],
-  candProfile: MomentumProfile,
-  pool: MomentumProfile[],
-): number {
-  const stats = buildNormStats(SIMILARITY_KEYS, [...refProfiles, ...pool]);
-  const refVec = averageVectors(refProfiles.map(r => vectorFromProfile(r, stats)));
-  const weights = SIMILARITY_KEYS.map(k => MOMENTUM_WEIGHTS[k]);
-  return scoreFromWeightedDistance(refVec, vectorFromProfile(candProfile, stats), weights);
-}
-
-function activeFundamentalKeys(
-  refs: FundamentalProfile[],
-  cand: FundamentalProfile,
-): FundamentalSimilarityKey[] {
-  const refKeys = new Set<FundamentalSimilarityKey>();
+function refFundamentalKeys(refs: FundamentalProfile[]): FundamentalSimilarityKey[] {
+  const keys = new Set<FundamentalSimilarityKey>();
   for (const ref of refs) {
     for (const key of FUNDAMENTAL_SIMILARITY_KEYS) {
       const v = ref[key];
-      if (typeof v === 'number' && isValidFundamentalValue(key, v)) refKeys.add(key);
+      if (typeof v === 'number' && isValidFundamentalValue(key, v)) keys.add(key);
     }
   }
-  return FUNDAMENTAL_SIMILARITY_KEYS.filter(key => {
-    if (!refKeys.has(key)) return false;
-    const v = cand[key];
-    return typeof v === 'number' && isValidFundamentalValue(key, v);
-  });
+  return FUNDAMENTAL_SIMILARITY_KEYS.filter(k => keys.has(k));
 }
 
-function scoreFundamentals(
+function scoreFundamentalsWithStats(
   refProfiles: FundamentalProfile[],
   candProfile: FundamentalProfile,
-  pool: FundamentalProfile[],
+  keys: FundamentalSimilarityKey[],
+  stats: Record<FundamentalSimilarityKey, NormStats>,
 ): number | null {
-  const keys = activeFundamentalKeys(refProfiles, candProfile);
   if (keys.length < 3) return null;
-
-  const samples = [...refProfiles, ...pool].map(p =>
-    Object.fromEntries(keys.map(k => [k, p[k] ?? 0])) as Record<
-      FundamentalSimilarityKey,
-      number
-    >,
-  );
-  const stats = buildNormStats(keys, samples);
+  for (const key of keys) {
+    const v = candProfile[key];
+    if (typeof v !== 'number' || !isValidFundamentalValue(key, v)) return null;
+  }
 
   const refVec = averageVectors(
-    refProfiles.map(ref =>
-      keys.map(k => normalize(ref[k]!, stats[k])),
-    ),
+    refProfiles.map(ref => keys.map(k => normalize(ref[k]!, stats[k]))),
   );
   const candVec = keys.map(k => normalize(candProfile[k]!, stats[k]));
   const weights = keys.map(k => FUNDAMENTAL_WEIGHTS[k]);
-
   return scoreFromWeightedDistance(refVec, candVec, weights);
 }
 
@@ -249,13 +224,41 @@ export function similarityScoresToday(
     .map(([, p]) => p.fundamentals)
     .filter((f): f is FundamentalProfile => f != null);
 
+  const momentumStats = buildNormStats(SIMILARITY_KEYS, [...refMomentum, ...momentumPool]);
+  const refMomentumVec = averageVectors(refMomentum.map(r => vectorFromProfile(r, momentumStats)));
+  const momentumWeights = SIMILARITY_KEYS.map(k => MOMENTUM_WEIGHTS[k]);
+
+  let fundKeys: FundamentalSimilarityKey[] = [];
+  let fundStats: Record<FundamentalSimilarityKey, NormStats> | null = null;
+  if (refFundamentals.length > 0 && fundamentalPool.length > 0) {
+    fundKeys = refFundamentalKeys(refFundamentals);
+    if (fundKeys.length >= 3) {
+      const samples = [...refFundamentals, ...fundamentalPool].map(p =>
+        Object.fromEntries(fundKeys.map(k => [k, p[k] ?? 0])) as Record<
+          FundamentalSimilarityKey,
+          number
+        >,
+      );
+      fundStats = buildNormStats(fundKeys, samples);
+    }
+  }
+
   const out = new Map<string, number>();
 
   for (const [ticker, profile] of todayEntries) {
-    const momentumScore = scoreMomentum(refMomentum, profile.momentum, momentumPool);
+    const momentumScore = scoreFromWeightedDistance(
+      refMomentumVec,
+      vectorFromProfile(profile.momentum, momentumStats),
+      momentumWeights,
+    );
     const fundamentalScore =
-      refFundamentals.length > 0 && profile.fundamentals
-        ? scoreFundamentals(refFundamentals, profile.fundamentals, fundamentalPool)
+      refFundamentals.length > 0 && profile.fundamentals && fundStats
+        ? scoreFundamentalsWithStats(
+            refFundamentals,
+            profile.fundamentals,
+            fundKeys,
+            fundStats,
+          )
         : null;
     out.set(ticker, blendScores(momentumScore, fundamentalScore));
   }
