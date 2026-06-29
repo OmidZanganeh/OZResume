@@ -7,7 +7,7 @@ import {
   premadeFiltersByCategory,
   type PremadeFilter,
 } from './premadeFilters';
-import styles from '../StockScreener.module.css';
+import styles from './StockScreener.module.css';
 
 interface Props {
   activeExpression: string;
