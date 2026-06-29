@@ -1,12 +1,15 @@
 import type { Sector, Stock, StockMetrics } from './types';
 import { SIMILARITY_KEYS, FUNDAMENTAL_SIMILARITY_KEYS, type SimilarityKey } from './similarity';
 import type { MomentumProfile } from './weeklyMomentum';
+import type { TechnicalIndicators, TechnicalIndicatorKey } from './technicalIndicators';
+import { TECHNICAL_INDICATOR_KEYS } from './technicalIndicators';
 
 export type CompareOp = '>' | '>=' | '<' | '<=' | '==' | '!=';
 
 type MetricId = keyof StockMetrics;
 
 export type MomentumField = SimilarityKey;
+export type TechnicalField = TechnicalIndicatorKey;
 
 export type ContextField =
   | 'returnToTodayPct'
@@ -14,7 +17,7 @@ export type ContextField =
   | 'priceThen'
   | 'similarity';
 
-export type NumericFilterField = MetricId | ContextField | MomentumField;
+export type NumericFilterField = MetricId | ContextField | MomentumField | TechnicalField;
 
 export type ExprField = NumericFilterField | 'sector' | 'ticker' | 'name';
 
@@ -36,6 +39,8 @@ export interface CodeFilterContext {
   similarity?: number;
   /** Today's weekly-derived momentum profile (pattern-match factors). */
   momentum?: Partial<MomentumProfile>;
+  /** RSI, MACD, Stochastic from weekly closes. */
+  technicals?: Partial<TechnicalIndicators>;
   /** Today's fundamentals for pattern factor matching (vs past reference). */
   todayMetrics?: StockMetrics;
   /** When true, pattern fundamental fields use todayMetrics instead of timeline snap. */
@@ -145,6 +150,22 @@ export const METRIC_ALIASES: Record<string, ExprField> = {
   posweeks13w: 'positiveWeeksPct13w',
   slope13w: 'trendSlope13w',
   slope26w: 'trendSlope26w',
+  rsi: 'rsi14',
+  rsi14: 'rsi14',
+  macd: 'macdLine',
+  macdline: 'macdLine',
+  macd_line: 'macdLine',
+  macdsignal: 'macdSignal',
+  macd_signal: 'macdSignal',
+  macdhist: 'macdHist',
+  macd_hist: 'macdHist',
+  macdhistogram: 'macdHist',
+  stoch: 'stochK',
+  stochk: 'stochK',
+  stoch_k: 'stochK',
+  stochastic: 'stochK',
+  stochd: 'stochD',
+  stoch_d: 'stochD',
 };
 
 type Token =
@@ -177,6 +198,8 @@ const CONTEXT_FIELDS = new Set<string>([
 
 const MOMENTUM_IDS = new Set<string>(SIMILARITY_KEYS);
 
+const TECHNICAL_IDS = new Set<string>(TECHNICAL_INDICATOR_KEYS);
+
 const PATTERN_FUNDAMENTAL_IDS = new Set<string>(FUNDAMENTAL_SIMILARITY_KEYS);
 
 function resolveField(raw: string): ExprField | null {
@@ -186,6 +209,7 @@ function resolveField(raw: string): ExprField | null {
   const camel = raw.trim();
   if (METRIC_IDS.has(camel)) return camel as MetricId;
   if (MOMENTUM_IDS.has(camel)) return camel as MomentumField;
+  if (TECHNICAL_IDS.has(camel)) return camel as TechnicalField;
   if (CONTEXT_FIELDS.has(camel)) return camel as ContextField;
   return null;
 }
@@ -525,6 +549,23 @@ export function astUsesMomentumField(ast: FilterAst): boolean {
   }
 }
 
+export function astUsesTechnicalField(ast: FilterAst): boolean {
+  switch (ast.type) {
+    case 'compare':
+      return TECHNICAL_IDS.has(ast.field);
+    case 'and':
+      return astUsesTechnicalField(ast.left) || astUsesTechnicalField(ast.right);
+    case 'or':
+      return astUsesTechnicalField(ast.left) || astUsesTechnicalField(ast.right);
+    default:
+      return false;
+  }
+}
+
+export function astUsesWeeklyDerivedField(ast: FilterAst): boolean {
+  return astUsesMomentumField(ast) || astUsesTechnicalField(ast);
+}
+
 export function filterExpressionUsesMomentum(input: string): boolean {
   const { ast } = parseFilterExpression(input);
   if (!ast) return false;
@@ -586,6 +627,10 @@ export function evaluateFilterAst(
       }
       if (MOMENTUM_IDS.has(ast.field)) {
         const val = ctx?.momentum?.[ast.field as MomentumField] ?? NaN;
+        return compareNumber(val, ast.op, ast.value);
+      }
+      if (TECHNICAL_IDS.has(ast.field)) {
+        const val = ctx?.technicals?.[ast.field as TechnicalField] ?? NaN;
         return compareNumber(val, ast.op, ast.value);
       }
       if (ctx?.todayMetrics && ctx.patternFactorScreen && PATTERN_FUNDAMENTAL_IDS.has(ast.field)) {

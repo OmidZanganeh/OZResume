@@ -1071,6 +1071,162 @@
   color: #c7d2fe;
 }
 
+/* Premade strategy presets */
+.premadeFilters {
+  margin: 12px 0 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.premadeFiltersToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #c7d2fe;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: left;
+}
+
+.premadeFiltersIntro {
+  margin: 10px 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.premadeCategory {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.premadeCategoryHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  text-align: left;
+}
+
+.premadeCategoryTitle {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.premadeCategoryHint {
+  flex: 1;
+  min-width: 120px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.premadeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.premadeItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.premadeItemBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.premadeItemHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.premadeItemName {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.premadeWeeklyBadge,
+.premadeActiveBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.premadeWeeklyBadge {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fde68a;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.premadeActiveBadge {
+  background: rgba(62, 207, 142, 0.12);
+  color: #6ee7b7;
+  border: 1px solid rgba(62, 207, 142, 0.25);
+}
+
+.premadeItemDesc {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.4;
+}
+
+.premadeItemExpr {
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.55);
+  word-break: break-word;
+  line-height: 1.45;
+}
+
+.premadeApplyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(62, 207, 142, 0.35);
+  background: rgba(62, 207, 142, 0.1);
+  color: #6ee7b7;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.premadeApplyBtn:hover {
+  background: rgba(62, 207, 142, 0.18);
+  border-color: rgba(62, 207, 142, 0.5);
+}
+
 .codeFilterCheatToggle {
   display: inline-flex;
   align-items: center;

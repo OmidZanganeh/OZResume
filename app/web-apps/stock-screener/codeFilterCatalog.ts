@@ -1,5 +1,4 @@
 import { FILTER_DEFS, ALL_SECTORS, type FilterDef } from './filters';
-import { SIMILARITY_KEYS } from './similarity';
 
 export type CodeFieldCategory =
   | 'identity'
@@ -89,15 +88,63 @@ const PATTERN_FIELDS: CodeFieldDoc[] = [
     example: 'sim > 75',
     note: 'Only when pattern-match references are active',
   },
-  ...SIMILARITY_KEYS.map(key => ({
-    id: key,
-    label: key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()),
-    category: 'pattern' as CodeFieldCategory,
-    unit: '%',
-    aliases: [key],
-    example: `${key} >= -10 & ${key} <= 20`,
-    note: 'Weekly momentum factor used in pattern match',
-  })),
+];
+
+const WEEKLY_TECHNICAL_FIELDS: CodeFieldDoc[] = [
+  {
+    id: 'rsi14',
+    label: 'RSI (14 weeks)',
+    category: 'technical',
+    unit: '0–100',
+    aliases: ['rsi14', 'rsi'],
+    example: 'rsi14 >= 30 & rsi14 <= 70',
+    note: 'From weekly closes — oversold < 30, overbought > 70',
+  },
+  {
+    id: 'macdLine',
+    label: 'MACD line',
+    category: 'technical',
+    unit: 'price',
+    aliases: ['macdLine', 'macd'],
+    example: 'macdHist > 0',
+    note: '12/26 EMA spread on weekly closes',
+  },
+  {
+    id: 'macdSignal',
+    label: 'MACD signal',
+    category: 'technical',
+    unit: 'price',
+    aliases: ['macdSignal'],
+    example: 'macdHist > 0',
+    note: '9-week EMA of MACD line',
+  },
+  {
+    id: 'macdHist',
+    label: 'MACD histogram',
+    category: 'technical',
+    unit: 'price',
+    aliases: ['macdHist', 'macd_hist'],
+    example: 'macdHist > 0',
+    note: 'MACD line minus signal — bullish when positive',
+  },
+  {
+    id: 'stochK',
+    label: 'Stochastic %K',
+    category: 'technical',
+    unit: '0–100',
+    aliases: ['stochK', 'stoch', 'stochastic'],
+    example: 'stochK >= 10 & stochK <= 25',
+    note: 'Close-only stochastic from weekly bars',
+  },
+  {
+    id: 'stochD',
+    label: 'Stochastic %D',
+    category: 'technical',
+    unit: '0–100',
+    aliases: ['stochD'],
+    example: 'stochD >= 20 & stochD <= 50',
+    note: 'Smoothed %K (3-week)',
+  },
 ];
 
 function unitForDef(def: FilterDef): string {
@@ -184,6 +231,7 @@ function metricFieldsFromDefs(): CodeFieldDoc[] {
 export const CODE_FILTER_FIELD_DOCS: CodeFieldDoc[] = [
   ...IDENTITY_FIELDS,
   ...metricFieldsFromDefs(),
+  ...WEEKLY_TECHNICAL_FIELDS,
   ...HISTORICAL_FIELDS,
   ...PATTERN_FIELDS,
 ];

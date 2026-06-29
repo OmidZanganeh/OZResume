@@ -1,4 +1,4 @@
-import { parseFilterExpression, astUsesMomentumField, type ParseResult } from './filterExpression';
+import { parseFilterExpression, astUsesMomentumField, astUsesTechnicalField, astUsesWeeklyDerivedField, type ParseResult } from './filterExpression';
 
 let cachedInput = '';
 let cachedResult: ParseResult = { ast: null, error: null };
@@ -16,6 +16,18 @@ export function parsedExpressionUsesMomentum(input: string): boolean {
   const { ast } = getParsedExpression(input);
   if (!ast) return false;
   return astUsesMomentumField(ast);
+}
+
+export function parsedExpressionUsesTechnical(input: string): boolean {
+  const { ast } = getParsedExpression(input);
+  if (!ast) return false;
+  return astUsesTechnicalField(ast);
+}
+
+export function parsedExpressionUsesWeeklyFields(input: string): boolean {
+  const { ast } = getParsedExpression(input);
+  if (!ast) return false;
+  return astUsesWeeklyDerivedField(ast);
 }
 
 export function invalidateExpressionCache(): void {

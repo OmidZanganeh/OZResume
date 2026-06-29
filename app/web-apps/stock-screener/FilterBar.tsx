@@ -58,6 +58,14 @@ export default function FilterBar({ state, onChange, isHistorical }: Props) {
     });
   };
 
+  const handleApplyPremade = (expression: string) => {
+    const trimmed = expression.trim();
+    setDraftExpression(trimmed);
+    startApplyTransition(() => {
+      onChange({ ...state, filterMode: 'code', codeExpression: trimmed });
+    });
+  };
+
   const setFilter = (id: FilterId, range: ScreenerState['filters'][FilterId]) => {
     onChange({ ...state, filters: { ...state.filters, [id]: range } });
   };
@@ -314,6 +322,7 @@ export default function FilterBar({ state, onChange, isHistorical }: Props) {
           appliedExpression={state.codeExpression}
           onChange={setDraftExpression}
           onApply={handleApplyCode}
+          onApplyPremade={handleApplyPremade}
           applyPending={isApplyPending}
           isHistorical={isHistorical}
         />

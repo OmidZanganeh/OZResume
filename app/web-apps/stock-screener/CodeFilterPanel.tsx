@@ -22,6 +22,7 @@ import {
   fieldsByCategory,
 } from './codeFilterCatalog';
 import { CODE_FILTER_GUIDE } from './codeFilterGuide';
+import PremadeFiltersPanel from './PremadeFiltersPanel';
 import { useSavedCodeFilters } from './savedCodeFilters';
 import styles from './StockScreener.module.css';
 
@@ -30,6 +31,7 @@ interface Props {
   appliedExpression: string;
   onChange: (expression: string) => void;
   onApply: () => void;
+  onApplyPremade: (expression: string) => void;
   applyPending?: boolean;
   isHistorical?: boolean;
 }
@@ -39,6 +41,7 @@ export default function CodeFilterPanel({
   appliedExpression,
   onChange,
   onApply,
+  onApplyPremade,
   applyPending = false,
   isHistorical,
 }: Props) {
@@ -69,6 +72,11 @@ export default function CodeFilterPanel({
           Filter any table column — metrics, sector, ticker, name, historical returns, pattern similarity
         </span>
       </div>
+
+      <PremadeFiltersPanel
+        activeExpression={appliedExpression}
+        onApply={onApplyPremade}
+      />
 
       <button
         type="button"

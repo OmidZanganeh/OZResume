@@ -33,7 +33,8 @@ import {
   targetDaysAgoFromPeriod,
 } from './returnPeriods';
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
-import { parsedExpressionUsesMomentum } from './filterExpressionCache';
+import { parsedExpressionUsesMomentum, parsedExpressionUsesTechnical } from './filterExpressionCache';
+import { computeTechnicalIndicators } from './technicalIndicators';
 import { EMPTY_SNAPSHOTS } from './snapshotConstants';
 import type { ScreenerState } from './filters';
 import {
@@ -443,6 +444,16 @@ export default function StockScreener() {
     return m;
   }, [stocks, todaySnapshots]);
 
+  const todayTechnicals = useMemo(() => {
+    const m = new Map<string, import('./technicalIndicators').TechnicalIndicators>();
+    for (const stock of stocks) {
+      if (!stock.weeklyHistory?.length) continue;
+      const t = computeTechnicalIndicators(stock.weeklyHistory);
+      if (t) m.set(stock.ticker, t);
+    }
+    return m;
+  }, [stocks]);
+
   const referenceProfiles = useMemo(() => {
     return [...referenceTickers]
       .map(ticker => {
@@ -594,6 +605,18 @@ export default function StockScreener() {
     [screenerState.filterMode, screenerState.codeExpression],
   );
 
+  const codeUsesMomentum = useMemo(
+    () => screenerState.filterMode === 'code'
+      && parsedExpressionUsesMomentum(screenerState.codeExpression),
+    [screenerState.filterMode, screenerState.codeExpression],
+  );
+
+  const codeUsesTechnical = useMemo(
+    () => screenerState.filterMode === 'code'
+      && parsedExpressionUsesTechnical(screenerState.codeExpression),
+    [screenerState.filterMode, screenerState.codeExpression],
+  );
+
   const matchingSet = useMemo(() => {
     const snapMap = isHistorical ? activeSnapshots : todaySnapshots;
     const matched = stocks.filter(s => {
@@ -607,7 +630,8 @@ export default function StockScreener() {
             ? returnBetweenDaysAgo(s, activeDaysAgo, returnTargetDaysAgo) ?? undefined
             : undefined,
         similarity: showSimilarity ? similarityMap.get(s.ticker) : undefined,
-        momentum: patternFactorScreen ? todayPatterns.get(s.ticker)?.momentum : undefined,
+        momentum: codeUsesMomentum ? todayPatterns.get(s.ticker)?.momentum : undefined,
+        technicals: codeUsesTechnical ? todayTechnicals.get(s.ticker) : undefined,
         todayMetrics: patternFactorScreen ? todaySnapshots.get(s.ticker) : undefined,
         patternFactorScreen,
       };
@@ -625,6 +649,9 @@ export default function StockScreener() {
     showSimilarity,
     similarityMap,
     todayPatterns,
+    todayTechnicals,
+    codeUsesMomentum,
+    codeUsesTechnical,
     patternFactorScreen,
   ]);
 
