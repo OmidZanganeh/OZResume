@@ -12,9 +12,11 @@ import styles from './StockScreener.module.css';
 interface Props {
   activeExpression: string;
   onApply: (expression: string) => void;
+  /** When true, renders inside Code tab workspace (no outer collapse). */
+  embedded?: boolean;
 }
 
-export default function PremadeFiltersPanel({ activeExpression, onApply }: Props) {
+export default function PremadeFiltersPanel({ activeExpression, onApply, embedded = false }: Props) {
   const [open, setOpen] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set(['volume', 'breakout', 'technical']),
@@ -33,20 +35,28 @@ export default function PremadeFiltersPanel({ activeExpression, onApply }: Props
     onApply(filter.expression);
   };
 
-  return (
-    <div className={styles.premadeFilters}>
-      <button
-        type="button"
-        className={styles.premadeFiltersToggle}
-        onClick={() => setOpen(v => !v)}
-        aria-expanded={open}
-      >
-        <Layers size={15} aria-hidden />
-        Strategy presets ({PREMADE_FILTER_CATEGORIES.reduce((n, c) => n + premadeFiltersByCategory(c.id).length, 0)})
-        {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-      </button>
+  const presetCount = PREMADE_FILTER_CATEGORIES.reduce(
+    (n, c) => n + premadeFiltersByCategory(c.id).length,
+    0,
+  );
+  const isOpen = embedded || open;
 
-      {open && (
+  return (
+    <div className={`${styles.premadeFilters} ${embedded ? styles.premadeFiltersEmbedded : ''}`}>
+      {!embedded && (
+        <button
+          type="button"
+          className={styles.premadeFiltersToggle}
+          onClick={() => setOpen(v => !v)}
+          aria-expanded={open}
+        >
+          <Layers size={15} aria-hidden />
+          Strategy presets ({presetCount})
+          {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+      )}
+
+      {isOpen && (
         <>
           <p className={styles.premadeFiltersIntro}>
             One-click screens using live Finnhub metrics and weekly-derived RSI, MACD, and compression

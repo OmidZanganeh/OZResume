@@ -121,7 +121,11 @@
 |------|------|
 | `StockScreener.tsx` | Main page: filters, timeline, table, similarity state |
 | `FilterBar.tsx` | Sliders / Code filter mode toggle |
-| `CodeFilterPanel.tsx` | Code expression editor, full field reference, saved filters |
+| `CodeFilterPanel.tsx` | Tabbed code workspace: Screen / Presets / Guide / Fields / Saved |
+| `CodeFilterGuidePane.tsx` | Syntax guide tab content |
+| `CodeFilterReferencePane.tsx` | Full field reference tab |
+| `CodeFilterSavedPane.tsx` | Saved filters tab (localStorage) |
+| `codeFilterTabs.ts` | Tab ids + labels for code workspace |
 | `filterExpression.ts` | Parser + evaluator (metrics, sector, ticker, name, historical, similarity) |
 | `codeFilterCatalog.ts` | Field docs + aliases for every filterable column |
 | `premadeFilters.ts` | Strategy preset library (volume, breakout, RSI, compression, …) |

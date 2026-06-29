@@ -827,6 +827,167 @@
   margin-top: 12px;
 }
 
+.codeFilterWorkspace {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.codeFilterTabBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.codeFilterTab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.codeFilterTab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.codeFilterTabActive {
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+}
+
+.codeFilterTabActive:hover {
+  background: rgba(99, 102, 241, 0.26);
+  color: #e0e7ff;
+}
+
+.codeFilterTabLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.codeFilterTabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.codeFilterPane {
+  padding: 12px 14px;
+}
+
+.codeFilterPaneScroll {
+  max-height: min(460px, 52vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.codeFilterScreenNote {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.codeFilterScreenNote code {
+  font-size: 10.5px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.codeFilterGuidePane,
+.codeFilterRefPane,
+.codeFilterSavedPane {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.codeFilterRefIntro {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.codeFilterRefTableWrap {
+  overflow-x: auto;
+  margin-bottom: 4px;
+}
+
+.codeFilterSavedEmpty {
+  margin: 12px 0 0;
+  padding: 16px 12px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.38);
+  line-height: 1.45;
+}
+
+.codeFilterExampleStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.codeFilterMoreLink {
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: rgba(99, 102, 241, 0.85);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.codeFilterMoreLink:hover {
+  color: #c7d2fe;
+}
+
+.premadeFiltersEmbedded {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.premadeFiltersEmbedded .premadeFiltersIntro {
+  margin-top: 0;
+}
+
 .codeFilterGuideToggle {
   display: flex;
   align-items: center;
@@ -1040,10 +1201,12 @@
 
 .codeFilterExamples {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .codeFilterExamplesLabel {
