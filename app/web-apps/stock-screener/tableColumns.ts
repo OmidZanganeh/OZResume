@@ -114,6 +114,8 @@ export function buildReturnTargetColumn(periodDays: number): TableColumn {
 
 const METRIC_SHORT_LABELS: Partial<Record<keyof StockMetrics, string>> = {
   avgVolume: 'Vol',
+  volatility30d: 'Vol30',
+  atrPercent: 'ATR',
 };
 
 export const METRIC_COLUMNS: TableColumn[] = FILTER_DEFS.map(def => ({

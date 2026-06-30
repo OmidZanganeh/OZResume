@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { resolve } from 'node:path';
 import type { Stock, WeeklyBar } from '@/app/web-apps/stock-screener/types';
+import { enrichStockPriceVolatility } from '@/app/web-apps/stock-screener/priceVolatility';
 import {
   parseUniverseId,
   universeMeta,
@@ -53,8 +54,8 @@ export function mergeBulkWeeklyIntoStocks(
   if (!bulk?.data || Object.keys(bulk.data).length === 0) return stocks;
   return stocks.map(stock => {
     const bars = barsForTicker(bulk, stock.ticker);
-    if (!bars?.length) return stock;
-    return { ...stock, weeklyHistory: bars };
+    if (!bars?.length) return enrichStockPriceVolatility(stock);
+    return enrichStockPriceVolatility({ ...stock, weeklyHistory: bars });
   });
 }
 

@@ -131,6 +131,7 @@
 | `premadeFilters.ts` | Strategy preset library (volume, breakout, RSI, compression, …) |
 | `PremadeFiltersPanel.tsx` | One-click apply for premade code filters |
 | `technicalIndicators.ts` | RSI, MACD, Stochastic from weekly closes |
+| `priceVolatility.ts` | 30d vol + ATR% from Finnhub metric or weekly closes |
 | `savedCodeFilters.ts` | localStorage saved filter presets (`useSavedCodeFilters`) |
 | `codeFilterGuide.ts` | In-app guide copy for code filter syntax |
 | `universe.ts` | Shared `UniverseId`, Redis key prefixes, labels |

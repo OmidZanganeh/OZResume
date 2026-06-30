@@ -93,8 +93,12 @@ function mapFinnhubToStock(
     metric['10DayAverageTradingVolume'] ?? metric['3MonthAverageTradingVolume'],
     0,
   );
-  const volatility30d = pct(metric['volatility30d'] ?? metric['volatility90d'], 0);
-  const atrPercent = pct(metric['atr14'], 0);
+  const volatility30d = num(
+    metric['3MonthADReturnStd'] ?? metric['volatility30d'] ?? metric['volatility90d'],
+    0,
+  );
+  // True ATR is not on /stock/metric — filled from weekly history after bulk merge.
+  const atrPercent = 0;
 
   const pegRatio = epsGrowth > 0 && peRatio > 0 ? round(peRatio / epsGrowth, 1) : 0;
   const sector = inferSector(entry.name, metric);

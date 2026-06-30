@@ -35,6 +35,7 @@ import {
 import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filters';
 import { parsedExpressionUsesMomentum, parsedExpressionUsesTechnical } from './filterExpressionCache';
 import { computeTechnicalIndicators } from './technicalIndicators';
+import { enrichStockPriceVolatility } from './priceVolatility';
 import { EMPTY_SNAPSHOTS } from './snapshotConstants';
 import type { ScreenerState } from './filters';
 import {
@@ -81,12 +82,12 @@ function mergeStockLists(prev: Stock[], incoming: Stock[]): Stock[] {
   return incoming.map(stock => {
     const keptWeekly = stock.weeklyHistory?.length ? undefined : prevWeekly.get(stock.ticker);
     const keptFund = stock.fundamentalHistory?.length ? undefined : prevFund.get(stock.ticker);
-    if (!keptWeekly && !keptFund) return stock;
-    return {
+    if (!keptWeekly && !keptFund) return enrichStockPriceVolatility(stock);
+    return enrichStockPriceVolatility({
       ...stock,
       ...(keptWeekly?.length ? { weeklyHistory: keptWeekly } : {}),
       ...(keptFund?.length ? { fundamentalHistory: keptFund } : {}),
-    };
+    });
   });
 }
 
@@ -210,7 +211,7 @@ export default function StockScreener() {
         setStocks(prev =>
           prev.map(s => {
             const w = results[s.ticker];
-            return w?.length ? { ...s, weeklyHistory: w } : s;
+            return w?.length ? enrichStockPriceVolatility({ ...s, weeklyHistory: w }) : s;
           }),
         );
       } catch {
@@ -735,7 +736,7 @@ export default function StockScreener() {
       const w = body.results?.[ticker];
       if (!w?.length) return;
       setStocks(prev =>
-        prev.map(s => (s.ticker === ticker ? { ...s, weeklyHistory: w } : s)),
+        prev.map(s => (s.ticker === ticker ? enrichStockPriceVolatility({ ...s, weeklyHistory: w }) : s)),
       );
     } catch {
       // ignore
@@ -841,10 +842,12 @@ export default function StockScreener() {
         }
         setStocks(prev =>
           prev.map(s =>
-            s.ticker === ticker ? { ...s, weeklyHistory: body.weeklyHistory } : s,
+            s.ticker === ticker
+              ? enrichStockPriceVolatility({ ...s, weeklyHistory: body.weeklyHistory })
+              : s,
           ),
         );
-        stock = { ...stock, weeklyHistory: body.weeklyHistory };
+        stock = enrichStockPriceVolatility({ ...stock, weeklyHistory: body.weeklyHistory });
         addReference(stock);
       } catch {
         setDataWarning(`Failed to load weekly prices for ${ticker}.`);
