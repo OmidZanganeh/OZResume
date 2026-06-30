@@ -112,10 +112,14 @@ export function buildReturnTargetColumn(periodDays: number): TableColumn {
   };
 }
 
+const METRIC_SHORT_LABELS: Partial<Record<keyof StockMetrics, string>> = {
+  avgVolume: 'Vol',
+};
+
 export const METRIC_COLUMNS: TableColumn[] = FILTER_DEFS.map(def => ({
   id: def.id,
   label: def.label,
-  shortLabel: def.label.split(' ')[0] ?? def.label,
+  shortLabel: METRIC_SHORT_LABELS[def.id] ?? def.label.split(' ')[0] ?? def.label,
   explanation: def.explanation,
   align: 'right' as const,
   format:

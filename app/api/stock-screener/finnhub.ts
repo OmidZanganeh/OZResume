@@ -88,7 +88,11 @@ function mapFinnhubToStock(
   const priceVs52wHigh = high52 > 0 ? round(((price - high52) / high52) * 100, 1) : 0;
   const priceVs52wLow = low52 > 0 ? round(((price - low52) / low52) * 100, 1) : 0;
 
-  const avgVolume = num(metric['10DayAverageTradingVolume'], 0) / 1_000_000;
+  // Finnhub returns average volume in millions of shares/day (see metric API).
+  const avgVolume = num(
+    metric['10DayAverageTradingVolume'] ?? metric['3MonthAverageTradingVolume'],
+    0,
+  );
   const volatility30d = pct(metric['volatility30d'] ?? metric['volatility90d'], 0);
   const atrPercent = pct(metric['atr14'], 0);
 
