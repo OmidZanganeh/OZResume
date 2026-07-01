@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseUniverseId } from '@/app/web-apps/stock-screener/universe';
 import { runIncrementalBatch } from '../incrementalRefresh';
+import { runVolumeRepairBatch } from '../volumeRepair';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -24,15 +25,19 @@ export async function GET(req: NextRequest) {
 
   const universeId = parseUniverseId(req.nextUrl.searchParams.get('universe'));
   const reset = req.nextUrl.searchParams.get('reset') === '1';
+  const repairVolume = req.nextUrl.searchParams.get('repairVolume') === '1';
   const shouldContinue = req.nextUrl.searchParams.get('continue') === '1';
 
   try {
-    const batch = await runIncrementalBatch(reset, universeId);
+    const batch = repairVolume
+      ? await runVolumeRepairBatch(universeId)
+      : await runIncrementalBatch(reset, universeId);
 
     if (!batch.complete && shouldContinue) {
       const url = new URL(req.url);
       url.searchParams.set('continue', '1');
       url.searchParams.delete('reset');
+      if (repairVolume) url.searchParams.set('repairVolume', '1');
       fetch(url.toString(), {
         headers: req.headers.get('authorization')
           ? { authorization: req.headers.get('authorization')! }
@@ -50,7 +55,7 @@ export async function GET(req: NextRequest) {
       cursor: batch.cursor,
       next: batch.complete
         ? null
-        : `${req.nextUrl.pathname}?continue=1&universe=${universeId}${req.nextUrl.searchParams.get('secret') ? `&secret=${req.nextUrl.searchParams.get('secret')}` : ''}`,
+        : `${req.nextUrl.pathname}?continue=1&universe=${universeId}${repairVolume ? '&repairVolume=1' : ''}${req.nextUrl.searchParams.get('secret') ? `&secret=${req.nextUrl.searchParams.get('secret')}` : ''}`,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Refresh failed';

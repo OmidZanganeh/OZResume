@@ -1,6 +1,8 @@
 import type { UniverseCacheKey } from './universe';
+import type { Stock } from './types';
+import { snapshotNeedsVolumeRepair } from './snapshotVolumeRepair';
 
-const SESSION_KEY_PREFIX = 'stock-screener-market-v2';
+const SESSION_KEY_PREFIX = 'stock-screener-market-v3';
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface SessionMarketPayload {
@@ -27,7 +29,15 @@ export function readSessionMarketCache(key: UniverseCacheKey = 'sp500'): Session
       sessionStorage.removeItem(sessionKey(key));
       return null;
     }
-    return parsed.payload;
+    const payload = parsed.payload;
+    if (
+      Array.isArray(payload.stocks) &&
+      snapshotNeedsVolumeRepair(payload.stocks as Stock[])
+    ) {
+      sessionStorage.removeItem(sessionKey(key));
+      return null;
+    }
+    return payload;
   } catch {
     return null;
   }

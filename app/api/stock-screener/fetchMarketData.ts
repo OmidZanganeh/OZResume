@@ -14,6 +14,7 @@ import {
   readWeeklyBulk,
   weeklyBulkCoverage,
 } from './weeklyBulk';
+import { snapshotNeedsVolumeRepair } from './volumeRepair';
 
 export type { MarketDataResult };
 
@@ -22,6 +23,7 @@ const MEMORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const memoryCache = new Map<UniverseId, { result: MarketDataResult; expiresAt: number }>();
 const refreshKickStarted = new Set<UniverseId>();
 const weeklyBulkKickStarted = new Set<UniverseId>();
+const volumeRepairKickStarted = new Set<UniverseId>();
 
 function apiBase(): string {
   return process.env.VERCEL_URL
@@ -53,8 +55,20 @@ function kickWeeklyBulkChain(universeId: UniverseId) {
   }).catch(() => {});
 }
 
+function kickVolumeRepairChain(universeId: UniverseId) {
+  if (volumeRepairKickStarted.has(universeId) || !getFinnhubApiKey()) return;
+  volumeRepairKickStarted.add(universeId);
+
+  const q = new URLSearchParams({ repairVolume: '1', continue: '1', universe: universeId });
+  const secret = process.env.CRON_SECRET?.trim();
+  if (secret) q.set('secret', secret);
+
+  fetch(`${apiBase()}/api/stock-screener/refresh?${q}`, { cache: 'no-store' }).catch(() => {});
+}
+
 function remember(result: MarketDataResult, universeId: UniverseId) {
   if (result.refreshComplete === false) return;
+  if (snapshotNeedsVolumeRepair(result.stocks)) return;
   memoryCache.set(universeId, {
     result: { ...result, fromCache: true, universe: universeId },
     expiresAt: Date.now() + MEMORY_TTL_MS,
@@ -97,13 +111,19 @@ async function withBulkData(
     warning = warning ? `${warning} ${fundNote}` : fundNote;
   }
 
+  if (snapshotNeedsVolumeRepair(stocks)) {
+    kickVolumeRepairChain(universeId);
+    const volNote = 'Refreshing average volume data — Vol column will fill in over the next few minutes.';
+    warning = warning ? `${warning} ${volNote}` : volNote;
+  }
+
   return { ...result, stocks, universe: universeId, warning };
 }
 
 /** Read cached snapshot only — never calls Finnhub (safe for page loads). */
 export async function getMarketStocks(universeId: UniverseId = 'sp500'): Promise<MarketDataResult> {
   const mem = fromMemory(universeId);
-  if (mem) return withBulkData(mem, universeId);
+  if (mem && !snapshotNeedsVolumeRepair(mem.stocks)) return withBulkData(mem, universeId);
 
   const stored = await loadMarketFromStore(universeId);
   if (stored) {
