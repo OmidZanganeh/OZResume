@@ -125,7 +125,7 @@ export async function loadMarketFromStore(universeId: UniverseId = 'sp500'): Pro
       ? `Partial universe: ${rest.stocks.length}/${totalSymbols} symbols loaded — refresh in progress.`
       : fresh
         ? undefined
-        : `Weekly snapshot expired — showing ${rest.stocks.length} cached symbols until refresh completes.`,
+        : `Market snapshot is older than 7 days — refreshing from Finnhub in the background. Showing ${rest.stocks.length} cached symbols for now.`,
   };
 }
 

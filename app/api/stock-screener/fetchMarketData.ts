@@ -23,12 +23,17 @@ export type { MarketDataResult };
 const MEMORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const memoryCache = new Map<UniverseId, { result: MarketDataResult; expiresAt: number }>();
-const refreshKickStarted = new Set<UniverseId>();
+const refreshKickStarted = new Map<UniverseId, number>();
 const weeklyBulkKickStarted = new Set<UniverseId>();
 const weeklyVolumeRepairKickStarted = new Map<UniverseId, number>();
 const volumeRepairKickStarted = new Map<UniverseId, number>();
 
 const REPAIR_KICK_DEBOUNCE_MS = 60_000;
+
+function snapshotIsExpired(result: MarketDataResult): boolean {
+  if (!result.expiresAt) return false;
+  return Date.now() >= new Date(result.expiresAt).getTime();
+}
 
 function apiBase(): string {
   return process.env.VERCEL_URL
@@ -37,8 +42,11 @@ function apiBase(): string {
 }
 
 function kickRefreshChain(universeId: UniverseId) {
-  if (refreshKickStarted.has(universeId) || !getFinnhubApiKey()) return;
-  refreshKickStarted.add(universeId);
+  if (!getFinnhubApiKey()) return;
+  const now = Date.now();
+  const last = refreshKickStarted.get(universeId) ?? 0;
+  if (now - last < REPAIR_KICK_DEBOUNCE_MS) return;
+  refreshKickStarted.set(universeId, now);
 
   const q = new URLSearchParams({ reset: '1', continue: '1', universe: universeId });
   const secret = process.env.CRON_SECRET?.trim();
@@ -154,7 +162,9 @@ export async function getMarketStocks(universeId: UniverseId = 'sp500'): Promise
 
   const stored = await loadMarketFromStore(universeId);
   if (stored) {
-    if (!stored.refreshComplete) kickRefreshChain(universeId);
+    if (!stored.refreshComplete || snapshotIsExpired(stored)) {
+      kickRefreshChain(universeId);
+    }
     const merged = await withBulkData(stored, universeId);
     if (stored.refreshComplete) remember(merged, universeId);
     return merged;
