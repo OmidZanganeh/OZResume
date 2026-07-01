@@ -747,12 +747,18 @@ export default function StockScreener() {
   ]);
 
   const displayRows = useMemo(() => {
+    const filtersActive = enabledFilterCount(screenerState) > 0;
+
     let rows =
       viewMode !== 'watchlist'
         ? tableRows
         : tableRows
             .filter(r => watchlist.activeTickers.has(r.stock.ticker))
             .map(r => ({ ...r, visible: true }));
+
+    if (filtersActive && viewMode !== 'watchlist') {
+      rows = rows.filter(r => r.visible);
+    }
 
     if (winnersTableFocus && winnersTableFocus.size > 0) {
       rows = rows.filter(r => winnersTableFocus.has(r.stock.ticker));
@@ -766,7 +772,7 @@ export default function StockScreener() {
       const name = r.stock.companyName.toLowerCase();
       return ticker.includes(q) || name.includes(q);
     });
-  }, [tableRows, viewMode, watchlist.activeTickers, searchQuery, winnersTableFocus]);
+  }, [tableRows, viewMode, watchlist.activeTickers, searchQuery, winnersTableFocus, screenerState]);
 
   const searchActive = searchQuery.trim().length > 0;
   const shownCount = displayRows.length;

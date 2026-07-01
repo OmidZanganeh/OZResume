@@ -138,7 +138,6 @@ function TableRowView({
     <tr
       className={[
         styles.tr,
-        !row.visible ? styles.trDim : '',
         isRef ? styles.trReference : '',
         highMatch && showSimilarity ? styles.trMatch : '',
         isChartSelected ? chartStyles.trSelected : '',
