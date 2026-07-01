@@ -16,7 +16,7 @@ import {
   weeklyBulkNeedsVolumeRepair,
 } from './weeklyBulk';
 import { enrichLiveYahooVolumeForStocks } from './enrichStockFromWeekly';
-import { snapshotNeedsVolumeRepair } from './volumeRepair';
+import { persistVolumePatchesToSnapshot, snapshotNeedsVolumeRepair } from './volumeRepair';
 
 export type { MarketDataResult };
 
@@ -25,8 +25,10 @@ const MEMORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const memoryCache = new Map<UniverseId, { result: MarketDataResult; expiresAt: number }>();
 const refreshKickStarted = new Set<UniverseId>();
 const weeklyBulkKickStarted = new Set<UniverseId>();
-const volumeRepairKickStarted = new Set<UniverseId>();
-const weeklyVolumeRepairKickStarted = new Set<UniverseId>();
+const weeklyVolumeRepairKickStarted = new Map<UniverseId, number>();
+const volumeRepairKickStarted = new Map<UniverseId, number>();
+
+const REPAIR_KICK_DEBOUNCE_MS = 60_000;
 
 function apiBase(): string {
   return process.env.VERCEL_URL
@@ -59,8 +61,10 @@ function kickWeeklyBulkChain(universeId: UniverseId) {
 }
 
 function kickWeeklyVolumeRepairChain(universeId: UniverseId) {
-  if (weeklyVolumeRepairKickStarted.has(universeId)) return;
-  weeklyVolumeRepairKickStarted.add(universeId);
+  const now = Date.now();
+  const last = weeklyVolumeRepairKickStarted.get(universeId) ?? 0;
+  if (now - last < REPAIR_KICK_DEBOUNCE_MS) return;
+  weeklyVolumeRepairKickStarted.set(universeId, now);
 
   const q = new URLSearchParams({ repairVolume: '1', continue: '1', universe: universeId });
   const secret = process.env.CRON_SECRET?.trim();
@@ -72,8 +76,10 @@ function kickWeeklyVolumeRepairChain(universeId: UniverseId) {
 }
 
 function kickVolumeRepairChain(universeId: UniverseId) {
-  if (volumeRepairKickStarted.has(universeId)) return;
-  volumeRepairKickStarted.add(universeId);
+  const now = Date.now();
+  const last = volumeRepairKickStarted.get(universeId) ?? 0;
+  if (now - last < REPAIR_KICK_DEBOUNCE_MS) return;
+  volumeRepairKickStarted.set(universeId, now);
 
   const q = new URLSearchParams({ repairVolume: '1', continue: '1', universe: universeId });
   const secret = process.env.CRON_SECRET?.trim();
@@ -104,7 +110,11 @@ async function withBulkData(
 ): Promise<MarketDataResult> {
   const weekly = await readWeeklyBulk(universeId);
   let stocks = mergeBulkWeeklyIntoStocks(result.stocks, weekly);
-  stocks = await enrichLiveYahooVolumeForStocks(stocks);
+  const enriched = await enrichLiveYahooVolumeForStocks(stocks);
+  stocks = enriched.stocks;
+  if (enriched.patches.length > 0) {
+    void persistVolumePatchesToSnapshot(universeId, enriched.patches).catch(() => {});
+  }
 
   let warning = result.warning;
   if (!weekly?.complete) {

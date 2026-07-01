@@ -3,7 +3,7 @@ import type { UniverseId } from '@/app/web-apps/stock-screener/universe';
 import { universeMeta } from '@/app/web-apps/stock-screener/universe';
 import { liveAvgDailyVolumeM, weeklyBarsHaveVolume } from '@/app/web-apps/stock-screener/weeklyVolume';
 import { getSymbolUniverse } from './symbols';
-import { fetchYahooWeeklyBars, sleep } from './weeklyPrices';
+import { fetchYahooWeeklyBars } from './weeklyPrices';
 import {
   mergeStocks,
   readRedisSnapshot,
@@ -13,11 +13,34 @@ import {
 import { getRedis } from './redis';
 import type { BatchResult } from './incrementalRefresh';
 import { snapshotNeedsVolumeRepair } from '@/app/web-apps/stock-screener/snapshotVolumeRepair';
+import { mapPool } from './utils';
 
 export { snapshotNeedsVolumeRepair };
 
 /** Yahoo weekly fetches — faster than full Finnhub refresh. */
 const REPAIR_BATCH_SIZE = 80;
+
+/** Write Yahoo volume patches into the Redis snapshot (survives incremental merges). */
+export async function persistVolumePatchesToSnapshot(
+  universeId: UniverseId,
+  patches: Stock[],
+): Promise<number> {
+  if (patches.length === 0) return 0;
+  const snap = await readRedisSnapshot(universeId);
+  if (!snap?.data.stocks?.length) return 0;
+
+  const merged = mergeStocks(snap.data.stocks, patches);
+  const updated: StoredSnapshot = {
+    ...snap.data,
+    stocks: merged,
+    cachedAt: new Date().toISOString(),
+    refreshComplete: snap.data.refreshComplete ?? true,
+    totalSymbols: snap.data.totalSymbols ?? merged.length,
+    expiresAt: snap.data.expiresAt,
+  };
+  await writeRedisSnapshot(updated, universeId);
+  return patches.length;
+}
 
 function volumeRepairCursorKey(universeId: UniverseId): string {
   return `${universeMeta(universeId).snapshotKey}:volume-repair-cursor`;
@@ -86,22 +109,19 @@ export async function runVolumeRepairBatch(universeId: UniverseId): Promise<Batc
   }
 
   const patches: Stock[] = [];
-  for (const entry of batch) {
+  await mapPool(batch, 10, 60, async entry => {
     const existing = stockByTicker.get(entry.symbol);
-    if (!existing) continue;
+    if (!existing) return;
     const bars = await fetchYahooWeeklyBars(entry.symbol, 3);
-    if (bars?.length && weeklyBarsHaveVolume(bars)) {
-      const vol = liveAvgDailyVolumeM(bars);
-      if (vol != null && vol > 0) {
-        patches.push({
-          ...existing,
-          avgVolume: vol,
-          weeklyHistory: existing.weeklyHistory?.length ? existing.weeklyHistory : bars,
-        });
-      }
-    }
-    await sleep(100);
-  }
+    if (!bars?.length || !weeklyBarsHaveVolume(bars)) return;
+    const vol = liveAvgDailyVolumeM(bars);
+    if (vol == null || vol <= 0) return;
+    patches.push({
+      ...existing,
+      avgVolume: vol,
+      weeklyHistory: existing.weeklyHistory?.length ? existing.weeklyHistory : bars,
+    });
+  });
 
   const merged = mergeStocks(snap.data.stocks, patches);
   const nextCursor = cursor + batch.length;

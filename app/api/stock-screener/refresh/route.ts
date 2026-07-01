@@ -38,11 +38,12 @@ export async function GET(req: NextRequest) {
       url.searchParams.set('continue', '1');
       url.searchParams.delete('reset');
       if (repairVolume) url.searchParams.set('repairVolume', '1');
-      fetch(url.toString(), {
-        headers: req.headers.get('authorization')
-          ? { authorization: req.headers.get('authorization')! }
-          : undefined,
-      }).catch(() => {});
+      const secret = process.env.CRON_SECRET?.trim();
+      const headers: Record<string, string> = {};
+      const authHeader = req.headers.get('authorization');
+      if (authHeader) headers.authorization = authHeader;
+      else if (secret) url.searchParams.set('secret', secret);
+      fetch(url.toString(), { headers, cache: 'no-store' }).catch(() => {});
     }
 
     return NextResponse.json({

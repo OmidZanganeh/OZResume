@@ -1,4 +1,5 @@
 import type { Stock } from '@/app/web-apps/stock-screener/types';
+import { weeklyBarsHaveVolume } from '@/app/web-apps/stock-screener/weeklyVolume';
 import {
   parseUniverseId,
   universeMeta,
@@ -115,7 +116,23 @@ export async function writeRedisSnapshot(
 export function mergeStocks(existing: Stock[], incoming: Stock[]): Stock[] {
   const map = new Map<string, Stock>();
   for (const s of existing) map.set(s.ticker, s);
-  for (const s of incoming) map.set(s.ticker, s);
+  for (const s of incoming) {
+    const prev = map.get(s.ticker);
+    if (!prev) {
+      map.set(s.ticker, s);
+      continue;
+    }
+    let merged = s;
+    if ((!s.avgVolume || s.avgVolume <= 0) && prev.avgVolume > 0) {
+      merged = { ...merged, avgVolume: prev.avgVolume };
+    }
+    const prevHasVol = weeklyBarsHaveVolume(prev.weeklyHistory ?? []);
+    const nextHasVol = weeklyBarsHaveVolume(merged.weeklyHistory ?? []);
+    if (prevHasVol && !nextHasVol && prev.weeklyHistory?.length) {
+      merged = { ...merged, weeklyHistory: prev.weeklyHistory };
+    }
+    map.set(s.ticker, merged);
+  }
   return [...map.values()].sort((a, b) => a.ticker.localeCompare(b.ticker));
 }
 

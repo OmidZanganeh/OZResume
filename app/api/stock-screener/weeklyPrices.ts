@@ -59,7 +59,9 @@ async function fetchFinnhubWeeklyBars(
 
 function yahooSymbolCandidates(symbol: string): string[] {
   const dotted = symbol.replace(/-/g, '.');
-  return symbol === dotted ? [symbol] : [symbol, dotted];
+  const dashed = symbol.replace(/\./g, '-');
+  const out = new Set<string>([symbol, dotted, dashed]);
+  return [...out];
 }
 
 async function fetchYahooWeeklyChart(
@@ -72,9 +74,13 @@ async function fetchYahooWeeklyChart(
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}` +
     `?period1=${from}&period2=${to}&interval=1wk`;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+
   try {
     const res = await fetch(url, {
       next: { revalidate: 0 },
+      signal: controller.signal,
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StockScreener/1.0)' },
     });
     if (!res.ok) return null;
@@ -88,6 +94,8 @@ async function fetchYahooWeeklyChart(
     return bars.length >= 4 ? bars : null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

@@ -36,10 +36,16 @@ import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filt
 import { parsedExpressionUsesMomentum, parsedExpressionUsesTechnical } from './filterExpressionCache';
 import { computeTechnicalIndicators } from './technicalIndicators';
 import { enrichStockPriceVolatility } from './priceVolatility';
-import { enrichStockVolumeFromWeekly } from './weeklyVolume';
+import { enrichStockVolumeFromWeekly, weeklyBarsHaveVolume } from './weeklyVolume';
 
 function enrichStockFromWeeklyClient(stock: Stock): Stock {
   return enrichStockVolumeFromWeekly(enrichStockPriceVolatility(stock));
+}
+
+function stockNeedsVolumeWeekly(stock: Stock): boolean {
+  if (stock.avgVolume > 0) return false;
+  if (!stock.weeklyHistory?.length) return true;
+  return !weeklyBarsHaveVolume(stock.weeklyHistory);
 }
 import { EMPTY_SNAPSHOTS } from './snapshotConstants';
 import type { ScreenerState } from './filters';
@@ -198,7 +204,7 @@ export default function StockScreener() {
     async function enrichBatch() {
       if (cancelled || batches >= maxBatches) return;
       const missing = stocksRef.current
-        .filter(s => !s.weeklyHistory?.length)
+        .filter(s => !s.weeklyHistory?.length || stockNeedsVolumeWeekly(s))
         .slice(0, 25);
       if (missing.length === 0) return;
 
@@ -231,6 +237,81 @@ export default function StockScreener() {
       window.clearInterval(id);
     };
   }, [deferredDaysAgo, referenceTickers.size, dataSource]);
+
+  /** Today view: hydrate Vol from Yahoo weekly bars when snapshot avgVolume is still zero. */
+  useEffect(() => {
+    if (dataSource === 'mock' || dataSource === 'loading') return;
+
+    let cancelled = false;
+    let batches = 0;
+    const maxBatches = 80;
+
+    async function enrichVolumeBatch() {
+      if (cancelled || batches >= maxBatches) return;
+      const missing = stocksRef.current.filter(stockNeedsVolumeWeekly).slice(0, 25);
+      if (missing.length === 0) return;
+
+      batches += 1;
+      try {
+        const res = await fetch(
+          `/api/stock-screener/weekly?symbols=${encodeURIComponent(missing.map(s => s.ticker).join(','))}`,
+        );
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as {
+          results?: Record<string, NonNullable<Stock['weeklyHistory']>>;
+        };
+        const results = body.results ?? {};
+        if (Object.keys(results).length === 0) return;
+        setStocks(prev =>
+          prev.map(s => {
+            const w = results[s.ticker];
+            return w?.length ? enrichStockFromWeeklyClient({ ...s, weeklyHistory: w }) : s;
+          }),
+        );
+      } catch {
+        // ignore — next batch may succeed
+      }
+    }
+
+    void enrichVolumeBatch();
+    const id = window.setInterval(() => void enrichVolumeBatch(), 2500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [dataSource]);
+
+  /** Poll market API while server-side volume repair is still running. */
+  useEffect(() => {
+    if (!dataWarning?.includes('Refreshing average volume')) return;
+
+    let cancelled = false;
+    const ids = universesForSelection(universeSelection);
+
+    async function pollVolumeRepair() {
+      if (cancelled) return;
+      try {
+        const responses = await Promise.all(
+          ids.map(id => fetch(`/api/stock-screener?universe=${id}`, { cache: 'no-store' })),
+        );
+        if (cancelled || responses.some(r => !r.ok)) return;
+        const payloads = await Promise.all(responses.map(r => r.json() as Promise<MarketPayload>));
+        const mergedStocks = unionStockLists(payloads.map(p => p.stocks ?? []));
+        if (mergedStocks.length === 0) return;
+        setStocks(prev => mergeStockLists(prev, mergedStocks));
+        const warnings = payloads.map(p => p.warning).filter(Boolean);
+        setDataWarning(warnings.length ? warnings.join(' ') : null);
+      } catch {
+        // retry on next interval
+      }
+    }
+
+    const id = window.setInterval(() => void pollVolumeRepair(), 45_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [dataWarning, universeSelection]);
 
   useEffect(() => {
     let cancelled = false;

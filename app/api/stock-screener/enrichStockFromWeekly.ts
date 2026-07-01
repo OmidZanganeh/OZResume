@@ -6,7 +6,12 @@ import {
   weeklyBarsHaveVolume,
 } from '@/app/web-apps/stock-screener/weeklyVolume';
 import { fetchYahooWeeklyBars } from './weeklyPrices';
-import { mapPool, sleep } from './utils';
+import { mapPool } from './utils';
+
+export type VolumeEnrichResult = {
+  stocks: Stock[];
+  patches: Stock[];
+};
 
 /** Volume + vol/ATR from attached weekly history (Yahoo). */
 export function enrichStockFromWeeklyHistory(stock: Stock): Stock {
@@ -16,8 +21,8 @@ export function enrichStockFromWeeklyHistory(stock: Stock): Stock {
 /** Fetch Yahoo weekly bars for symbols still missing volume and patch live (page-load hydrate). */
 export async function enrichLiveYahooVolumeForStocks(
   stocks: Stock[],
-  maxFetches = 40,
-): Promise<Stock[]> {
+  maxFetches = 24,
+): Promise<VolumeEnrichResult> {
   const needs = stocks
     .filter(
       s =>
@@ -27,28 +32,31 @@ export async function enrichLiveYahooVolumeForStocks(
     .slice(0, maxFetches);
 
   if (needs.length === 0) {
-    return stocks.map(enrichStockFromWeeklyHistory);
+    return { stocks: stocks.map(enrichStockFromWeeklyHistory), patches: [] };
   }
 
-  const patches = new Map<string, { avgVolume: number; weeklyHistory: Stock['weeklyHistory'] }>();
+  const patches = new Map<string, Stock>();
 
-  await mapPool(needs, 8, 80, async stock => {
+  await mapPool(needs, 6, 50, async stock => {
     const bars = await fetchYahooWeeklyBars(stock.ticker, 3);
     if (!bars?.length || !weeklyBarsHaveVolume(bars)) return;
     const vol = liveAvgDailyVolumeM(bars);
     if (vol == null || vol <= 0) return;
-    patches.set(stock.ticker, { avgVolume: vol, weeklyHistory: bars });
-  });
-
-  return stocks.map(s => {
-    const patch = patches.get(s.ticker);
-    if (!patch) return enrichStockFromWeeklyHistory(s);
-    return enrichStockFromWeeklyHistory({
-      ...s,
-      avgVolume: patch.avgVolume,
-      weeklyHistory: patch.weeklyHistory ?? s.weeklyHistory,
+    patches.set(stock.ticker, {
+      ...stock,
+      avgVolume: vol,
+      weeklyHistory: bars,
     });
   });
+
+  const patchedList = [...patches.values()];
+  const enriched = stocks.map(s => {
+    const patch = patches.get(s.ticker);
+    if (!patch) return enrichStockFromWeeklyHistory(s);
+    return enrichStockFromWeeklyHistory(patch);
+  });
+
+  return { stocks: enriched, patches: patchedList };
 }
 
 export async function patchStockAvgVolumeFromYahoo(stock: Stock): Promise<Stock> {
@@ -73,7 +81,6 @@ export async function patchStocksAvgVolumeFromYahoo(
   const patched = new Map<string, Stock>();
   await mapPool(targets, 8, 80, async stock => {
     patched.set(stock.ticker, await patchStockAvgVolumeFromYahoo(stock));
-    await sleep(0);
   });
 
   return stocks.map(s => patched.get(s.ticker) ?? enrichStockFromWeeklyHistory(s));
