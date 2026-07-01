@@ -281,38 +281,6 @@ export default function StockScreener() {
     };
   }, [dataSource]);
 
-  /** Poll market API while server-side volume repair is still running. */
-  useEffect(() => {
-    if (!dataWarning?.includes('Refreshing average volume')) return;
-
-    let cancelled = false;
-    const ids = universesForSelection(universeSelection);
-
-    async function pollVolumeRepair() {
-      if (cancelled) return;
-      try {
-        const responses = await Promise.all(
-          ids.map(id => fetch(`/api/stock-screener?universe=${id}`, { cache: 'no-store' })),
-        );
-        if (cancelled || responses.some(r => !r.ok)) return;
-        const payloads = await Promise.all(responses.map(r => r.json() as Promise<MarketPayload>));
-        const mergedStocks = unionStockLists(payloads.map(p => p.stocks ?? []));
-        if (mergedStocks.length === 0) return;
-        setStocks(prev => mergeStockLists(prev, mergedStocks));
-        const warnings = payloads.map(p => p.warning).filter(Boolean);
-        setDataWarning(warnings.length ? warnings.join(' ') : null);
-      } catch {
-        // retry on next interval
-      }
-    }
-
-    const id = window.setInterval(() => void pollVolumeRepair(), 45_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [dataWarning, universeSelection]);
-
   useEffect(() => {
     let cancelled = false;
 

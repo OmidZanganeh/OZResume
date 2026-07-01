@@ -155,7 +155,8 @@
 | `scripts/fetch_fundamental_one.py` | Single-ticker yfinance fetch (used by bulk + gap fill) |
 | `scripts/fill-weekly-gaps.ts` | `npm run warm:weekly:gaps [-- nasdaq100|sp400]` — fetch only missing symbols |
 | `scripts/warm-stock-screener-cache.ts` | `npm run warm:stocks` or `warm:stocks:nasdaq100` or `warm:stocks:sp400` |
-| One-shot warm | `npm run warm:nasdaq100` · `npm run warm:sp400` (Finnhub + weekly + fundamentals) |
+| `scripts/warm-volume.ts` | `npm run warm:volume` — Yahoo avg + historical volume → Redis (run after warm:weekly) |
+| One-shot warm | `npm run warm:nasdaq100` · `npm run warm:sp400` (Finnhub + weekly + volume + fundamentals) |
 | `scripts/fetch-sp400-wikipedia.mjs` | `npm run sync:sp400` — refresh S&P 400 members from Wikipedia |
 | `../api/stock-screener/symbols.ts` | Index lists: S&P dataset, NASDAQ CSV, S&P 400 (`data/sp400-constituents.csv`) |
 | `../api/stock-screener/` | Finnhub live snapshot + Redis cache (`?universe=sp500|nasdaq100|sp400`) |

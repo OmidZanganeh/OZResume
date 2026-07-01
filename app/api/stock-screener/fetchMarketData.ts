@@ -127,8 +127,6 @@ async function withBulkData(
     warning = warning ? `${warning} ${bulkNote}` : bulkNote;
   } else if (weeklyBulkNeedsVolumeRepair(weekly)) {
     kickWeeklyVolumeRepairChain(universeId);
-    const volHistNote = 'Backfilling historical volume from Yahoo — Vol at past dates improves over a few minutes.';
-    warning = warning ? `${warning} ${volHistNote}` : volHistNote;
   }
 
   const fundamental = await readFundamentalBulk(universeId);
@@ -144,8 +142,6 @@ async function withBulkData(
 
   if (snapshotNeedsVolumeRepair(stocks)) {
     kickVolumeRepairChain(universeId);
-    const volNote = 'Refreshing average volume data — Vol column will fill in over the next few minutes.';
-    warning = warning ? `${warning} ${volNote}` : volNote;
   }
 
   return { ...result, stocks, universe: universeId, warning };
