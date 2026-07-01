@@ -54,6 +54,8 @@ export interface WeeklyBar {
   /** Unix seconds (week bar date). */
   t: number;
   c: number;
+  /** Weekly share volume (Yahoo / Finnhub candle). */
+  v?: number;
 }
 
 export interface Stock extends StockMetrics {

@@ -131,7 +131,7 @@
 | `premadeFilters.ts` | Strategy preset library (volume, breakout, RSI, compression, …) |
 | `PremadeFiltersPanel.tsx` | One-click apply for premade code filters |
 | `technicalIndicators.ts` | RSI, MACD, Stochastic from weekly closes |
-| `priceVolatility.ts` | 30d vol + ATR% from Finnhub metric or weekly closes |
+| `weeklyVolume.ts` | Historical avg daily volume from Yahoo weekly bars |
 | `savedCodeFilters.ts` | localStorage saved filter presets (`useSavedCodeFilters`) |
 | `codeFilterGuide.ts` | In-app guide copy for code filter syntax |
 | `universe.ts` | Shared `UniverseId`, Redis key prefixes, labels |
@@ -150,7 +150,7 @@
 | `fundamentalMetrics.ts` | Point-in-time ratios from fiscal periods + weekly price |
 | `fundamentalTypes.ts` | Shared fundamental bulk types |
 | `../api/stock-screener/fundamentalBulk.ts` | Redis fiscal-statement bulk + merge into stocks |
-| `../api/stock-screener/weeklyBulk.ts` | Redis weekly price bulk + merge into stocks |
+| `../api/stock-screener/weeklyBulk.ts` | Redis weekly price+volume bulk; Yahoo backfill repair |
 | `scripts/bulk-fundamental-history.py` | `npm run warm:fundamentals` — yfinance fiscal history → Redis |
 | `scripts/fetch_fundamental_one.py` | Single-ticker yfinance fetch (used by bulk + gap fill) |
 | `scripts/fill-weekly-gaps.ts` | `npm run warm:weekly:gaps [-- nasdaq100|sp400]` — fetch only missing symbols |

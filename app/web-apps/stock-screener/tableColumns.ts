@@ -203,6 +203,13 @@ export const HISTORICAL_TECH_COLUMNS: TableColumn[] = [
     v => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—'),
   ),
   techColumn(
+    'avgVolume',
+    'Avg Daily Volume',
+    'Vol',
+    v => (Number.isFinite(v) && v > 0 ? `${v.toFixed(1)}M` : '—'),
+    ' At the selected date: ~10-day avg from Yahoo weekly share volume (M shares/day). Today uses Finnhub live.',
+  ),
+  techColumn(
     'beta',
     'Beta',
     'Beta',

@@ -234,7 +234,7 @@ export const FILTER_DEFS: FilterDef[] = [
   // ── Technical: Volume & volatility ────────────────────────────────────────
   {
     id: 'avgVolume', category: 'technical', label: 'Avg Daily Volume',
-    explanation: 'Average shares traded per day (millions). Higher volume means better liquidity and tighter spreads — important for larger positions and faster entries/exits.',
+    explanation: 'Average shares traded per day (millions). Live Finnhub 10-day avg today; on past timeline dates, derived from Yahoo weekly volume at that date.',
     min: 0, max: 50, step: 0.1, defaultMin: 0, defaultMax: 50, format: v => `${v.toFixed(1)}M`, metricKey: 'avgVolume',
   },
   {

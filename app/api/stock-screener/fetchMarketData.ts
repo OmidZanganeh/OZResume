@@ -13,6 +13,7 @@ import {
   mergeBulkWeeklyIntoStocks,
   readWeeklyBulk,
   weeklyBulkCoverage,
+  weeklyBulkNeedsVolumeRepair,
 } from './weeklyBulk';
 import { snapshotNeedsVolumeRepair } from './volumeRepair';
 
@@ -24,6 +25,7 @@ const memoryCache = new Map<UniverseId, { result: MarketDataResult; expiresAt: n
 const refreshKickStarted = new Set<UniverseId>();
 const weeklyBulkKickStarted = new Set<UniverseId>();
 const volumeRepairKickStarted = new Set<UniverseId>();
+const weeklyVolumeRepairKickStarted = new Set<UniverseId>();
 
 function apiBase(): string {
   return process.env.VERCEL_URL
@@ -53,6 +55,19 @@ function kickWeeklyBulkChain(universeId: UniverseId) {
   fetch(`${apiBase()}/api/stock-screener/weekly-bulk/refresh?${q}`, {
     cache: 'no-store',
   }).catch(() => {});
+}
+
+function kickWeeklyVolumeRepairChain(universeId: UniverseId) {
+  if (weeklyVolumeRepairKickStarted.has(universeId)) return;
+  weeklyVolumeRepairKickStarted.add(universeId);
+
+  const q = new URLSearchParams({ repairVolume: '1', continue: '1', universe: universeId });
+  const secret = process.env.CRON_SECRET?.trim();
+  if (secret) q.set('secret', secret);
+
+  fetch(`${apiBase()}/api/stock-screener/weekly-bulk/refresh?${q}`, { cache: 'no-store' }).catch(
+    () => {},
+  );
 }
 
 function kickVolumeRepairChain(universeId: UniverseId) {
@@ -98,6 +113,10 @@ async function withBulkData(
         ? `Weekly history loading: ${cov} symbols (${HISTORY_YEARS}y)…`
         : `Building ${HISTORY_YEARS}-year weekly price history…`;
     warning = warning ? `${warning} ${bulkNote}` : bulkNote;
+  } else if (weeklyBulkNeedsVolumeRepair(weekly)) {
+    kickWeeklyVolumeRepairChain(universeId);
+    const volHistNote = 'Backfilling historical volume from Yahoo — Vol at past dates improves over a few minutes.';
+    warning = warning ? `${warning} ${volHistNote}` : volHistNote;
   }
 
   const fundamental = await readFundamentalBulk(universeId);

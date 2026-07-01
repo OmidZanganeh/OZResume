@@ -3,6 +3,7 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 import { resolve } from 'node:path';
 import type { Stock, WeeklyBar } from '@/app/web-apps/stock-screener/types';
 import { enrichStockPriceVolatility } from '@/app/web-apps/stock-screener/priceVolatility';
+import { weeklyBarsHaveVolume } from '@/app/web-apps/stock-screener/weeklyVolume';
 import {
   parseUniverseId,
   universeMeta,
@@ -22,24 +23,49 @@ export const WEEKLY_BULK_CURSOR_KEY = universeMeta('sp500').weeklyBulkCursorKey;
 
 export const WEEKLY_BULK_BATCH_SIZE = 35;
 
+/** [unixSec, close] or [unixSec, close, weeklyVolumeShares]. */
+export type CompactWeeklyBar = [number, number] | [number, number, number];
+
 export interface WeeklyBulkStore {
   cachedAt: string;
   downloadYears: number;
   complete: boolean;
-  /** Compact [unixSec, close] pairs, newest first. */
-  data: Record<string, [number, number][]>;
+  data: Record<string, CompactWeeklyBar[]>;
 }
 
 function localBulkPath(universeId: UniverseId): string {
   return resolve(process.cwd(), 'data', universeMeta(universeId).localBulkFile);
 }
 
-function expandBars(compact: [number, number][]): WeeklyBar[] {
-  return compact.map(([t, c]) => ({ t, c }));
+function expandBars(compact: CompactWeeklyBar[]): WeeklyBar[] {
+  return compact.map(row => {
+    const [t, c, v] = row;
+    if (v != null && Number.isFinite(v) && v > 0) return { t, c, v };
+    return { t, c };
+  });
 }
 
-function compactBars(bars: WeeklyBar[]): [number, number][] {
-  return bars.map(b => [b.t, b.c]);
+function compactBars(bars: WeeklyBar[]): CompactWeeklyBar[] {
+  return bars.map(b =>
+    b.v != null && b.v > 0 ? [b.t, b.c, b.v] : [b.t, b.c],
+  );
+}
+
+function compactRowHasVolume(row: CompactWeeklyBar): boolean {
+  return row.length >= 3 && row[2]! > 0;
+}
+
+export function weeklyBulkNeedsVolumeRepair(store: WeeklyBulkStore | null): boolean {
+  if (!store?.data) return false;
+  const tickers = Object.keys(store.data).filter(sym => store.data[sym]?.length);
+  if (tickers.length < 20) return false;
+  const sample = tickers.slice(0, Math.min(40, tickers.length));
+  const withVol = sample.filter(sym => {
+    const rows = store.data[sym]!;
+    const recent = rows.slice(0, 4);
+    return recent.some(compactRowHasVolume);
+  }).length;
+  return withVol / sample.length < 0.5;
 }
 
 export function barsForTicker(store: WeeklyBulkStore | null, ticker: string): WeeklyBar[] | null {
@@ -160,7 +186,7 @@ export async function runWeeklyBulkBatch(
   const total = universe.length;
 
   const existing = reset ? null : await readWeeklyBulk(universeId);
-  let data: Record<string, [number, number][]> = reset ? {} : { ...(existing?.data ?? {}) };
+  let data: Record<string, CompactWeeklyBar[]> = reset ? {} : { ...(existing?.data ?? {}) };
 
   let cursor = reset ? 0 : await readWeeklyBulkCursor(universeId);
   if (reset) await writeWeeklyBulkCursor(0, universeId);
@@ -225,7 +251,7 @@ export async function fillWeeklyBulkGaps(
   const universe = await getSymbolUniverse(universeId);
   const total = universe.length;
   const existing = await readWeeklyBulk(universeId);
-  const data: Record<string, [number, number][]> = { ...(existing?.data ?? {}) };
+  const data: Record<string, CompactWeeklyBar[]> = { ...(existing?.data ?? {}) };
 
   const missing = universe
     .map(s => s.symbol)
@@ -268,6 +294,100 @@ export async function fillWeeklyBulkGaps(
     total,
     complete,
     store,
+  };
+}
+
+function volumeRepairCursorKey(universeId: UniverseId): string {
+  return `${universeMeta(universeId).weeklyBulkKey}:volume-repair-cursor`;
+}
+
+async function readVolumeRepairCursor(universeId: UniverseId): Promise<number> {
+  const client = getRedis();
+  if (!client) return 0;
+  try {
+    const v = await client.get(volumeRepairCursorKey(universeId));
+    return v ? Number(v) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function writeVolumeRepairCursor(cursor: number, universeId: UniverseId): Promise<void> {
+  const client = getRedis();
+  if (!client) return;
+  try {
+    if (cursor <= 0) await client.del(volumeRepairCursorKey(universeId));
+    else await client.set(volumeRepairCursorKey(universeId), String(cursor));
+  } catch {
+    // non-fatal
+  }
+}
+
+/** Re-download Yahoo weekly bars (with volume) for symbols still stored as close-only. */
+export async function runWeeklyVolumeRepairBatch(
+  universeId: UniverseId = 'sp500',
+): Promise<WeeklyBulkBatchResult> {
+  const universe = await getSymbolUniverse(universeId);
+  const total = universe.length;
+  const existing = await readWeeklyBulk(universeId);
+  if (!existing?.data) {
+    return { complete: true, fetched: 0, total, batchAdded: 0, cursor: 0 };
+  }
+
+  const data: Record<string, CompactWeeklyBar[]> = { ...existing.data };
+  const needsRepair = universe
+    .map(s => s.symbol)
+    .filter(sym => {
+      const rows = data[sym];
+      if (!rows?.length) return false;
+      const recent = rows.slice(0, 4);
+      return !recent.some(compactRowHasVolume);
+    });
+
+  if (needsRepair.length === 0) {
+    await writeVolumeRepairCursor(0, universeId);
+    return {
+      complete: true,
+      fetched: Object.keys(data).length,
+      total: needsRepair.length,
+      batchAdded: 0,
+      cursor: 0,
+    };
+  }
+
+  let cursor = await readVolumeRepairCursor(universeId);
+  if (cursor >= needsRepair.length) cursor = 0;
+
+  const batch = needsRepair.slice(cursor, cursor + WEEKLY_BULK_BATCH_SIZE);
+  let batchAdded = 0;
+
+  for (const symbol of batch) {
+    const bars = await fetchYahooWeeklyBars(symbol, WEEKLY_DOWNLOAD_YEARS);
+    if (bars?.length && weeklyBarsHaveVolume(bars)) {
+      data[symbol] = compactBars(bars);
+      batchAdded += 1;
+    }
+    await sleep(180);
+  }
+
+  const nextCursor = cursor + batch.length;
+  const complete = nextCursor >= needsRepair.length;
+
+  const store: WeeklyBulkStore = {
+    ...existing,
+    cachedAt: new Date().toISOString(),
+    data,
+  };
+
+  await writeWeeklyBulk(store, universeId);
+  await writeVolumeRepairCursor(complete ? 0 : nextCursor, universeId);
+
+  return {
+    complete,
+    fetched: Object.keys(data).length,
+    total: needsRepair.length,
+    batchAdded,
+    cursor: nextCursor,
   };
 }
 

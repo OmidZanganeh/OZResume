@@ -11,15 +11,27 @@ interface CandlePayload {
   s?: string;
   c?: number[];
   t?: number[];
+  v?: number[];
   error?: string;
 }
 
-function newestFirstBars(timestamps: number[], closes: number[]): WeeklyBar[] {
+function newestFirstBars(
+  timestamps: number[],
+  closes: number[],
+  volumes?: (number | null)[],
+): WeeklyBar[] {
   const pairs = timestamps
-    .map((t, i) => ({ t, c: closes[i] }))
-    .filter((p): p is WeeklyBar => p.c != null && Number.isFinite(p.c) && p.c > 0);
+    .map((t, i) => {
+      const c = closes[i];
+      if (c == null || !Number.isFinite(c) || c <= 0) return null;
+      const rawV = volumes?.[i];
+      const v =
+        rawV != null && Number.isFinite(rawV) && rawV > 0 ? round(rawV, 0) : undefined;
+      return { t, c: round(c, 2), ...(v != null ? { v } : {}) };
+    })
+    .filter((p): p is WeeklyBar => p != null);
   pairs.sort((a, b) => b.t - a.t);
-  return pairs.slice(0, WEEKS_TO_STORE).map(p => ({ t: p.t, c: round(p.c, 2) }));
+  return pairs.slice(0, WEEKS_TO_STORE);
 }
 
 async function fetchFinnhubWeeklyBars(
@@ -38,7 +50,7 @@ async function fetchFinnhubWeeklyBars(
     if (!res.ok) return null;
     const data = (await res.json()) as CandlePayload;
     if (data.error || data.s !== 'ok' || !data.c?.length || !data.t?.length) return null;
-    const bars = newestFirstBars(data.t, data.c);
+    const bars = newestFirstBars(data.t, data.c, data.v);
     return bars.length >= 4 ? bars : null;
   } catch {
     return null;
@@ -70,8 +82,9 @@ async function fetchYahooWeeklyChart(
     const result = json?.chart?.result?.[0];
     const timestamps: number[] = result?.timestamp ?? [];
     const closes: (number | null)[] = result?.indicators?.quote?.[0]?.close ?? [];
+    const volumes: (number | null)[] = result?.indicators?.quote?.[0]?.volume ?? [];
     if (timestamps.length === 0) return null;
-    const bars = newestFirstBars(timestamps, closes as number[]);
+    const bars = newestFirstBars(timestamps, closes as number[], volumes);
     return bars.length >= 4 ? bars : null;
   } catch {
     return null;

@@ -1,8 +1,9 @@
-import type { Stock, StockMetrics, StockSnapshot, BacktestSummary } from './types';
+import type { Stock, StockMetrics, StockSnapshot, BacktestSummary, WeeklyBar } from './types';
 import { daysAgoToDate, formatAsOfDate } from './timelineDate';
 import { barForDaysAgo } from './weeklyLookup';
 import { momentumAtDaysAgo, momentumFromBarIndex } from './weeklyMomentum';
 import { metricsFromFundamentalHistory } from './fundamentalMetrics';
+import { avgDailyVolumeAtBarIndex } from './weeklyVolume';
 
 export { daysAgoToDate, formatAsOfDate };
 
@@ -181,6 +182,18 @@ function momentumFromFinnhubWindows(stock: Stock, daysAgo: number, returnToToday
   };
 }
 
+function volumeAtWeeklyBar(
+  bars: WeeklyBar[] | undefined,
+  barIdx: number | null | undefined,
+  fallback: number,
+): number {
+  if (bars?.length && barIdx != null) {
+    const v = avgDailyVolumeAtBarIndex(bars, barIdx);
+    if (v != null && v > 0) return v;
+  }
+  return fallback;
+}
+
 function momentumToMetrics(m: import('./weeklyMomentum').MomentumProfile, price: number): Partial<StockMetrics> {
   return {
     price,
@@ -260,7 +273,7 @@ function historicalPriceMetrics(
       ...EMPTY_METRICS,
       ...momentumToMetrics(weeklyMom, priceThen),
       beta: stock.beta,
-      avgVolume: stock.avgVolume,
+      avgVolume: volumeAtWeeklyBar(bars, weeklyBarIdx, stock.avgVolume),
       volatility30d: stock.volatility30d,
       atrPercent: stock.atrPercent,
     };
@@ -281,7 +294,14 @@ function mergeFundamentalMetrics(
 ): StockMetrics {
   const fund = metricsFromFundamentalHistory(stock, daysAgo, priceThen);
   if (!fund) return base;
-  return { ...base, ...fund, price: priceThen };
+  const merged = { ...base, ...fund, price: priceThen };
+  if (daysAgo > 0) {
+    merged.avgVolume = base.avgVolume;
+    merged.volatility30d = base.volatility30d;
+    merged.atrPercent = base.atrPercent;
+    merged.beta = base.beta;
+  }
+  return merged;
 }
 
 export function buildSnapshot(stock: Stock, daysAgo: number): StockSnapshot {
