@@ -15,6 +15,7 @@ import {
   weeklyBulkCoverage,
   weeklyBulkNeedsVolumeRepair,
 } from './weeklyBulk';
+import { enrichLiveYahooVolumeForStocks } from './enrichStockFromWeekly';
 import { snapshotNeedsVolumeRepair } from './volumeRepair';
 
 export type { MarketDataResult };
@@ -71,7 +72,7 @@ function kickWeeklyVolumeRepairChain(universeId: UniverseId) {
 }
 
 function kickVolumeRepairChain(universeId: UniverseId) {
-  if (volumeRepairKickStarted.has(universeId) || !getFinnhubApiKey()) return;
+  if (volumeRepairKickStarted.has(universeId)) return;
   volumeRepairKickStarted.add(universeId);
 
   const q = new URLSearchParams({ repairVolume: '1', continue: '1', universe: universeId });
@@ -103,6 +104,7 @@ async function withBulkData(
 ): Promise<MarketDataResult> {
   const weekly = await readWeeklyBulk(universeId);
   let stocks = mergeBulkWeeklyIntoStocks(result.stocks, weekly);
+  stocks = await enrichLiveYahooVolumeForStocks(stocks);
 
   let warning = result.warning;
   if (!weekly?.complete) {

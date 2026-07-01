@@ -1,4 +1,4 @@
-import type { WeeklyBar } from './types';
+import type { Stock, WeeklyBar } from './types';
 
 const TRADING_DAYS_PER_WEEK = 5;
 /** ~10 trading days — two full weekly bars ending at the screen date. */
@@ -41,4 +41,19 @@ export function avgDailyVolumeAtBarIndex(
 
 export function weeklyBarsHaveVolume(bars: WeeklyBar[]): boolean {
   return bars.some(b => b.v != null && b.v > 0);
+}
+
+/** ~10-day avg daily volume (M shares/day) at the latest weekly bar (today). */
+export function liveAvgDailyVolumeM(bars: WeeklyBar[]): number | null {
+  return avgDailyVolumeAtBarIndex(bars, 0);
+}
+
+/** Set avgVolume from Yahoo weekly bars when volume is present (live, same source as weekly closes). */
+export function enrichStockVolumeFromWeekly(stock: Stock): Stock {
+  const bars = stock.weeklyHistory;
+  if (!bars?.length || !weeklyBarsHaveVolume(bars)) return stock;
+  const vol = liveAvgDailyVolumeM(bars);
+  if (vol == null || vol <= 0) return stock;
+  if (stock.avgVolume === vol) return stock;
+  return { ...stock, avgVolume: vol };
 }

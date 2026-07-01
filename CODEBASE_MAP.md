@@ -131,7 +131,7 @@
 | `premadeFilters.ts` | Strategy preset library (volume, breakout, RSI, compression, …) |
 | `PremadeFiltersPanel.tsx` | One-click apply for premade code filters |
 | `technicalIndicators.ts` | RSI, MACD, Stochastic from weekly closes |
-| `weeklyVolume.ts` | Historical avg daily volume from Yahoo weekly bars |
+| `enrichStockFromWeekly.ts` | Live Yahoo volume + vol/ATR enrich on API read |
 | `savedCodeFilters.ts` | localStorage saved filter presets (`useSavedCodeFilters`) |
 | `codeFilterGuide.ts` | In-app guide copy for code filter syntax |
 | `universe.ts` | Shared `UniverseId`, Redis key prefixes, labels |

@@ -36,6 +36,11 @@ import { passesScreen, DEFAULT_SCREENER_STATE, enabledFilterCount } from './filt
 import { parsedExpressionUsesMomentum, parsedExpressionUsesTechnical } from './filterExpressionCache';
 import { computeTechnicalIndicators } from './technicalIndicators';
 import { enrichStockPriceVolatility } from './priceVolatility';
+import { enrichStockVolumeFromWeekly } from './weeklyVolume';
+
+function enrichStockFromWeeklyClient(stock: Stock): Stock {
+  return enrichStockVolumeFromWeekly(enrichStockPriceVolatility(stock));
+}
 import { EMPTY_SNAPSHOTS } from './snapshotConstants';
 import type { ScreenerState } from './filters';
 import {
@@ -82,8 +87,8 @@ function mergeStockLists(prev: Stock[], incoming: Stock[]): Stock[] {
   return incoming.map(stock => {
     const keptWeekly = stock.weeklyHistory?.length ? undefined : prevWeekly.get(stock.ticker);
     const keptFund = stock.fundamentalHistory?.length ? undefined : prevFund.get(stock.ticker);
-    if (!keptWeekly && !keptFund) return enrichStockPriceVolatility(stock);
-    return enrichStockPriceVolatility({
+    if (!keptWeekly && !keptFund) return enrichStockFromWeeklyClient(stock);
+    return enrichStockFromWeeklyClient({
       ...stock,
       ...(keptWeekly?.length ? { weeklyHistory: keptWeekly } : {}),
       ...(keptFund?.length ? { fundamentalHistory: keptFund } : {}),
@@ -211,7 +216,7 @@ export default function StockScreener() {
         setStocks(prev =>
           prev.map(s => {
             const w = results[s.ticker];
-            return w?.length ? enrichStockPriceVolatility({ ...s, weeklyHistory: w }) : s;
+            return w?.length ? enrichStockFromWeeklyClient({ ...s, weeklyHistory: w }) : s;
           }),
         );
       } catch {
@@ -736,7 +741,7 @@ export default function StockScreener() {
       const w = body.results?.[ticker];
       if (!w?.length) return;
       setStocks(prev =>
-        prev.map(s => (s.ticker === ticker ? enrichStockPriceVolatility({ ...s, weeklyHistory: w }) : s)),
+        prev.map(s => (s.ticker === ticker ? enrichStockFromWeeklyClient({ ...s, weeklyHistory: w }) : s)),
       );
     } catch {
       // ignore
@@ -843,11 +848,11 @@ export default function StockScreener() {
         setStocks(prev =>
           prev.map(s =>
             s.ticker === ticker
-              ? enrichStockPriceVolatility({ ...s, weeklyHistory: body.weeklyHistory })
+              ? enrichStockFromWeeklyClient({ ...s, weeklyHistory: body.weeklyHistory })
               : s,
           ),
         );
-        stock = enrichStockPriceVolatility({ ...stock, weeklyHistory: body.weeklyHistory });
+        stock = enrichStockFromWeeklyClient({ ...stock, weeklyHistory: body.weeklyHistory });
         addReference(stock);
       } catch {
         setDataWarning(`Failed to load weekly prices for ${ticker}.`);

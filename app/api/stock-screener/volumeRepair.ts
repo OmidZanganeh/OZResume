@@ -1,9 +1,9 @@
 import type { Stock } from '@/app/web-apps/stock-screener/types';
 import type { UniverseId } from '@/app/web-apps/stock-screener/universe';
 import { universeMeta } from '@/app/web-apps/stock-screener/universe';
-import { getFinnhubApiKey } from './env';
+import { liveAvgDailyVolumeM, weeklyBarsHaveVolume } from '@/app/web-apps/stock-screener/weeklyVolume';
 import { getSymbolUniverse } from './symbols';
-import { fetchStocksBatch } from './finnhub';
+import { fetchYahooWeeklyBars, sleep } from './weeklyPrices';
 import {
   mergeStocks,
   readRedisSnapshot,
@@ -12,12 +12,12 @@ import {
 } from './cache';
 import { getRedis } from './redis';
 import type { BatchResult } from './incrementalRefresh';
-
-/** Matches incremental refresh batch size (Finnhub rate limits). */
-const REPAIR_BATCH_SIZE = 150;
 import { snapshotNeedsVolumeRepair } from '@/app/web-apps/stock-screener/snapshotVolumeRepair';
 
 export { snapshotNeedsVolumeRepair };
+
+/** Yahoo weekly fetches — faster than full Finnhub refresh. */
+const REPAIR_BATCH_SIZE = 80;
 
 function volumeRepairCursorKey(universeId: UniverseId): string {
   return `${universeMeta(universeId).snapshotKey}:volume-repair-cursor`;
@@ -45,11 +45,8 @@ async function writeVolumeRepairCursor(cursor: number, universeId: UniverseId): 
   }
 }
 
-/** Re-fetch Finnhub metrics for symbols whose cached avgVolume is still zero. */
+/** Patch avgVolume from Yahoo weekly bars (live, same source as price history). */
 export async function runVolumeRepairBatch(universeId: UniverseId): Promise<BatchResult> {
-  const apiKey = getFinnhubApiKey();
-  if (!apiKey) throw new Error('No Finnhub API key');
-
   const snap = await readRedisSnapshot(universeId);
   if (!snap?.data.stocks?.length) {
     return { complete: true, fetched: 0, total: 0, batchAdded: 0, cursor: 0 };
@@ -88,12 +85,25 @@ export async function runVolumeRepairBatch(universeId: UniverseId): Promise<Batc
     };
   }
 
-  const fetched = await fetchStocksBatch(
-    batch.map(s => ({ ...s, sector: s.sector })),
-    apiKey,
-  );
-  const merged = mergeStocks(snap.data.stocks, fetched);
+  const patches: Stock[] = [];
+  for (const entry of batch) {
+    const existing = stockByTicker.get(entry.symbol);
+    if (!existing) continue;
+    const bars = await fetchYahooWeeklyBars(entry.symbol, 3);
+    if (bars?.length && weeklyBarsHaveVolume(bars)) {
+      const vol = liveAvgDailyVolumeM(bars);
+      if (vol != null && vol > 0) {
+        patches.push({
+          ...existing,
+          avgVolume: vol,
+          weeklyHistory: existing.weeklyHistory?.length ? existing.weeklyHistory : bars,
+        });
+      }
+    }
+    await sleep(100);
+  }
 
+  const merged = mergeStocks(snap.data.stocks, patches);
   const nextCursor = cursor + batch.length;
   const complete = nextCursor >= needsRepair.length;
 
@@ -112,7 +122,7 @@ export async function runVolumeRepairBatch(universeId: UniverseId): Promise<Batc
     complete,
     fetched: merged.length,
     total: needsRepair.length,
-    batchAdded: fetched.filter(s => s.avgVolume > 0).length,
+    batchAdded: patches.length,
     cursor: nextCursor,
   };
 }

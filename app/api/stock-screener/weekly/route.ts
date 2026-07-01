@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFinnhubApiKey } from '../env';
 import { barsForTicker, readWeeklyBulk } from '../weeklyBulk';
 import { fetchWeeklyHistory } from '../weeklyPrices';
+import { weeklyBarsHaveVolume } from '@/app/web-apps/stock-screener/weeklyVolume';
 import { WEEKLY_DOWNLOAD_YEARS } from '../historyConstants';
 
 export const dynamic = 'force-dynamic';
@@ -32,8 +33,11 @@ export async function GET(req: NextRequest) {
   const missing: string[] = [];
   for (const ticker of tickers) {
     const fromBulk = barsForTicker(bulk, ticker);
-    if (fromBulk?.length) results[ticker] = fromBulk;
-    else missing.push(ticker);
+    if (fromBulk?.length && weeklyBarsHaveVolume(fromBulk)) {
+      results[ticker] = fromBulk;
+    } else {
+      missing.push(ticker);
+    }
   }
 
   const apiKey = getFinnhubApiKey();
