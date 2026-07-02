@@ -48,6 +48,8 @@ const projects = [
     tech: ["C#", ".NET 8", "ArcGIS Pro SDK", "WPF", "SQL Server", "OpenStreetMap"],
     color: "var(--accent-blue)",
   },
+  {
+    icon: "🛩️",
     title: "Aerial AI Object Detection",
     subtitle: "YOLO-Based Utility Infrastructure Detection from Aerial Imagery",
     image: "/Aerial-AI-Object-Detection.png",
