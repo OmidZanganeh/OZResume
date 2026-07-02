@@ -69,6 +69,7 @@
 .card:nth-child(5) { animation-delay: 0.25s; }
 .card:nth-child(7) { animation-delay: 0.35s; }
 .card:nth-child(8) { animation-delay: 0.4s; }
+.card:nth-child(9) { animation-delay: 0.45s; }
 
 .card:hover {
   transform: translateX(4px);
