@@ -1,10 +1,14 @@
 export type ProjectTone = 'blue' | 'cyan' | 'orange' | 'green';
 
+export interface ProjectTag {
+  label: string;
+  tone: ProjectTone;
+}
+
 export interface ProjectEntry {
   title: string;
   subtitle: string;
-  category: string;
-  tone: ProjectTone;
+  tags: ProjectTag[];
   image: string | null;
   problem: string;
   solution: string;
@@ -16,8 +20,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'RFP Radar',
     subtitle: 'AI-powered RFP sourcing and contract classification',
-    category: 'AI & Automation',
-    tone: 'blue',
+    tags: [
+      { label: 'AI & Automation', tone: 'blue' },
+      { label: 'Azure OpenAI', tone: 'blue' },
+      { label: 'Telecom', tone: 'cyan' },
+      { label: 'Production', tone: 'green' },
+    ],
     image: '/RFP.png',
     problem:
       'Manual RFP searching required analysts to spend months reviewing thousands of government contracts to find relevant fiber and telecom opportunities.',
@@ -33,8 +41,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'Fiber Automatic Expansion',
     subtitle: 'ArcGIS Pro add-in for automated fiber build-area planning',
-    category: 'Telecom · ArcGIS Pro',
-    tone: 'cyan',
+    tags: [
+      { label: 'ArcGIS Pro', tone: 'blue' },
+      { label: 'Telecom', tone: 'cyan' },
+      { label: 'Fiber', tone: 'orange' },
+      { label: 'Spatial Analysis', tone: 'green' },
+    ],
     image: '/Fiber-Automatic-Expansion.png',
     problem:
       'Evaluating where to build new fiber networks meant analysts drawing polygons by eye, estimating passings per mile in spreadsheets, and recalculating every time a boundary changed — slow, inconsistent, and hard to scale.',
@@ -50,8 +62,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'GIS Data Downloader',
     subtitle: 'One-click multi-source spatial data acquisition in ArcGIS Pro',
-    category: 'ArcGIS Pro',
-    tone: 'blue',
+    tags: [
+      { label: 'ArcGIS Pro', tone: 'blue' },
+      { label: '.NET 8', tone: 'cyan' },
+      { label: 'Open Data', tone: 'green' },
+      { label: 'SQL Server', tone: 'orange' },
+    ],
     image: '/GIS-Data-Downloader.png',
     problem:
       'Analysts spent hours in browser portals — pick a state, wait for downloads, unzip, import, fix projections, repeat — before any real GIS work could start.',
@@ -67,8 +83,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'FTTH Network Designer',
     subtitle: 'Automated fiber optic network planning in ArcGIS Pro',
-    category: 'Telecom · ArcGIS Pro',
-    tone: 'orange',
+    tags: [
+      { label: 'ArcGIS Pro', tone: 'blue' },
+      { label: 'FTTH', tone: 'orange' },
+      { label: 'Network Design', tone: 'cyan' },
+      { label: 'Kruskal MST', tone: 'green' },
+    ],
     image: '/FTTH-Network-Designer.png',
     problem:
       'Laying out FTTH networks in ArcGIS meant days of manual digitizing — placing junction shafts, connecting every address, and designing a backbone — with frequent errors and no consistent drop-type or trunk classification for cost estimates.',
@@ -84,8 +104,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'Aerial AI Object Detection',
     subtitle: 'YOLO-based utility infrastructure detection from aerial imagery',
-    category: 'Computer Vision',
-    tone: 'cyan',
+    tags: [
+      { label: 'Computer Vision', tone: 'cyan' },
+      { label: 'YOLO', tone: 'blue' },
+      { label: 'Aerial Imagery', tone: 'green' },
+      { label: 'Telecom', tone: 'orange' },
+    ],
     image: '/Aerial-AI-Object-Detection.png',
     problem:
       'Identifying utility poles, streetlights, and telecom infrastructure in aerial imagery required expensive manual inspection across large geographic areas.',
@@ -101,8 +125,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'Streetview AI Object Detection',
     subtitle: 'YOLO-based infrastructure detection along street routes',
-    category: 'Computer Vision',
-    tone: 'green',
+    tags: [
+      { label: 'Computer Vision', tone: 'cyan' },
+      { label: 'YOLO', tone: 'blue' },
+      { label: 'Street View', tone: 'green' },
+      { label: 'Field Survey', tone: 'orange' },
+    ],
     image: '/Streetview-AI-Object-Detection.png',
     problem:
       'Field surveys for utility poles and telecom equipment require costly in-person visits, and traditional GIS methods cannot identify specific physical assets from ground level.',
@@ -118,8 +146,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'Bore Profile Automation',
     subtitle: 'Automated directional drilling profile generator',
-    category: 'Telecom Engineering',
-    tone: 'orange',
+    tags: [
+      { label: 'Telecom Engineering', tone: 'orange' },
+      { label: 'Directional Drill', tone: 'cyan' },
+      { label: 'Elevation', tone: 'green' },
+      { label: '.NET', tone: 'blue' },
+    ],
     image: '/Bore-Profile-Automation.png',
     problem:
       'Generating bore profiles for fiber network directional drilling required days of manual drafting, creating bottlenecks in project timelines and introducing human error.',
@@ -135,8 +167,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'ArcGIS Automation Suite',
     subtitle: 'Custom Python geoprocessing toolboxes for fiber network design',
-    category: 'ArcGIS Pro',
-    tone: 'blue',
+    tags: [
+      { label: 'ArcGIS Pro', tone: 'blue' },
+      { label: 'Python', tone: 'green' },
+      { label: 'Fiber Design', tone: 'orange' },
+      { label: 'Geoprocessing', tone: 'cyan' },
+    ],
     image: null,
     problem:
       'Complex fiber network design workflows required repetitive manual GIS operations, slowing down engineers and creating inconsistencies across projects.',
@@ -152,8 +188,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'NOx Emissions Analysis',
     subtitle: 'MS thesis — spatiotemporal remote sensing',
-    category: 'Research',
-    tone: 'green',
+    tags: [
+      { label: 'Research', tone: 'green' },
+      { label: 'Remote Sensing', tone: 'cyan' },
+      { label: 'Environmental Justice', tone: 'orange' },
+      { label: 'TROPOMI', tone: 'blue' },
+    ],
     image: null,
     problem:
       'Limited understanding of spatiotemporal patterns of NOx emissions from U.S. cement plants and their environmental justice implications.',
@@ -169,8 +209,12 @@ export const projects: ProjectEntry[] = [
   {
     title: 'Omaha Spatial Justice Project',
     subtitle: 'Historical GIS and urban analysis',
-    category: 'Research',
-    tone: 'orange',
+    tags: [
+      { label: 'Research', tone: 'green' },
+      { label: 'Historical GIS', tone: 'orange' },
+      { label: 'Urban Analysis', tone: 'blue' },
+      { label: 'Omaha', tone: 'cyan' },
+    ],
     image: null,
     problem:
       'Historical patterns of racial exclusion in Omaha real estate were undocumented spatially, making it difficult to understand the geographic scope of discriminatory practices.',

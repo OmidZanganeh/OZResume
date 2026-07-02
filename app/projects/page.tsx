@@ -2,8 +2,25 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import DarkModeToggle from '../components/DarkModeToggle';
+import type { ProjectTag } from './projectsData';
 import { projects } from './projectsData';
 import styles from './page.module.css';
+
+function ProjectTags({ tags, variant }: { tags: ProjectTag[]; variant: 'overlay' | 'inline' }) {
+  const rowClass = variant === 'overlay' ? styles.tagOverlay : styles.tagInline;
+  return (
+    <div className={rowClass}>
+      {tags.map(tag => (
+        <span
+          key={tag.label}
+          className={`${styles.overlayTag} ${styles[`tone_${tag.tone}`]}`}
+        >
+          {tag.label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export const metadata: Metadata = {
   title: 'GIS Projects | Omid Zanganeh – GIS Developer',
@@ -50,26 +67,18 @@ export default function ProjectsPage() {
                     height={680}
                     className={styles.mediaImg}
                   />
-                  <span className={`${styles.categoryBadge} ${styles[`tone_${p.tone}`]}`}>
-                    {p.category}
-                  </span>
+                  <ProjectTags tags={p.tags} variant="overlay" />
                 </div>
               ) : (
                 <div className={styles.mediaPlaceholder}>
-                  <span className={`${styles.categoryBadge} ${styles[`tone_${p.tone}`]}`}>
-                    {p.category}
-                  </span>
+                  <ProjectTags tags={p.tags} variant="overlay" />
                 </div>
               )}
 
               <div className={styles.cardBody}>
                 <header className={styles.cardHeader}>
                   <div className={styles.cardTitles}>
-                    {!p.image && (
-                      <span className={`${styles.categoryInline} ${styles[`tone_${p.tone}`]}`}>
-                        {p.category}
-                      </span>
-                    )}
+                    {!p.image && <ProjectTags tags={p.tags} variant="inline" />}
                     <h2 className={styles.cardTitle}>{p.title}</h2>
                     <p className={styles.cardSubtitle}>{p.subtitle}</p>
                   </div>

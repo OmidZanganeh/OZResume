@@ -139,32 +139,44 @@
   padding: 14px 18px;
 }
 
-.categoryBadge {
+.tagOverlay {
   position: absolute;
   bottom: 12px;
   left: 14px;
+  right: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  z-index: 1;
+}
+
+.tagInline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.overlayTag {
   font-size: 0.62em;
   font-family: var(--font-mono);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 4px 10px;
   border-radius: 4px;
   color: #fff;
+  line-height: 1.2;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
 }
 
-.categoryInline {
-  display: inline-block;
-  width: fit-content;
-  font-size: 0.62em;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 3px 9px;
-  border-radius: 4px;
-  color: #fff;
-  margin-bottom: 8px;
+.media::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 56px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent);
+  pointer-events: none;
 }
 
 .tone_blue {
