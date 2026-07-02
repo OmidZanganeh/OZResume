@@ -27,6 +27,17 @@ const projects = [
     color: "var(--accent-blue)",
   },
   {
+    icon: "🌐",
+    title: "Fiber Automatic Expansion",
+    subtitle: "ArcGIS Pro Add-In — Automated Fiber Build-Area Planning",
+    image: "/Fiber-Automatic-Expansion.png",
+    problem: "Evaluating where to build new fiber networks meant analysts drawing polygons by eye, estimating passings per mile in spreadsheets, and recalculating every time a boundary changed — slow, inconsistent, and hard to scale.",
+    solution: "Built a custom ArcGIS Pro decision-support add-in that reads address points and route networks, divides the study area into a spatial grid for density analysis, flood-fills viable build zones against configurable PPM thresholds, and generates economic scorecards (PPM, total units, route miles, limited-competition share). An interactive spot-check panel lets analysts refine boundaries grid-cell by grid-cell with live scorecard updates.",
+    impact: ["Expansion planning reduced from days or weeks to minutes", "Consistent, repeatable candidate build areas across analysts", "Human-in-the-loop refinement keeps strategy in analyst hands"],
+    tech: ["C#", ".NET", "ArcGIS Pro SDK", "WPF", "Spatial Analysis", "Telecom"],
+    color: "var(--accent-cyan, #06B6D4)",
+  },
+  {
     icon: "🛩️",
     title: "Aerial AI Object Detection",
     subtitle: "YOLO-Based Utility Infrastructure Detection from Aerial Imagery",
