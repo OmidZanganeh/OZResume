@@ -49,6 +49,17 @@ const projects = [
     color: "var(--accent-blue)",
   },
   {
+    icon: "🚀",
+    title: "FTTH Network Designer",
+    subtitle: "ArcGIS Pro Add-In — Automated Fiber Optic Network Planning",
+    image: "/FTTH-Network-Designer.png",
+    problem: "Laying out FTTH networks in ArcGIS meant days of manual digitizing — placing junction shafts, connecting every address, and designing a backbone — with frequent errors and no consistent drop-type or trunk classification for cost estimates.",
+    solution: "Built an ArcGIS Pro add-in (.NET 8 / WPF) that automates the full workflow in three steps: place shafts at road intersections, connect homes to the nearest shaft via a spatial grid (tagging Street Drop vs Driveway Drop by geodesic length), then run Kruskal’s minimum spanning tree for an optimal backbone classified as Main Trunk or Terminal Branch. Outputs ftth_shafts, ftth_connections, and ftth_backbone_kruskal layers with symbology applied; respects active map selections for partial study areas.",
+    impact: ["Network layout reduced from days to minutes", "Drop-type tagging drives material cost estimates automatically", "MST backbone minimizes total cable length for construction phasing"],
+    tech: ["C#", ".NET 8", "ArcGIS Pro SDK", "WPF", "Kruskal MST", "FTTH"],
+    color: "var(--accent-orange)",
+  },
+  {
     icon: "🛩️",
     title: "Aerial AI Object Detection",
     subtitle: "YOLO-Based Utility Infrastructure Detection from Aerial Imagery",
