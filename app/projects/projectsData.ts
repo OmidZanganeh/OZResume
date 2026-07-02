@@ -102,6 +102,27 @@ export const projects: ProjectEntry[] = [
     tech: ['C#', '.NET 8', 'ArcGIS Pro SDK', 'WPF', 'Kruskal MST', 'FTTH'],
   },
   {
+    title: 'RF Network Planning',
+    subtitle: 'ArcGIS Pro add-in for wireless RF design and optimization',
+    tags: [
+      { label: 'ArcGIS Pro', tone: 'blue' },
+      { label: 'RF Planning', tone: 'cyan' },
+      { label: '5G / LTE', tone: 'orange' },
+      { label: 'Wireless', tone: 'green' },
+    ],
+    image: '/RF-Network-Planning.png',
+    problem:
+      'Wireless network planning meant juggling spreadsheets, specialized RF software, and GIS separately — hours of manual PCI assignment, interference checks, and coverage analysis with no shared map view for the team.',
+    solution:
+      'Built a custom ArcGIS Pro dock-pane add-in that reads standard tower CSV exports and runs eight capabilities in one place: antenna sector pie wedges on the map, automatic PCI assignment, azimuth and tilt optimization, signal-strength heatmaps (Okumura-Hata, COST-231, and other propagation models), color-coded co-channel and adjacent-channel interference lines between tower pairs, and site placement optimization using elevation, line-of-sight, and Fresnel zone diffraction — all written back as shareable map layers.',
+    impact: [
+      'RF planning workflows reduced from hours to a few clicks',
+      'No context-switching between GIS, spreadsheets, and external RF tools',
+      'Map-native outputs the whole engineering team can review together',
+    ],
+    tech: ['C#', '.NET', 'ArcGIS Pro SDK', 'WPF', 'RF Propagation', 'PCI Planning'],
+  },
+  {
     title: 'Aerial AI Object Detection',
     subtitle: 'YOLO-based utility infrastructure detection from aerial imagery',
     tags: [
