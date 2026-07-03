@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import DarkModeToggle from '../components/DarkModeToggle';
+import ProjectMediaGallery from './ProjectMediaGallery';
 import type { ProjectTag } from './projectsData';
 import { projects } from './projectsData';
 import styles from './page.module.css';
@@ -58,17 +58,12 @@ export default function ProjectsPage() {
         <div className={styles.list}>
           {projects.map(p => (
             <article key={p.title} className={styles.card}>
-              {p.image ? (
-                <div className={styles.media}>
-                  <Image
-                    src={p.image}
-                    alt={`${p.title} screenshot`}
-                    width={1200}
-                    height={680}
-                    className={styles.mediaImg}
-                  />
-                  <ProjectTags tags={p.tags} variant="overlay" />
-                </div>
+              {p.images.length > 0 ? (
+                <ProjectMediaGallery
+                  images={p.images}
+                  title={p.title}
+                  tagsOverlay={<ProjectTags tags={p.tags} variant="overlay" />}
+                />
               ) : (
                 <div className={styles.mediaPlaceholder}>
                   <ProjectTags tags={p.tags} variant="overlay" />
@@ -78,7 +73,7 @@ export default function ProjectsPage() {
               <div className={styles.cardBody}>
                 <header className={styles.cardHeader}>
                   <div className={styles.cardTitles}>
-                    {!p.image && <ProjectTags tags={p.tags} variant="inline" />}
+                    {p.images.length === 0 && <ProjectTags tags={p.tags} variant="inline" />}
                     <h2 className={styles.cardTitle}>{p.title}</h2>
                     <p className={styles.cardSubtitle}>{p.subtitle}</p>
                   </div>

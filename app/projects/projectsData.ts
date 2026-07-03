@@ -5,11 +5,16 @@ export interface ProjectTag {
   tone: ProjectTone;
 }
 
+export interface ProjectImage {
+  src: string;
+  alt: string;
+}
+
 export interface ProjectEntry {
   title: string;
   subtitle: string;
   tags: ProjectTag[];
-  image: string | null;
+  images: ProjectImage[];
   problem: string;
   solution: string;
   impact: string[];
@@ -26,7 +31,10 @@ export const projects: ProjectEntry[] = [
       { label: 'Telecom', tone: 'cyan' },
       { label: 'Production', tone: 'green' },
     ],
-    image: '/RFP.png',
+    images: [
+      { src: '/RFP.png', alt: 'RFP Radar application screenshot' },
+      { src: '/RFP-Radar-1.png', alt: 'RFP Radar overview infographic' },
+    ],
     problem:
       'Manual RFP searching required analysts to spend months reviewing thousands of government contracts to find relevant fiber and telecom opportunities.',
     solution:
@@ -47,7 +55,10 @@ export const projects: ProjectEntry[] = [
       { label: 'Fiber', tone: 'orange' },
       { label: 'Spatial Analysis', tone: 'green' },
     ],
-    image: '/Fiber-Automatic-Expansion.png',
+    images: [
+      { src: '/Fiber-Automatic-Expansion.png', alt: 'Fiber Automatic Expansion screenshot' },
+      { src: '/Fiber-Automatic-Expansion-1.png', alt: 'Fiber Automatic Expansion overview infographic' },
+    ],
     problem:
       'Evaluating where to build new fiber networks meant analysts drawing polygons by eye, estimating passings per mile in spreadsheets, and recalculating every time a boundary changed — slow, inconsistent, and hard to scale.',
     solution:
@@ -68,7 +79,10 @@ export const projects: ProjectEntry[] = [
       { label: 'Open Data', tone: 'green' },
       { label: 'SQL Server', tone: 'orange' },
     ],
-    image: '/GIS-Data-Downloader.png',
+    images: [
+      { src: '/GIS-Data-Downloader.png', alt: 'GIS Data Downloader screenshot' },
+      { src: '/GIS-Data-Downloader-1.png', alt: 'GIS Data Downloader overview infographic' },
+    ],
     problem:
       'Analysts spent hours in browser portals — pick a state, wait for downloads, unzip, import, fix projections, repeat — before any real GIS work could start.',
     solution:
@@ -89,7 +103,10 @@ export const projects: ProjectEntry[] = [
       { label: 'Network Design', tone: 'cyan' },
       { label: 'Kruskal MST', tone: 'green' },
     ],
-    image: '/FTTH-Network-Designer.png',
+    images: [
+      { src: '/FTTH-Network-Designer.png', alt: 'FTTH Network Designer screenshot' },
+      { src: '/FTTH-Network-Designer-1.png', alt: 'FTTH Network Designer overview infographic' },
+    ],
     problem:
       'Laying out FTTH networks in ArcGIS meant days of manual digitizing — placing junction shafts, connecting every address, and designing a backbone — with frequent errors and no consistent drop-type or trunk classification for cost estimates.',
     solution:
@@ -110,7 +127,10 @@ export const projects: ProjectEntry[] = [
       { label: '5G / LTE', tone: 'orange' },
       { label: 'Wireless', tone: 'green' },
     ],
-    image: '/RF-Network-Planning.png',
+    images: [
+      { src: '/RF-Network-Planning.png', alt: 'RF Network Planning screenshot' },
+      { src: '/RF-Network-Planning-1.png', alt: 'RF Network Planning overview infographic' },
+    ],
     problem:
       'Wireless network planning meant juggling spreadsheets, specialized RF software, and GIS separately — hours of manual PCI assignment, interference checks, and coverage analysis with no shared map view for the team.',
     solution:
@@ -131,7 +151,9 @@ export const projects: ProjectEntry[] = [
       { label: 'Aerial Imagery', tone: 'green' },
       { label: 'Telecom', tone: 'orange' },
     ],
-    image: '/Aerial-AI-Object-Detection.png',
+    images: [
+      { src: '/Aerial-AI-Object-Detection.png', alt: 'Aerial AI Object Detection screenshot' },
+    ],
     problem:
       'Identifying utility poles, streetlights, and telecom infrastructure in aerial imagery required expensive manual inspection across large geographic areas.',
     solution:
@@ -152,7 +174,9 @@ export const projects: ProjectEntry[] = [
       { label: 'Street View', tone: 'green' },
       { label: 'Field Survey', tone: 'orange' },
     ],
-    image: '/Streetview-AI-Object-Detection.png',
+    images: [
+      { src: '/Streetview-AI-Object-Detection.png', alt: 'Streetview AI Object Detection screenshot' },
+    ],
     problem:
       'Field surveys for utility poles and telecom equipment require costly in-person visits, and traditional GIS methods cannot identify specific physical assets from ground level.',
     solution:
@@ -173,7 +197,10 @@ export const projects: ProjectEntry[] = [
       { label: 'Elevation', tone: 'green' },
       { label: '.NET', tone: 'blue' },
     ],
-    image: '/Bore-Profile-Automation.png',
+    images: [
+      { src: '/Bore-Profile-Automation.png', alt: 'Bore Profile Automation screenshot' },
+      { src: '/Bore-Profile-Automation-1.png', alt: 'Bore Profile Automation overview infographic' },
+    ],
     problem:
       'Generating bore profiles for fiber network directional drilling required days of manual drafting, creating bottlenecks in project timelines and introducing human error.',
     solution:
@@ -194,7 +221,7 @@ export const projects: ProjectEntry[] = [
       { label: 'Fiber Design', tone: 'orange' },
       { label: 'Geoprocessing', tone: 'cyan' },
     ],
-    image: null,
+    images: [],
     problem:
       'Complex fiber network design workflows required repetitive manual GIS operations, slowing down engineers and creating inconsistencies across projects.',
     solution:
@@ -215,7 +242,7 @@ export const projects: ProjectEntry[] = [
       { label: 'Environmental Justice', tone: 'orange' },
       { label: 'TROPOMI', tone: 'blue' },
     ],
-    image: null,
+    images: [],
     problem:
       'Limited understanding of spatiotemporal patterns of NOx emissions from U.S. cement plants and their environmental justice implications.',
     solution:
@@ -236,7 +263,7 @@ export const projects: ProjectEntry[] = [
       { label: 'Urban Analysis', tone: 'blue' },
       { label: 'Omaha', tone: 'cyan' },
     ],
-    image: null,
+    images: [],
     problem:
       'Historical patterns of racial exclusion in Omaha real estate were undocumented spatially, making it difficult to understand the geographic scope of discriminatory practices.',
     solution:
