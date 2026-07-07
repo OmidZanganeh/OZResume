@@ -76,7 +76,7 @@ export default function MapPicker({ lat, lon, onPick }: Props) {
         )}
       </MapContainer>
       <p className={styles.hint}>
-        Click the map or drag the pin to set coordinates
+        Search an address, click the map, or drag the pin to set coordinates
       </p>
     </div>
   );

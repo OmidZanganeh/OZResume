@@ -35,7 +35,7 @@ const jsonLd = {
   name: 'Online Coordinate Converter – DD, DMS, DDM',
   url: 'https://omidzanganeh.com/tools/coordinate-converter',
   description:
-    'Convert geographic coordinates between Decimal Degrees (DD), Degrees Minutes Seconds (DMS), and Degrees Decimal Minutes (DDM). Interactive map picker included.',
+    'Convert geographic coordinates between Decimal Degrees (DD), Degrees Minutes Seconds (DMS), and Degrees Decimal Minutes (DDM). Address lookup and interactive map picker included.',
   applicationCategory: 'UtilitiesApplication',
   operatingSystem: 'Any (browser-based)',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
@@ -44,6 +44,7 @@ const jsonLd = {
     'Convert DD to DMS',
     'Convert DMS to Decimal Degrees',
     'Convert DDM format',
+    'Address to coordinates lookup',
     'Interactive map point picker',
     'Copy to clipboard',
   ],

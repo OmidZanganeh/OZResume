@@ -74,6 +74,12 @@ export default function CoordConverter() {
   const [elevStatus, setElevStatus] = useState<'idle' | 'loading' | 'error' | 'nodata'>('idle');
   const elevAbortRef = useRef<AbortController | null>(null);
 
+  const [address, setAddress] = useState('');
+  const [geocodeStatus, setGeocodeStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [geocodeError, setGeocodeError] = useState('');
+  const [resolvedName, setResolvedName] = useState<string | null>(null);
+  const geocodeAbortRef = useRef<AbortController | null>(null);
+
   const [dd, setDD] = useState<DDState>({ lat: '40.7128', lon: '-74.0060' });
   const [dms, setDMS] = useState<DMSState>(() => {
     const { dms } = computeFromDD(40.7128, -74.006);
@@ -123,6 +129,52 @@ export default function CoordConverter() {
     setDD({ lat: latStr, lon: lonStr });
     syncFromDD(latStr, lonStr);
   }, [syncFromDD]);
+
+  /* ── Address → coordinates via /api/geocode ── */
+  const handleGeocode = useCallback(async () => {
+    const trimmed = address.trim();
+    if (!trimmed) return;
+
+    geocodeAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    geocodeAbortRef.current = ctrl;
+
+    setGeocodeStatus('loading');
+    setGeocodeError('');
+    setResolvedName(null);
+
+    try {
+      const res = await fetch('/api/geocode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'forward', addresses: [trimmed] }),
+        signal: ctrl.signal,
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+
+      const data = await res.json() as {
+        results: Array<{ lat: number | null; lon: number | null; display_name: string | null; error?: string }>;
+      };
+      const result = data.results?.[0];
+      if (!result || result.lat === null || result.lon === null) {
+        const msg = result?.error === 'not found'
+          ? 'Address not found — try a more specific query.'
+          : (result?.error ?? 'Address not found');
+        setGeocodeError(msg);
+        setGeocodeStatus('error');
+        return;
+      }
+
+      handleMapPick(result.lat, result.lon);
+      setResolvedName(result.display_name);
+      setGeocodeStatus('idle');
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') {
+        setGeocodeError((e as Error).message);
+        setGeocodeStatus('error');
+      }
+    }
+  }, [address, handleMapPick]);
 
   /* ── Elevation lookup via USGS 3DEP ── */
   const fetchElevation = useCallback(async (lat: number, lon: number) => {
@@ -197,13 +249,57 @@ export default function CoordConverter() {
           <h1 className={styles.title}>Coordinate Converter</h1>
           <p className={styles.subtitle}>
             Convert between coordinate formats used in GIS, GPS, and mapping.
-            Edit any format — others update instantly. Click the map or drag the pin to pick a location.
+            Search an address, click the map, or type coordinates — all formats update instantly.
           </p>
         </header>
 
         <div className={styles.mainGrid}>
           {/* ── Left column: formats ── */}
           <div className={styles.formCol}>
+
+        {/* ── Address lookup ── */}
+        <div className={styles.addressCard}>
+          <div className={styles.addressHeader}>
+            <span className={styles.addressLabel}>Find by address</span>
+          </div>
+          <form
+            className={styles.addressForm}
+            onSubmit={e => { e.preventDefault(); handleGeocode(); }}
+          >
+            <input
+              className={styles.addressInput}
+              type="text"
+              placeholder="e.g. Empire State Building, New York"
+              value={address}
+              onChange={e => {
+                setAddress(e.target.value);
+                if (geocodeStatus === 'error') setGeocodeStatus('idle');
+              }}
+              disabled={geocodeStatus === 'loading'}
+            />
+            <button
+              type="submit"
+              className={styles.geocodeBtn}
+              disabled={!address.trim() || geocodeStatus === 'loading'}
+            >
+              {geocodeStatus === 'loading' ? 'Searching…' : 'Find'}
+            </button>
+          </form>
+          {geocodeStatus === 'error' && geocodeError && (
+            <p className={styles.addressError}>{geocodeError}</p>
+          )}
+          {resolvedName && (
+            <p className={styles.addressResult} title={resolvedName}>{resolvedName}</p>
+          )}
+          <p className={styles.addressHint}>
+            Powered by{' '}
+            <a href="https://nominatim.openstreetmap.org" target="_blank" rel="noopener noreferrer" className={styles.addressLink}>
+              OpenStreetMap Nominatim
+            </a>
+            . Batch geocoding?{' '}
+            <Link href="/tools/geocoder" className={styles.addressLink}>Open the Geocoder tool</Link>.
+          </p>
+        </div>
 
         {/* ── Format tabs ── */}
         <div className={styles.tabs}>

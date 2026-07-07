@@ -21,6 +21,101 @@
 .title { font-size: 1.8em; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
 .subtitle { font-size: 0.88em; color: var(--text-secondary); line-height: 1.65; }
 
+/* ── Address lookup ── */
+.addressCard {
+  margin-bottom: 20px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--paper-dark);
+}
+
+.addressHeader {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--paper-dark);
+}
+
+.addressLabel {
+  font-size: 0.72em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.addressForm {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  align-items: stretch;
+}
+
+.addressInput {
+  flex: 1;
+  min-width: 0;
+  background: var(--paper-bg);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+.addressInput:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.addressInput:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.geocodeBtn {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent-blue);
+  color: white;
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.geocodeBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.geocodeBtn:not(:disabled):hover { opacity: 0.88; }
+
+.addressError {
+  margin: 0 14px 10px;
+  font-size: 0.78em;
+  color: #ef4444;
+  font-family: var(--font-mono);
+}
+
+.addressResult {
+  margin: 0 14px 10px;
+  font-size: 0.78em;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  font-family: var(--font-mono);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.addressHint {
+  margin: 0;
+  padding: 8px 14px 12px;
+  font-size: 0.68em;
+  color: var(--text-muted);
+  line-height: 1.5;
+  border-top: 1px solid var(--border-light);
+}
+
+.addressLink {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+.addressLink:hover { text-decoration: underline; }
+
 /* ── Tabs ── */
 .tabs {
   display: flex;
@@ -253,6 +348,8 @@
   .container { padding: 24px 18px 36px; }
   .row { grid-template-columns: 1fr; }
   .tabs { flex-direction: column; }
+  .addressForm { flex-direction: column; }
+  .geocodeBtn { width: 100%; }
 }
 
 /* ── Elevation card ── */
