@@ -2318,8 +2318,74 @@
   background: rgba(12, 18, 28, 0.95);
 }
 
+.dataBannerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dataBannerText {
+  flex: 1;
+  min-width: 0;
+}
+
+.dataBannerProgress {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+}
+
+.dataBannerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dataBannerRefreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.dataBannerRefreshBtn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.dataBannerDismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dataBannerDismiss:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8edf5;
+}
+
 .dataBannerLoading,
 .dataBannerWarn,
+.dataBannerInfo,
 .dataBannerOk {
   display: inline-flex;
   align-items: center;
@@ -2328,6 +2394,7 @@
 
 .dataBannerLoading { color: rgba(147, 197, 253, 0.9); }
 .dataBannerWarn { color: rgba(251, 191, 36, 0.95); }
+.dataBannerInfo { color: rgba(147, 197, 253, 0.9); }
 .dataBannerOk { color: rgba(110, 231, 183, 0.9); }
 
 .spinIcon {
@@ -3261,6 +3328,21 @@
   .dataBanner {
     padding: 8px 12px;
     font-size: 11px;
+  }
+  
+  .dataBannerContent {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .dataBannerActions {
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .dataBannerRefreshBtn {
+    flex: 1;
   }
   
   .emptyState {

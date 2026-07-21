@@ -10,7 +10,7 @@ import {
   useRef,
 } from 'react';
 import Link from 'next/link';
-import { BarChart3, Loader2, AlertTriangle, Download, Search } from 'lucide-react';
+import { BarChart3, Download, Search } from 'lucide-react';
 import FilterBar from './FilterBar';
 import StockTable, { sortRows, type SortDir } from './StockTable';
 import type { TableColumnId } from './tableColumns';
@@ -18,6 +18,7 @@ import DateTimeline from './DateTimeline';
 import BacktestPanel from './BacktestPanel';
 import SimilarityPanel from './SimilarityPanel';
 import WatchlistPanel from './WatchlistPanel';
+import DataLoadingBanner from './DataLoadingBanner';
 import VisualViewTabs from './views/VisualViewTabs';
 import ChartsView from './views/ChartsView';
 import SectorView from './views/SectorView';
@@ -947,6 +948,11 @@ export default function StockScreener() {
   const activeFilters = enabledFilterCount(screenerState);
   const isLoading = dataSource === 'loading';
 
+  const handleRetryDataLoad = useCallback(() => {
+    // Force a re-fetch by invalidating cache and reloading
+    window.location.reload();
+  }, []);
+
   return (
     <div className={styles.root}>
       <header className={styles.topBar}>
@@ -964,28 +970,16 @@ export default function StockScreener() {
         onReturnPeriodChange={daysAgo > 0 ? setReturnPeriodDays : undefined}
       />
 
-      {(isLoading || dataWarning || loadError) && (
-        <div className={styles.dataBanner} role="status">
-          {isLoading && (
-            <span className={styles.dataBannerLoading}>
-              <Loader2 size={14} className={styles.spinIcon} />
-              Loading {universeLabel} data (weekly cache)…
-            </span>
-          )}
-          {!isLoading && dataWarning && (
-            <span className={styles.dataBannerWarn}>
-              <AlertTriangle size={14} />
-              {dataWarning}
-            </span>
-          )}
-          {!isLoading && dataSource !== 'mock' && !dataWarning && (
-            <span className={styles.dataBannerOk}>
-              Live Finnhub data · {total}{totalSymbols ? ` / ${totalSymbols}` : ''} {universeLabel} · weekly refresh
-              {cacheLabel ? ` · ${cacheLabel}` : ''}
-            </span>
-          )}
-        </div>
-      )}
+      <DataLoadingBanner
+        isLoading={isLoading}
+        warning={dataWarning}
+        totalSymbols={totalSymbols}
+        loadedSymbols={total}
+        universeLabel={universeLabel}
+        cacheLabel={cacheLabel}
+        dataSource={dataSource}
+        onRetry={handleRetryDataLoad}
+      />
 
       <div className={styles.layout}>
         <aside className={styles.sidebarColumn}>
