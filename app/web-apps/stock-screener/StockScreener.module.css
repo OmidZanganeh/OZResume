@@ -2887,21 +2887,431 @@
   color: rgba(255, 255, 255, 0.32);
 }
 
-/* ── Mobile ──────────────────────────────────────────────────────────────── */
+/* ── Mobile & Responsive ─────────────────────────────────────────────────── */
+
+/* Tablets and smaller desktops */
+@media (max-width: 1024px) {
+  .sidebarColumn { width: 280px; }
+  .main { padding: 18px 16px 28px; }
+  .dataTable { min-width: 800px; font-size: 12px; }
+}
+
+/* Tablet portrait */
 @media (max-width: 768px) {
   .layout { flex-direction: column; }
+  
   .sidebarColumn,
   .sidebar {
     width: 100%;
     max-height: none;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    max-height: 400px;
+    overflow-y: auto;
   }
-  .filterBar { padding: 12px 14px 10px; }
-  .activeFilterCard { max-width: none; flex: 1 1 100%; }
-  .filterPicker { left: auto; right: 0; }
-  .main { padding: 16px 14px 24px; }
+  
+  .topBar {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+  }
+  
+  .filterBar { 
+    padding: 12px 14px 10px;
+  }
+  
+  .filterBarHead {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .filterModeTabs {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .filterBarActions {
+    width: 100%;
+  }
+  
+  .activeFilterCard { 
+    max-width: none;
+    flex: 1 1 100%;
+  }
+  
+  .filterPicker { 
+    left: auto;
+    right: 0;
+    width: min(360px, calc(100vw - 24px));
+  }
+  
+  .main { padding: 14px 12px 20px; }
+  
+  .resultsHeader {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
   .resultsTitle { font-size: 18px; }
-  .tableWrap { max-height: calc(100vh - 320px); }
-  .dataTable { min-width: 900px; font-size: 11.5px; }
+  
+  .headerActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .searchBox {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: auto;
+  }
+  
+  .countBadge {
+    padding: 8px 12px;
+  }
+  
+  .tableWrap { 
+    max-height: calc(100vh - 380px);
+  }
+  
+  .dataTable { 
+    min-width: 800px;
+    font-size: 11.5px;
+  }
+  
+  .th {
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+  
+  .td {
+    padding: 7px 10px;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+  .root {
+    font-size: 14px;
+  }
+  
+  .topBar {
+    padding: 10px 12px;
+  }
+  
+  .backLink {
+    font-size: 12px;
+  }
+  
+  .brand {
+    font-size: 13px;
+  }
+  
+  .sidebarColumn {
+    max-height: 320px;
+  }
+  
+  .watchlistPanel {
+    padding: 12px 12px 8px;
+  }
+  
+  .watchlistTitle {
+    font-size: 13px;
+  }
+  
+  .viewModeTab {
+    padding: 9px 12px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+  
+  .universeCheck {
+    padding: 8px 10px;
+    min-height: 44px;
+  }
+  
+  .watchlistIconBtn {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .dateBar {
+    padding: 10px 12px 12px;
+  }
+  
+  .dateBarTop {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .dateBarLabel {
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .dateBarActions {
+    justify-content: center;
+  }
+  
+  .dateStepBtn,
+  .dateTodayBtn {
+    padding: 8px 12px;
+    min-height: 44px;
+    font-size: 12px;
+  }
+  
+  .dateSliderWrap {
+    gap: 8px;
+  }
+  
+  .dateSlider {
+    height: 10px;
+  }
+  
+  .dateSlider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .dateSlider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .dateReturnRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .periodSelect {
+    width: 100%;
+  }
+  
+  .filterBar {
+    padding: 10px 12px;
+  }
+  
+  .filterBarTitle {
+    font-size: 12px;
+  }
+  
+  .filterModeTabs {
+    width: 100%;
+  }
+  
+  .filterModeTab {
+    padding: 10px 14px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+  
+  .addFilterBtn,
+  .filterResetBtn {
+    padding: 10px 14px;
+    font-size: 13px;
+    min-height: 44px;
+    flex: 1;
+  }
+  
+  .codeFilterTab {
+    padding: 10px 10px;
+    font-size: 12px;
+    min-height: 44px;
+  }
+  
+  .codeFilterInput {
+    font-size: 14px;
+    min-height: 120px;
+  }
+  
+  .codeFilterApplyBtn {
+    padding: 12px 16px;
+    min-height: 48px;
+    font-size: 13px;
+  }
+  
+  .premadeApplyBtn {
+    padding: 10px 14px;
+    min-height: 44px;
+  }
+  
+  .sectorChip {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 44px;
+  }
+  
+  .main {
+    padding: 12px 10px 16px;
+  }
+  
+  .resultsTitle {
+    font-size: 16px;
+  }
+  
+  .resultsSub {
+    font-size: 12px;
+  }
+  
+  .headerActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .searchBox {
+    height: 44px;
+    padding: 0 12px;
+    min-width: 100%;
+  }
+  
+  .searchInput {
+    font-size: 14px;
+  }
+  
+  .downloadBtn {
+    width: 100%;
+    padding: 12px 16px;
+    min-height: 48px;
+    justify-content: center;
+  }
+  
+  .countBadge {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 14px;
+  }
+  
+  .countMatch {
+    font-size: 24px;
+  }
+  
+  .countTotal {
+    font-size: 16px;
+  }
+  
+  .tableWrap {
+    max-height: calc(100vh - 420px);
+    border-radius: 8px;
+  }
+  
+  .dataTable {
+    min-width: 750px;
+    font-size: 11px;
+  }
+  
+  .th {
+    padding: 8px 8px;
+    font-size: 9px;
+  }
+  
+  .td {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  
+  .companyCell {
+    max-width: 120px;
+  }
+  
+  .watchBtn,
+  .patternBtn {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+  }
+  
+  .backtestPanel {
+    padding: 12px 14px;
+  }
+  
+  .backtestStats {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .similarityPanel {
+    padding: 12px 14px;
+  }
+  
+  .similarityHead {
+    flex-direction: column;
+  }
+  
+  .similarityActions {
+    width: 100%;
+    margin-left: 0;
+  }
+  
+  .similarityCopyFilter,
+  .similarityClear {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+  }
+  
+  .referenceChips {
+    flex-direction: column;
+  }
+  
+  .similarityGrid {
+    flex-direction: column;
+  }
+  
+  .dataBanner {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+  
+  .emptyState {
+    padding: 16px;
+    font-size: 13px;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  .topBar {
+    padding: 8px 10px;
+  }
+  
+  .brand span {
+    display: none;
+  }
+  
+  .dateBar {
+    padding: 8px 10px 10px;
+  }
+  
+  .dateBarValue {
+    font-size: 13px;
+  }
+  
+  .dateStepBtn {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  
+  .main {
+    padding: 10px 8px 12px;
+  }
+  
+  .resultsTitle {
+    font-size: 14px;
+  }
+  
+  .dataTable {
+    min-width: 680px;
+    font-size: 10px;
+  }
+  
+  .th {
+    padding: 6px 6px;
+    font-size: 8px;
+  }
+  
+  .td {
+    padding: 5px 6px;
+    font-size: 10px;
+  }
 }
