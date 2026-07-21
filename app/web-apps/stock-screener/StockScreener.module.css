@@ -352,6 +352,8 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .filterSidebarScroll {
@@ -2975,6 +2977,8 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     max-height: 400px;
     overflow-y: auto;
+    position: static;
+    z-index: auto;
   }
   
   .topBar {
@@ -3063,6 +3067,8 @@
   
   .topBar {
     padding: 10px 12px;
+    position: relative;
+    z-index: 10;
   }
   
   .backLink {
@@ -3075,6 +3081,13 @@
   
   .sidebarColumn {
     max-height: 320px;
+    position: static;
+    z-index: auto;
+  }
+  
+  .main {
+    position: relative;
+    z-index: 1;
   }
   
   .watchlistPanel {
