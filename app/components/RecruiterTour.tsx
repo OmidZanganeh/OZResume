@@ -48,7 +48,7 @@ const STEPS: Step[] = [
         s: 'MS Geography / GIS&T from UNO with a 4.0 GPA and GRACA Project Award. Former grad instructor (150+ students as instructor of record), and GIS tech on the Omaha Spatial Justice Project.',
       },
       { s: '\n\n' },
-      { s: '2025 Edison Award Nominee', strong: true },
+      { s: '2026 Edison Award Winner', strong: true },
       { s: ' at Olsson for telecom engineering automation contributions.' },
     ],
   },

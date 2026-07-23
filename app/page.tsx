@@ -237,8 +237,8 @@ export default function Resume() {
             Azure AI Foundry, Azure OpenAI, and Google AI Studio, I built RFP Radar for intelligent
             contract sourcing and classification (<strong>months to hours</strong>), batch SQL-integrated
             classifiers for property and tabular enrichment, and YOLO-based object detection for remote
-            utility infrastructure inventory via aerial and street-level imagery. I was nominated for
-            Olsson&apos;s <strong>Edison Award</strong> for these automation contributions.
+            utility infrastructure inventory via aerial and street-level imagery. I won
+            Olsson&apos;s <strong>2026 Edison Award</strong> for these automation contributions.
           </p>
           <p>
             Beyond enterprise GIS, I build full-stack web products: a Next.js portfolio site with
@@ -321,7 +321,7 @@ export default function Resume() {
                   <span className={styles.company}>Olsson</span>
                   <span className={styles.datePill}>Mar 2025 – Present</span>
                 </div>
-                <p className={styles.jobTitle}>GIS Developer – Telecom Engineering &amp; Design <span className={styles.awardBadge}>Edison Award Nominee</span></p>
+                <p className={styles.jobTitle}>GIS Developer – Telecom Engineering &amp; Design <span className={styles.awardBadge}>2026 Edison Award Winner</span></p>
                 <p className={styles.location}>Lincoln, Nebraska</p>
                 <ul className={styles.bullets}>
                   <li>Architected production Python and C# desktop applications for fiber telecom engineering, including automated bore profile generation that cut processing time from <strong>days to minutes</strong>.</li>
