@@ -1,0 +1,171 @@
+.section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 28px;
+  align-items: stretch;
+  margin: 0 0 56px;
+  padding: 28px 0 8px;
+  border-top: 1px solid var(--border-light);
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.25rem, 2.2vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.lead {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 28rem;
+}
+
+.toolLink {
+  font-weight: 600;
+  font-size: 0.92rem;
+  width: fit-content;
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.toolLink:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.map {
+  position: relative;
+  height: 220px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-dark);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 32, 0.35), rgba(15, 23, 32, 0.55)),
+    url('/Hillshade.jpg') center / cover no-repeat;
+}
+
+.gridLines {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+.pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 1;
+}
+
+.pinDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--accent-cyan);
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.35);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.pinActive .pinDot,
+.pin:hover .pinDot {
+  background: #f8fafc;
+  transform: rotate(-45deg) scale(1.15);
+}
+
+.pinLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  color: #f8fafc;
+  background: rgba(10, 14, 20, 0.72);
+  padding: 2px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.panel {
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  background: var(--paper-light);
+  border-radius: 4px;
+}
+
+.hint,
+.status,
+.error,
+.place,
+.coords {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.hint,
+.status {
+  color: var(--text-muted);
+}
+
+.coords {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--accent-cyan);
+  margin-bottom: 6px;
+}
+
+.place {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.error {
+  color: #b45309;
+}
+
+@media (max-width: 860px) {
+  .section {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .map {
+    height: 200px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinDot {
+    transition: none;
+  }
+}

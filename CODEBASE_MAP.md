@@ -14,7 +14,7 @@
 | Path | Role |
 |------|------|
 | `app/layout.tsx` | Root layout, fonts, theme provider |
-| `app/page.tsx` | Resume landing (client); header, stats, jobs, sidebar, `ToolsHoverCard` |
+| `app/page.tsx` | Resume landing (client); hero story, featured work, live geocode demo, experience, evidence skills |
 | `app/globals.css` | Global styles, theme tokens |
 | `app/sitemap.ts`, `app/robots.ts` | SEO |
 | `app/opengraph-image.tsx` | Dynamic OG |
@@ -68,6 +68,9 @@
 
 | Component | Used for |
 |-----------|-----------|
+| `FeaturedWork.tsx` | Homepage flagship case strips (Bore / RFP / Aerial AI) |
+| `LiveGeocodeDemo.tsx` | Homepage reverse-geocode pin demo (`/api/geocode`) |
+| `EvidenceSkills.tsx` | Skills linked to shipped proof (replaces skill bars on `/`) |
 | `GameHub.tsx` | Game modal from resume “Bored?” |
 | `RecruiterTour.tsx` | Neon “Recruiter tour” modal + Geo-Bot mascot (header **✨ Recruiter tour**) |
 | `ToolsHoverCard.tsx` | Header tools dropdown on resume |
