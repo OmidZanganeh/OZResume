@@ -18,7 +18,6 @@ import SkillRadar from "./components/SkillRadar";
 import HobbiesSection from "./components/HobbiesSection";
 import ScrollFadeIn from "./components/ScrollFadeIn";
 import LandsatNameSidebars from "./components/LandsatNameSidebars";
-import PdfModal from "./components/PdfModal";
 import BusinessCard from "./components/BusinessCard";
 
 // ─── Inline SVG Icons ────────────────────────────────────────────────────────
@@ -131,7 +130,6 @@ const AVATARS = ['/Omid.png', '/Omid2.png'] as const;
 export default function Resume() {
   const [gameOpen, setGameOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
-  const [pdfOpen, setPdfOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
   const [avatarSrc, setAvatarSrc] = useState<typeof AVATARS[number]>(AVATARS[0]);
 
@@ -179,9 +177,9 @@ export default function Resume() {
             </div>
 
             <div className={styles.headerActions}>
-              <button type="button" onClick={() => setPdfOpen(true)} className={styles.downloadBtn}>
+              <a href="/Omid-Zanganeh-Resume.pdf" target="_blank" rel="noopener noreferrer" className={styles.downloadBtn}>
                 <DocumentIcon /> Resume
-              </button>
+              </a>
               <button type="button" onClick={() => setCardOpen(true)} className={styles.downloadBtn}>
                 <CardIcon /> Card
               </button>
@@ -495,7 +493,6 @@ export default function Resume() {
       ══════════════════════════════════════ */}
       {gameOpen && <GameHub onClose={() => setGameOpen(false)} />}
       <RecruiterTour open={tourOpen} onClose={() => setTourOpen(false)} />
-      <PdfModal open={pdfOpen} onClose={() => setPdfOpen(false)} pdfUrl="/Omid-Zanganeh-Resume.pdf" fileName="Omid-Zanganeh-Resume.pdf" />
       <BusinessCard open={cardOpen} onClose={() => setCardOpen(false)} />
 
       {/* ══════════════════════════════════════
