@@ -264,7 +264,7 @@ def build():
     # Olsson
     job_header(doc,
                company='Olsson',
-               title='GIS Developer',
+               title='GIS Developer and Analyst',
                dates='March 2025 – Present',
                location='Lincoln, Nebraska  ✦  2025 Nominee & 2026 Edison Award Winner')
 

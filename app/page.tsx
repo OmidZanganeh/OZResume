@@ -319,7 +319,7 @@ export default function Resume() {
                   <span className={styles.company}>Olsson</span>
                   <span className={styles.datePill}>Mar 2025 – Present</span>
                 </div>
-                <p className={styles.jobTitle}>GIS Developer <span className={styles.awardBadge}>2026 Edison Award Winner</span></p>
+                <p className={styles.jobTitle}>GIS Developer and Analyst <span className={styles.awardBadge}>2026 Edison Award Winner</span></p>
                 <p className={styles.location}>Lincoln, Nebraska</p>
                 <ul className={styles.bullets}>
                   <li>Architected production Python and C# desktop applications for fiber telecom engineering, including automated bore profile generation that cut processing time from <strong>days to minutes</strong>.</li>
