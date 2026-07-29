@@ -39,8 +39,8 @@ const STEPS: Step[] = [
     title: 'Who is Omid?',
     dialogue: [
       { s: "He's a " },
-      { s: 'GIS Developer', strong: true },
-      { s: ' at Olsson — telecom engineering & design — based in ' },
+      { s: 'Senior GIS Developer and Analyst', strong: true },
+      { s: ' at Olsson, based in ' },
       { s: 'Lincoln, Nebraska', strong: true },
       { s: '.' },
       { s: '\n\n' },
@@ -49,7 +49,7 @@ const STEPS: Step[] = [
       },
       { s: '\n\n' },
       { s: '2026 Edison Award Winner', strong: true },
-      { s: ' at Olsson for telecom engineering automation contributions.' },
+      { s: ' at Olsson for GIS workflow automation and AI engineering contributions.' },
     ],
   },
   {
