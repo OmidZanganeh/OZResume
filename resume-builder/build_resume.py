@@ -115,7 +115,7 @@ def add_para(doc_or_cell, text='', align=WD_ALIGN_PARAGRAPH.LEFT,
 def section_header(doc, title: str):
     """Teal underline section header — ATS readable, visually clean."""
     p = doc.add_paragraph()
-    set_para_spacing(p, before=120, after=30)
+    set_para_spacing(p, before=50, after=10)
     para_border_bottom(p)
     run = p.add_run(title.upper())
     run.bold = True
@@ -132,7 +132,7 @@ def section_header(doc, title: str):
 
 def bullet_para(doc, text: str, indent=Inches(0.15)):
     p = doc.add_paragraph(style='List Bullet')
-    set_para_spacing(p, before=0, after=28)
+    set_para_spacing(p, before=0, after=10)
     # Remove default style indent — set our own
     pPr = p._p.get_or_add_pPr()
     ind = OxmlElement('w:ind')
@@ -146,7 +146,7 @@ def bullet_para(doc, text: str, indent=Inches(0.15)):
     # Plain text bullet — List Bullet style provides the bullet character
     run_text = p.add_run(text)
     run_text.font.name = BODY_FONT
-    run_text.font.size = Pt(9.5)
+    run_text.font.size = Pt(9)
     run_text.font.color.rgb = BLACK
     return p
 
@@ -155,7 +155,7 @@ def job_header(doc, company: str, title: str, dates: str, location: str,
                badge: str = None):
     # Company + dates row
     p = doc.add_paragraph()
-    set_para_spacing(p, before=100, after=0)
+    set_para_spacing(p, before=60, after=0)
     add_run(p, company, bold=True, size=10, color=NAVY)
     if badge:
         add_run(p, f'  ✦ {badge}', bold=False, size=8, color=TEAL, italic=True)
@@ -178,13 +178,13 @@ def job_header(doc, company: str, title: str, dates: str, location: str,
 
     # Location row
     p3 = doc.add_paragraph()
-    set_para_spacing(p3, before=0, after=40)
+    set_para_spacing(p3, before=0, after=14)
     add_run(p3, location, size=9, color=GRAY_DIM)
 
 
 def skill_chips_para(doc, label: str, items: list):
     p = doc.add_paragraph()
-    set_para_spacing(p, before=30, after=30)
+    set_para_spacing(p, before=12, after=12)
     add_run(p, label + '  ', bold=True, size=9, color=NAVY)
     add_run(p, '  ·  '.join(items), size=9, color=BLACK)
 
@@ -194,32 +194,39 @@ def skill_chips_para(doc, label: str, items: list):
 def build():
     doc = Document()
 
-    # Page margins — generous but not wasteful
+    # Zero out default paragraph spacing so our explicit values are exact
+    normal = doc.styles['Normal']
+    normal.paragraph_format.space_before = Pt(0)
+    normal.paragraph_format.space_after  = Pt(0)
+
+    # US Letter, compact margins for 2-page fit
     for section in doc.sections:
-        section.top_margin    = Cm(1.5)
-        section.bottom_margin = Cm(1.5)
-        section.left_margin   = Cm(1.8)
-        section.right_margin  = Cm(1.8)
+        section.page_width    = Inches(8.5)
+        section.page_height   = Inches(11)
+        section.top_margin    = Inches(0.45)
+        section.bottom_margin = Inches(0.45)
+        section.left_margin   = Inches(0.55)
+        section.right_margin  = Inches(0.55)
 
     # ── HEADER ────────────────────────────────────────────────────────────────
     # Name
     name_p = doc.add_paragraph()
-    set_para_spacing(name_p, before=0, after=20)
+    set_para_spacing(name_p, before=0, after=10)
     name_run = name_p.add_run('OMID ZANGANEH')
     name_run.font.name = BODY_FONT
-    name_run.font.size = Pt(26)
+    name_run.font.size = Pt(24)
     name_run.bold = True
     name_run.font.color.rgb = NAVY
 
     # Title line
     title_p = doc.add_paragraph()
-    set_para_spacing(title_p, before=0, after=4)
-    add_run(title_p, 'Senior GIS Developer and Analyst', bold=True, size=13, color=NAVY)
+    set_para_spacing(title_p, before=0, after=2)
+    add_run(title_p, 'Senior GIS Developer and Analyst', bold=True, size=12, color=NAVY)
 
     # Degree line
     degree_p = doc.add_paragraph()
-    set_para_spacing(degree_p, before=0, after=60)
-    add_run(degree_p, 'MS Geography — Geographic Information Science & Technology  ·  GIS Workflows& Automation  ·  AI/ML Integration',
+    set_para_spacing(degree_p, before=0, after=30)
+    add_run(degree_p, 'MS Geography — Geographic Information Science & Technology  ·  Workflow Automation  ·  AI/ML Integration',
             size=10, color=TEAL)
 
     # Contact bar — single paragraph with separators
@@ -241,7 +248,7 @@ def build():
     # ── PROFESSIONAL SUMMARY ──────────────────────────────────────────────────
     section_header(doc, 'Professional Summary')
     summary_p = doc.add_paragraph()
-    set_para_spacing(summary_p, before=20, after=0)
+    set_para_spacing(summary_p, before=10, after=0)
     add_run(summary_p,
         'GIS Developer and software engineer specializing in GIS workflow automation, '
         'ArcGIS Pro development, and AI-powered spatial workflows. Builds production desktop '
@@ -259,8 +266,7 @@ def build():
                company='Olsson',
                title='GIS Developer',
                dates='March 2025 – Present',
-               location='Lincoln, Nebraska',
-               badge='2025 Nominee, and 2026 Edison Award Winner')
+               location='Lincoln, Nebraska  ✦  2025 Nominee & 2026 Edison Award Winner')
 
     olsson_bullets = [
         'Architected production Python and C# desktop applications for GIS workflows including '
@@ -353,7 +359,7 @@ def build():
 
     for name, subtitle, tech, desc in projects:
         p = doc.add_paragraph()
-        set_para_spacing(p, before=80, after=0)
+        set_para_spacing(p, before=36, after=0)
         add_run(p, name, bold=True, size=9.5, color=NAVY)
         add_run(p, f'  —  {subtitle}', size=9, color=TEAL)
 
@@ -362,15 +368,15 @@ def build():
         add_run(p2, tech, size=8.5, color=GRAY_DIM, italic=True)
 
         p3 = doc.add_paragraph()
-        set_para_spacing(p3, before=0, after=20)
-        add_run(p3, desc, size=9.5, color=BLACK)
+        set_para_spacing(p3, before=0, after=8)
+        add_run(p3, desc, size=9, color=BLACK)
 
     # ── EDUCATION ─────────────────────────────────────────────────────────────
     section_header(doc, 'Education')
 
     # MS
     p = doc.add_paragraph()
-    set_para_spacing(p, before=80, after=0)
+    set_para_spacing(p, before=50, after=0)
     add_run(p, 'Master of Science, Geography — Geographic Information Science & Technology',
             bold=True, size=10, color=NAVY)
     add_run(p, '\t', size=10)
@@ -389,7 +395,7 @@ def build():
     add_run(p2, '   GPA: 4.00  ·  GRACA Project Award', bold=True, size=9.5, color=TEAL)
 
     p3 = doc.add_paragraph()
-    set_para_spacing(p3, before=8, after=40)
+    set_para_spacing(p3, before=4, after=16)
     add_run(p3, 'Thesis: ', bold=True, size=9, color=NAVY)
     add_run(p3,
         'Spatiotemporal Analysis of NOx Emissions from U.S. Cement Plants Using TROPOMI Data '
@@ -399,7 +405,7 @@ def build():
 
     # BS
     p = doc.add_paragraph()
-    set_para_spacing(p, before=60, after=0)
+    set_para_spacing(p, before=28, after=0)
     add_run(p, 'Bachelor of Science, Geomatics (Surveying) Engineering',
             bold=True, size=10, color=NAVY)
     add_run(p, '\t', size=10)
@@ -416,6 +422,7 @@ def build():
     set_para_spacing(p2, before=0, after=40)
     add_run(p2, 'Geomatics College of National Cartographic Center (GCNCC), Tehran',
             size=9.5, color=GRAY_MID)
+    set_para_spacing(p2, before=0, after=14)
 
     # ── TECHNICAL SKILLS ──────────────────────────────────────────────────────
     section_header(doc, 'Technical Skills')
@@ -450,14 +457,10 @@ def build():
         skill_chips_para(doc, label, items)
 
     # ── FOOTER ────────────────────────────────────────────────────────────────
-    p = doc.add_paragraph()
-    set_para_spacing(p, before=120, after=0)
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    para_border_bottom(p, color='CCCCCC', size=4)
-
     p2 = doc.add_paragraph()
-    set_para_spacing(p2, before=40, after=0)
+    set_para_spacing(p2, before=20, after=0)
     p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    para_border_bottom(p2, color='CCCCCC', size=4)
     add_run(p2,
         'For project write-ups, live GIS tools, and demos: ',
         size=8.5, color=GRAY_DIM)
