@@ -241,9 +241,9 @@ def build():
         'Lincoln, Nebraska',
     ]
     for i, c in enumerate(contacts):
-        add_run(contact_p, c, size=9, color=GRAY_MID)
+        add_run(contact_p, c, size=8.5, color=GRAY_MID)
         if i < len(contacts) - 1:
-            add_run(contact_p, '   |   ', size=9, color=TEAL)
+            add_run(contact_p, '  |  ', size=8.5, color=TEAL)
 
     # ── PROFESSIONAL SUMMARY ──────────────────────────────────────────────────
     section_header(doc, 'Professional Summary')
