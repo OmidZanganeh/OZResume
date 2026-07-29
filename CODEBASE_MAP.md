@@ -19,6 +19,7 @@
 | `app/sitemap.ts`, `app/robots.ts` | SEO |
 | `app/opengraph-image.tsx` | Dynamic OG |
 | `public/` | Static assets (images, PDF resume) |
+| `resume-builder/` | Resume generation scripts (Python); builds DOCX → PDF → `public/Omid-Zanganeh-Resume.pdf` |
 | `.cursorignore` | Excludes deps, build output, `.env*`, logs, `archive/`, root `gis_*` exports from indexing |
 | `archive/` | Local bulky files (exports, screenshots); not indexed — see `archive/README.md` |
 | `.cursor/rules/` | Cursor rules; `project-context.mdc` is always applied |
@@ -160,6 +161,21 @@
 | `scripts/fetch-sp400-wikipedia.mjs` | `npm run sync:sp400` — refresh S&P 400 members from Wikipedia |
 | `../api/stock-screener/symbols.ts` | Index lists: S&P dataset, NASDAQ CSV, S&P 400 (`data/sp400-constituents.csv`) |
 | `../api/stock-screener/` | Finnhub live snapshot + Redis cache (`?universe=sp500|nasdaq100|sp400`) |
+
+## Resume generation (`resume-builder/`)
+
+Python scripts that build Omid Zanganeh's professional resume:
+
+| File | Purpose |
+|------|---------|
+| `build_resume.py` | Core logic: creates styled DOCX with python-docx |
+| `generate_resume.py` | Main script: builds DOCX → PDF → copies to `public/` |
+| `convert_to_pdf.py` | Standalone PDF converter (LibreOffice CLI) |
+| `requirements.txt` | Dependencies: python-docx, docx2pdf |
+| `README.md` | Full usage guide + customization docs |
+
+**Usage:** `cd resume-builder && python3 generate_resume.py`  
+**Output:** `public/Omid-Zanganeh-Resume.pdf` (served at `/Omid-Zanganeh-Resume.pdf`)
 
 ## Out of index / ignore
 

@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# Generated resume files (kept locally, PDF copied to public/)
+*.docx
+*.pdf
