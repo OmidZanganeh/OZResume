@@ -239,12 +239,6 @@ export default function Resume() {
             Olsson&apos;s <strong>2026 Edison Award</strong> for these automation contributions.
           </p>
           <p>
-            Beyond enterprise GIS, I build full-stack web products: a Next.js portfolio site with
-            browser-based GIS tools (geocoder, isochrone, elevation profile, census, coordinate
-            conversion, PDF/image utilities) and an offline-first Gym Flow fitness PWA with nutrition
-            logging and cloud sync.
-          </p>
-          <p>
             I hold a Master&apos;s in Geography (GIS&amp;T) from the University of Nebraska at Omaha
             (<strong>4.0 GPA</strong>). My thesis on spatiotemporal NOx emissions from U.S. cement
             plants using TROPOMI data earned the <strong>GRACA Project Award</strong>. I taught
