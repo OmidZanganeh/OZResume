@@ -14,7 +14,9 @@
 | Path | Role |
 |------|------|
 | `app/layout.tsx` | Root layout, fonts, theme provider |
-| `app/page.tsx` | Resume landing (client); header, stats, jobs, sidebar, `ToolsHoverCard` |
+| `app/page.tsx` | Resume landing — **server** component; fetches CMS content, renders `ResumeClient` |
+| `app/ResumeClient.tsx` | Resume UI (client); header, stats, jobs, sidebar, `ToolsHoverCard` |
+| `sanity/` | Sanity CMS: schemas, queries, fallback content — see `docs/CMS-SETUP.md` |
 | `app/globals.css` | Global styles, theme tokens |
 | `app/sitemap.ts`, `app/robots.ts` | SEO |
 | `app/opengraph-image.tsx` | Dynamic OG |
@@ -161,6 +163,26 @@
 | `scripts/fetch-sp400-wikipedia.mjs` | `npm run sync:sp400` — refresh S&P 400 members from Wikipedia |
 | `../api/stock-screener/symbols.ts` | Index lists: S&P dataset, NASDAQ CSV, S&P 400 (`data/sp400-constituents.csv`) |
 | `../api/stock-screener/` | Finnhub live snapshot + Redis cache (`?universe=sp500|nasdaq100|sp400`) |
+
+## Content CMS (`sanity/` + `/studio`)
+
+Visual content editor at `/studio`. Editable text lives in Sanity; the site falls back
+**per-section** to `sanity/fallback.ts` when Sanity is unset, empty, or unreachable — so the page
+can never render blank because of the CMS.
+
+| File | Role |
+|------|------|
+| `sanity.config.ts` | Studio config; singletons vs. lists in the sidebar |
+| `sanity/schemas/*.ts` | Content models: `siteSettings`, `aboutSection`, `nowSection`, `job`, `education` |
+| `sanity/lib/getContent.ts` | Fetch + per-section fallback merge |
+| `sanity/lib/queries.ts` | GROQ queries |
+| `sanity/fallback.ts` | Built-in copy of all editable text |
+| `sanity/portableText.ts` | `pt()` / `ptList()` — `**bold**` → Portable Text for the fallback |
+| `app/studio/[[...tool]]/` | Embedded Studio route + setup screen when unconfigured |
+| `app/components/RichText.tsx` | Portable Text renderers (paragraphs / bullets) |
+
+**Env:** `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`. Unset = fallback mode.
+**Setup + editing guide:** `docs/CMS-SETUP.md`
 
 ## Resume generation (`resume-builder/`)
 
