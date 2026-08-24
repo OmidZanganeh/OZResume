@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, Flame, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, X, Star, ScanLine, Search, Plus, Check, Pencil, Trash2 } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, Flame, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, X, Star, ScanLine, Search, Plus, Check, Pencil, Trash2, Download } from 'lucide-react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toJpeg } from 'html-to-image';
+import { exportPlanAsImage } from './utils/exportPlanImage';
 import { BodyMapFigure } from './components/BodyMapFigure';
 import { MuscleSpider } from './components/MuscleSpider';
 import { HistoryBackfillPanel } from './components/HistoryBackfillPanel';
@@ -278,6 +279,7 @@ export default function App() {
   const [savePlanNameInput, setSavePlanNameInput] = useState('');
   const [activeRoutineName, setActiveRoutineName] = useState<string | null>(null);
   const [editingSavedPlanId, setEditingSavedPlanId] = useState<string | null>(null);
+  const [exportingPlanId, setExportingPlanId] = useState<string | null>(null);
   /** Muscle chosen from Plans heatmap — pick existing templates or build new. */
   const [muscleSuggestionsGroup, setMuscleSuggestionsGroup] = useState<MuscleGroup | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -2051,6 +2053,26 @@ export default function App() {
     setMessage('Plan deleted.');
   }
 
+  async function handleExportPlanImage(plan: SavedPlan) {
+    if (exportingPlanId) return;
+    setExportingPlanId(plan.id);
+    try {
+      const result = await exportPlanAsImage({
+        plan,
+        allExercises,
+        sessions: data.sessions,
+        athleteName: data.userProfile?.name ?? reportProfile.name,
+      });
+      if (result === 'shared') setMessage(`Shared “${plan.name}”.`);
+      else if (result === 'downloaded') setMessage(`Saved image for “${plan.name}”.`);
+    } catch (err) {
+      console.error('Plan image export failed:', err);
+      setMessage('Could not create plan image. Try again.');
+    } finally {
+      setExportingPlanId(null);
+    }
+  }
+
   function saveWorkout() {
     const includedIds = selectedExerciseIds.filter((id) => exerciseDrafts[id]?.completed);
     if (includedIds.length === 0) { setMessage('Check "Done" for at least one move.'); return; }
@@ -2392,6 +2414,16 @@ export default function App() {
                             <div className="plan-card-home-actions">
                               <button className="plan-action-btn" onClick={() => beginEditSavedPlan(plan)}>Edit</button>
                               <button
+                                type="button"
+                                className="plan-action-btn"
+                                disabled={exportingPlanId === plan.id}
+                                onClick={() => { void handleExportPlanImage(plan); }}
+                                aria-label={`Download image of ${plan.name}`}
+                              >
+                                <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                                {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                              </button>
+                              <button
                                 className="plan-action-btn plan-action-btn--danger"
                                 onClick={() => showConfirm(`Delete "${plan.name}"?`, () => deleteSavedPlanTemplate(plan.id))}
                               >
@@ -2447,7 +2479,16 @@ export default function App() {
                             <button className="btn-start" onClick={() => openRoutineWorkoutTab(plan.id)}>Start</button>
                           </div>
                           <div className="plan-card-home-actions">
-                             {/* Only Start available in presets for now */}
+                            <button
+                              type="button"
+                              className="plan-action-btn"
+                              disabled={exportingPlanId === plan.id}
+                              onClick={() => { void handleExportPlanImage(plan); }}
+                              aria-label={`Download image of ${plan.name}`}
+                            >
+                              <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                              {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                            </button>
                           </div>
                         </li>
                       );
@@ -2526,6 +2567,16 @@ export default function App() {
                             </div>
                             <div className="plan-card-home-actions">
                               <button type="button" className="plan-action-btn" onClick={() => handleMuscleSuggestionEdit(plan)}>Edit</button>
+                              <button
+                                type="button"
+                                className="plan-action-btn"
+                                disabled={exportingPlanId === plan.id}
+                                onClick={() => { void handleExportPlanImage(plan); }}
+                                aria-label={`Download image of ${plan.name}`}
+                              >
+                                <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                                {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                              </button>
                             </div>
                           </li>
                         );
@@ -2547,6 +2598,18 @@ export default function App() {
                                   <span className="plan-card-home-sub">{planCardActivitySubline(entries.length, lastUsed)}</span>
                                 </div>
                                 <button type="button" className="btn-start" onClick={() => handleMuscleSuggestionStart(plan)}>Start</button>
+                              </div>
+                              <div className="plan-card-home-actions">
+                                <button
+                                  type="button"
+                                  className="plan-action-btn"
+                                  disabled={exportingPlanId === plan.id}
+                                  onClick={() => { void handleExportPlanImage(plan); }}
+                                  aria-label={`Download image of ${plan.name}`}
+                                >
+                                  <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                                  {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                                </button>
                               </div>
                             </li>
                           );
@@ -2819,6 +2882,16 @@ export default function App() {
                           <button type="button" className="plan-action-btn" onClick={() => handleMuscleSuggestionEdit(plan)}>
                             Edit
                           </button>
+                          <button
+                            type="button"
+                            className="plan-action-btn"
+                            disabled={exportingPlanId === plan.id}
+                            onClick={() => { void handleExportPlanImage(plan); }}
+                            aria-label={`Download image of ${plan.name}`}
+                          >
+                            <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                            {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                          </button>
                         </div>
                       </li>
                     );
@@ -2853,6 +2926,18 @@ export default function App() {
                           </div>
                           <button type="button" className="btn-start" onClick={() => handleMuscleSuggestionStart(plan)}>
                             Start
+                          </button>
+                        </div>
+                        <div className="plan-card-home-actions">
+                          <button
+                            type="button"
+                            className="plan-action-btn"
+                            disabled={exportingPlanId === plan.id}
+                            onClick={() => { void handleExportPlanImage(plan); }}
+                            aria-label={`Download image of ${plan.name}`}
+                          >
+                            <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                            {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
                           </button>
                         </div>
                       </li>
