@@ -5,3 +5,4 @@
 3. **Ignore:** Respect **`.cursorignore`** and do not assume context from **`archive/`** (local bulky files).
 4. **Updates:** If you add a route, API, or major feature, **update `CODEBASE_MAP.md`** in the same change when practical.
 5. **Ship it:** After task-related code changes, **commit and push** without waiting to be asked (see `.cursor/rules/push-on-change.mdc`). Scope commits to the task only.
+6. **No draft PRs:** Never open draft pull requests. Prefer shipping on **`main`** when the user wants the live site updated (see `.cursor/rules/no-draft-prs.mdc`).
