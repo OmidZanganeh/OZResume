@@ -1,0 +1,11 @@
+---
+description: Never open draft PRs; ship on main when asked
+alwaysApply: true
+---
+
+# Pull requests and main
+
+- **Never create draft PRs** for this user. If a PR is needed, open it as ready for review (`draft: false`).
+- Prefer putting approved/requested feature work on **`main`** (commit + push) when the user wants it on the live site — do not leave work only on a draft PR.
+- The closed homepage-redesign experiment (`cursor/homepage-redesign-8797`) must **not** be merged; keep the branch for reference only.
+- Gym Flow and other product work the user asks for should land on **`main`** unless they explicitly want a separate review branch (still not as a draft).
