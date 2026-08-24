@@ -105,6 +105,7 @@ type AppView =
   | 'muscle-plan-suggestions'
   | 'create-focus'
   | 'create-moves'
+  | 'edit-plan'
   | 'log'
   | 'activity'
   | 'nutrition'
@@ -1986,6 +1987,7 @@ export default function App() {
           p.id === editingSavedPlanId
             ? {
                 ...p,
+                name,
                 exerciseIds: [...selectedExerciseIds],
                 muscleGroups: nextPlanMuscleGroups,
                 equipment: [...selectedEquipment],
@@ -2037,7 +2039,19 @@ export default function App() {
     setVisibleExerciseCount(24);
     setPlanEditorShowCatalog(false);
     setActiveRoutineName(null);
-    setView('create-moves');
+    setView('edit-plan');
+  }
+
+  function exitEditPlan() {
+    setEditingSavedPlanId(null);
+    setSelectedExerciseIds([]);
+    setExerciseDrafts({});
+    setSavePlanNameInput('');
+    setSelectedGroups([]);
+    setSelectedEquipment([]);
+    setPlanEditorShowCatalog(false);
+    setSearchTerm('');
+    setView('home');
   }
 
   function deleteSavedPlanTemplate(id: string) {
@@ -2951,13 +2965,193 @@ export default function App() {
           </div>
         )}
 
+        {/* ── EDIT PLAN (dedicated single screen) ───────────────────── */}
+        {view === 'edit-plan' && (
+          <div className="subview edit-plan">
+            <div className="view-header">
+              <button type="button" className="view-back" onClick={exitEditPlan}>
+                <ArrowLeft size={16} strokeWidth={2.5} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Back
+              </button>
+              <h1 className="view-title">Edit plan</h1>
+              <span className="view-badge">{selectedExerciseIds.length}</span>
+            </div>
+
+            <section className="edit-plan-hero" aria-label="Plan details">
+              <label className="edit-plan-name-field">
+                <span className="edit-plan-label">Plan name</span>
+                <input
+                  className="text-input edit-plan-name-input"
+                  type="text"
+                  value={savePlanNameInput}
+                  onChange={(e) => setSavePlanNameInput(e.target.value)}
+                  placeholder="e.g. Push Day"
+                  aria-label="Plan name"
+                  autoComplete="off"
+                />
+              </label>
+              {selectedGroups.length > 0 && (
+                <div className="edit-plan-muscles" aria-label="Muscle focus">
+                  {selectedGroups.slice(0, 6).map((g) => (
+                    <span key={g} className="muscle-chip-sm">{g}</span>
+                  ))}
+                  {selectedGroups.length > 6 && (
+                    <span className="muscle-chip-sm muscle-chip-sm--more">+{selectedGroups.length - 6}</span>
+                  )}
+                </div>
+              )}
+            </section>
+
+            <section className="edit-plan-section" aria-labelledby="edit-plan-exercises-heading">
+              <div className="edit-plan-section-head">
+                <h2 id="edit-plan-exercises-heading" className="edit-plan-section-title">Exercises</h2>
+                <button
+                  type="button"
+                  className="button button-small"
+                  onClick={() => setPlanEditorShowCatalog((v) => !v)}
+                >
+                  {planEditorShowCatalog ? 'Done adding' : 'Add exercises'}
+                </button>
+              </div>
+
+              {selectedExerciseIds.length === 0 ? (
+                <p className="edit-plan-empty">No exercises yet. Tap Add exercises to build this plan.</p>
+              ) : (
+                <ol className="edit-plan-list">
+                  {selectedExerciseIds.map((id, index) => {
+                    const exercise = exerciseById.get(id);
+                    if (!exercise) return null;
+                    const trainedCount = data.stats[exercise.id]?.timesCompleted ?? 0;
+                    return (
+                      <li key={id} className="edit-plan-row">
+                        <div className="edit-plan-row-top">
+                          <span className="edit-plan-num">{String(index + 1).padStart(2, '0')}</span>
+                          <div className="edit-plan-row-main">
+                            <p className="edit-plan-ex-name">{exercise.name}</p>
+                            <p className="edit-plan-ex-meta">
+                              {exercise.primaryGroup}
+                              {exercise.secondaryGroups?.length ? ` · ${exercise.secondaryGroups.slice(0, 2).join(', ')}` : ''}
+                              {' · '}Done {trainedCount}×
+                            </p>
+                          </div>
+                          <div className="edit-plan-row-actions">
+                            <button type="button" className="edit-plan-icon-btn" onClick={() => moveExerciseItem(index, -1)} disabled={index === 0} aria-label="Move up">↑</button>
+                            <button type="button" className="edit-plan-icon-btn" onClick={() => moveExerciseItem(index, 1)} disabled={index === selectedExerciseIds.length - 1} aria-label="Move down">↓</button>
+                            <button type="button" className="edit-plan-icon-btn edit-plan-icon-btn--danger" onClick={() => toggleExerciseInPlan(id)} aria-label="Remove">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="edit-plan-targets">
+                          <MuscleTargetPick
+                            exercise={exercise}
+                            draft={exerciseDrafts[exercise.id]}
+                            onPatch={(p) => updateDraft(exercise.id, p)}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </section>
+
+            {planEditorShowCatalog && (
+              <section className="edit-plan-catalog" aria-label="Add exercises from catalog">
+                <h2 className="edit-plan-section-title">Add from library</h2>
+                <p className="edit-plan-hint">Search and tap Add. Your plan list above updates instantly.</p>
+                <div className="moves-toolbar">
+                  <input
+                    className="search-input"
+                    type="search"
+                    placeholder="Search exercises…"
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setVisibleExerciseCount(24); }}
+                    aria-label="Search exercise catalog"
+                  />
+                  <div className="equipment-scroll" role="group" aria-label="Filter by equipment">
+                    {equipmentFilterOptions.map((eq) => {
+                      const active = selectedEquipment.includes(eq);
+                      return (
+                        <button
+                          key={eq}
+                          type="button"
+                          className={`chip ${active ? 'chip-active' : ''}`}
+                          aria-pressed={active}
+                          onClick={() => toggleEquipment(eq)}
+                        >
+                          {labelForFilterValue(eq)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="catalog-filters-row">
+                    <select className="select-input" value={catalogSort} onChange={(e) => { setCatalogSort(e.target.value as CatalogSortMode); setVisibleExerciseCount(24); }}>
+                      <option value="gym">Common first</option>
+                      <option value="mostUsed">Most used</option>
+                      <option value="leastUsed">Least used</option>
+                      <option value="a-z">A–Z</option>
+                      <option value="z-a">Z–A</option>
+                    </select>
+                    <select className="select-input" value={filterWrkoutCategory} onChange={(e) => { setFilterWrkoutCategory(e.target.value); setVisibleExerciseCount(24); }}>
+                      <option value="all">All types</option>
+                      {categoryFilterOptions.map((c) => <option key={c} value={c}>{labelForFilterValue(c)}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="edit-plan-catalog-list">
+                  {visibleExercises.map((exercise) => {
+                    const selected = selectedExerciseIds.includes(exercise.id);
+                    return (
+                      <div key={exercise.id} className={`edit-plan-catalog-row ${selected ? 'is-selected' : ''}`}>
+                        <div className="edit-plan-catalog-copy">
+                          <p className="edit-plan-ex-name">{exercise.name}</p>
+                          <p className="edit-plan-ex-meta">
+                            {exercise.primaryGroup}
+                            {' · '}
+                            {labelForFilterValue(getEffectiveEquipment(exercise))}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className={`button button-small ${selected ? 'button-muted' : ''}`}
+                          onClick={() => toggleExerciseInPlan(exercise.id)}
+                        >
+                          {selected ? 'Added' : 'Add'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {visibleExerciseCount < catalogMatches.length && (
+                  <button type="button" className="button button-block" style={{ marginTop: '0.75rem' }} onClick={() => setVisibleExerciseCount((v) => v + 24)}>
+                    Show more
+                  </button>
+                )}
+              </section>
+            )}
+
+            <div className="edit-plan-spacer" aria-hidden />
+
+            <div className="edit-plan-save-bar">
+              <button type="button" className="button button-muted" onClick={exitEditPlan}>
+                Cancel
+              </button>
+              <button type="button" className="button" onClick={saveCurrentPlanTemplate}>
+                Save changes
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── CREATE: FOCUS ─────────────────────────────────────────── */}
         {view === 'create-focus' && (
           <div className="subview">
             <div className="view-header">
               <button className="view-back" onClick={() => { setSelectedGroups([]); setSelectedEquipment([]); setView('home'); }}><ArrowLeft size={16} strokeWidth={2.5} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Back</button>
-              <h1 className="view-title">{editingSavedPlanId ? 'Edit Plan' : 'New Plan'}</h1>
-              <button className="view-next" onClick={() => setView('create-moves')}>Next <ArrowRight size={16} strokeWidth={2.5} style={{ marginLeft: '6px', verticalAlign: 'text-bottom' }} /></button>
+              <h1 className="view-title">New Plan</h1>
+              <button className="view-next" onClick={() => { setPlanEditorShowCatalog(true); setView('create-moves'); }}>Next <ArrowRight size={16} strokeWidth={2.5} style={{ marginLeft: '6px', verticalAlign: 'text-bottom' }} /></button>
             </div>
             <p className="view-hint">Tap a muscle to focus the exercise list, or skip.</p>
             <BodyMapFigure
@@ -2989,85 +3183,29 @@ export default function App() {
             <div className="view-header">
               <button className="view-back" onClick={() => setView('create-focus')}><ArrowLeft size={16} strokeWidth={2.5} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> Back</button>
               <h1 className="view-title">Pick Moves</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                <span className="view-badge">{selectedExerciseIds.length} added</span>
-                {editingSavedPlanId ? (
-                  <button
-                    type="button"
-                    className="button button-small button-muted"
-                    onClick={() => setPlanEditorShowCatalog((v) => !v)}
-                  >
-                    {planEditorShowCatalog ? 'Hide move list' : 'Add move'}
-                  </button>
-                ) : null}
-              </div>
+              <span className="view-badge">{selectedExerciseIds.length} added</span>
             </div>
 
             {selectedExerciseIds.length > 0 && (
-              <>
-                {editingSavedPlanId && !planEditorShowCatalog ? (
-                  <section className="panel panel--compact" style={{ marginBottom: '1rem' }}>
-                    <h2 className="panel-heading panel-heading--plain">Selected moves</h2>
-                    <p className="panel-subtle" style={{ marginTop: '-0.2rem' }}>
-                      Showing only moves in this plan. Use “Add move” to open the full catalog.
-                    </p>
-                    <div className="exercise-grid">
-                      {selectedExerciseIds.map((id, index) => {
-                        const exercise = exerciseById.get(id);
-                        if (!exercise) return null;
-                        const trainedCount = data.stats[exercise.id]?.timesCompleted ?? 0;
-                        return (
-                          <article key={exercise.id} className="exercise-card">
-                            <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--image">
-                              {exerciseImages[exercise.name] ? (
-                                <img src={exerciseImages[exercise.name].url} alt={`${exercise.name} demo`} className="exercise-image" loading="lazy" />
-                              ) : (
-                                <div className="exercise-image-fallback">{exercise.primaryGroup}</div>
-                              )}
-                            </ExerciseYoutubeLink>
-                            <div>
-                              <h3>
-                                <ExerciseYoutubeLink exerciseName={exercise.name} className="exercise-youtube exercise-youtube--title">
-                                  {index + 1}. {exercise.name}
-                                </ExerciseYoutubeLink>
-                              </h3>
-                              <p className="meta">{exercise.primaryGroup}{exercise.secondaryGroups?.length ? ` + ${exercise.secondaryGroups.join(', ')}` : ''}</p>
-                              <p className="meta meta--dataset">{labelForFilterValue(getEffectiveCategory(exercise))} · {labelForFilterValue(getEffectiveEquipment(exercise))}</p>
-                              <p className="meta">Done: {trainedCount}×</p>
-                              <MuscleTargetPick exercise={exercise} draft={exerciseDrafts[exercise.id]} onPatch={(p) => updateDraft(exercise.id, p)} />
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                              <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, -1)} disabled={index === 0}>↑</button>
-                              <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, 1)} disabled={index === selectedExerciseIds.length - 1}>↓</button>
-                              <button type="button" className="button button-small button-muted" onClick={() => toggleExerciseInPlan(id)}>Remove</button>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ) : (
-                  <div className="panel" style={{ marginBottom: '1.25rem', padding: '0.8rem' }}>
-                    <h2 className="panel-heading panel-heading--plain" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Added Moves Order</h2>
-                    <div className="small-list small-list--scroll">
-                      {selectedExerciseIds.map((id, index) => {
-                        const ex = exerciseById.get(id);
-                        if (!ex) return null;
-                        return (
-                          <div key={id} className="small-list-row" style={{ padding: '0.2rem 0' }}>
-                            <span style={{ fontSize: '0.85rem' }}>{index + 1}. {ex.name}</span>
-                            <div style={{ display: 'flex', gap: '0.35rem' }}>
-                              <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, -1)} disabled={index === 0}>↑</button>
-                              <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, 1)} disabled={index === selectedExerciseIds.length - 1}>↓</button>
-                              <button type="button" className="text-button" onClick={() => toggleExerciseInPlan(id)} aria-label="Remove" style={{ marginLeft: '0.25rem', padding: '0.1rem 0.3rem', display: 'inline-flex', alignItems: 'center' }}><X size={14}/></button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
+              <div className="panel" style={{ marginBottom: '1.25rem', padding: '0.8rem' }}>
+                <h2 className="panel-heading panel-heading--plain" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Added Moves Order</h2>
+                <div className="small-list small-list--scroll">
+                  {selectedExerciseIds.map((id, index) => {
+                    const ex = exerciseById.get(id);
+                    if (!ex) return null;
+                    return (
+                      <div key={id} className="small-list-row" style={{ padding: '0.2rem 0' }}>
+                        <span style={{ fontSize: '0.85rem' }}>{index + 1}. {ex.name}</span>
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, -1)} disabled={index === 0}>↑</button>
+                          <button type="button" className="button button-small button-muted" onClick={() => moveExerciseItem(index, 1)} disabled={index === selectedExerciseIds.length - 1}>↓</button>
+                          <button type="button" className="text-button" onClick={() => toggleExerciseInPlan(id)} aria-label="Remove" style={{ marginLeft: '0.25rem', padding: '0.1rem 0.3rem', display: 'inline-flex', alignItems: 'center' }}><X size={14}/></button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
             {planEditorShowCatalog && (
@@ -3237,7 +3375,7 @@ export default function App() {
                   autoComplete="off"
                 />
                 <button type="button" className="button" onClick={saveCurrentPlanTemplate}>
-                  {editingSavedPlanId ? 'Update' : 'Save plan'}
+                  Save plan
                 </button>
               </div>
             )}
