@@ -1,3 +1,4 @@
+import { openImageDataUrlInBrowser } from './openImageInBrowser';
 import { toPng } from 'html-to-image';
 import type { Exercise } from '../data/exerciseTypes';
 import type { SavedPlan, WorkoutSession } from '../data/gymFlowStorage';
@@ -17,15 +18,6 @@ type LastLog = {
   reps: string;
   weight: string;
 };
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48) || 'plan';
-}
 
 function formatExportDate(d = new Date()): string {
   return d.toLocaleDateString(undefined, {
@@ -193,25 +185,11 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  return new File([blob], filename, { type: 'image/png' });
-}
-
-function triggerDownload(dataUrl: string, filename: string) {
-  const link = document.createElement('a');
-  link.download = filename;
-  link.href = dataUrl;
-  link.click();
-}
-
 /**
- * Renders a tall phone-friendly plan card, captures PNG, then shares (if supported) or downloads.
+ * Renders a tall phone-friendly plan card as PNG and opens it in the browser
+ * so the user can save/share with native OS controls.
  */
-export async function exportPlanAsImage(
-  opts: PlanExportOptions,
-): Promise<'shared' | 'downloaded' | 'cancelled'> {
+export async function exportPlanAsImage(opts: PlanExportOptions): Promise<void> {
   const host = document.createElement('div');
   host.className = 'gf-plan-export-host';
   const node = buildExportNode(opts);
@@ -219,7 +197,6 @@ export async function exportPlanAsImage(
   document.body.appendChild(host);
 
   try {
-    // Allow layout/fonts to settle
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     const dataUrl = await toPng(node, {
@@ -233,30 +210,7 @@ export async function exportPlanAsImage(
       },
     });
 
-    const filename = `Gym-Flow-${slugify(opts.plan.name)}-${new Date().toISOString().slice(0, 10)}.png`;
-    const file = await dataUrlToFile(dataUrl, filename);
-
-    const nav = navigator as Navigator & {
-      canShare?: (data: ShareData) => boolean;
-    };
-    if (typeof nav.share === 'function' && (!nav.canShare || nav.canShare({ files: [file] }))) {
-      try {
-        await nav.share({
-          files: [file],
-          title: opts.plan.name,
-          text: `Gym Flow — ${opts.plan.name}`,
-        });
-        return 'shared';
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          return 'cancelled';
-        }
-        // Share unsupported for this payload — fall through to download
-      }
-    }
-
-    triggerDownload(dataUrl, filename);
-    return 'downloaded';
+    openImageDataUrlInBrowser(dataUrl);
   } finally {
     host.remove();
   }

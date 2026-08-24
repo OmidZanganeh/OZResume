@@ -4,6 +4,7 @@ import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as Image
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toJpeg } from 'html-to-image';
 import { exportPlanAsImage } from './utils/exportPlanImage';
+import { openImageDataUrlInBrowser } from './utils/openImageInBrowser';
 import { BodyMapFigure } from './components/BodyMapFigure';
 import { MuscleSpider } from './components/MuscleSpider';
 import { HistoryBackfillPanel } from './components/HistoryBackfillPanel';
@@ -360,7 +361,6 @@ export default function App() {
   }
   const [quickSearch, setQuickSearch] = useState('');
   const [planEditorShowCatalog, setPlanEditorShowCatalog] = useState(true);
-  const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
   const [reportImageBusy, setReportImageBusy] = useState(false);
   const fullPersistTimerRef = useRef<number | null>(null);
   const bodyMapGreenThreshold = useMemo(
@@ -1890,7 +1890,8 @@ export default function App() {
         },
       });
 
-      setReportImagePreview(dataUrl);
+      openImageDataUrlInBrowser(dataUrl);
+      setMessage('Image opened — use your browser to save or share.');
     } catch (err) {
       console.error('Failed to generate image:', err);
       alert('Could not generate image. Please use the Print option instead.');
@@ -1898,14 +1899,6 @@ export default function App() {
       document.body.classList.remove('screenshot-mode');
       setReportImageBusy(false);
     }
-  }
-
-  function saveReportImageFromPreview() {
-    if (!reportImagePreview) return;
-    const link = document.createElement('a');
-    link.download = `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.jpg`;
-    link.href = reportImagePreview;
-    link.click();
   }
 
   function clearAllUserData() {
@@ -2057,14 +2050,13 @@ export default function App() {
     if (exportingPlanId) return;
     setExportingPlanId(plan.id);
     try {
-      const result = await exportPlanAsImage({
+      await exportPlanAsImage({
         plan,
         allExercises,
         sessions: data.sessions,
         athleteName: data.userProfile?.name ?? reportProfile.name,
       });
-      if (result === 'shared') setMessage(`Shared “${plan.name}”.`);
-      else if (result === 'downloaded') setMessage(`Saved image for “${plan.name}”.`);
+      setMessage(`Opened “${plan.name}” — use your browser to save or share.`);
     } catch (err) {
       console.error('Plan image export failed:', err);
       setMessage('Could not create plan image. Try again.');
@@ -2325,7 +2317,7 @@ export default function App() {
                   disabled={reportImageBusy}
                   onClick={handleDownloadImage}
                 >
-                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> {reportImageBusy ? 'Generating…' : 'Preview Image'}
+                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> {reportImageBusy ? 'Opening…' : 'Open image'}
                 </button>
               </div>
             </section>
@@ -4798,7 +4790,7 @@ export default function App() {
                 <button type="button" className="button settings-cta settings-cta--image"
                   disabled={reportImageBusy}
                   onClick={handleDownloadImage}>
-                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> {reportImageBusy ? 'Generating…' : 'Preview Image'}
+                  <ImageIcon size={18} strokeWidth={1.8} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} /> {reportImageBusy ? 'Opening…' : 'Open image'}
                 </button>
               </div>
             </section>
@@ -4940,61 +4932,6 @@ export default function App() {
       />
     )}
 
-    {reportImagePreview && (
-      <div
-        className="report-preview-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Report image preview"
-        onClick={() => setReportImagePreview(null)}
-      >
-        <div className="report-preview-modal" onClick={(e) => e.stopPropagation()}>
-          <header className="report-preview-header">
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Image preview</h3>
-              <p className="panel-subtle" style={{ margin: '2px 0 0' }}>
-                Review your report. Save it if it looks right — or close to discard.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="button"
-              style={{ background: 'rgba(71,85,105,0.35)', border: '1px solid rgba(148,163,184,0.3)' }}
-              onClick={() => setReportImagePreview(null)}
-              aria-label="Close preview"
-            >
-              Close
-            </button>
-          </header>
-          <div className="report-preview-body">
-            <img src={reportImagePreview} alt="Generated report preview" />
-          </div>
-          <footer className="report-preview-footer">
-            <p className="panel-subtle" style={{ margin: 0, fontSize: '0.78rem' }}>
-              Tip: on mobile you can also long-press the image to save or share.
-            </p>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                type="button"
-                className="button"
-                style={{ background: 'rgba(71,85,105,0.35)', border: '1px solid rgba(148,163,184,0.3)' }}
-                onClick={() => setReportImagePreview(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="button"
-                style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', border: 'none', fontWeight: 700 }}
-                onClick={() => { saveReportImageFromPreview(); setReportImagePreview(null); }}
-              >
-                Save image
-              </button>
-            </div>
-          </footer>
-        </div>
-      </div>
-    )}
     </>
   );
 }
