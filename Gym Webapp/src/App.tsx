@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, Flame, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, X, Star, ScanLine, Search, Plus, Check, Pencil, Trash2, Download } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Activity, Utensils, Settings, Image as ImageIcon, Flame, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, X, Star, ScanLine, Search, Plus, Check, Pencil, Trash2 } from 'lucide-react';
 import { EXERCISE_LIBRARY, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from './data/exerciseLibrary';
 import { toJpeg } from 'html-to-image';
-import { exportPlanAsImage } from './utils/exportPlanImage';
+import { renderPlanImageDataUrl, downloadDataUrl } from './utils/exportPlanImage';
 import { BodyMapFigure } from './components/BodyMapFigure';
 import { MuscleSpider } from './components/MuscleSpider';
 import { HistoryBackfillPanel } from './components/HistoryBackfillPanel';
@@ -360,7 +360,11 @@ export default function App() {
   }
   const [quickSearch, setQuickSearch] = useState('');
   const [planEditorShowCatalog, setPlanEditorShowCatalog] = useState(true);
-  const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
+  const [reportImagePreview, setReportImagePreview] = useState<{
+    dataUrl: string;
+    filename: string;
+    kind: 'report' | 'plan';
+  } | null>(null);
   const [reportImageBusy, setReportImageBusy] = useState(false);
   const fullPersistTimerRef = useRef<number | null>(null);
   const bodyMapGreenThreshold = useMemo(
@@ -1890,7 +1894,11 @@ export default function App() {
         },
       });
 
-      setReportImagePreview(dataUrl);
+      setReportImagePreview({
+        dataUrl,
+        filename: `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.jpg`,
+        kind: 'report',
+      });
     } catch (err) {
       console.error('Failed to generate image:', err);
       alert('Could not generate image. Please use the Print option instead.');
@@ -1902,10 +1910,7 @@ export default function App() {
 
   function saveReportImageFromPreview() {
     if (!reportImagePreview) return;
-    const link = document.createElement('a');
-    link.download = `Gym-Flow-Report-${new Date().toISOString().split('T')[0]}.jpg`;
-    link.href = reportImagePreview;
-    link.click();
+    downloadDataUrl(reportImagePreview.dataUrl, reportImagePreview.filename);
   }
 
   function clearAllUserData() {
@@ -2054,17 +2059,16 @@ export default function App() {
   }
 
   async function handleExportPlanImage(plan: SavedPlan) {
-    if (exportingPlanId) return;
+    if (exportingPlanId || reportImageBusy) return;
     setExportingPlanId(plan.id);
     try {
-      const result = await exportPlanAsImage({
+      const { dataUrl, filename } = await renderPlanImageDataUrl({
         plan,
         allExercises,
         sessions: data.sessions,
         athleteName: data.userProfile?.name ?? reportProfile.name,
       });
-      if (result === 'shared') setMessage(`Shared “${plan.name}”.`);
-      else if (result === 'downloaded') setMessage(`Saved image for “${plan.name}”.`);
+      setReportImagePreview({ dataUrl, filename, kind: 'plan' });
     } catch (err) {
       console.error('Plan image export failed:', err);
       setMessage('Could not create plan image. Try again.');
@@ -2418,10 +2422,9 @@ export default function App() {
                                 className="plan-action-btn"
                                 disabled={exportingPlanId === plan.id}
                                 onClick={() => { void handleExportPlanImage(plan); }}
-                                aria-label={`Download image of ${plan.name}`}
-                              >
-                                <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
-                                {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                                aria-label={`Preview image of ${plan.name}`}>
+                              <ImageIcon size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                              {exportingPlanId === plan.id ? 'Generating…' : 'Preview'}
                               </button>
                               <button
                                 className="plan-action-btn plan-action-btn--danger"
@@ -2484,10 +2487,9 @@ export default function App() {
                               className="plan-action-btn"
                               disabled={exportingPlanId === plan.id}
                               onClick={() => { void handleExportPlanImage(plan); }}
-                              aria-label={`Download image of ${plan.name}`}
-                            >
-                              <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
-                              {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                              aria-label={`Preview image of ${plan.name}`}>
+                              <ImageIcon size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                              {exportingPlanId === plan.id ? 'Generating…' : 'Preview'}
                             </button>
                           </div>
                         </li>
@@ -2572,10 +2574,9 @@ export default function App() {
                                 className="plan-action-btn"
                                 disabled={exportingPlanId === plan.id}
                                 onClick={() => { void handleExportPlanImage(plan); }}
-                                aria-label={`Download image of ${plan.name}`}
-                              >
-                                <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
-                                {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                                aria-label={`Preview image of ${plan.name}`}>
+                              <ImageIcon size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                              {exportingPlanId === plan.id ? 'Generating…' : 'Preview'}
                               </button>
                             </div>
                           </li>
@@ -2605,10 +2606,9 @@ export default function App() {
                                   className="plan-action-btn"
                                   disabled={exportingPlanId === plan.id}
                                   onClick={() => { void handleExportPlanImage(plan); }}
-                                  aria-label={`Download image of ${plan.name}`}
-                                >
-                                  <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
-                                  {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                                  aria-label={`Preview image of ${plan.name}`}>
+                              <ImageIcon size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                              {exportingPlanId === plan.id ? 'Generating…' : 'Preview'}
                                 </button>
                               </div>
                             </li>
@@ -2887,10 +2887,9 @@ export default function App() {
                             className="plan-action-btn"
                             disabled={exportingPlanId === plan.id}
                             onClick={() => { void handleExportPlanImage(plan); }}
-                            aria-label={`Download image of ${plan.name}`}
-                          >
-                            <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
-                            {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                            aria-label={`Preview image of ${plan.name}`}>
+                              <ImageIcon size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                              {exportingPlanId === plan.id ? 'Generating…' : 'Preview'}
                           </button>
                         </div>
                       </li>
@@ -2934,10 +2933,9 @@ export default function App() {
                             className="plan-action-btn"
                             disabled={exportingPlanId === plan.id}
                             onClick={() => { void handleExportPlanImage(plan); }}
-                            aria-label={`Download image of ${plan.name}`}
-                          >
-                            <Download size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
-                            {exportingPlanId === plan.id ? 'Preparing…' : 'Download'}
+                            aria-label={`Preview image of ${plan.name}`}>
+                              <ImageIcon size={12} aria-hidden style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                              {exportingPlanId === plan.id ? 'Generating…' : 'Preview'}
                           </button>
                         </div>
                       </li>
@@ -4945,7 +4943,7 @@ export default function App() {
         className="report-preview-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label="Report image preview"
+        aria-label={reportImagePreview.kind === 'plan' ? 'Plan image preview' : 'Report image preview'}
         onClick={() => setReportImagePreview(null)}
       >
         <div className="report-preview-modal" onClick={(e) => e.stopPropagation()}>
@@ -4953,7 +4951,9 @@ export default function App() {
             <div>
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Image preview</h3>
               <p className="panel-subtle" style={{ margin: '2px 0 0' }}>
-                Review your report. Save it if it looks right — or close to discard.
+                {reportImagePreview.kind === 'plan'
+                  ? 'Review your workout plan. Save it if it looks right — or close to discard.'
+                  : 'Review your report. Save it if it looks right — or close to discard.'}
               </p>
             </div>
             <button
@@ -4967,7 +4967,10 @@ export default function App() {
             </button>
           </header>
           <div className="report-preview-body">
-            <img src={reportImagePreview} alt="Generated report preview" />
+            <img
+              src={reportImagePreview.dataUrl}
+              alt={reportImagePreview.kind === 'plan' ? 'Generated plan preview' : 'Generated report preview'}
+            />
           </div>
           <footer className="report-preview-footer">
             <p className="panel-subtle" style={{ margin: 0, fontSize: '0.78rem' }}>
