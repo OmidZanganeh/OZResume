@@ -306,24 +306,40 @@ def build():
 
     projects = [
         ('RFP Radar', 'AI-Powered RFP Sourcing',
-         'Azure OpenAI · Gemini · Playwright · Python/C#',
-         'Desktop app for web-grounded RFP search and classification. Months of sourcing → hours.'),
-        ('Bore Profile Automation', 'Directional Drilling Profiles',
-         'Python · C# · ArcGIS Pro · SQL Server',
-         'Reads waypoints and elevation models; generates 2D/3D bore profiles. Days → minutes.'),
-        ('Density Grouping Tool', 'Fiber Build-Area Planning',
-         'C# · ArcGIS Pro SDK · WPF · Spatial Analysis',
+         'Azure OpenAI · Google Gemini · Playwright · Python/C#',
+         'Desktop app for web-grounded RFP search, classification, and CSV export. '
+         'Months of sourcing → hours.'),
+        ('Bore Profile Automation', 'Directional Drilling Profile Generator',
+         'Python · C# · ArcGIS Pro · SQL Server · Matplotlib',
+         'Reads spatial waypoints and elevation models; generates 2D/3D bore profiles. '
+         'Days → minutes.'),
+        ('Fiber Automatic Expansion', 'Automated Fiber Build-Area Planning',
+         'C# · .NET · ArcGIS Pro SDK · WPF · Spatial Analysis',
          'Grids the study area for density analysis, flood-fills viable build zones by PPM '
-         'thresholds, and generates economic scorecards. Days/weeks → minutes.'),
-        ('FTTH Network Designer', 'Fiber Optic Network Planning',
-         'C# · ArcGIS Pro SDK · Kruskal MST',
-         'Places shafts, connects homes, and builds an optimal trunk/branch backbone. Days → minutes.'),
-        ('ArcGIS Data Downloader', 'Multi-Source GIS Acquisition',
-         'C# · .NET 8 · ArcGIS Pro SDK · REST APIs',
-         'Downloads OSM, USGS, FEMA, Census/TIGER, and BSL layers into ArcGIS Pro projects.'),
-        ('Aerial & Streetview AI Detection', 'YOLO Utility Detection',
-         'Python · YOLO · OpenCV',
-         'Detects utility assets from aerial and street imagery; exports georeferenced results to ArcGIS.'),
+         'thresholds, and generates economic scorecards with live refinement. Days/weeks → minutes.'),
+        ('FTTH Network Designer', 'Automated Fiber Optic Network Planning',
+         'C# · .NET 8 · ArcGIS Pro SDK · WPF · Kruskal MST',
+         'Places shafts, connects homes, and builds an optimal Main Trunk / Terminal Branch '
+         'backbone. Days → minutes.'),
+        ('ArcGIS Data Downloader Add-in', 'Multi-Source GIS Data Acquisition',
+         'C# · .NET 8 · ArcGIS Pro SDK · WPF · REST APIs',
+         'Downloads OSM, USGS, FEMA, Census/TIGER, Wikipedia, and BSL layers into ArcGIS Pro.'),
+        ('RF Analysis Tool', '8-Tool Wireless Planning Panel',
+         'C# · ArcGIS Pro SDK · Python',
+         'Coverage prediction, PCI/RSI planner, tilt/azimuth optimizers, interference analysis, '
+         'and tower placement — all as map layers.'),
+        ('Aerial & Streetview AI Detection', 'YOLO Utility Infrastructure Detection',
+         'Python · YOLO · OpenCV · Aerial/Street Imagery APIs',
+         'Detects and classifies utility assets from aerial and street imagery; exports '
+         'georeferenced results to ArcGIS.'),
+        ('GeoPipe', 'Enterprise GIS ETL to SQL Server',
+         'Python · CustomTkinter · pyodbc · SQL Server · PyInstaller',
+         'GUI ETL for large spatial/tabular imports with schema auto-detection, '
+         'GEOMETRY/GEOGRAPHY support, and connection-loss auto-resume.'),
+        ('omidzanganeh.com', 'Full-Stack Portfolio & Browser GIS Tools',
+         'Next.js 16 · React · TypeScript · Leaflet · Vercel',
+         'Personal site with 10+ browser GIS tools (geocoder, isochrone, elevation, census, '
+         'coordinate converter), Gym Flow, Stock Screener, and an AI news aggregator.'),
     ]
 
     for name, subtitle, tech, desc in projects:
@@ -397,19 +413,26 @@ def build():
 
     skill_groups = [
         ('Languages & Frameworks',
-         ['Python', 'C# / .NET', 'SQL', 'TypeScript', 'JavaScript', 'React', 'Next.js', 'WPF']),
+         ['Python', 'C# / .NET', 'SQL', 'TypeScript', 'JavaScript', 'HTML/CSS',
+          'React', 'Next.js', 'WPF']),
         ('GIS & Spatial',
-         ['ArcGIS Pro', 'ArcGIS Pro SDK', 'ArcPy', 'Python Toolboxes', 'QGIS',
+         ['ArcGIS Pro', 'ArcGIS Pro SDK', 'ArcPy', 'Python Toolboxes (.pyt)',
+          'ArcGIS Online', 'ArcGIS Enterprise', 'QGIS', 'Geoprocessing',
           'Network Analysis', 'Remote Sensing', 'Google Earth Engine']),
         ('AI / ML',
-         ['Azure OpenAI', 'Azure AI Foundry', 'Google Gemini', 'YOLO', 'OpenCV',
-          'Prompt Engineering']),
+         ['Azure OpenAI', 'Azure AI Foundry', 'Google AI Studio / Gemini',
+          'YOLO', 'OpenCV', 'Prompt Engineering', 'Web Grounding',
+          'Batch Classification Pipelines']),
         ('Data & Backend',
-         ['SQL Server', 'PostgreSQL', 'Supabase', 'ETL Pipelines', 'pyodbc']),
+         ['SQL Server', 'Supabase', 'PostgreSQL', 'pyodbc',
+          'ETL Pipelines', 'Spatial Types (GEOMETRY/GEOGRAPHY)', 'Smartsheet API']),
         ('Web & Cloud',
-         ['Next.js', 'Leaflet', 'Vercel', 'REST APIs', 'Microsoft Azure']),
-        ('Tools',
-         ['CustomTkinter', 'PyInstaller', 'Playwright', 'AutoCAD', 'Tableau']),
+         ['Next.js App Router', 'Vite', 'Leaflet', 'Vercel',
+          'REST APIs', 'PWA', 'Microsoft Azure', 'Google Cloud']),
+        ('Desktop & Tooling',
+         ['CustomTkinter', 'PyInstaller', 'Playwright', 'Matplotlib',
+          'AutoCAD', 'ENVI', 'SNAP', 'Photomod', 'Tableau',
+          'Adobe Photoshop', 'Adobe Illustrator']),
         ('Languages',
          ['English (Fluent)', 'Persian (Native)']),
     ]
