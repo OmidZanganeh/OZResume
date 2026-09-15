@@ -101,6 +101,51 @@ def add_run(para, text, bold=False, italic=False, size=10,
     return run
 
 
+def add_hyperlink(para, text, url, bold=False, size=8.5, color=TEAL, font=BODY_FONT):
+    """Add a real clickable hyperlink that survives DOCX → PDF conversion."""
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+
+    part = para.part
+    r_id = part.relate_to(url, RT.HYPERLINK, is_external=True)
+
+    hyperlink = OxmlElement('w:hyperlink')
+    hyperlink.set(qn('r:id'), r_id)
+
+    new_run = OxmlElement('w:r')
+    rPr = OxmlElement('w:rPr')
+
+    rFonts = OxmlElement('w:rFonts')
+    rFonts.set(qn('w:ascii'), font)
+    rFonts.set(qn('w:hAnsi'), font)
+    rPr.append(rFonts)
+
+    sz = OxmlElement('w:sz')
+    sz.set(qn('w:val'), str(int(size * 2)))
+    rPr.append(sz)
+    szCs = OxmlElement('w:szCs')
+    szCs.set(qn('w:val'), str(int(size * 2)))
+    rPr.append(szCs)
+
+    c = OxmlElement('w:color')
+    c.set(qn('w:val'), f'{color[0]:02X}{color[1]:02X}{color[2]:02X}')
+    rPr.append(c)
+
+    u = OxmlElement('w:u')
+    u.set(qn('w:val'), 'single')
+    rPr.append(u)
+
+    if bold:
+        rPr.append(OxmlElement('w:b'))
+
+    new_run.append(rPr)
+    text_el = OxmlElement('w:t')
+    text_el.text = text
+    new_run.append(text_el)
+    hyperlink.append(new_run)
+    para._p.append(hyperlink)
+    return hyperlink
+
+
 def add_para(doc_or_cell, text='', align=WD_ALIGN_PARAGRAPH.LEFT,
              before=0, after=0):
     if hasattr(doc_or_cell, 'add_paragraph'):
@@ -229,19 +274,22 @@ def build():
     add_run(degree_p, 'MS Geography — Geographic Information Science & Technology  ·  Workflow Automation  ·  AI/ML Integration',
             size=10, color=TEAL)
 
-    # Contact bar — single paragraph with separators
+    # Contact bar — clickable phone / email / LinkedIn / website
     contact_p = doc.add_paragraph()
     set_para_spacing(contact_p, before=0, after=0)
     para_border_bottom(contact_p, color='0D7A8A', size=6)
     contacts = [
-        '+1 (531) 229-6873',
-        'ozanganeh@unomaha.edu',
-        'linkedin.com/in/omidzanganeh',
-        'omidzanganeh.com',
-        'Lincoln, Nebraska',
+        ('+1 (531) 229-6873', 'tel:+15312296873'),
+        ('ozanganeh@unomaha.edu', 'mailto:ozanganeh@unomaha.edu'),
+        ('linkedin.com/in/omidzanganeh', 'https://www.linkedin.com/in/omidzanganeh/'),
+        ('omidzanganeh.com', 'https://omidzanganeh.com'),
+        ('Lincoln, Nebraska', None),
     ]
-    for i, c in enumerate(contacts):
-        add_run(contact_p, c, size=8.5, color=GRAY_MID)
+    for i, (label, url) in enumerate(contacts):
+        if url:
+            add_hyperlink(contact_p, label, url, size=8.5, color=TEAL)
+        else:
+            add_run(contact_p, label, size=8.5, color=GRAY_MID)
         if i < len(contacts) - 1:
             add_run(contact_p, '  |  ', size=8.5, color=TEAL)
 
@@ -450,7 +498,8 @@ def build():
     add_run(p2,
         'For project write-ups, live GIS tools, and demos: ',
         size=8.5, color=GRAY_DIM)
-    add_run(p2, 'omidzanganeh.com', bold=True, size=8.5, color=TEAL)
+    add_hyperlink(p2, 'omidzanganeh.com', 'https://omidzanganeh.com',
+                  bold=True, size=8.5, color=TEAL)
 
     # ── SAVE ──────────────────────────────────────────────────────────────────
     out_path = os.path.join(os.path.dirname(__file__), 'Omid Zanganeh - Resume v2.docx')
