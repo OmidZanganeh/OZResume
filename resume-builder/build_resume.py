@@ -311,10 +311,10 @@ def build():
         ('Bore Profile Automation', 'Directional Drilling Profiles',
          'Python · C# · ArcGIS Pro · SQL Server',
          'Reads waypoints and elevation models; generates 2D/3D bore profiles. Days → minutes.'),
-        ('Fiber Automatic Expansion', 'Fiber Build-Area Planning',
-         'C# · ArcGIS Pro SDK · WPF',
-         'Grids study areas, finds viable build zones by PPM thresholds, and scores economics. '
-         'Days/weeks → minutes.'),
+        ('Density Grouping Tool', 'Fiber Build-Area Planning',
+         'C# · ArcGIS Pro SDK · WPF · Spatial Analysis',
+         'Grids the study area for density analysis, flood-fills viable build zones by PPM '
+         'thresholds, and generates economic scorecards. Days/weeks → minutes.'),
         ('FTTH Network Designer', 'Fiber Optic Network Planning',
          'C# · ArcGIS Pro SDK · Kruskal MST',
          'Places shafts, connects homes, and builds an optimal trunk/branch backbone. Days → minutes.'),
