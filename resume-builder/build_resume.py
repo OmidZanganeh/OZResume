@@ -250,10 +250,12 @@ def build():
     summary_p = doc.add_paragraph()
     set_para_spacing(summary_p, before=10, after=0)
     add_run(summary_p,
-        'GIS Developer and Analyst specializing in workflow automation, ArcGIS Pro development, '
-        'and AI-powered spatial tools. Builds production apps in Python and C#, ArcGIS Pro add-ins, '
-        'geoprocessing toolboxes, and SQL Server pipelines that turn multi-day manual work into '
-        'minutes. 2026 Edison Award Winner. MS Geography (GIS&T), 4.0 GPA.',
+        'GIS Developer and Analyst who builds production automation for telecom and fiber '
+        'engineering. At Olsson, ships Python and C# apps, ArcGIS Pro add-ins, and geoprocessing '
+        'toolboxes that cut multi-day GIS work to minutes — including network design, expansion '
+        'planning, and multi-source data acquisition. Also builds AI tools (Azure OpenAI, Gemini, '
+        'YOLO) that reduce contract sourcing from months to hours. 2025 Edison Award Nominee and '
+        '2026 Edison Award Winner at Olsson. MS Geography (GIS&T), 4.0 GPA.',
         size=9.5, color=BLACK)
 
     # ── WORK EXPERIENCE ───────────────────────────────────────────────────────
@@ -265,7 +267,7 @@ def build():
                title='GIS Developer and Analyst',
                dates='March 2025 – Present',
                location='Lincoln, Nebraska',
-               badge='2026 Edison Award Winner')
+               badge='2025 Nominee & 2026 Edison Award Winner')
 
     olsson_bullets = [
         'Built production Python and C# GIS apps, including bore profile automation that cut '
