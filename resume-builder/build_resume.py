@@ -318,17 +318,20 @@ def build():
                badge='2025 Nominee & 2026 Edison Award Winner')
 
     olsson_bullets = [
+        'Worked directly with many telecom and infrastructure clients, delivering GIS tools, '
+        'network design support, and spatial analysis that improved speed and consistency of delivery.',
+
         'Built production Python and C# GIS apps, including bore profile automation that cut '
         'processing from days to minutes.',
 
         'Created an ArcGIS Automation Suite of Python toolboxes that reduced manual GIS steps '
         'by ~90% and sped up fiber network design.',
 
-        'Shipped ArcGIS Pro add-ins (.NET/C#/WPF): GIS Data Downloader, FTTH Network Designer, '
-        'RF Analysis panel, and Street View map tool.',
+        'Shipped ArcGIS Pro add-ins (.NET/C#/WPF) adopted across projects and teams — including a '
+        'GIS Data Downloader used firm-wide, FTTH Network Designer, RF Analysis panel, and Street View tool.',
 
-        'Built AI tools with Azure OpenAI and Google AI Studio — including RFP Radar — cutting '
-        'sourcing timelines from months to hours; plus YOLO apps for utility infrastructure inventory.',
+        'Learned iBwave to deliver DAS (distributed antenna system) designs, and built AI tools '
+        '(Azure OpenAI, Google AI Studio, YOLO) that cut contract sourcing from months to hours.',
     ]
     for b in olsson_bullets:
         bullet_para(doc, b)
@@ -363,17 +366,19 @@ def build():
          'Python · C# · ArcGIS Pro · SQL Server · Matplotlib',
          'Reads spatial waypoints and elevation models; generates 2D/3D bore profiles. '
          'Days → minutes.'),
-        ('Fiber Automatic Expansion', 'Automated Fiber Build-Area Planning',
+        ('Fiber Automatic Expansion', 'Density Grouping & Fiber Build-Area Planning',
          'C# · .NET · ArcGIS Pro SDK · WPF · Spatial Analysis',
          'Grids the study area for density analysis, flood-fills viable build zones by PPM '
-         'thresholds, and generates economic scorecards with live refinement. Days/weeks → minutes.'),
+         'thresholds, and generates economic scorecards. Used across multiple clients; '
+         'days/weeks → minutes.'),
         ('FTTH Network Designer', 'Automated Fiber Optic Network Planning',
          'C# · .NET 8 · ArcGIS Pro SDK · WPF · Kruskal MST',
          'Places shafts, connects homes, and builds an optimal Main Trunk / Terminal Branch '
          'backbone. Days → minutes.'),
         ('ArcGIS Data Downloader Add-in', 'Multi-Source GIS Data Acquisition',
          'C# · .NET 8 · ArcGIS Pro SDK · WPF · REST APIs',
-         'Downloads OSM, USGS, FEMA, Census/TIGER, Wikipedia, and BSL layers into ArcGIS Pro.'),
+         'Downloads OSM, USGS, FEMA, Census/TIGER, Wikipedia, and BSL layers into ArcGIS Pro. '
+         'Adopted firm-wide across projects and teams.'),
         ('RF Analysis Tool', '8-Tool Wireless Planning Panel',
          'C# · ArcGIS Pro SDK · Python',
          'Coverage prediction, PCI/RSI planner, tilt/azimuth optimizers, interference analysis, '
@@ -468,7 +473,7 @@ def build():
         ('GIS & Spatial',
          ['ArcGIS Pro', 'ArcGIS Pro SDK', 'ArcPy', 'Python Toolboxes (.pyt)',
           'ArcGIS Online', 'ArcGIS Enterprise', 'QGIS', 'Geoprocessing',
-          'Network Analysis', 'Remote Sensing', 'Google Earth Engine']),
+          'Network Analysis', 'Remote Sensing', 'Google Earth Engine', 'iBwave']),
         ('AI / ML',
          ['Azure OpenAI', 'Azure AI Foundry', 'Google AI Studio / Gemini',
           'YOLO', 'OpenCV', 'Prompt Engineering', 'Web Grounding',
