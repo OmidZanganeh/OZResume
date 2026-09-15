@@ -314,7 +314,7 @@ export default function Resume({ content }: { content: SiteContent }) {
               <div className={styles.toolGroup}>
                 <span className={styles.toolGroupLabel}>GIS & mapping</span>
                 <div className={styles.toolTags}>
-                  {["ArcGIS Pro", "ArcGIS Online", "ArcGIS Enterprise", "ArcGIS Experience Builder", "ArcGIS StoryMaps", "ArcGIS Survey123", "ArcGIS Field Maps", "ArcGIS Model Builder", "QGIS", "Web Mapping", "Google Earth", "Google Earth Engine Code Editor"].map(s => (
+                  {["ArcGIS Pro", "ArcGIS Online", "ArcGIS Enterprise", "ArcGIS Experience Builder", "ArcGIS StoryMaps", "ArcGIS Survey123", "ArcGIS Field Maps", "ArcGIS Model Builder", "QGIS", "Web Mapping", "Google Earth", "Google Earth Engine Code Editor", "iBwave"].map(s => (
                     <span key={s} className={styles.toolTag}>{s}</span>
                   ))}
                 </div>

@@ -21,7 +21,7 @@ const stops = [
     city: 'Lincoln',
     country: 'Nebraska, USA',
     years: '2025 – Present',
-    role: 'GIS Developer',
+    role: 'GIS Developer and Analyst',
     org: 'Olsson',
     color: 'var(--accent-green)',
   },

@@ -48,7 +48,7 @@ const STEPS: Step[] = [
         s: 'MS Geography / GIS&T from UNO with a 4.0 GPA and GRACA Project Award. Former grad instructor (150+ students as instructor of record), and GIS tech on the Omaha Spatial Justice Project.',
       },
       { s: '\n\n' },
-      { s: '2026 Edison Award Winner', strong: true },
+      { s: '2025 Edison Award Nominee and 2026 Edison Award Winner', strong: true },
       { s: ' at Olsson for GIS workflow automation and AI engineering contributions.' },
     ],
   },
@@ -57,7 +57,7 @@ const STEPS: Step[] = [
     title: 'What he ships',
     dialogue: [
       {
-        s: 'Python & C# desktop apps, ArcGIS Pro add-ins, and geoprocessing toolboxes that eliminate days of manual work: bore profile automation, fiber pocketing & conduit suites, FTTH design add-ins, RF planning panels, and a multi-source GIS data downloader (OSM, USGS, FEMA, Census, BSL).',
+        s: 'Python & C# desktop apps, ArcGIS Pro add-ins, and geoprocessing toolboxes that eliminate days of manual work: bore profile automation, FTTH design, density-based fiber expansion planning used across multiple clients, RF panels, and a GIS data downloader adopted firm-wide. He also learned iBwave to deliver DAS designs.',
       },
       { s: '\n\n' },
       { s: 'AI engineering: ' },
