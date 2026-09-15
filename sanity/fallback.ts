@@ -96,7 +96,7 @@ export const fallbackContent: SiteContent = {
       _id: 'fallback-ms',
       degree: 'Master of Science: Geography – Geographic Information Science and Technology',
       school: 'University of Nebraska at Omaha, Nebraska',
-      date: 'August 2025',
+      date: 'December 2025',
       gpaBadge: 'GPA 4.00',
       awardBadge: 'GRACA Award',
       coursework: ptList([

@@ -420,7 +420,7 @@ def build():
     add_run(p, 'Master of Science, Geography — Geographic Information Science & Technology',
             bold=True, size=10, color=NAVY)
     add_run(p, '\t', size=10)
-    add_run(p, 'August 2025', size=9, color=GRAY_MID)
+    add_run(p, 'December 2025', size=9, color=GRAY_MID)
     pPr = p._p.get_or_add_pPr()
     tabs = OxmlElement('w:tabs')
     tab = OxmlElement('w:tab')
