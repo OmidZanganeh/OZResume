@@ -250,12 +250,12 @@ def build():
     summary_p = doc.add_paragraph()
     set_para_spacing(summary_p, before=10, after=0)
     add_run(summary_p,
-        'GIS Developer and Analyst who builds production automation for telecom and fiber '
-        'engineering. At Olsson, ships Python and C# apps, ArcGIS Pro add-ins, and geoprocessing '
-        'toolboxes that cut multi-day GIS work to minutes — including network design, expansion '
-        'planning, and multi-source data acquisition. Also builds AI tools (Azure OpenAI, Gemini, '
-        'YOLO) that reduce contract sourcing from months to hours. 2025 Edison Award Nominee and '
-        '2026 Edison Award Winner at Olsson. MS Geography (GIS&T), 4.0 GPA.',
+        'Senior GIS Developer and Analyst with a track record of turning manual spatial workflows '
+        'into reliable production tools. Specializes in ArcGIS Pro SDK (.NET/C#/WPF), Python '
+        'geoprocessing, SQL Server pipelines, and applied AI for engineering teams. Proven results: '
+        '~90% fewer manual GIS steps, multi-day workflows reduced to minutes, and AI-assisted '
+        'contract sourcing in hours instead of months. 2025 Edison Award Nominee and 2026 Edison '
+        'Award Winner at Olsson. MS Geography (GIS&T), University of Nebraska at Omaha, 4.0 GPA.',
         size=9.5, color=BLACK)
 
     # ── WORK EXPERIENCE ───────────────────────────────────────────────────────
