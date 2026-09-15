@@ -250,12 +250,10 @@ def build():
     summary_p = doc.add_paragraph()
     set_para_spacing(summary_p, before=10, after=0)
     add_run(summary_p,
-        'GIS Developer and software engineer specializing in GIS workflow automation, '
-        'ArcGIS Pro development, and AI-powered spatial workflows. Builds production desktop '
-        'applications (Python, C#), ArcGIS Pro add-ins and geoprocessing toolboxes, SQL Server '
-        'data pipelines, and full-stack web tools (Next.js, React, TypeScript). Known for '
-        'compressing multi-day manual processes into automated pipelines. 2026 Edison Award winner '
-        'for demonstrating superior technical ability. MS Geography (GIS&T), 4.0 GPA.',
+        'GIS Developer and Analyst specializing in workflow automation, ArcGIS Pro development, '
+        'and AI-powered spatial tools. Builds production apps in Python and C#, ArcGIS Pro add-ins, '
+        'geoprocessing toolboxes, and SQL Server pipelines that turn multi-day manual work into '
+        'minutes. 2026 Edison Award Winner. MS Geography (GIS&T), 4.0 GPA.',
         size=9.5, color=BLACK)
 
     # ── WORK EXPERIENCE ───────────────────────────────────────────────────────
@@ -266,26 +264,21 @@ def build():
                company='Olsson',
                title='GIS Developer and Analyst',
                dates='March 2025 – Present',
-               location='Lincoln, Nebraska  ✦  2025 Nominee & 2026 Edison Award Winner')
+               location='Lincoln, Nebraska',
+               badge='2026 Edison Award Winner')
 
     olsson_bullets = [
-        'Architected production Python and C# desktop applications for GIS workflows including '
-        'automated bore profile generation that cut processing time from days to minutes.',
+        'Built production Python and C# GIS apps, including bore profile automation that cut '
+        'processing from days to minutes.',
 
-        'Built an ArcGIS Automation Suite of custom Python geoprocessing toolboxes reducing '
-        'manual GIS steps by ~90% and accelerating fiber network design timelines.',
+        'Created an ArcGIS Automation Suite of Python toolboxes that reduced manual GIS steps '
+        'by ~90% and sped up fiber network design.',
 
-        'Developed ArcGIS Pro add-ins (.NET/C#/WPF): multi-source GIS Data Downloader '
-        '(OSM, USGS, FEMA, Census/TIGER, BSL), RF Analysis panel, Street View map tool, '
-        'and FTTH network design dock pane.',
+        'Shipped ArcGIS Pro add-ins (.NET/C#/WPF): GIS Data Downloader, FTTH Network Designer, '
+        'RF Analysis panel, and Street View map tool.',
 
-        'Engineered AI-powered tools using Azure AI Foundry, Azure OpenAI, and Google AI Studio, '
-        'including RFP Radar for intelligent web-grounded contract search and classification, '
-        'cutting strategic sourcing timelines from months to hours.',
-
-        'Built AI object detection applications for remote inventory of utility poles, '
-        'streetlights, and telecom infrastructure.',
-
+        'Built AI tools with Azure OpenAI and Google AI Studio — including RFP Radar — cutting '
+        'sourcing timelines from months to hours; plus YOLO apps for utility infrastructure inventory.',
     ]
     for b in olsson_bullets:
         bullet_para(doc, b)
@@ -296,9 +289,8 @@ def build():
                title='Graduate Teaching Assistant — Instructor of Record',
                dates='January 2024 – August 2025',
                location='Omaha, Nebraska')
-    bullet_para(doc, 'Taught Human-Environment Geography lab sections as sole instructor of record '
-                     'to 150+ students across three semesters, emphasizing hands-on spatial analysis '
-                     'and real-world applications.')
+    bullet_para(doc, 'Taught Human-Environment Geography labs as sole instructor of record to '
+                     '150+ students across three semesters.')
 
     # Spatial Justice
     job_header(doc,
@@ -306,55 +298,32 @@ def build():
                title='GIS Technician — Omaha Spatial Justice Project',
                dates='June 2024 – August 2025',
                location='Omaha, Nebraska')
-    bullet_para(doc, 'Digitized historical land parcels from archival documents and aerial photography; '
-                     'reviewed legal records to build an accurate geodatabase of racially restrictive '
-                     'covenants in Douglas County, supporting urban spatial justice research.')
+    bullet_para(doc, 'Digitized historical parcels and legal records into a geodatabase of racially '
+                     'restrictive covenants in Douglas County.')
 
     # ── SELECTED PROJECTS ─────────────────────────────────────────────────────
     section_header(doc, 'Selected Projects')
 
     projects = [
         ('RFP Radar', 'AI-Powered RFP Sourcing',
-         'Azure OpenAI · Google Gemini · Playwright · Python/C#',
-         'Production desktop app for intelligent, web-grounded RFP search, classification, '
-         'batch county search, and CSV export. Reduced sourcing time from months to hours.'),
-        ('Bore Profile Automation', 'Directional Drilling Profile Generator',
-         'Python · C# · ArcGIS Pro · SQL Server · Matplotlib',
-         'Fully automated app that reads spatial waypoints, processes elevation models, '
-         'and generates 2D/3D bore profiles. Cut processing from days to minutes.'),
-        ('ArcGIS Data Downloader Add-in', 'Multi-Source GIS Data Acquisition',
-         'C# · .NET 8 · ArcGIS Pro SDK · WPF · REST APIs',
-         'ArcGIS Pro dock-pane add-in that downloads OSM, USGS, FEMA, Census/TIGER, '
-         'Wikipedia, and BSL layers directly into projects.'),
-        ('Fiber Automatic Expansion', 'Automated Fiber Build-Area Planning',
-         'C# · .NET · ArcGIS Pro SDK · WPF · Spatial Analysis',
-         'ArcGIS Pro decision-support add-in that grids the study area for density '
-         'analysis, flood-fills viable build zones against configurable PPM thresholds, '
-         'and generates economic scorecards with live human-in-the-loop refinement. '
-         'Cut expansion planning from days/weeks to minutes.'),
-        ('FTTH Network Designer', 'Automated Fiber Optic Network Planning',
-         'C# · .NET 8 · ArcGIS Pro SDK · WPF · Kruskal MST',
-         'ArcGIS Pro add-in automating FTTH layout in three steps: place shafts at road '
-         'intersections, connect homes to nearest shaft (tagging Street vs Driveway Drop by '
-         'geodesic length), and run Kruskal\'s MST for an optimal Main Trunk / Terminal '
-         'Branch backbone. Reduced network layout from days to minutes.'),
-        ('RF Analysis Tool', '8-Tool Wireless Planning Panel',
-         'C# · ArcGIS Pro SDK · Python',
-         'ArcGIS Pro side panel with coverage prediction, PCI/RSI planner, tilt/azimuth '
-         'optimizers, interference analysis, and tower placement optimizer — all as map layers.'),
-        ('Aerial & Streetview AI Detection', 'YOLO Utility Infrastructure Detection',
-         'Python · YOLO · OpenCV · Aerial/Street Imagery APIs',
-         'Desktop apps fetching aerial tiles or traversing street routes, running custom YOLO '
-         'models to detect/classify utility assets and export georeferenced results to ArcGIS.'),
-        ('GeoPipe', 'Enterprise GIS ETL to SQL Server',
-         'Python · CustomTkinter · pyodbc · SQL Server · PyInstaller',
-         'GUI ETL tool for large spatial/tabular imports into SQL Server with schema '
-         'auto-detection, GEOMETRY/GEOGRAPHY support, and connection-loss auto-resume.'),
-        ('omidzanganeh.com', 'Full-Stack Portfolio & Browser GIS Tools',
-         'Next.js 16 · React · TypeScript · Leaflet · Vercel',
-         'Personal site with 10+ browser GIS tools and general web apps (geocoder, isochrone, '
-         'elevation profile, census, coordinate converter, Gymflow, Stock Screener) '
-         'and an AI news aggregator.'),
+         'Azure OpenAI · Gemini · Playwright · Python/C#',
+         'Desktop app for web-grounded RFP search and classification. Months of sourcing → hours.'),
+        ('Bore Profile Automation', 'Directional Drilling Profiles',
+         'Python · C# · ArcGIS Pro · SQL Server',
+         'Reads waypoints and elevation models; generates 2D/3D bore profiles. Days → minutes.'),
+        ('Fiber Automatic Expansion', 'Fiber Build-Area Planning',
+         'C# · ArcGIS Pro SDK · WPF',
+         'Grids study areas, finds viable build zones by PPM thresholds, and scores economics. '
+         'Days/weeks → minutes.'),
+        ('FTTH Network Designer', 'Fiber Optic Network Planning',
+         'C# · ArcGIS Pro SDK · Kruskal MST',
+         'Places shafts, connects homes, and builds an optimal trunk/branch backbone. Days → minutes.'),
+        ('ArcGIS Data Downloader', 'Multi-Source GIS Acquisition',
+         'C# · .NET 8 · ArcGIS Pro SDK · REST APIs',
+         'Downloads OSM, USGS, FEMA, Census/TIGER, and BSL layers into ArcGIS Pro projects.'),
+        ('Aerial & Streetview AI Detection', 'YOLO Utility Detection',
+         'Python · YOLO · OpenCV',
+         'Detects utility assets from aerial and street imagery; exports georeferenced results to ArcGIS.'),
     ]
 
     for name, subtitle, tech, desc in projects:
@@ -399,8 +368,7 @@ def build():
     add_run(p3, 'Thesis: ', bold=True, size=9, color=NAVY)
     add_run(p3,
         'Spatiotemporal Analysis of NOx Emissions from U.S. Cement Plants Using TROPOMI Data '
-        '— remote sensing, hotspot analysis, environmental visualization, population exposure '
-        '& environmental justice.',
+        '— remote sensing, hotspot analysis, and environmental justice.',
         size=9, color=BLACK)
 
     # BS
@@ -429,26 +397,19 @@ def build():
 
     skill_groups = [
         ('Languages & Frameworks',
-         ['Python', 'C# / .NET', 'SQL', 'TypeScript', 'JavaScript', 'HTML/CSS',
-          'React', 'Next.js', 'WPF']),
+         ['Python', 'C# / .NET', 'SQL', 'TypeScript', 'JavaScript', 'React', 'Next.js', 'WPF']),
         ('GIS & Spatial',
-         ['ArcGIS Pro', 'ArcGIS Pro SDK', 'ArcPy', 'Python Toolboxes (.pyt)',
-          'ArcGIS Online', 'ArcGIS Enterprise', 'QGIS', 'Geoprocessing',
+         ['ArcGIS Pro', 'ArcGIS Pro SDK', 'ArcPy', 'Python Toolboxes', 'QGIS',
           'Network Analysis', 'Remote Sensing', 'Google Earth Engine']),
         ('AI / ML',
-         ['Azure OpenAI', 'Azure AI Foundry', 'Google AI Studio / Gemini',
-          'YOLO', 'OpenCV', 'Prompt Engineering', 'Web Grounding',
-          'Batch Classification Pipelines']),
+         ['Azure OpenAI', 'Azure AI Foundry', 'Google Gemini', 'YOLO', 'OpenCV',
+          'Prompt Engineering']),
         ('Data & Backend',
-         ['SQL Server', 'Supabase', 'PostgreSQL', 'pyodbc',
-          'ETL Pipelines', 'Spatial Types (GEOMETRY/GEOGRAPHY)', 'Smartsheet API']),
+         ['SQL Server', 'PostgreSQL', 'Supabase', 'ETL Pipelines', 'pyodbc']),
         ('Web & Cloud',
-         ['Next.js App Router', 'Vite', 'Leaflet', 'Vercel',
-          'REST APIs', 'PWA', 'Microsoft Azure', 'Google Cloud']),
-        ('Desktop & Tooling',
-         ['CustomTkinter', 'PyInstaller', 'Playwright', 'Matplotlib',
-          'AutoCAD', 'ENVI', 'SNAP', 'Photomod', 'Tableau',
-          'Adobe Photoshop', 'Adobe Illustrator']),
+         ['Next.js', 'Leaflet', 'Vercel', 'REST APIs', 'Microsoft Azure']),
+        ('Tools',
+         ['CustomTkinter', 'PyInstaller', 'Playwright', 'AutoCAD', 'Tableau']),
         ('Languages',
          ['English (Fluent)', 'Persian (Native)']),
     ]
