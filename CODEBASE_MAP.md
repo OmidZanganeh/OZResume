@@ -76,6 +76,7 @@
 | `ToolsHoverCard.tsx` | Header tools dropdown on resume |
 | `ContactForm.tsx`, `VisitorCounter.tsx` | Footer / contact |
 | `JourneySection.tsx`, `SkillRadar.tsx`, `SkillBar.tsx` | Resume sections |
+| `FeaturedProjects.tsx` | Homepage "Selected Projects" — 9-card grid (icon/tag/impact) pulled from `app/projects/projectsData.ts`; deep-links to `/projects#slug` via `slugify()` |
 | `ScrollFadeIn.tsx` | Scroll animations |
 | `games/*` | Individual mini-games |
 
