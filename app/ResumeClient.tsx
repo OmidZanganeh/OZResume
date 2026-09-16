@@ -19,6 +19,7 @@ import ScrollFadeIn from "./components/ScrollFadeIn";
 import LandsatNameSidebars from "./components/LandsatNameSidebars";
 import BusinessCard from "./components/BusinessCard";
 import { RichTextParagraphs, RichTextBullets } from "./components/RichText";
+import FeaturedProjects from "./components/FeaturedProjects";
 import type { SiteContent, NowIcon } from "../sanity/types";
 
 // ─── Inline SVG Icons ────────────────────────────────────────────────────────
@@ -248,6 +249,22 @@ export default function Resume({ content }: { content: SiteContent }) {
             );
           })}
         </div>
+      </section>
+      </ScrollFadeIn>
+
+      {/* ══════════════════════════════════════
+          SELECTED PROJECTS
+      ══════════════════════════════════════ */}
+      <ScrollFadeIn delay={90}>
+      <section className={styles.projectsSection}>
+        <div className={styles.projectsHeader}>
+          <h2 className={styles.sectionTitle}>Selected Projects</h2>
+          <Link href="/projects" className={styles.seeAll}>
+            <span>See all projects</span>
+            <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+        <FeaturedProjects />
       </section>
       </ScrollFadeIn>
 

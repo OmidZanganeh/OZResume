@@ -106,6 +106,12 @@
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   transition: border-color 0.18s, box-shadow 0.18s;
+  scroll-margin-top: 84px;
+}
+
+.card:target {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18), var(--shadow-md);
 }
 
 .card:hover {

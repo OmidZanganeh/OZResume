@@ -3,7 +3,7 @@ import Link from 'next/link';
 import DarkModeToggle from '../components/DarkModeToggle';
 import ProjectMediaGallery from './ProjectMediaGallery';
 import type { ProjectTag } from './projectsData';
-import { projects } from './projectsData';
+import { projects, slugify } from './projectsData';
 import styles from './page.module.css';
 
 function ProjectTags({ tags, variant }: { tags: ProjectTag[]; variant: 'overlay' | 'inline' }) {
@@ -57,7 +57,7 @@ export default function ProjectsPage() {
       <main className={styles.main}>
         <div className={styles.list}>
           {projects.map(p => (
-            <article key={p.title} className={styles.card}>
+            <article key={p.title} id={slugify(p.title)} className={styles.card}>
               {p.images.length > 0 ? (
                 <ProjectMediaGallery
                   images={p.images}
