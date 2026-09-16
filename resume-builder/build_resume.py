@@ -303,7 +303,8 @@ def build():
         'geoprocessing, SQL Server pipelines, and applied AI for engineering teams. Proven results: '
         '~90% fewer manual GIS steps, multi-day workflows reduced to minutes, and AI-assisted '
         'contract sourcing in hours instead of months. 2025 Edison Award Nominee and 2026 Edison '
-        'Award Winner at Olsson. MS Geography (GIS&T), University of Nebraska at Omaha, 4.0 GPA.',
+        'Award Winner at Olsson for demonstrating superior technical ability. MS Geography (GIS&T), '
+        'University of Nebraska at Omaha, 4.0 GPA.',
         size=9.5, color=BLACK)
 
     # ── WORK EXPERIENCE ───────────────────────────────────────────────────────
