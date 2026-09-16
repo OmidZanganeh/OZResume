@@ -95,6 +95,48 @@ export const projects: ProjectEntry[] = [
     tech: ['C#', '.NET 8', 'ArcGIS Pro SDK', 'WPF', 'SQL Server', 'OpenStreetMap'],
   },
   {
+    title: 'Street View in ArcGIS Pro',
+    subtitle: 'In-app street-level pole and asset verification',
+    tags: [
+      { label: 'ArcGIS Pro', tone: 'blue' },
+      { label: '.NET 8', tone: 'cyan' },
+      { label: 'Street View', tone: 'green' },
+      { label: 'Field Verification', tone: 'orange' },
+    ],
+    images: [],
+    problem:
+      'Checking poles and street-level equipment meant leaving ArcGIS Pro, copying coordinates into a browser, and hunting for the right Street View panorama — slow and easy to lose map context.',
+    solution:
+      'Built an ArcGIS Pro add-in (C# / .NET 8 / WPF) with a map tool and right-click action that opens the matching Google Street View panorama in a docked WebView2 panel. Optional second click sets viewing direction so analysts can verify assets without leaving the map.',
+    impact: [
+      'One-click street-level verification inside ArcGIS Pro',
+      'No browser / coordinate-copy context switch',
+      'Distributed as a self-contained .esriAddinX installer',
+    ],
+    tech: ['C#', '.NET 8', 'ArcGIS Pro SDK', 'WPF', 'WebView2', 'Google Street View'],
+  },
+  {
+    title: 'Parcel Owner Classifier',
+    subtitle: 'AI classification of development firms for fiber expansion',
+    tags: [
+      { label: 'Azure OpenAI', tone: 'blue' },
+      { label: 'Python', tone: 'green' },
+      { label: 'SQL Server', tone: 'orange' },
+      { label: 'Telecom', tone: 'cyan' },
+    ],
+    images: [],
+    problem:
+      'Finding where development is happening for fiber expansion meant manually reviewing huge parcel-owner tables — too slow to flag investment and development firms at scale.',
+    solution:
+      'Built a Python desktop app (Tkinter, PyInstaller) that uses Azure OpenAI to classify property owners as development/investment firms in SQL Server. Supports parallel batch workers, rate limiting and retries, keyword pre-filtering, confidence thresholds, and a live progress log.',
+    impact: [
+      'Automated classification across large parcel datasets',
+      'Faster fiber expansion analysis where development is concentrated',
+      'Minimal manual review with tunable confidence and pre-filters',
+    ],
+    tech: ['Python', 'Azure OpenAI', 'SQL Server', 'pyodbc', 'Tkinter', 'PyInstaller'],
+  },
+  {
     title: 'FTTH Network Designer',
     subtitle: 'Automated fiber optic network planning in ArcGIS Pro',
     tags: [

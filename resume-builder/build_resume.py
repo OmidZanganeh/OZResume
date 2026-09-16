@@ -328,10 +328,12 @@ def build():
         'by ~90% and sped up fiber network design.',
 
         'Shipped ArcGIS Pro add-ins (.NET/C#/WPF) adopted across projects and teams — including a '
-        'GIS Data Downloader used firm-wide, FTTH Network Designer, RF Analysis panel, and Street View tool.',
+        'GIS Data Downloader used firm-wide, FTTH Network Designer, RF Analysis panel, and a Street '
+        'View tool for in-map pole and asset verification.',
 
         'Learned iBwave to deliver DAS (distributed antenna system) designs, and built AI tools '
-        '(Azure OpenAI, Google AI Studio, YOLO) that cut contract sourcing from months to hours.',
+        '(Azure OpenAI, Google AI Studio, YOLO) for contract sourcing and parcel-owner '
+        'classification that spot development activity for fiber expansion analysis.',
     ]
     for b in olsson_bullets:
         bullet_para(doc, b)
@@ -379,6 +381,14 @@ def build():
          'C# · .NET 8 · ArcGIS Pro SDK · WPF · REST APIs',
          'Downloads OSM, USGS, FEMA, Census/TIGER, Wikipedia, and BSL layers into ArcGIS Pro. '
          'Adopted firm-wide across projects and teams.'),
+        ('Street View in ArcGIS Pro', 'In-App Pole & Asset Verification',
+         'C# · .NET 8 · ArcGIS Pro SDK · WPF · WebView2',
+         'One-click Google Street View inside ArcGIS Pro so analysts can verify poles and '
+         'street-level equipment without leaving the map.'),
+        ('Parcel Owner Classifier', 'AI Development Detection for Fiber Expansion',
+         'Python · Azure OpenAI · SQL Server · Tkinter · PyInstaller',
+         'Classifies parcel owners as development/investment firms in large SQL datasets to '
+         'find where growth is happening for fiber expansion analysis.'),
         ('RF Analysis Tool', '8-Tool Wireless Planning Panel',
          'C# · ArcGIS Pro SDK · Python',
          'Coverage prediction, PCI/RSI planner, tilt/azimuth optimizers, interference analysis, '
