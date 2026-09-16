@@ -24,9 +24,9 @@ export interface ProjectEntry {
 export const projects: ProjectEntry[] = [
   {
     title: 'RFP Radar',
-    subtitle: 'AI-powered RFP sourcing and contract classification',
+    subtitle: 'Applied AI (Azure OpenAI) for RFP sourcing and classification',
     tags: [
-      { label: 'AI & Automation', tone: 'blue' },
+      { label: 'Applied AI', tone: 'blue' },
       { label: 'Azure OpenAI', tone: 'blue' },
       { label: 'Telecom', tone: 'cyan' },
       { label: 'Production', tone: 'green' },
@@ -38,13 +38,13 @@ export const projects: ProjectEntry[] = [
     problem:
       'Manual RFP searching required analysts to spend months reviewing thousands of government contracts to find relevant fiber and telecom opportunities.',
     solution:
-      'Built a production desktop application using Azure OpenAI and Google AI Studio to automate web grounding, intelligent classification, and matching of RFPs to company capabilities. Features batch search, URL validation, and CSV export.',
+      'Built a production desktop application that applies Azure OpenAI (Azure AI Foundry) to automate web grounding, intelligent classification, and matching of RFPs to company capabilities. Features batch search, URL validation, and CSV export.',
     impact: [
       'Processing time reduced from months to hours',
       'Automated classification of thousands of contracts',
       'Deployed as a production tool at Olsson',
     ],
-    tech: ['Python', 'Azure OpenAI', 'Google AI Studio', 'ArcGIS', 'SQL Server'],
+    tech: ['Python', 'Azure OpenAI', 'Azure AI Foundry', 'C#', 'SQL Server'],
   },
   {
     title: 'Fiber Automatic Expansion',
@@ -96,10 +96,10 @@ export const projects: ProjectEntry[] = [
   },
   {
     title: 'Street View in ArcGIS Pro',
-    subtitle: 'In-app street-level pole and asset verification',
+    subtitle: 'In-app pole and asset verification via Google Street View API',
     tags: [
       { label: 'ArcGIS Pro', tone: 'blue' },
-      { label: '.NET 8', tone: 'cyan' },
+      { label: 'Google API', tone: 'cyan' },
       { label: 'Street View', tone: 'green' },
       { label: 'Field Verification', tone: 'orange' },
     ],
@@ -107,20 +107,20 @@ export const projects: ProjectEntry[] = [
     problem:
       'Checking poles and street-level equipment meant leaving ArcGIS Pro, copying coordinates into a browser, and hunting for the right Street View panorama — slow and easy to lose map context.',
     solution:
-      'Built an ArcGIS Pro add-in (C# / .NET 8 / WPF) with a map tool and right-click action that opens the matching Google Street View panorama in a docked WebView2 panel. Optional second click sets viewing direction so analysts can verify assets without leaving the map.',
+      'Built an ArcGIS Pro add-in (C# / .NET 8 / WPF) that calls the Google Street View API from a map tool and right-click action, rendering the matching panorama in a docked WebView2 panel. Optional second click sets viewing direction so analysts can verify assets without leaving the map.',
     impact: [
       'One-click street-level verification inside ArcGIS Pro',
-      'No browser / coordinate-copy context switch',
+      'Powered by the Google Street View API',
       'Distributed as a self-contained .esriAddinX installer',
     ],
-    tech: ['C#', '.NET 8', 'ArcGIS Pro SDK', 'WPF', 'WebView2', 'Google Street View'],
+    tech: ['C#', '.NET 8', 'ArcGIS Pro SDK', 'WPF', 'Google Street View API', 'WebView2'],
   },
   {
     title: 'Parcel Owner Classifier',
-    subtitle: 'AI classification of development firms for fiber expansion',
+    subtitle: 'Applied AI (Azure OpenAI) for fiber expansion development detection',
     tags: [
+      { label: 'Applied AI', tone: 'blue' },
       { label: 'Azure OpenAI', tone: 'blue' },
-      { label: 'Python', tone: 'green' },
       { label: 'SQL Server', tone: 'orange' },
       { label: 'Telecom', tone: 'cyan' },
     ],
@@ -128,13 +128,13 @@ export const projects: ProjectEntry[] = [
     problem:
       'Finding where development is happening for fiber expansion meant manually reviewing huge parcel-owner tables — too slow to flag investment and development firms at scale.',
     solution:
-      'Built a Python desktop app (Tkinter, PyInstaller) that uses Azure OpenAI to classify property owners as development/investment firms in SQL Server. Supports parallel batch workers, rate limiting and retries, keyword pre-filtering, confidence thresholds, and a live progress log.',
+      'Built a Python desktop app (Tkinter, PyInstaller) that applies Azure OpenAI to classify property owners as development/investment firms in SQL Server. Supports parallel batch workers, rate limiting and retries, keyword pre-filtering, confidence thresholds, and a live progress log.',
     impact: [
-      'Automated classification across large parcel datasets',
+      'Applied Azure AI across large parcel datasets',
       'Faster fiber expansion analysis where development is concentrated',
       'Minimal manual review with tunable confidence and pre-filters',
     ],
-    tech: ['Python', 'Azure OpenAI', 'SQL Server', 'pyodbc', 'Tkinter', 'PyInstaller'],
+    tech: ['Python', 'Azure OpenAI', 'Azure AI Foundry', 'SQL Server', 'pyodbc', 'PyInstaller'],
   },
   {
     title: 'FTTH Network Designer',

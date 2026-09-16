@@ -331,9 +331,9 @@ def build():
         'GIS Data Downloader used firm-wide, FTTH Network Designer, RF Analysis panel, and a Street '
         'View tool for in-map pole and asset verification.',
 
-        'Learned iBwave to deliver DAS (distributed antenna system) designs, and built AI tools '
-        '(Azure OpenAI, Google AI Studio, YOLO) for contract sourcing and parcel-owner '
-        'classification that spot development activity for fiber expansion analysis.',
+        'Learned iBwave to deliver DAS (distributed antenna system) designs, and applied Azure '
+        'OpenAI for contract sourcing and parcel-owner classification that spots development '
+        'activity for fiber expansion analysis.',
     ]
     for b in olsson_bullets:
         bullet_para(doc, b)
@@ -360,9 +360,9 @@ def build():
     section_header(doc, 'Selected Projects')
 
     projects = [
-        ('RFP Radar', 'AI-Powered RFP Sourcing',
-         'Azure OpenAI · Google Gemini · Playwright · Python/C#',
-         'Desktop app for web-grounded RFP search, classification, and CSV export. '
+        ('RFP Radar', 'Applied AI for RFP Sourcing (Azure)',
+         'Azure OpenAI · Azure AI Foundry · Python/C# · Playwright',
+         'Applied Azure OpenAI to search, classify, and match RFPs at scale. '
          'Months of sourcing → hours.'),
         ('Bore Profile Automation', 'Directional Drilling Profile Generator',
          'Python · C# · ArcGIS Pro · SQL Server · Matplotlib',
@@ -382,13 +382,13 @@ def build():
          'Downloads OSM, USGS, FEMA, Census/TIGER, Wikipedia, and BSL layers into ArcGIS Pro. '
          'Adopted firm-wide across projects and teams.'),
         ('Street View in ArcGIS Pro', 'In-App Pole & Asset Verification',
-         'C# · .NET 8 · ArcGIS Pro SDK · WPF · WebView2',
-         'One-click Google Street View inside ArcGIS Pro so analysts can verify poles and '
-         'street-level equipment without leaving the map.'),
-        ('Parcel Owner Classifier', 'AI Development Detection for Fiber Expansion',
-         'Python · Azure OpenAI · SQL Server · Tkinter · PyInstaller',
-         'Classifies parcel owners as development/investment firms in large SQL datasets to '
-         'find where growth is happening for fiber expansion analysis.'),
+         'C# · .NET 8 · ArcGIS Pro SDK · WPF · Google Street View API',
+         'One-click Google Street View API panoramas inside ArcGIS Pro so analysts can verify '
+         'poles and street-level equipment without leaving the map.'),
+        ('Parcel Owner Classifier', 'Applied AI for Fiber Expansion (Azure)',
+         'Python · Azure OpenAI · Azure AI Foundry · SQL Server · PyInstaller',
+         'Applied Azure OpenAI to classify parcel owners as development/investment firms in '
+         'large SQL datasets — finding where growth is happening for fiber expansion analysis.'),
         ('RF Analysis Tool', '8-Tool Wireless Planning Panel',
          'C# · ArcGIS Pro SDK · Python',
          'Coverage prediction, PCI/RSI planner, tilt/azimuth optimizers, interference analysis, '
