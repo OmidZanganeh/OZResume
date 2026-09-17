@@ -20,6 +20,8 @@ import LandsatNameSidebars from "./components/LandsatNameSidebars";
 import BusinessCard from "./components/BusinessCard";
 import { RichTextParagraphs, RichTextBullets } from "./components/RichText";
 import FeaturedProjects from "./components/FeaturedProjects";
+import LinkedInPosts from "./components/LinkedInPosts";
+import { linkedinPosts } from "./data/linkedinPosts";
 import type { SiteContent, NowIcon } from "../sanity/types";
 
 // ─── Inline SVG Icons ────────────────────────────────────────────────────────
@@ -267,6 +269,29 @@ export default function Resume({ content }: { content: SiteContent }) {
         <FeaturedProjects />
       </section>
       </ScrollFadeIn>
+
+      {/* ══════════════════════════════════════
+          FROM LINKEDIN
+      ══════════════════════════════════════ */}
+      {linkedinPosts.length > 0 && (
+        <ScrollFadeIn delay={95}>
+        <section className={styles.projectsSection}>
+          <div className={styles.projectsHeader}>
+            <h2 className={styles.sectionTitle}>From LinkedIn</h2>
+            <a
+              href="https://www.linkedin.com/in/omidzanganeh/recent-activity/all/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.seeAll}
+            >
+              <span>More on LinkedIn</span>
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+          <LinkedInPosts />
+        </section>
+        </ScrollFadeIn>
+      )}
 
       {/* ══════════════════════════════════════
           MAIN GRID
