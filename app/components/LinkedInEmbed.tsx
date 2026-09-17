@@ -12,7 +12,7 @@ import styles from './LinkedInPosts.module.css';
  * scrolls near the viewport, and shows a shimmer placeholder until then and
  * while it loads.
  */
-export default function LinkedInEmbed({ urn, height, collapsed }: LinkedInPostRef) {
+export default function LinkedInEmbed({ urn, type, height, collapsed }: LinkedInPostRef) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -35,7 +35,7 @@ export default function LinkedInEmbed({ urn, height, collapsed }: LinkedInPostRe
     return () => observer.disconnect();
   }, []);
 
-  const embedUrl = `https://www.linkedin.com/embed/feed/update/urn:li:ugcPost:${urn}${collapsed ? '?collapsed=1' : ''}`;
+  const embedUrl = `https://www.linkedin.com/embed/feed/update/urn:li:${type}:${urn}${collapsed ? '?collapsed=1' : ''}`;
 
   return (
     <div ref={ref} className={styles.postWrap}>
