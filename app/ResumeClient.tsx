@@ -271,29 +271,6 @@ export default function Resume({ content }: { content: SiteContent }) {
       </ScrollFadeIn>
 
       {/* ══════════════════════════════════════
-          FROM LINKEDIN
-      ══════════════════════════════════════ */}
-      {linkedinPosts.length > 0 && (
-        <ScrollFadeIn delay={95}>
-        <section className={styles.projectsSection}>
-          <div className={styles.projectsHeader}>
-            <h2 className={styles.sectionTitle}>From LinkedIn</h2>
-            <a
-              href="https://www.linkedin.com/in/omidzanganeh/recent-activity/all/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.seeAll}
-            >
-              <span>More on LinkedIn</span>
-              <span aria-hidden="true">→</span>
-            </a>
-          </div>
-          <LinkedInPosts />
-        </section>
-        </ScrollFadeIn>
-      )}
-
-      {/* ══════════════════════════════════════
           MAIN GRID
       ══════════════════════════════════════ */}
       <div className={styles.grid}>
@@ -438,6 +415,29 @@ export default function Resume({ content }: { content: SiteContent }) {
         </div>
         </ScrollFadeIn>
       </div>
+
+      {/* ══════════════════════════════════════
+          FROM LINKEDIN
+      ══════════════════════════════════════ */}
+      {linkedinPosts.length > 0 && (
+        <ScrollFadeIn delay={60}>
+        <section className={styles.projectsSection}>
+          <div className={styles.projectsHeader}>
+            <h2 className={styles.sectionTitle}>From LinkedIn</h2>
+            <a
+              href="https://www.linkedin.com/in/omidzanganeh/recent-activity/all/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.seeAll}
+            >
+              <span>More on LinkedIn</span>
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+          <LinkedInPosts />
+        </section>
+        </ScrollFadeIn>
+      )}
 
       {/* ══════════════════════════════════════
           GAME MODAL
