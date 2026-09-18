@@ -11,7 +11,9 @@
 }
 
 .frameBox {
+  position: relative;
   width: 100%;
+  height: 640px;
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--border-light);
@@ -23,6 +25,18 @@
   height: 100%;
   border: none;
   display: block;
+}
+
+/* Hints that the post continues below and can be scrolled — every card is
+   the same height regardless of how long the underlying post actually is. */
+.scrollFade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--paper-light) 82%);
+  pointer-events: none;
 }
 
 .skeleton {

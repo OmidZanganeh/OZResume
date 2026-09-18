@@ -5,6 +5,15 @@ import type { LinkedInPostRef } from '../data/linkedinPosts';
 import styles from './LinkedInPosts.module.css';
 
 /**
+ * Every embedded post renders at this height regardless of how tall LinkedIn
+ * says the content actually is — posts vary wildly (one line vs. a full
+ * write-up with images), and a fixed height keeps the grid uniform. Content
+ * past this height scrolls inside the iframe itself; LinkedIn's embed page
+ * allows internal scroll on its own, so nothing extra is needed for that.
+ */
+export const LINKEDIN_POST_HEIGHT = 640;
+
+/**
  * Renders one embedded LinkedIn post.
  *
  * LinkedIn's embed iframe pulls in its own JS/CSS, so mounting several at once
@@ -12,7 +21,7 @@ import styles from './LinkedInPosts.module.css';
  * scrolls near the viewport, and shows a shimmer placeholder until then and
  * while it loads.
  */
-export default function LinkedInEmbed({ urn, type, height, collapsed }: LinkedInPostRef) {
+export default function LinkedInEmbed({ urn, type, collapsed }: LinkedInPostRef) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -39,12 +48,12 @@ export default function LinkedInEmbed({ urn, type, height, collapsed }: LinkedIn
 
   return (
     <div ref={ref} className={styles.postWrap}>
-      <div className={styles.frameBox} style={{ height }}>
+      <div className={styles.frameBox}>
         {!loaded && <div className={styles.skeleton} aria-hidden="true" />}
         {inView && (
           <iframe
             src={embedUrl}
-            height={height}
+            height={LINKEDIN_POST_HEIGHT}
             width={504}
             style={{ display: loaded ? 'block' : 'none' }}
             className={styles.iframe}
@@ -53,6 +62,7 @@ export default function LinkedInEmbed({ urn, type, height, collapsed }: LinkedIn
             onLoad={() => setLoaded(true)}
           />
         )}
+        {loaded && <div className={styles.scrollFade} aria-hidden="true" />}
       </div>
       <a
         href={embedUrl}
