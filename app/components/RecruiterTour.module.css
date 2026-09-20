@@ -126,6 +126,17 @@
   text-shadow: 0 0 8px rgba(180, 79, 255, 0.5);
 }
 
+/* Six tabs no longer fit evenly on narrow screens without clipping their own
+   labels — switch to natural-width tabs and let the row scroll horizontally
+   (it already has overflow-x: auto) instead of squeezing text into overlap. */
+@media (max-width: 560px) {
+  .tab {
+    flex: 0 0 auto;
+    min-width: 76px;
+    padding: 10px 10px;
+  }
+}
+
 .body {
   flex: 1;
   overflow-y: auto;
@@ -337,8 +348,8 @@
   50% { transform: rotate(2deg); }
 }
 
-.mascotRig[data-step='4'].mascotRigTalking,
-.mascotRig[data-step='4']:not(.mascotRigTalking) {
+.mascotRig[data-step='5'].mascotRigTalking,
+.mascotRig[data-step='5']:not(.mascotRigTalking) {
   animation: rigCelebrate 1.2s ease-in-out infinite;
 }
 

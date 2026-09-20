@@ -14,6 +14,8 @@ export type DialogueSeg = { s: string; strong?: boolean };
 type Step = {
   tab: string;
   title: string;
+  /** Mascot badge emoji for this step — defaults to 🗺️ if omitted. */
+  badge?: string;
   dialogue: DialogueSeg[];
   links?: { href: string; label: string; external?: boolean; download?: boolean }[];
 };
@@ -26,7 +28,7 @@ const STEPS: Step[] = [
       { s: "I'm " },
       { s: 'Geo-Bot', strong: true },
       {
-        s: " — your live guide on this site.\n\nOmid built me so you get the pitch in under a minute: who he is, what he ships, where to click — without scrolling a wall of text first.",
+        s: " — Omid's live guide on this site.\n\nHe built me so you get the pitch in under a minute: who he is, what he ships, and why you can trust him to deliver — without scrolling a wall of text first.",
       },
       { s: '\n\n' },
       { s: 'Use the neon tabs up top, or tap ' },
@@ -37,6 +39,7 @@ const STEPS: Step[] = [
   {
     tab: 'Who',
     title: 'Who is Omid?',
+    badge: '🎓',
     dialogue: [
       { s: "He's a " },
       { s: 'Senior GIS Developer and Analyst', strong: true },
@@ -45,24 +48,30 @@ const STEPS: Step[] = [
       { s: '.' },
       { s: '\n\n' },
       {
-        s: 'MS Geography / GIS&T from UNO with a 4.0 GPA and GRACA Project Award. Former grad instructor (150+ students as instructor of record), and GIS tech on the Omaha Spatial Justice Project.',
+        s: 'MS Geography / GIS&T from UNO — 4.0 GPA, GRACA Project Award. Former grad instructor of record for 150+ students, and GIS tech on the Omaha Spatial Justice Project.',
       },
       { s: '\n\n' },
       { s: '2025 Edison Award Nominee and 2026 Edison Award Winner', strong: true },
-      { s: ' at Olsson for GIS workflow automation and AI engineering contributions.' },
+      { s: ' at Olsson for demonstrating superior technical ability.' },
     ],
   },
   {
-    tab: 'Impact',
+    tab: 'Ships',
     title: 'What he ships',
+    badge: '🛠️',
     dialogue: [
       {
-        s: 'Python & C# desktop apps, ArcGIS Pro add-ins, and geoprocessing toolboxes that eliminate days of manual work: bore profile automation, FTTH design, density-based fiber expansion planning used across multiple clients, RF panels, and a GIS data downloader adopted firm-wide. He also learned iBwave to deliver DAS designs.',
+        s: 'ArcGIS Pro add-ins and Python/C# desktop apps that eliminate days of manual work: bore profile automation, FTTH network design, a Street View add-in for one-click field verification, and a density-based fiber expansion tool now running across ',
       },
+      { s: 'multiple client engagements', strong: true },
+      { s: '.' },
+      { s: ' His GIS Data Downloader is adopted ' },
+      { s: 'firm-wide', strong: true },
+      { s: '.' },
       { s: '\n\n' },
-      { s: 'AI engineering: ' },
+      { s: 'Applied AI, built on Azure OpenAI: ' },
       { s: 'RFP Radar', strong: true },
-      { s: ' (Azure OpenAI + Google AI Studio — months of sourcing compressed to hours), YOLO-based utility infrastructure detection from aerial and street-level imagery, and SQL-integrated batch classifiers.' },
+      { s: ' compresses months of contract sourcing into hours, and a parcel-owner classifier flags development activity for fiber expansion — plus YOLO-based utility detection from aerial and street-level imagery.' },
       { s: '\n\n' },
       { s: 'He cares about ' },
       { s: 'clarity', strong: true },
@@ -74,11 +83,36 @@ const STEPS: Step[] = [
     ],
   },
   {
+    tab: 'Reliable',
+    title: 'He gets the job done.',
+    badge: '✅',
+    dialogue: [
+      { s: "Here's the thing recruiters actually need to know: " },
+      { s: 'when Omid commits to a deliverable, it ships.', strong: true },
+      { s: ' Not as a slogan — as a track record.' },
+      { s: '\n\n' },
+      { s: "His tools aren't demoed once and forgotten. They're adopted " },
+      { s: 'firm-wide', strong: true },
+      { s: ', or running across ' },
+      { s: 'multiple client engagements', strong: true },
+      { s: ' — which only happens when something is built to be depended on.' },
+      { s: '\n\n' },
+      { s: 'The ' },
+      { s: '2026 Edison Award', strong: true },
+      {
+        s: " wasn't for one clever script. It was for a full year of production work that shipped, held up under real use, and kept saving the team real hours.",
+      },
+      { s: '\n\n' },
+      { s: 'Bring him a hard problem, and expect it solved — on time, without drama, and without you needing to check in.' },
+    ],
+  },
+  {
     tab: 'Explore',
     title: 'Dig deeper',
+    badge: '🧭',
     dialogue: [
       {
-        s: "This isn't a PDF-only résumé. There's a Projects page, a full Tools hub — GIS downloader, converters, demos — and yes, a games lobby if you need a break.",
+        s: "This isn't a PDF-only résumé. Scroll the homepage for a Selected Projects rail and real LinkedIn posts about the work, or check out the Projects page, a full Tools hub, and yes — a games lobby if you need a break.",
       },
       { s: '\n\n' },
       { s: 'Grab the PDF from the header anytime. When you are done here, I will point you to contact options.' },
@@ -92,31 +126,20 @@ const STEPS: Step[] = [
   {
     tab: 'Hello',
     title: 'Say hello',
+    badge: '👋',
     dialogue: [
-      { s: 'If the role fits, Omid would love a conversation. ' },
+      { s: "If the role fits, Omid would love a conversation — " },
       { s: 'LinkedIn', strong: true },
       { s: ', ' },
       { s: 'email', strong: true },
       { s: ', or the ' },
       { s: 'contact form', strong: true },
-      { s: ' at the bottom of this page — all fair game.' },
+      { s: ' at the bottom of this page all work.' },
       { s: '\n\n' },
-      {
-        s: 'On request, he can provide ',
-      },
+      { s: 'On request, he can share ' },
       { s: 'recommendation letters', strong: true },
       {
         s: ' from supervisors and managers who have worked with him directly — so your decision can be grounded in more than a résumé scan.',
-      },
-      { s: '\n\n' },
-      { s: 'Count on someone who ' },
-      { s: 'gets the job done', strong: true },
-      {
-        s: ': dependable execution, clear communication, and deliverables that hold up when it matters. Stakeholders who have backed him have been ',
-      },
-      { s: 'proud of that decision', strong: true },
-      {
-        s: ' — and he works so they never need to regret it. That bar is what he holds himself to on every assignment.',
       },
       { s: '\n\n' },
       { s: 'Thanks for giving a GIS hire a real read. ' },
@@ -321,7 +344,7 @@ export default function RecruiterTour({ open, onClose }: Props) {
                     <span className={`${styles.arm} ${styles.armR} ${talking ? styles.armWaveR : ''}`} />
                     <div className={styles.chestGlow} />
                   </div>
-                  <div className={styles.mapBadge}>🗺️</div>
+                  <div className={styles.mapBadge}>{s.badge ?? '🗺️'}</div>
                 </div>
               </div>
               <div className={`${styles.nameplate} ${orbitron.className}`}>
