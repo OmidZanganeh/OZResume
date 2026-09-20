@@ -197,8 +197,8 @@ export default function Resume({ content }: { content: SiteContent }) {
               <Link href="/projects" className={styles.projectsBtn}>
                 <FolderIcon /> Projects
               </Link>
-              <WebAppsHoverCard suppressPopover={gameOpen} />
-              <ToolsHoverCard suppressPopover={gameOpen} />
+              <WebAppsHoverCard suppressPopover={gameOpen || tourOpen} />
+              <ToolsHoverCard suppressPopover={gameOpen || tourOpen} />
               <Link href="/news" className={styles.projectsBtn}>
                 <SignalIcon /> AI News
               </Link>

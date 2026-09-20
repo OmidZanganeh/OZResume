@@ -89,7 +89,7 @@
   transition: opacity 0.15s ease 0s, transform 0.15s ease 0s;
 }
 
-/* Game modal / other overlays: never show popover (avoids stacking above modals) */
+/* Game / Recruiter tour overlays: never show popover (avoids stacking above modals) */
 .wrapper.suppressPopover::after {
   display: none;
 }

@@ -3,7 +3,8 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 1001;
+  /* Above Tools/Web Apps popovers (9999); matches GameHub stacking */
+  z-index: 10000;
   background: rgba(0, 0, 0, 0.82);
   backdrop-filter: blur(12px);
   display: flex;
